@@ -1,0 +1,6 @@
+# Observatory Adapter Requirements for Existing Agents
+websockets>=11.0.3
+psutil>=5.9.5
+asyncio-mqtt>=0.11.1
+aiofiles>=23.2.1
+pydantic>=2.4.2

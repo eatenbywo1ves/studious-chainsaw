@@ -1,0 +1,36 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(/C:\\Users\\Corbin\\multi-agent-observatory/**)",
+      "Read(/C:\\Users\\Corbin\\multi-agent-observatory/**)",
+      "Read(/C:\\Users\\Corbin\\multi-agent-observatory\\scripts/**)",
+      "Read(/C:\\Users\\Corbin\\multi-agent-observatory\\scripts/**)",
+      "Read(/C:\\Users\\Corbin\\multi-agent-observatory/**)",
+      "Bash(npm ls:*)",
+      "Read(/C:\\Users\\Corbin\\multi-agent-observatory\\server/**)",
+      "Bash(node:*)",
+      "Bash(npm --version)",
+      "Bash(npm install)",
+      "Bash(timeout:*)",
+      "Bash(C:UsersCorbin.bunbinbun.exe --version)",
+      "Bash(\"C:\\Users\\Corbin\\.bun\\bin\\bun.exe\" --version)",
+      "Read(/C:\\Users\\Corbin\\multi-agent-observatory\\server/**)",
+      "Read(/C:\\Users\\Corbin\\multi-agent-observatory\\server/**)",
+      "Read(/C:\\Users\\Corbin\\multi-agent-observatory\\server/**)",
+      "Read(/C:\\Users\\Corbin\\multi-agent-observatory\\server/**)",
+      "Bash(npm rebuild:*)",
+      "Bash(curl:*)",
+      "Read(/C:\\Users\\Corbin\\multi-agent-observatory/**)",
+      "Read(/C:\\Users\\Corbin\\.claude/**)",
+      "Read(/C:\\Users\\Corbin\\.claude\\agents/**)",
+      "mcp__filesystem__directory_tree",
+      "mcp__filesystem__list_directory",
+      "mcp__filesystem__read_file",
+      "mcp__filesystem__read_multiple_files",
+      "Read(/C:\\Users\\Corbin\\Downloads/**)",
+      "Read(/C:\\Users\\Corbin\\Downloads/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

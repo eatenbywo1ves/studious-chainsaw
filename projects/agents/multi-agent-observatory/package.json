@@ -1,0 +1,36 @@
+{
+  "name": "multi-agent-observatory",
+  "version": "1.0.0",
+  "description": "Complete Multi-Agent Observability System with real-time monitoring",
+  "main": "index.js",
+  "scripts": {
+    "setup": "bash scripts/setup.sh",
+    "start": "bash scripts/start-all.sh",
+    "start:server": "cd server && bun run start",
+    "start:agents": "bash scripts/start-agents.sh",
+    "start:dashboard": "cd dashboard && python -m http.server 3000",
+    "init-db": "cd server && bun run init-db",
+    "health": "curl http://localhost:8080/health",
+    "test": "echo \"Run setup first: npm run setup\""
+  },
+  "keywords": [
+    "observability",
+    "multi-agent",
+    "monitoring",
+    "websocket",
+    "real-time",
+    "dashboard",
+    "bun",
+    "sqlite"
+  ],
+  "author": "Multi-Agent Observatory Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/multi-agent-observatory.git"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "bun": ">=1.0.0"
+  }
+}

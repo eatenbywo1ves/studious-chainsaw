@@ -1,0 +1,67 @@
+{
+  "pdf_processing": {
+    "default_input_dir": "Downloads",
+    "default_output_dir": "extracted_images",
+    "image_format": "jpg",
+    "image_naming_pattern": "extracted_{:03d}",
+    "supported_formats": [".pdf"]
+  },
+  "image_processing": {
+    "source_dir": "extracted_images",
+    "dest_dir": "renamed_images", 
+    "supported_formats": [".jpg", ".png", ".jpeg"],
+    "image_mappings": {
+      "extracted_004.jpg": "network-cluster.png",
+      "extracted_005.jpg": "nmap-interface.png",
+      "extracted_088.jpg": "camera1.png",
+      "extracted_089.jpg": "camera2.png",
+      "extracted_000.jpg": "system-overview1.png",
+      "extracted_001.jpg": "system-overview2.png",
+      "extracted_002.jpg": "system-overview3.png",
+      "extracted_003.jpg": "system-overview4.png",
+      "extracted_006.jpg": "network-diagram1.png",
+      "extracted_007.jpg": "network-diagram2.png",
+      "extracted_008.jpg": "security-architecture.png",
+      "extracted_009.jpg": "threat-model1.png",
+      "extracted_010.jpg": "threat-model2.png",
+      "extracted_011.jpg": "vulnerability-scan1.png",
+      "extracted_012.jpg": "vulnerability-scan2.png",
+      "extracted_013.jpg": "security-dashboard.png"
+    }
+  },
+  "html_processing": {
+    "template_dir": "templates",
+    "output_dir": "output",
+    "css_file": "styles/document.css",
+    "placeholder_mappings": {
+      "[PLACEHOLDER: network-cluster]": "<img src=\"renamed_images/network-cluster.png\" alt=\"Network Cluster\">",
+      "[PLACEHOLDER: nmap-interface]": "<img src=\"renamed_images/nmap-interface.png\" alt=\"Nmap Interface\">", 
+      "[PLACEHOLDER: camera1]": "<img src=\"renamed_images/camera1.png\" alt=\"Camera 1\">",
+      "[PLACEHOLDER: camera2]": "<img src=\"renamed_images/camera2.png\" alt=\"Camera 2\">",
+      "[PLACEHOLDER: system-overview1]": "<img src=\"renamed_images/system-overview1.png\" alt=\"System Overview 1\">",
+      "[PLACEHOLDER: system-overview2]": "<img src=\"renamed_images/system-overview2.png\" alt=\"System Overview 2\">",
+      "[PLACEHOLDER: system-overview3]": "<img src=\"renamed_images/system-overview3.png\" alt=\"System Overview 3\">",
+      "[PLACEHOLDER: system-overview4]": "<img src=\"renamed_images/system-overview4.png\" alt=\"System Overview 4\">",
+      "[PLACEHOLDER: network-diagram1]": "<img src=\"renamed_images/network-diagram1.png\" alt=\"Network Diagram 1\">",
+      "[PLACEHOLDER: network-diagram2]": "<img src=\"renamed_images/network-diagram2.png\" alt=\"Network Diagram 2\">",
+      "[PLACEHOLDER: security-architecture]": "<img src=\"renamed_images/security-architecture.png\" alt=\"Security Architecture\">",
+      "[PLACEHOLDER: threat-model1]": "<img src=\"renamed_images/threat-model1.png\" alt=\"Threat Model 1\">",
+      "[PLACEHOLDER: threat-model2]": "<img src=\"renamed_images/threat-model2.png\" alt=\"Threat Model 2\">",
+      "[PLACEHOLDER: vulnerability-scan1]": "<img src=\"renamed_images/vulnerability-scan1.png\" alt=\"Vulnerability Scan 1\">",
+      "[PLACEHOLDER: vulnerability-scan2]": "<img src=\"renamed_images/vulnerability-scan2.png\" alt=\"Vulnerability Scan 2\">",
+      "[PLACEHOLDER: security-dashboard]": "<img src=\"renamed_images/security-dashboard.png\" alt=\"Security Dashboard\">"
+    }
+  },
+  "pdf_generation": {
+    "page_size": "A4",
+    "margins": "1cm",
+    "font_family": "Arial, sans-serif",
+    "base_url_relative": true
+  },
+  "logging": {
+    "level": "INFO",
+    "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    "log_to_file": false,
+    "log_file": "processing.log"
+  }
+}

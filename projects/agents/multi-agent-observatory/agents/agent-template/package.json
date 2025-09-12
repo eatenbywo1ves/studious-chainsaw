@@ -1,0 +1,19 @@
+{
+  "name": "multi-agent-observatory-agent-template",
+  "version": "1.0.0",
+  "description": "Template for Multi-Agent Observatory monitoring agents",
+  "main": "agent.js",
+  "scripts": {
+    "start": "node agent.js",
+    "dev": "node --watch agent.js",
+    "test": "node test.js"
+  },
+  "type": "module",
+  "dependencies": {
+    "ws": "^8.16.0",
+    "uuid": "^9.0.1"
+  },
+  "keywords": ["observability", "agent", "monitoring", "websocket"],
+  "author": "Multi-Agent Observatory",
+  "license": "MIT"
+}

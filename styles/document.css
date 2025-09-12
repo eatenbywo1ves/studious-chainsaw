@@ -1,0 +1,143 @@
+/* Document CSS for PDF generation */
+@page {
+    size: A4;
+    margin: 1cm;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    line-height: 1.6;
+    margin: 0;
+    padding: 20px;
+    color: #333;
+}
+
+/* Headings */
+h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+    margin-top: 1.5em;
+    margin-bottom: 0.5em;
+}
+
+h1 {
+    font-size: 2em;
+    border-bottom: 2px solid #333;
+    padding-bottom: 0.3em;
+}
+
+h2 {
+    font-size: 1.5em;
+    color: #2c3e50;
+}
+
+h3 {
+    font-size: 1.3em;
+    color: #34495e;
+}
+
+/* Images */
+img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 10px auto;
+    page-break-inside: avoid;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 5px;
+    background: #fff;
+}
+
+/* Placeholders */
+.placeholder {
+    border: 2px dashed #ccc;
+    padding: 20px;
+    margin: 10px 0;
+    background: #f9f9f9;
+    page-break-inside: avoid;
+    text-align: center;
+    color: #666;
+}
+
+.placeholder code {
+    background: #e0e0e0;
+    padding: 2px 5px;
+    border-radius: 3px;
+    font-family: 'Courier New', monospace;
+}
+
+/* Tables */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1em 0;
+    page-break-inside: avoid;
+}
+
+th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+
+th {
+    background-color: #f2f2f2;
+    font-weight: bold;
+}
+
+/* Code blocks */
+pre, code {
+    font-family: 'Courier New', monospace;
+    background-color: #f4f4f4;
+    padding: 5px;
+    border-radius: 3px;
+}
+
+pre {
+    padding: 10px;
+    border-left: 4px solid #3498db;
+    page-break-inside: avoid;
+    overflow-x: auto;
+}
+
+/* Lists */
+ul, ol {
+    margin: 1em 0;
+    padding-left: 2em;
+}
+
+li {
+    margin: 0.5em 0;
+}
+
+/* Page breaks */
+.page-break {
+    page-break-before: always;
+}
+
+.no-break {
+    page-break-inside: avoid;
+}
+
+/* Print-specific styles */
+@media print {
+    body {
+        font-size: 12pt;
+    }
+    
+    h1 {
+        font-size: 18pt;
+    }
+    
+    h2 {
+        font-size: 16pt;
+    }
+    
+    h3 {
+        font-size: 14pt;
+    }
+    
+    .no-print {
+        display: none;
+    }
+}

@@ -1,0 +1,115 @@
+{
+  "monitoring": {
+    "default_interface": "auto",
+    "capture_duration": 60,
+    "capture_dir": "./captures",
+    "database": "./network_monitor.db",
+    "auto_start": false
+  },
+  
+  "genetic_algorithm": {
+    "population_size": 50,
+    "generations": 10,
+    "mutation_rate": 0.15,
+    "crossover_rate": 0.7,
+    "elitism_rate": 0.2,
+    "tournament_size": 3
+  },
+  
+  "filters": {
+    "base_filters": [
+      {
+        "name": "SYN Flood Detection",
+        "expression": "tcp.flags.syn == 1 && tcp.flags.ack == 0",
+        "priority": 10,
+        "description": "Detects potential SYN flood attacks"
+      },
+      {
+        "name": "Large ICMP",
+        "expression": "icmp && frame.len > 1000",
+        "priority": 8,
+        "description": "Detects abnormally large ICMP packets"
+      },
+      {
+        "name": "SMB/NetBIOS Traffic",
+        "expression": "tcp.port == 445 || tcp.port == 139",
+        "priority": 7,
+        "description": "Monitors SMB/NetBIOS traffic"
+      },
+      {
+        "name": "DNS Amplification",
+        "expression": "dns && udp.length > 512",
+        "priority": 9,
+        "description": "Detects potential DNS amplification attacks"
+      },
+      {
+        "name": "Port Scanning",
+        "expression": "tcp.flags.syn == 1 && tcp.flags.ack == 0 && tcp.flags.fin == 0",
+        "priority": 8,
+        "description": "Detects potential port scanning activity"
+      },
+      {
+        "name": "Malformed Packets",
+        "expression": "tcp.analysis.flags || ip.checksum_bad",
+        "priority": 9,
+        "description": "Detects malformed or suspicious packets"
+      },
+      {
+        "name": "ARP Spoofing",
+        "expression": "arp.duplicate-address-detected",
+        "priority": 10,
+        "description": "Detects potential ARP spoofing attacks"
+      },
+      {
+        "name": "HTTPS Traffic",
+        "expression": "tcp.port == 443",
+        "priority": 5,
+        "description": "Monitors HTTPS traffic"
+      },
+      {
+        "name": "SSH Brute Force",
+        "expression": "tcp.port == 22 && tcp.flags.syn == 1",
+        "priority": 8,
+        "description": "Monitors SSH connection attempts"
+      },
+      {
+        "name": "Suspicious Outbound",
+        "expression": "tcp.dstport == 4444 || tcp.dstport == 31337",
+        "priority": 10,
+        "description": "Detects connections to common backdoor ports"
+      }
+    ],
+    
+    "custom_filters": []
+  },
+  
+  "anomaly_detection": {
+    "port_scan_threshold": 10,
+    "syn_flood_threshold": 50,
+    "large_transfer_threshold_mb": 100,
+    "dns_tunnel_threshold": 100,
+    "time_window_seconds": 60
+  },
+  
+  "threat_assessment": {
+    "suspicious_ports": [23, 135, 137, 139, 445, 1433, 3389, 4444, 5900, 31337],
+    "trusted_networks": ["192.168.1.0/24", "10.0.0.0/8"],
+    "blocked_ips": [],
+    "alert_threshold": 3
+  },
+  
+  "reporting": {
+    "auto_generate": true,
+    "report_interval_minutes": 60,
+    "export_format": ["json", "html", "csv"],
+    "email_alerts": false,
+    "webhook_url": null
+  },
+  
+  "performance": {
+    "max_packet_buffer": 10000,
+    "analysis_threads": 4,
+    "db_batch_size": 100,
+    "memory_limit_mb": 500
+  }
+}

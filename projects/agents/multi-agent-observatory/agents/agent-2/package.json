@@ -1,0 +1,15 @@
+{
+  "name": "agent-2",
+  "version": "1.0.0",
+  "description": "Agent 2 - Data Processor",
+  "main": "agent-2.js",
+  "scripts": {
+    "start": "node agent-2.js",
+    "dev": "node --watch agent-2.js"
+  },
+  "type": "module",
+  "dependencies": {
+    "ws": "^8.16.0",
+    "uuid": "^9.0.1"
+  }
+}

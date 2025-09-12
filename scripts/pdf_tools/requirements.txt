@@ -1,0 +1,12 @@
+# PDF Processing Tools Requirements
+# Install with: pip install -r requirements.txt
+
+# PDF Generation and Manipulation
+weasyprint>=60.0
+PyMuPDF>=1.23.0  # fitz module
+
+# Image Processing (if needed for PDF images)
+Pillow>=10.0.0
+
+# Standard utilities
+python-dateutil>=2.8.2
