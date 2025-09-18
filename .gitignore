@@ -8,17 +8,20 @@ NTUSER.DAT*
 ntuser.dat*
 ntuser.ini
 AppData/
-"Application Data/"
+Application Data/
 Contacts/
 Cookies/
 Favorites/
-"Local Settings/"
-"My Documents/"
+Local Settings/
+My Documents/
+NetHood/
+PrintHood/
 Recent/
-"Saved Games/"
+Saved Games/
 Searches/
 SendTo/
-"Start Menu/"
+Start Menu/
+Templates/
 
 # User Profile Directories (typically shouldn't be in repo)
 Desktop/
