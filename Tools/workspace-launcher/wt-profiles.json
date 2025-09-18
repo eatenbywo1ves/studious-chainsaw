@@ -1,0 +1,77 @@
+{
+  "profiles": {
+    "full-development": {
+      "name": "Full Development Workspace",
+      "tabs": [
+        {
+          "name": "MCP Orchestrator",
+          "profile": "Command Prompt",
+          "startingDirectory": "C:\\Users\\Corbin",
+          "commandline": "cmd /k python Tools\\mcp-orchestrator\\mcp_orchestrator.py monitor"
+        },
+        {
+          "name": "MCP Dashboard",
+          "profile": "Command Prompt",
+          "startingDirectory": "C:\\Users\\Corbin",
+          "commandline": "cmd /k python Tools\\mcp-orchestrator\\dashboard.py"
+        },
+        {
+          "name": "Active Project",
+          "profile": "Command Prompt",
+          "startingDirectory": "C:\\Users\\Corbin\\projects\\active",
+          "commandline": "cmd /k echo Active Project Directory && dir"
+        },
+        {
+          "name": "Git Status",
+          "profile": "Git Bash",
+          "startingDirectory": "C:\\Users\\Corbin",
+          "commandline": "bash -c 'git status && exec bash'"
+        }
+      ]
+    },
+    "mcp-services": {
+      "name": "MCP Services",
+      "tabs": [
+        {
+          "name": "MCP Orchestrator",
+          "profile": "Command Prompt",
+          "startingDirectory": "C:\\Users\\Corbin",
+          "commandline": "cmd /k python Tools\\mcp-orchestrator\\mcp_orchestrator.py monitor"
+        },
+        {
+          "name": "MCP Dashboard",
+          "profile": "Command Prompt",
+          "startingDirectory": "C:\\Users\\Corbin",
+          "commandline": "cmd /k python Tools\\mcp-orchestrator\\dashboard.py"
+        },
+        {
+          "name": "Logs",
+          "profile": "Command Prompt",
+          "startingDirectory": "C:\\Users\\Corbin\\Tools\\mcp-orchestrator",
+          "commandline": "cmd /k type orchestrator.log && pause"
+        }
+      ]
+    },
+    "financial": {
+      "name": "Financial Development",
+      "tabs": [
+        {
+          "name": "Financial Simulator",
+          "profile": "Command Prompt",
+          "startingDirectory": "C:\\Users\\Corbin\\projects\\financial-apps\\financial-simulator",
+          "commandline": "cmd /k npm run dev"
+        },
+        {
+          "name": "MCP Services",
+          "profile": "Command Prompt",
+          "startingDirectory": "C:\\Users\\Corbin",
+          "commandline": "cmd /k python Tools\\mcp-orchestrator\\mcp_orchestrator.py monitor"
+        }
+      ]
+    }
+  },
+  "launchModes": {
+    "maximized": true,
+    "focusOnLaunch": true
+  }
+}
