@@ -1,0 +1,127 @@
+{
+  "timestamp": "2025-09-19 23:13:25",
+  "tests": {
+    "test_01_basic_lattice_creation": {
+      "elapsed": 0.010632753372192383,
+      "passed": true
+    },
+    "test_02_path_finding_algorithms": {
+      "elapsed": 0.018180131912231445,
+      "passed": true
+    },
+    "test_03_parallel_processing_integration": {
+      "elapsed": 0.02144169807434082,
+      "passed": true
+    },
+    "test_04_memory_efficiency_integration": {
+      "elapsed": 0.05902528762817383,
+      "passed": true
+    },
+    "test_05_algorithm_correctness_integration": {
+      "elapsed": 0.0004994869232177734,
+      "passed": true
+    },
+    "test_06_performance_scaling_integration": {
+      "elapsed": 0.03007674217224121,
+      "passed": true
+    },
+    "test_07_gpu_acceleration_integration": {
+      "elapsed": 0.09420180320739746,
+      "passed": true
+    },
+    "test_08_visualization_integration": {
+      "elapsed": 1.5714256763458252,
+      "passed": true
+    },
+    "test_09_cross_component_workflow": {
+      "elapsed": 0.04761481285095215,
+      "passed": true
+    },
+    "test_10_stress_test_integration": {
+      "elapsed": 0.19718599319458008,
+      "passed": true
+    }
+  },
+  "performance": {
+    "scaling": [
+      {
+        "dims": 3,
+        "size": 4,
+        "n_points": 64,
+        "build_time": 0.0009539127349853516,
+        "path_time": 0.00011348724365234375
+      },
+      {
+        "dims": 3,
+        "size": 6,
+        "n_points": 216,
+        "build_time": 0.006066560745239258,
+        "path_time": 0.0002048015594482422
+      },
+      {
+        "dims": 4,
+        "size": 4,
+        "n_points": 256,
+        "build_time": 0.003969907760620117,
+        "path_time": 0.00026345252990722656
+      },
+      {
+        "dims": 4,
+        "size": 5,
+        "n_points": 625,
+        "build_time": 0.013418197631835938,
+        "path_time": 0.0003361701965332031
+      },
+      {
+        "dims": 5,
+        "size": 3,
+        "n_points": 243,
+        "build_time": 0.004205942153930664,
+        "path_time": 0.0001506805419921875
+      }
+    ],
+    "workflow": [
+      [
+        "create",
+        0.01239013671875
+      ],
+      [
+        "pathfind",
+        0.0007977485656738281
+      ],
+      [
+        "analyze",
+        0.0337214469909668
+      ],
+      [
+        "parallel",
+        0.0004611015319824219
+      ]
+    ],
+    "stress": [
+      {
+        "config": "3D x 10",
+        "n_points": 1000,
+        "time": 0.02499842643737793,
+        "success": true
+      },
+      {
+        "config": "3D x 15",
+        "n_points": 3375,
+        "time": 0.08340907096862793,
+        "success": true
+      },
+      {
+        "config": "4D x 7",
+        "n_points": 2401,
+        "time": 0.0886845588684082,
+        "success": true
+      }
+    ]
+  },
+  "memory": {
+    "traditional_dense": 12.814453125,
+    "igraph_sparse": 0.06591796875,
+    "catalytic": 0.625
+  }
+}
