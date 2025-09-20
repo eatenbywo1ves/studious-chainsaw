@@ -1,172 +1,144 @@
-# Windows System Files
-Thumbs.db
-ehthumbs.db
-Desktop.ini
-$RECYCLE.BIN/
-*.lnk
-NTUSER.DAT*
-ntuser.dat*
-ntuser.ini
-AppData/
-Application Data/
-Contacts/
-Cookies/
-Favorites/
-Local Settings/
-My Documents/
-NetHood/
-PrintHood/
-Recent/
-Saved Games/
-Searches/
-SendTo/
-Start Menu/
-Templates/
+# .gitignore for Corbin's Development Workspace
 
-# User Profile Directories (typically shouldn't be in repo)
-Desktop/
-Documents/
-Downloads/
-Music/
-Pictures/
-Videos/
-OneDrive/
-Links/
+# ===========================================
+# User Configuration Files (Keep Local)
+# ===========================================
+.bash_profile
+.bashrc
+.gitconfig
+.gitconfig-*
+.github-shortcuts.sh
+.gitmessage
+.gnupg/
+.ssh/
+.claude.json
+.mcp.json
+.config/
 
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
-.python_history
-*.egg-info/
-dist/
-build/
-*.egg
-
-# Virtual Environments
-.venv/
-.virtualenv/
-
-# IDE and Editors
+# ===========================================
+# IDE and Editor Files
+# ===========================================
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 .DS_Store
+Thumbs.db
 
-# Node
+# ===========================================
+# Python
+# ===========================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.pytest_cache/
+.coverage
+.hypothesis/
+
+# ===========================================
+# Node.js
+# ===========================================
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-package-lock.json
-yarn.lock
+lerna-debug.log*
 .npm
+.yarn-integrity
 
-# Logs
+# ===========================================
+# Build Outputs and Generated Files
+# ===========================================
+*.html
 *.log
-logs/
-*.log.*
+*.tmp
+*.temp
+*.bak
+*.cache
+orchestrator_state.json
+refactoring_data.json
 
-# Database
+# ===========================================
+# Database Files
+# ===========================================
 *.db
 *.sqlite
 *.sqlite3
 
-# Environment Variables
-.env
-.env.local
-.env.*.local
+# ===========================================
+# Test Outputs
+# ===========================================
+test-results/
+coverage/
+*.coverage
+htmlcov/
 
-# Credentials and Secrets
-.ssh/
-*.pem
-*.key
-*.crt
-*.pfx
-secrets/
-credentials/
+# ===========================================
+# Archive and Backup Directories
+# ===========================================
+Archive/
+backup/
+old/
 
-# Cache and Temporary Files
-.cache/
-.tmp/
-tmp/
-temp/
-*.tmp
-*.temp
-*.bak
-*.backup
-*.backup-
-*.swp
+# ===========================================
+# Data and Output Directories
+# ===========================================
+Data/
+outputs/
+results/
 
-# Build Tools
-.gradle/
-.bun/
-.windows-build-tools/
+# ===========================================
+# Docker Files (Keep Dockerfile)
+# ===========================================
+.docker/
+!Dockerfile
+!docker-compose*.yml
 
-# MCP and Claude Config Backups
-*.backup
-*.backup-
-.mcp.json.backup*
-.claude.json.backup*
-
-# Authentication
-.mcp-auth/
-.ollama/
-
-# Streamlit
-.streamlit/
-
-# PDF Filler Profiles
-.pdf-filler-profiles/
-
-# Local Configuration (keep the actual configs)
-.local/
-
-# Extracted/Generated Directories
-extracted_images/
-renamed_images/
-
-# Executables (be selective about what to commit)
+# ===========================================
+# Binary and Executable Files
+# ===========================================
+bin/
 *.exe
 *.dll
 *.so
 *.dylib
 
-# Archives (can be large)
-*.zip
-*.tar.gz
-*.rar
-*.7z
+# ===========================================
+# Temporary Files
+# ===========================================
+tmp/
+temp/
+*.tmp
+*.temp
 
-# Curl
-curl/
-
-# Work logs (might contain sensitive info)
-work_logs/
-remote_work_logs/
-
-# Miscellaneous
-nul
-tailscale-setup.exe
-
-# Project-specific test outputs
-genetic_results.json
-test_results/
-coverage/
-
-# Keep these configuration files
-!.gitconfig
-!.mcp.json
-!.claude.json
-!requirements.txt
-!package.json
-!config_template.json
+# ===========================================
+# Claude Code Specific
+# ===========================================
+.claude/
+claude

@@ -1,0 +1,340 @@
+# Web Hooks Configuration for Catalytic Lattice System
+# This configuration defines all webhook endpoints, events, and security settings
+
+webhooks:
+  # Global configuration
+  global:
+    timeout_seconds: 30
+    max_retries: 5
+    retry_backoff_base: 2  # Exponential backoff: 2^attempt seconds
+    signature_algorithm: "hmac-sha256"
+    rate_limit:
+      requests_per_minute: 100
+      burst_size: 20
+
+  # Event definitions with associated webhooks
+  events:
+    # System Health Events
+    system.health:
+      - name: "health_check_failed"
+        description: "Triggered when a health check fails"
+        webhooks:
+          - url: "${MONITORING_WEBHOOK_URL}/health"
+            method: POST
+            headers:
+              Content-Type: "application/json"
+              X-Event-Type: "health.failed"
+            retry_on: [500, 502, 503, 504]
+
+      - name: "health_recovered"
+        description: "System recovered from unhealthy state"
+        webhooks:
+          - url: "${MONITORING_WEBHOOK_URL}/health"
+            method: POST
+
+    # Deployment Events
+    deployment.kubernetes:
+      - name: "pod_created"
+        description: "New pod deployed to cluster"
+        webhooks:
+          - url: "${K8S_WEBHOOK_URL}/pods"
+            method: POST
+            secret_ref: "k8s-webhook-secret"
+
+      - name: "pod_terminated"
+        description: "Pod terminated or crashed"
+        severity: "warning"
+        webhooks:
+          - url: "${K8S_WEBHOOK_URL}/pods"
+            method: POST
+            - url: "${SLACK_WEBHOOK_URL}"
+              method: POST
+              transform: "slack_message"
+
+      - name: "deployment_scaled"
+        description: "Deployment replicas changed"
+        webhooks:
+          - url: "${K8S_WEBHOOK_URL}/scale"
+            method: POST
+
+    # API Events
+    api.gateway:
+      - name: "request_rate_exceeded"
+        description: "API rate limit exceeded"
+        severity: "warning"
+        webhooks:
+          - url: "${MONITORING_WEBHOOK_URL}/alerts"
+            method: POST
+            priority: "high"
+
+      - name: "authentication_failed"
+        description: "Multiple authentication failures detected"
+        severity: "security"
+        webhooks:
+          - url: "${SECURITY_WEBHOOK_URL}/auth"
+            method: POST
+            - url: "${LOG_AGGREGATOR_URL}/security"
+              method: POST
+
+      - name: "new_api_version_deployed"
+        description: "New API version deployed"
+        webhooks:
+          - url: "${CI_CD_WEBHOOK_URL}/deploy"
+            method: POST
+
+    # Database Events
+    database.postgres:
+      - name: "connection_pool_exhausted"
+        description: "Database connection pool exhausted"
+        severity: "critical"
+        webhooks:
+          - url: "${DBA_WEBHOOK_URL}/alerts"
+            method: POST
+            priority: "urgent"
+            - url: "${PAGERDUTY_WEBHOOK_URL}"
+              method: POST
+
+      - name: "slow_query_detected"
+        description: "Query exceeded threshold time"
+        webhooks:
+          - url: "${MONITORING_WEBHOOK_URL}/database"
+            method: POST
+            include_query_details: true
+
+    # Redis Cache Events
+    cache.redis:
+      - name: "memory_threshold_exceeded"
+        description: "Redis memory usage above 80%"
+        severity: "warning"
+        webhooks:
+          - url: "${MONITORING_WEBHOOK_URL}/cache"
+            method: POST
+
+      - name: "eviction_started"
+        description: "Redis started evicting keys"
+        severity: "warning"
+        webhooks:
+          - url: "${MONITORING_WEBHOOK_URL}/cache"
+            method: POST
+
+    # Worker Events
+    worker.background:
+      - name: "job_failed"
+        description: "Background job failed after retries"
+        severity: "error"
+        webhooks:
+          - url: "${JOB_MONITOR_URL}/failures"
+            method: POST
+            include_stack_trace: true
+
+      - name: "queue_backlog_high"
+        description: "Job queue backlog exceeds threshold"
+        severity: "warning"
+        webhooks:
+          - url: "${MONITORING_WEBHOOK_URL}/queues"
+            method: POST
+            - url: "${AUTOSCALER_URL}/trigger"
+              method: POST
+              action: "scale_workers"
+
+    # Git/CI/CD Events
+    git.repository:
+      - name: "push_to_main"
+        description: "Code pushed to main branch"
+        webhooks:
+          - url: "${CI_CD_WEBHOOK_URL}/build"
+            method: POST
+            trigger_build: true
+
+      - name: "pull_request_opened"
+        description: "New PR opened"
+        webhooks:
+          - url: "${PR_REVIEWER_URL}/analyze"
+            method: POST
+
+      - name: "security_scan_failed"
+        description: "Security vulnerability detected"
+        severity: "security"
+        webhooks:
+          - url: "${SECURITY_WEBHOOK_URL}/scan"
+            method: POST
+            block_deployment: true
+
+    # MCP Server Events
+    mcp.servers:
+      - name: "server_started"
+        description: "MCP server started"
+        webhooks:
+          - url: "${MCP_MONITOR_URL}/status"
+            method: POST
+
+      - name: "server_error"
+        description: "MCP server encountered error"
+        severity: "error"
+        webhooks:
+          - url: "${MCP_MONITOR_URL}/errors"
+            method: POST
+
+      - name: "tool_execution_failed"
+        description: "MCP tool execution failed"
+        webhooks:
+          - url: "${MCP_MONITOR_URL}/tools"
+            method: POST
+
+    # Docker Events
+    docker.containers:
+      - name: "container_started"
+        description: "Docker container started"
+        webhooks:
+          - url: "${CONTAINER_MONITOR_URL}/start"
+            method: POST
+
+      - name: "container_stopped"
+        description: "Docker container stopped"
+        webhooks:
+          - url: "${CONTAINER_MONITOR_URL}/stop"
+            method: POST
+
+      - name: "container_health_failed"
+        description: "Container health check failed"
+        severity: "warning"
+        webhooks:
+          - url: "${CONTAINER_MONITOR_URL}/health"
+            method: POST
+
+    # Metrics/Monitoring Events
+    metrics.prometheus:
+      - name: "alert_firing"
+        description: "Prometheus alert triggered"
+        webhooks:
+          - url: "${ALERT_MANAGER_URL}/alerts"
+            method: POST
+
+      - name: "metric_threshold_exceeded"
+        description: "Custom metric exceeded threshold"
+        webhooks:
+          - url: "${MONITORING_WEBHOOK_URL}/metrics"
+            method: POST
+
+# Webhook Security Configuration
+security:
+  # HMAC signing for webhook payloads
+  signing:
+    enabled: true
+    header_name: "X-Webhook-Signature"
+    include_timestamp: true
+    timestamp_header: "X-Webhook-Timestamp"
+    max_time_diff_seconds: 300  # Reject if timestamp > 5 minutes old
+
+  # IP allowlisting (optional)
+  ip_allowlist:
+    enabled: false
+    allowed_ips:
+      - "10.0.0.0/8"
+      - "172.16.0.0/12"
+      - "192.168.0.0/16"
+
+  # Authentication methods
+  authentication:
+    - type: "bearer_token"
+      header: "Authorization"
+      token_source: "env:WEBHOOK_AUTH_TOKEN"
+    - type: "api_key"
+      header: "X-API-Key"
+      key_source: "secret:webhook-api-keys"
+
+# Delivery Configuration
+delivery:
+  # Queue configuration for reliable delivery
+  queue:
+    type: "redis"
+    connection_string: "redis://redis:6379/1"
+    max_queue_size: 10000
+    processing_workers: 5
+
+  # Circuit breaker for failing endpoints
+  circuit_breaker:
+    enabled: true
+    failure_threshold: 5  # Open circuit after 5 consecutive failures
+    timeout_seconds: 60   # Try again after 60 seconds
+    half_open_requests: 2 # Test with 2 requests when half-open
+
+  # Dead letter queue for permanently failed webhooks
+  dead_letter:
+    enabled: true
+    storage: "postgres"
+    retention_days: 30
+    alert_on_failure: true
+
+# Transformers for different webhook formats
+transformers:
+  slack_message:
+    type: "template"
+    template: |
+      {
+        "text": "{{ event_name }} occurred",
+        "blocks": [{
+          "type": "section",
+          "text": {
+            "type": "mrkdwn",
+            "text": "*Event:* {{ event_name }}\n*Severity:* {{ severity }}\n*Time:* {{ timestamp }}"
+          }
+        }]
+      }
+
+  github_webhook:
+    type: "template"
+    template: |
+      {
+        "event": "{{ event_name }}",
+        "repository": "{{ repo_name }}",
+        "sender": {
+          "login": "catalytic-system"
+        }
+      }
+
+  pagerduty_incident:
+    type: "template"
+    template: |
+      {
+        "incident": {
+          "type": "incident",
+          "title": "{{ event_name }}",
+          "service": {
+            "id": "{{ service_id }}",
+            "type": "service_reference"
+          },
+          "urgency": "{{ urgency }}",
+          "body": {
+            "type": "incident_body",
+            "details": "{{ event_details }}"
+          }
+        }
+      }
+
+# Monitoring and Observability
+monitoring:
+  metrics:
+    enabled: true
+    export_interval_seconds: 60
+    metrics_to_track:
+      - "webhook_deliveries_total"
+      - "webhook_failures_total"
+      - "webhook_delivery_duration_seconds"
+      - "webhook_queue_size"
+      - "webhook_circuit_breaker_state"
+
+  logging:
+    level: "INFO"
+    include_payload: false  # Set to true for debugging
+    sensitive_fields:  # Fields to redact in logs
+      - "password"
+      - "token"
+      - "secret"
+      - "api_key"
+
+  tracing:
+    enabled: true
+    sample_rate: 0.1  # Sample 10% of webhook deliveries
+    exporter: "jaeger"
+    endpoint: "http://jaeger:14268/api/traces"

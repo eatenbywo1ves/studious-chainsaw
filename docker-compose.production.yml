@@ -1,0 +1,272 @@
+version: '3.8'
+
+# MCP Servers Production Docker Compose Configuration
+
+services:
+  # Filesystem Server
+  mcp-filesystem:
+    image: node:20-alpine
+    container_name: mcp-filesystem
+    command: npx -y @modelcontextprotocol/server-filesystem /workspace
+    volumes:
+      - ./development:/workspace:ro
+      - ./logs/filesystem:/var/log
+    environment:
+      - NODE_ENV=production
+      - LOG_LEVEL=info
+    restart: unless-stopped
+    networks:
+      - mcp-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "process.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+
+  # Financial Localization Server
+  mcp-financial-localization:
+    build:
+      context: ./development/mcp-servers/financial/localization
+      dockerfile: Dockerfile
+    container_name: mcp-financial-localization
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - DEFAULT_LOCALE=en-US
+      - CACHE_ENABLED=true
+      - CACHE_TTL=3600
+    volumes:
+      - ./logs/financial-loc:/var/log
+    restart: unless-stopped
+    networks:
+      - mcp-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+
+  # Financial Stochastic Server
+  mcp-financial-stochastic:
+    build:
+      context: ./development/mcp-servers/financial/stochastic
+      dockerfile: Dockerfile
+    container_name: mcp-financial-stochastic
+    ports:
+      - "3002:3002"
+    environment:
+      - NODE_ENV=production
+      - PORT=3002
+      - MAX_SIMULATIONS=10000
+      - PRECISION=high
+      - GPU_ACCELERATION=false
+    volumes:
+      - ./logs/financial-stoch:/var/log
+    restart: unless-stopped
+    networks:
+      - mcp-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3002/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+
+  # Multidimensional Stochastic Server
+  mcp-multidimensional:
+    build:
+      context: ./development/mcp-servers/financial/multidimensional
+      dockerfile: Dockerfile
+    container_name: mcp-multidimensional
+    ports:
+      - "3003:3003"
+    environment:
+      - NODE_ENV=production
+      - PORT=3003
+      - MAX_DIMENSIONS=100
+      - BATCH_SIZE=1000
+      - PARALLEL_PROCESSING=true
+    volumes:
+      - ./logs/multidim:/var/log
+    restart: unless-stopped
+    networks:
+      - mcp-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3003/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2.0'
+
+  # Random Walk Server
+  mcp-random-walk:
+    build:
+      context: ./development/mcp-servers/utilities/random-walk
+      dockerfile: Dockerfile
+    container_name: mcp-random-walk
+    ports:
+      - "3004:3004"
+    environment:
+      - NODE_ENV=production
+      - PORT=3004
+      - MAX_STEPS=1000000
+      - SEED_MODE=secure
+    volumes:
+      - ./logs/random-walk:/var/log
+    restart: unless-stopped
+    networks:
+      - mcp-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3004/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+
+  # Adaptive Control Server
+  mcp-adaptive-control:
+    build:
+      context: ./development/mcp-servers/utilities/adaptive-control
+      dockerfile: Dockerfile
+    container_name: mcp-adaptive-control
+    ports:
+      - "3005:3005"
+    environment:
+      - NODE_ENV=production
+      - PORT=3005
+      - LEARNING_RATE=0.01
+      - ADAPTATION_MODE=continuous
+      - MODEL_CHECKPOINT_INTERVAL=3600
+    volumes:
+      - ./logs/adaptive:/var/log
+      - ./models:/models
+    restart: unless-stopped
+    networks:
+      - mcp-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3005/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+
+  # NGINX Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: mcp-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+      - ./logs/nginx:/var/log/nginx
+    restart: unless-stopped
+    networks:
+      - mcp-network
+    depends_on:
+      - mcp-financial-localization
+      - mcp-financial-stochastic
+      - mcp-multidimensional
+      - mcp-random-walk
+      - mcp-adaptive-control
+
+  # Prometheus Monitoring
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: mcp-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.retention.time=30d'
+    restart: unless-stopped
+    networks:
+      - mcp-network
+
+  # Grafana Dashboard
+  grafana:
+    image: grafana/grafana:latest
+    container_name: mcp-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    restart: unless-stopped
+    networks:
+      - mcp-network
+    depends_on:
+      - prometheus
+
+  # Log Aggregation
+  loki:
+    image: grafana/loki:latest
+    container_name: mcp-loki
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./loki-config.yml:/etc/loki/local-config.yaml:ro
+      - loki-data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    restart: unless-stopped
+    networks:
+      - mcp-network
+
+  # Log Collector
+  promtail:
+    image: grafana/promtail:latest
+    container_name: mcp-promtail
+    volumes:
+      - ./promtail-config.yml:/etc/promtail/config.yml:ro
+      - ./logs:/var/log:ro
+    command: -config.file=/etc/promtail/config.yml
+    restart: unless-stopped
+    networks:
+      - mcp-network
+    depends_on:
+      - loki
+
+networks:
+  mcp-network:
+    driver: bridge
+
+volumes:
+  prometheus-data:
+  grafana-data:
+  loki-data:

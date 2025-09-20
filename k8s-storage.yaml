@@ -1,0 +1,66 @@
+# StorageClass for Dynamic Provisioning
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: fast-ssd
+  namespace: catalytic-lattice
+provisioner: kubernetes.io/no-provisioner  # Change based on your cloud provider
+parameters:
+  type: pd-ssd  # GCP
+  # type: gp3   # AWS
+  # type: managed-premium  # Azure
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+
+---
+# PersistentVolumeClaim for Redis
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: redis-pvc
+  namespace: catalytic-lattice
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: fast-ssd
+
+---
+# PersistentVolume for Shared Auxiliary Memory (NFS example)
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: aux-memory-pv
+  namespace: catalytic-lattice
+spec:
+  capacity:
+    storage: 100Gi
+  accessModes:
+  - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: shared-storage
+  # Example NFS configuration
+  nfs:
+    server: nfs-server.example.com
+    path: /shared/catalytic-aux-memory
+  # For local testing, use hostPath instead:
+  # hostPath:
+  #   path: /mnt/data/catalytic-aux-memory
+  #   type: DirectoryOrCreate
+
+---
+# PersistentVolumeClaim for Shared Auxiliary Memory
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: aux-memory-pvc
+  namespace: catalytic-lattice
+spec:
+  accessModes:
+  - ReadWriteMany
+  resources:
+    requests:
+      storage: 100Gi
+  storageClassName: shared-storage

@@ -1,0 +1,95 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: catalytic-lattice
+  labels:
+    app: catalytic-lattice
+    environment: production
+
+---
+# ConfigMap for application configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: catalytic-config
+  namespace: catalytic-lattice
+data:
+  NUMBA_NUM_THREADS: "8"
+  OMP_NUM_THREADS: "8"
+  CATALYTIC_MAX_MEMORY_GB: "4"
+  LOG_LEVEL: "INFO"
+  REDIS_HOST: "redis-service"
+  REDIS_PORT: "6379"
+  POSTGRES_HOST: "postgres-service"
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB: "catalytic"
+
+---
+# Secret for sensitive data
+apiVersion: v1
+kind: Secret
+metadata:
+  name: catalytic-secrets
+  namespace: catalytic-lattice
+type: Opaque
+stringData:
+  POSTGRES_USER: catalytic_user
+  POSTGRES_PASSWORD: changeme123
+  REDIS_PASSWORD: redispass123
+  API_KEY: your-api-key-here
+
+---
+# ResourceQuota for namespace
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: catalytic-quota
+  namespace: catalytic-lattice
+spec:
+  hard:
+    requests.cpu: "16"
+    requests.memory: 32Gi
+    limits.cpu: "32"
+    limits.memory: 64Gi
+    persistentvolumeclaims: "10"
+    services.loadbalancers: "2"
+
+---
+# NetworkPolicy for security
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: catalytic-network-policy
+  namespace: catalytic-lattice
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: catalytic-lattice
+    - podSelector:
+        matchLabels:
+          app: catalytic-lattice
+    ports:
+    - protocol: TCP
+      port: 8000
+    - protocol: TCP
+      port: 6379
+    - protocol: TCP
+      port: 5432
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: catalytic-lattice
+    ports:
+    - protocol: TCP
+      port: 443
+    - protocol: TCP
+      port: 53
+    - protocol: UDP
+      port: 53

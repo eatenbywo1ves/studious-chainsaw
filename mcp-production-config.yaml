@@ -1,0 +1,236 @@
+# MCP Servers Production Configuration
+# This file defines the production deployment settings for all MCP servers
+
+# Global Settings
+global:
+  environment: production
+  log_level: info
+  max_restarts: 5
+  restart_delay: 5000  # milliseconds
+  health_check_interval: 30000  # milliseconds
+  graceful_shutdown_timeout: 10000  # milliseconds
+
+# Server Configurations
+servers:
+  # File System Server
+  filesystem:
+    enabled: true
+    name: "MCP Filesystem Server"
+    command: "npx"
+    args:
+      - "-y"
+      - "@modelcontextprotocol/server-filesystem"
+      - "C:/Users/Corbin/development"
+    env:
+      NODE_ENV: production
+      MAX_FILE_SIZE: "10485760"  # 10MB
+      ALLOWED_EXTENSIONS: ".js,.ts,.py,.json,.md,.txt,.yaml,.yml"
+    resources:
+      memory_limit: "512M"
+      cpu_limit: 0.5
+    health_check:
+      enabled: true
+      endpoint: "/health"
+      timeout: 5000
+    auto_restart: true
+    monitoring:
+      metrics: true
+      logging: true
+
+  # Financial Localization Server
+  financial-localization:
+    enabled: true
+    name: "Financial Localization Server"
+    command: "node"
+    args:
+      - "C:/Users/Corbin/development/mcp-servers/financial/localization/dist/index.js"
+    env:
+      NODE_ENV: production
+      PORT: 3001
+      DEFAULT_LOCALE: "en-US"
+      CACHE_ENABLED: "true"
+      CACHE_TTL: "3600"
+    resources:
+      memory_limit: "256M"
+      cpu_limit: 0.25
+    health_check:
+      enabled: true
+      endpoint: "/health"
+      timeout: 3000
+    auto_restart: true
+
+  # Financial Stochastic Server
+  financial-stochastic:
+    enabled: true
+    name: "Financial Stochastic Server"
+    command: "node"
+    args:
+      - "C:/Users/Corbin/development/mcp-servers/financial/stochastic/dist/index.js"
+    env:
+      NODE_ENV: production
+      PORT: 3002
+      MAX_SIMULATIONS: "10000"
+      PRECISION: "high"
+      GPU_ACCELERATION: "false"  # Will be true when CUDA is configured
+    resources:
+      memory_limit: "1G"
+      cpu_limit: 1.0
+    health_check:
+      enabled: true
+      endpoint: "/health"
+      timeout: 5000
+    auto_restart: true
+
+  # Multidimensional Stochastic Server
+  multidimensional-stochastic:
+    enabled: true
+    name: "Multidimensional Stochastic Server"
+    command: "node"
+    args:
+      - "C:/Users/Corbin/development/mcp-servers/financial/multidimensional/dist/index.js"
+    env:
+      NODE_ENV: production
+      PORT: 3003
+      MAX_DIMENSIONS: "100"
+      BATCH_SIZE: "1000"
+      PARALLEL_PROCESSING: "true"
+    resources:
+      memory_limit: "2G"
+      cpu_limit: 2.0
+    health_check:
+      enabled: true
+      endpoint: "/health"
+      timeout: 5000
+    auto_restart: true
+
+  # Random Walk Server
+  random-walk:
+    enabled: true
+    name: "Random Walk Server"
+    command: "node"
+    args:
+      - "C:/Users/Corbin/development/mcp-servers/utilities/random-walk/dist/index.js"
+    env:
+      NODE_ENV: production
+      PORT: 3004
+      MAX_STEPS: "1000000"
+      SEED_MODE: "secure"
+    resources:
+      memory_limit: "512M"
+      cpu_limit: 0.5
+    health_check:
+      enabled: true
+      endpoint: "/health"
+      timeout: 3000
+    auto_restart: true
+
+  # Adaptive Control Server
+  adaptive-control:
+    enabled: true
+    name: "Adaptive Control Server"
+    command: "node"
+    args:
+      - "C:/Users/Corbin/development/mcp-servers/utilities/adaptive-control/dist/index.js"
+    env:
+      NODE_ENV: production
+      PORT: 3005
+      LEARNING_RATE: "0.01"
+      ADAPTATION_MODE: "continuous"
+      MODEL_CHECKPOINT_INTERVAL: "3600"
+    resources:
+      memory_limit: "1G"
+      cpu_limit: 1.0
+    health_check:
+      enabled: true
+      endpoint: "/health"
+      timeout: 5000
+    auto_restart: true
+
+# Monitoring Configuration
+monitoring:
+  prometheus:
+    enabled: true
+    port: 9090
+    scrape_interval: 15
+    retention_days: 30
+
+  grafana:
+    enabled: false  # Can be enabled when needed
+    port: 3000
+
+  alerts:
+    enabled: true
+    channels:
+      - type: console
+        level: error
+      - type: file
+        level: warning
+        path: "C:/Users/Corbin/logs/mcp-alerts.log"
+
+# Logging Configuration
+logging:
+  level: info
+  format: json
+  outputs:
+    - type: console
+      level: info
+    - type: file
+      path: "C:/Users/Corbin/logs/mcp-servers.log"
+      max_size: "100M"
+      max_files: 10
+      compress: true
+    - type: error
+      path: "C:/Users/Corbin/logs/mcp-errors.log"
+      level: error
+
+# Security Configuration
+security:
+  authentication:
+    enabled: false  # Enable when needed
+    type: api_key
+
+  rate_limiting:
+    enabled: true
+    requests_per_minute: 100
+    burst_size: 200
+
+  cors:
+    enabled: true
+    allowed_origins:
+      - "http://localhost:*"
+      - "https://localhost:*"
+    allowed_methods:
+      - GET
+      - POST
+      - OPTIONS
+
+  ssl:
+    enabled: false  # Enable for HTTPS
+    cert_path: ""
+    key_path: ""
+
+# Deployment Profiles
+profiles:
+  development:
+    log_level: debug
+    health_check_interval: 60000
+    auto_restart: false
+    monitoring:
+      prometheus:
+        enabled: false
+
+  staging:
+    log_level: info
+    health_check_interval: 30000
+    auto_restart: true
+    resources_multiplier: 0.5
+
+  production:
+    log_level: warning
+    health_check_interval: 15000
+    auto_restart: true
+    resources_multiplier: 1.0
+    backup:
+      enabled: true
+      interval: 86400  # Daily
+      retention_days: 7
