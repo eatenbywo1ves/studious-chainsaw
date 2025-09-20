@@ -1,0 +1,60 @@
+# Production Dockerfile for Catalytic Computing System
+FROM python:3.11-slim
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    build-essential \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements first for better caching
+COPY requirements-catalytic.txt /app/
+
+# Install Python dependencies
+RUN pip install --no-cache-dir \
+    numpy==1.24.3 \
+    scipy==1.10.1 \
+    igraph==0.10.4 \
+    numba==0.57.0 \
+    matplotlib==3.7.1 \
+    prometheus-client==0.17.0 \
+    fastapi==0.100.0 \
+    uvicorn==0.23.1 \
+    httpx==0.24.1 \
+    pyyaml==6.0
+
+# Copy application code
+COPY catalytic_lattice_computing.py /app/
+COPY catalytic_lattice_visualizer.py /app/
+COPY quantum_catalytic_lattice.py /app/
+COPY lattice_visualization.py /app/
+COPY production_api_server.py /app/
+COPY development/catalytic_lattice_graph.py /app/
+COPY development/memory_optimization_analyzer.py /app/
+
+# Create necessary directories
+RUN mkdir -p /app/data /app/logs /app/cache
+
+# Environment variables for optimization
+ENV PYTHONUNBUFFERED=1
+ENV NUMBA_CACHE_DIR=/app/cache
+ENV OMP_NUM_THREADS=4
+ENV MKL_NUM_THREADS=4
+ENV LATTICE_MEMORY_OPTIMIZATION=enabled
+ENV PARALLEL_CORES=12
+ENV CACHE_SIZE=1024
+
+# Expose ports
+EXPOSE 8080 8082
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
+
+# Run the production server
+CMD ["uvicorn", "production_api_server:app", "--host", "0.0.0.0", "--port", "8080", "--workers", "4"]

@@ -1,0 +1,105 @@
+version: '3.8'
+
+# Webhook System Docker Compose Configuration
+
+services:
+  # Webhook Server
+  webhook-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.webhook
+    container_name: webhook-server
+    ports:
+      - "8080:8080"  # API port
+      - "9090:9090"  # Metrics port
+    environment:
+      - PYTHONUNBUFFERED=1
+      - WEBHOOK_DB_PATH=/app/data/webhooks.db
+      - LOG_LEVEL=INFO
+      - WEBHOOK_PORT=8080
+      - METRICS_PORT=9090
+      - MAX_RETRIES=3
+      - RETRY_DELAY=5
+      - WEBHOOK_TIMEOUT=30
+    volumes:
+      - webhook-data:/app/data
+      - webhook-logs:/app/logs
+      - ./webhooks_config.yaml:/app/webhooks_config.yaml:ro
+    restart: unless-stopped
+    networks:
+      - webhook-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1.0'
+        reservations:
+          memory: 256M
+          cpus: '0.5'
+
+  # Redis for webhook queue (optional, for scaling)
+  redis:
+    image: redis:7-alpine
+    container_name: webhook-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    restart: unless-stopped
+    networks:
+      - webhook-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+
+  # Prometheus for monitoring (optional)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: webhook-prometheus
+    ports:
+      - "9091:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    restart: unless-stopped
+    networks:
+      - webhook-network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+
+networks:
+  webhook-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+
+volumes:
+  webhook-data:
+    driver: local
+  webhook-logs:
+    driver: local
+  redis-data:
+    driver: local
+  prometheus-data:
+    driver: local

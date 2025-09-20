@@ -1,0 +1,276 @@
+{
+  "catalytic-computing-dashboard": {
+    "uid": "catalytic-computing",
+    "title": "Catalytic Computing Performance",
+    "dashboard": {
+      "annotations": {
+        "list": [
+          {
+            "datasource": "Prometheus",
+            "enable": true,
+            "name": "Deployments",
+            "iconColor": "rgba(0, 211, 255, 1)",
+            "query": "changes(kube_deployment_status_replicas{namespace=\"catalytic-lattice\"}[5m]) > 0"
+          }
+        ]
+      },
+      "panels": [
+        {
+          "title": "Memory Efficiency",
+          "type": "graph",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+          "targets": [
+            {
+              "expr": "rate(catalytic_memory_efficiency_ratio[5m])",
+              "legendFormat": "Efficiency Ratio (200x target)"
+            }
+          ]
+        },
+        {
+          "title": "Lattice Operations/sec",
+          "type": "graph",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+          "targets": [
+            {
+              "expr": "rate(lattice_operations_total[1m])",
+              "legendFormat": "{{operation}}"
+            }
+          ]
+        },
+        {
+          "title": "XOR Transform Performance",
+          "type": "stat",
+          "gridPos": {"h": 4, "w": 6, "x": 0, "y": 8},
+          "targets": [
+            {
+              "expr": "avg(xor_transform_duration_ms)",
+              "legendFormat": "Avg Duration (ms)"
+            }
+          ]
+        },
+        {
+          "title": "Path Finding Speed",
+          "type": "stat",
+          "gridPos": {"h": 4, "w": 6, "x": 6, "y": 8},
+          "targets": [
+            {
+              "expr": "avg(path_finding_duration_ms)",
+              "legendFormat": "Avg Duration (ms)"
+            }
+          ]
+        },
+        {
+          "title": "Memory Usage vs Traditional",
+          "type": "bargauge",
+          "gridPos": {"h": 4, "w": 12, "x": 12, "y": 8},
+          "targets": [
+            {
+              "expr": "catalytic_memory_usage_bytes / traditional_memory_usage_bytes * 100",
+              "legendFormat": "Memory Savings %"
+            }
+          ]
+        },
+        {
+          "title": "Lattice Dimensions Distribution",
+          "type": "piechart",
+          "gridPos": {"h": 8, "w": 8, "x": 0, "y": 12},
+          "targets": [
+            {
+              "expr": "sum by (dimensions) (lattice_vertices_count)",
+              "legendFormat": "{{dimensions}}D"
+            }
+          ]
+        },
+        {
+          "title": "GPU Acceleration Status",
+          "type": "table",
+          "gridPos": {"h": 8, "w": 8, "x": 8, "y": 12},
+          "targets": [
+            {
+              "expr": "gpu_acceleration_enabled",
+              "format": "table"
+            }
+          ]
+        },
+        {
+          "title": "Cache Hit Rate",
+          "type": "gauge",
+          "gridPos": {"h": 8, "w": 8, "x": 16, "y": 12},
+          "targets": [
+            {
+              "expr": "rate(cache_hits_total[5m]) / (rate(cache_hits_total[5m]) + rate(cache_misses_total[5m])) * 100",
+              "legendFormat": "Cache Hit %"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "webhook-system-dashboard": {
+    "uid": "webhook-system",
+    "title": "Webhook System Monitoring",
+    "dashboard": {
+      "panels": [
+        {
+          "title": "Active Webhooks",
+          "type": "stat",
+          "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+          "targets": [
+            {
+              "expr": "webhook_active_count",
+              "legendFormat": "Active"
+            }
+          ]
+        },
+        {
+          "title": "Delivery Success Rate",
+          "type": "gauge",
+          "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+          "targets": [
+            {
+              "expr": "rate(webhook_deliveries_successful_total[5m]) / rate(webhook_deliveries_total[5m]) * 100",
+              "legendFormat": "Success %"
+            }
+          ]
+        },
+        {
+          "title": "Events/min",
+          "type": "stat",
+          "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+          "targets": [
+            {
+              "expr": "rate(webhook_events_triggered_total[1m]) * 60",
+              "legendFormat": "Events/min"
+            }
+          ]
+        },
+        {
+          "title": "Avg Response Time",
+          "type": "stat",
+          "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+          "targets": [
+            {
+              "expr": "avg(webhook_delivery_duration_seconds) * 1000",
+              "legendFormat": "ms"
+            }
+          ]
+        },
+        {
+          "title": "Webhook Deliveries",
+          "type": "graph",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+          "targets": [
+            {
+              "expr": "rate(webhook_deliveries_successful_total[5m])",
+              "legendFormat": "Successful"
+            },
+            {
+              "expr": "rate(webhook_deliveries_failed_total[5m])",
+              "legendFormat": "Failed"
+            },
+            {
+              "expr": "rate(webhook_deliveries_retrying_total[5m])",
+              "legendFormat": "Retrying"
+            }
+          ]
+        },
+        {
+          "title": "Event Types Distribution",
+          "type": "piechart",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+          "targets": [
+            {
+              "expr": "sum by (event_type) (increase(webhook_events_by_type_total[1h]))",
+              "legendFormat": "{{event_type}}"
+            }
+          ]
+        },
+        {
+          "title": "Queue Size",
+          "type": "graph",
+          "gridPos": {"h": 6, "w": 8, "x": 0, "y": 12},
+          "targets": [
+            {
+              "expr": "webhook_queue_size",
+              "legendFormat": "Queue Size"
+            }
+          ]
+        },
+        {
+          "title": "HTTP Status Codes",
+          "type": "bargauge",
+          "gridPos": {"h": 6, "w": 8, "x": 8, "y": 12},
+          "targets": [
+            {
+              "expr": "sum by (status_code) (rate(webhook_http_responses_total[5m]))",
+              "legendFormat": "{{status_code}}"
+            }
+          ]
+        },
+        {
+          "title": "Top Failed Webhooks",
+          "type": "table",
+          "gridPos": {"h": 6, "w": 8, "x": 16, "y": 12},
+          "targets": [
+            {
+              "expr": "topk(5, webhook_failures_by_url)",
+              "format": "table"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "kubernetes-cluster-dashboard": {
+    "uid": "k8s-cluster",
+    "title": "Kubernetes Cluster Overview",
+    "dashboard": {
+      "panels": [
+        {
+          "title": "Cluster CPU Usage",
+          "type": "graph",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+          "targets": [
+            {
+              "expr": "sum(rate(container_cpu_usage_seconds_total[5m])) by (namespace)",
+              "legendFormat": "{{namespace}}"
+            }
+          ]
+        },
+        {
+          "title": "Cluster Memory Usage",
+          "type": "graph",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+          "targets": [
+            {
+              "expr": "sum(container_memory_usage_bytes) by (namespace) / 1024 / 1024 / 1024",
+              "legendFormat": "{{namespace}} (GB)"
+            }
+          ]
+        },
+        {
+          "title": "Pod Status",
+          "type": "stat",
+          "gridPos": {"h": 4, "w": 6, "x": 0, "y": 8},
+          "targets": [
+            {
+              "expr": "sum(kube_pod_status_phase{phase=\"Running\", namespace=\"catalytic-lattice\"})",
+              "legendFormat": "Running"
+            }
+          ]
+        },
+        {
+          "title": "Node Status",
+          "type": "table",
+          "gridPos": {"h": 8, "w": 18, "x": 6, "y": 8},
+          "targets": [
+            {
+              "expr": "kube_node_status_condition{condition=\"Ready\", status=\"true\"}",
+              "format": "table"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
