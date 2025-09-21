@@ -1,0 +1,179 @@
+# Default values for catalytic-computing
+
+replicaCount: 3
+
+image:
+  repository: catalytic-computing/catalytic-computing
+  pullPolicy: IfNotPresent
+  tag: "1.0.0"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "9090"
+  prometheus.io/path: "/metrics"
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+
+service:
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+  annotations: {}
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+  hosts:
+    - host: api.catalytic-computing.io
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: catalytic-computing-tls
+      hosts:
+        - api.catalytic-computing.io
+
+resources:
+  limits:
+    cpu: 2000m
+    memory: 4Gi
+    nvidia.com/gpu: 1  # GPU resource for CUDA operations
+  requests:
+    cpu: 500m
+    memory: 1Gi
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+nodeSelector:
+  gpu: "true"  # Schedule on GPU nodes
+
+tolerations:
+  - key: "nvidia.com/gpu"
+    operator: "Exists"
+    effect: "NoSchedule"
+
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      podAffinityTerm:
+        labelSelector:
+          matchExpressions:
+          - key: app.kubernetes.io/name
+            operator: In
+            values:
+            - catalytic-computing
+        topologyKey: kubernetes.io/hostname
+
+# Catalytic Computing specific configuration
+catalytic:
+  # Catalyst memory configuration
+  catalyst:
+    maxMemoryMB: 1024
+    cleanupIntervalSeconds: 300
+    integrityCheckEnabled: true
+
+  # Lattice configuration
+  lattice:
+    maxDimensions: 1000
+    defaultComputeMode: "gpu"  # gpu, cpu, hybrid
+    cacheEnabled: true
+    cacheTTLSeconds: 3600
+
+  # API configuration
+  api:
+    rateLimit: 1000
+    maxRequestSize: "10MB"
+    cors:
+      enabled: true
+      origins: ["*"]
+
+  # Performance tuning
+  performance:
+    workerThreads: 4
+    gpuBatchSize: 256
+    memoryPoolSize: 512
+
+# Redis cache configuration
+redis:
+  enabled: true
+  architecture: standalone
+  auth:
+    enabled: true
+    password: "changeme"
+  master:
+    persistence:
+      enabled: true
+      size: 8Gi
+
+# Monitoring configuration
+monitoring:
+  enabled: true
+  prometheus:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      interval: 30s
+  grafana:
+    enabled: false
+    dashboards:
+      enabled: true
+
+# Health checks
+healthcheck:
+  liveness:
+    enabled: true
+    path: /health/live
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  readiness:
+    enabled: true
+    path: /health/ready
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+# ConfigMap for application configuration
+configMap:
+  create: true
+  data:
+    LOG_LEVEL: "INFO"
+    ENVIRONMENT: "production"
+    ENABLE_METRICS: "true"
+
+# Secrets management
+secrets:
+  create: true
+  externalSecrets:
+    enabled: false
+    backend: "aws-secrets-manager"
