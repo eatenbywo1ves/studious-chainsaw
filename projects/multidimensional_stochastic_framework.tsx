@@ -1,14 +1,13 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ScatterChart, Scatter, ResponsiveContainer, AreaChart, Area, BarChart, Bar } from 'recharts';
-import * as math from 'mathjs';
+import React, { useState, useMemo, useCallback } from 'react';
+import { XAxis, YAxis, CartesianGrid, Tooltip, Legend, ScatterChart, Scatter, ResponsiveContainer, BarChart, Bar } from 'recharts';
 
 const AdvancedMultidimensionalStochasticAnalyzer = () => {
   const [activeModel, setActiveModel] = useState('gbm');
   const [dimensionMode, setDimensionMode] = useState('3D');
   const [analysisMode, setAnalysisMode] = useState('trajectory');
   const [projectionView, setProjectionView] = useState('xy');
-  const [numSteps, setNumSteps] = useState(1000);
-  const [timeHorizon, setTimeHorizon] = useState(1.0);
+  const [numSteps] = useState(1000);
+  const [timeHorizon] = useState(1.0);
   const [parameters, setParameters] = useState({
     mu: 0.05,          // drift rate
     sigma: 0.2,        // volatility
@@ -31,7 +30,7 @@ const AdvancedMultidimensionalStochasticAnalyzer = () => {
   });
 
   // Multi-dimensional stochastic process generators with correlated components
-  const generateCorrelatedRandoms = (rho_xy: number, rho_xz: number, rho_yz: number) => {
+  const generateCorrelatedRandoms = useCallback((rho_xy: number, rho_xz: number, rho_yz: number) => {
     // Generate three independent standard normals
     const u1 = Math.random() * 2 - 1;
     const u2 = Math.random() * 2 - 1;
@@ -48,11 +47,11 @@ const AdvancedMultidimensionalStochasticAnalyzer = () => {
     const z = rho_xz * z1 + 
              (rho_yz - rho_xy * rho_xz) / Math.sqrt(1 - rho_xy ** 2) * z2 + 
              Math.sqrt(1 - rho_xz ** 2 - ((rho_yz - rho_xy * rho_xz) / Math.sqrt(1 - rho_xy ** 2)) ** 2) * z3;
-    
-    return { x, y, z };
-  };
 
-  const generateMultidimensionalGBM = (steps: number, T: number) => {
+    return { x, y, z };
+  }, []);
+
+  const generateMultidimensionalGBM = useCallback((steps: number, T: number) => {
     const dt = T / steps;
     const path = [{
       time: 0, x: 100, y: 100, z: 100, 
@@ -90,9 +89,9 @@ const AdvancedMultidimensionalStochasticAnalyzer = () => {
       });
     }
     return path;
-  };
+  }, [parameters, generateCorrelatedRandoms]);
 
-  const generateMultidimensionalOU = (steps: number, T: number) => {
+  const generateMultidimensionalOU = useCallback((steps: number, T: number) => {
     const dt = T / steps;
     const equilibrium = { x: Math.log(100), y: Math.log(100), z: Math.log(100) };
     const path = [{
@@ -136,9 +135,9 @@ const AdvancedMultidimensionalStochasticAnalyzer = () => {
       });
     }
     return path;
-  };
+  }, [parameters, generateCorrelatedRandoms]);
 
-  const generateMultidimensionalJumpDiffusion = (steps: number, T: number) => {
+  const generateMultidimensionalJumpDiffusion = useCallback((steps: number, T: number) => {
     const dt = T / steps;
     const path = [{
       time: 0, x: 100, y: 100, z: 100,
@@ -189,9 +188,9 @@ const AdvancedMultidimensionalStochasticAnalyzer = () => {
       });
     }
     return path;
-  };
+  }, [parameters, generateCorrelatedRandoms]);
 
-  const generateMultidimensionalFractionalBrownian = (steps: number, T: number) => {
+  const generateMultidimensionalFractionalBrownian = useCallback((steps: number, T: number) => {
     const dt = T / steps;
     const path = [{
       time: 0, x: 100, y: 100, z: 100,
@@ -263,7 +262,7 @@ const AdvancedMultidimensionalStochasticAnalyzer = () => {
       });
     }
     return path;
-  };
+  }, [parameters, generateCorrelatedRandoms]);
 
   // Generate process data based on selected model
   const processData = useMemo(() => {
@@ -285,7 +284,7 @@ const AdvancedMultidimensionalStochasticAnalyzer = () => {
         default: return generateMultidimensionalGBM(numSteps, timeHorizon);
       }
     }
-  }, [activeModel, dimensionMode, numSteps, timeHorizon, parameters]);
+  }, [activeModel, dimensionMode, numSteps, timeHorizon, generateMultidimensionalGBM, generateMultidimensionalOU, generateMultidimensionalJumpDiffusion, generateMultidimensionalFractionalBrownian]);
 
   // Multidimensional financial metrics
   const multidimensionalMetrics = useMemo(() => {
@@ -661,17 +660,16 @@ const AdvancedMultidimensionalStochasticAnalyzer = () => {
                   angle: -90, position: 'insideLeft' 
                 }}
               />
-              <Tooltip 
-                formatter={(value, name) => [value.toFixed(2), name]}
-                labelFormatter={(label, payload) => 
+              <Tooltip
+                formatter={(value: number | string, name: string) => [typeof value === 'number' ? value.toFixed(2) : value, name]}
+                labelFormatter={(_label, payload) =>
                   payload?.[0] ? `t = ${payload[0].payload.time.toFixed(3)}` : ''
                 }
               />
-              <Scatter 
+              <Scatter
                 data={projectionData}
                 fill="#2563eb"
                 fillOpacity={0.6}
-                size={20}
               />
             </ScatterChart>
           </ResponsiveContainer>
@@ -682,15 +680,15 @@ const AdvancedMultidimensionalStochasticAnalyzer = () => {
           <h3 className="text-lg font-semibold mb-4">Cross-Dimensional Correlation Matrix</h3>
           <ResponsiveContainer width="100%" height={400}>
             <BarChart data={[
-              { pair: 'ρ(X,Y)', empirical: parseFloat(multidimensionalMetrics.correlationXY), theoretical: parameters.correlation },
-              { pair: 'ρ(X,Z)', empirical: parseFloat(multidimensionalMetrics.correlationXZ), theoretical: parameters.correlationXZ },
-              { pair: 'ρ(Y,Z)', empirical: parseFloat(multidimensionalMetrics.correlationYZ), theoretical: parameters.correlationYZ }
+              { pair: 'ρ(X,Y)', empirical: parseFloat(multidimensionalMetrics.correlationXY || '0'), theoretical: parameters.correlation },
+              { pair: 'ρ(X,Z)', empirical: parseFloat(multidimensionalMetrics.correlationXZ || '0'), theoretical: parameters.correlationXZ },
+              { pair: 'ρ(Y,Z)', empirical: parseFloat(multidimensionalMetrics.correlationYZ || '0'), theoretical: parameters.correlationYZ }
             ]}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="pair" />
               <YAxis domain={[-1, 1]} />
-              <Tooltip 
-                formatter={(value, name) => [value.toFixed(3), name]}
+              <Tooltip
+                formatter={(value: number | string, name: string) => [typeof value === 'number' ? value.toFixed(3) : value, name]}
               />
               <Legend />
               <Bar dataKey="empirical" fill="#2563eb" name="Empirical Correlation" />
@@ -732,10 +730,10 @@ const AdvancedMultidimensionalStochasticAnalyzer = () => {
                 <td className="px-6 py-4 text-sm text-gray-600 font-mono">{multidimensionalMetrics.annualizedReturnX}</td>
                 <td className="px-6 py-4 text-sm text-gray-600 font-mono">{multidimensionalMetrics.annualizedVolatilityX}</td>
                 <td className="px-6 py-4 text-sm text-gray-600">
-                  {((parseFloat(multidimensionalMetrics.annualizedVolatilityX) ** 2) / 
-                    (parseFloat(multidimensionalMetrics.annualizedVolatilityX) ** 2 + 
-                     parseFloat(multidimensionalMetrics.annualizedVolatilityY) ** 2 + 
-                     parseFloat(multidimensionalMetrics.annualizedVolatilityZ) ** 2) * 100).toFixed(1)}%
+                  {((parseFloat(multidimensionalMetrics.annualizedVolatilityX || '0') ** 2) /
+                    (parseFloat(multidimensionalMetrics.annualizedVolatilityX || '0') ** 2 +
+                     parseFloat(multidimensionalMetrics.annualizedVolatilityY || '0') ** 2 +
+                     parseFloat(multidimensionalMetrics.annualizedVolatilityZ || '0') ** 2) * 100).toFixed(1)}%
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-600">33.3%</td>
               </tr>
@@ -744,10 +742,10 @@ const AdvancedMultidimensionalStochasticAnalyzer = () => {
                 <td className="px-6 py-4 text-sm text-gray-600 font-mono">{multidimensionalMetrics.annualizedReturnY}</td>
                 <td className="px-6 py-4 text-sm text-gray-600 font-mono">{multidimensionalMetrics.annualizedVolatilityY}</td>
                 <td className="px-6 py-4 text-sm text-gray-600">
-                  {((parseFloat(multidimensionalMetrics.annualizedVolatilityY) ** 2) / 
-                    (parseFloat(multidimensionalMetrics.annualizedVolatilityX) ** 2 + 
-                     parseFloat(multidimensionalMetrics.annualizedVolatilityY) ** 2 + 
-                     parseFloat(multidimensionalMetrics.annualizedVolatilityZ) ** 2) * 100).toFixed(1)}%
+                  {((parseFloat(multidimensionalMetrics.annualizedVolatilityY || '0') ** 2) /
+                    (parseFloat(multidimensionalMetrics.annualizedVolatilityX || '0') ** 2 +
+                     parseFloat(multidimensionalMetrics.annualizedVolatilityY || '0') ** 2 +
+                     parseFloat(multidimensionalMetrics.annualizedVolatilityZ || '0') ** 2) * 100).toFixed(1)}%
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-600">33.3%</td>
               </tr>
@@ -756,10 +754,10 @@ const AdvancedMultidimensionalStochasticAnalyzer = () => {
                 <td className="px-6 py-4 text-sm text-gray-600 font-mono">{multidimensionalMetrics.annualizedReturnZ}</td>
                 <td className="px-6 py-4 text-sm text-gray-600 font-mono">{multidimensionalMetrics.annualizedVolatilityZ}</td>
                 <td className="px-6 py-4 text-sm text-gray-600">
-                  {((parseFloat(multidimensionalMetrics.annualizedVolatilityZ) ** 2) / 
-                    (parseFloat(multidimensionalMetrics.annualizedVolatilityX) ** 2 + 
-                     parseFloat(multidimensionalMetrics.annualizedVolatilityY) ** 2 + 
-                     parseFloat(multidimensionalMetrics.annualizedVolatilityZ) ** 2) * 100).toFixed(1)}%
+                  {((parseFloat(multidimensionalMetrics.annualizedVolatilityZ || '0') ** 2) /
+                    (parseFloat(multidimensionalMetrics.annualizedVolatilityX || '0') ** 2 +
+                     parseFloat(multidimensionalMetrics.annualizedVolatilityY || '0') ** 2 +
+                     parseFloat(multidimensionalMetrics.annualizedVolatilityZ || '0') ** 2) * 100).toFixed(1)}%
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-600">33.3%</td>
               </tr>
@@ -782,7 +780,7 @@ const AdvancedMultidimensionalStochasticAnalyzer = () => {
             Dimensional Properties Analysis
           </h3>
           <div className="space-y-3">
-            {multidimensionalModelConfigurations[activeModel].spatialProperties.map((property, idx) => (
+            {multidimensionalModelConfigurations[activeModel as keyof typeof multidimensionalModelConfigurations].spatialProperties.map((property, idx) => (
               <div key={idx} className="text-green-800 text-sm flex items-start">
                 <span className="text-green-600 mr-2 font-bold">•</span>
                 <span>{property}</span>
@@ -812,7 +810,7 @@ const AdvancedMultidimensionalStochasticAnalyzer = () => {
                 <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
                   <div 
                     className="bg-blue-600 h-2 rounded-full" 
-                    style={{ width: `${(Math.abs(parseFloat(multidimensionalMetrics.correlationXY)) * 100)}%` }}
+                    style={{ width: `${(Math.abs(parseFloat(multidimensionalMetrics.correlationXY || '0')) * 100)}%` }}
                   ></div>
                 </div>
               </div>
@@ -824,7 +822,7 @@ const AdvancedMultidimensionalStochasticAnalyzer = () => {
                 <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
                   <div 
                     className="bg-blue-600 h-2 rounded-full" 
-                    style={{ width: `${(Math.abs(parseFloat(multidimensionalMetrics.correlationXZ)) * 100)}%` }}
+                    style={{ width: `${(Math.abs(parseFloat(multidimensionalMetrics.correlationXZ || '0')) * 100)}%` }}
                   ></div>
                 </div>
               </div>
@@ -836,7 +834,7 @@ const AdvancedMultidimensionalStochasticAnalyzer = () => {
                 <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
                   <div 
                     className="bg-blue-600 h-2 rounded-full" 
-                    style={{ width: `${(Math.abs(parseFloat(multidimensionalMetrics.correlationYZ)) * 100)}%` }}
+                    style={{ width: `${(Math.abs(parseFloat(multidimensionalMetrics.correlationYZ || '0')) * 100)}%` }}
                   ></div>
                 </div>
               </div>

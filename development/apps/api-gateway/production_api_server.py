@@ -19,9 +19,13 @@ from pydantic import BaseModel, Field
 from prometheus_client import Counter, Histogram, Gauge, generate_latest, CONTENT_TYPE_LATEST
 
 # Import catalytic computing modules
-from catalytic_lattice_computing import CatalyticLattice
-from catalytic_lattice_graph import CatalyticLatticeGraph
-from memory_optimization_analyzer import MemoryOptimizationAnalyzer
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+
+from apps.catalytic.catalytic_lattice_gpu import CatalyticLatticeGPU
+from apps.catalytic.catalytic_lattice_graph import CatalyticLatticeGraph
+from apps.catalytic.memory_optimization_analyzer import MemoryOptimizationAnalyzer
 
 # Prometheus metrics
 lattice_operations_total = Counter('lattice_operations_total', 'Total lattice operations', ['operation'])

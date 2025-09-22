@@ -1,0 +1,13 @@
+{
+  "name": "js-executor-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for executing JavaScript code in a sandboxed environment",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  }
+}

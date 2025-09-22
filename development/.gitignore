@@ -1,0 +1,206 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+.eggs/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environments
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.python-version
+
+# Testing
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+htmlcov/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.spyderproject
+.spyproject
+.ropeproject
+
+# Documentation
+docs/_build/
+docs/.doctrees/
+site/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb_checkpoints/
+
+# IPython
+profile_default/
+ipython_config.py
+
+# Environments
+.env
+.env.local
+.env.*.local
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+*.db-shm
+*.db-wal
+
+# Logs
+*.log
+logs/
+*.log.*
+pip-log.txt
+pip-delete-this-directory.txt
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Configuration
+.config/local/
+.config/*.local
+.config/secrets/
+*.local.yml
+*.local.yaml
+*.local.json
+
+# Monitoring & Metrics
+prometheus_data/
+grafana_data/
+metrics/
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+docker-compose.local.yml
+
+# Kubernetes
+*.kubeconfig
+kubeconfig
+.kube/
+
+# Node (for MCP servers)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn-integrity
+
+# CUDA/GPU
+*.cuda
+*.cudnn
+*.nccl
+
+# Model files
+*.pkl
+*.h5
+*.hdf5
+*.ckpt
+*.pth
+*.pt
+*.onnx
+*.pb
+
+# Large data files
+*.csv
+*.parquet
+*.feather
+*.arrow
+data/
+datasets/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+*.bak
+*.backup
+*.old
+*.orig
+
+# Security
+*.key
+*.pem
+*.cert
+*.crt
+*.p12
+*.pfx
+secrets/
+private/
+
+# Custom ignores for this project
+.migration_backup/
+rollback_manifest_*.json
+
+# MacOS
+.AppleDouble
+.LSOverride
+Icon
+.DocumentRevisions-V100
+.fseventsd
+.TemporaryItems
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Windows
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.stackdump
+*.lnk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*

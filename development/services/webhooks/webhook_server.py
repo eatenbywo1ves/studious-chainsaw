@@ -25,7 +25,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Import webhook system
-from webhook_system import (
+from .webhook_system import (
     WebhookManager, 
     WebhookConfig,
     WebhookEvent,

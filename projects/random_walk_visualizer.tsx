@@ -1,14 +1,13 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ScatterChart, Scatter, ResponsiveContainer, AreaChart, Area, BarChart, Bar } from 'recharts';
-import * as math from 'mathjs';
+import React, { useState, useMemo, useCallback } from 'react';
+import { XAxis, YAxis, CartesianGrid, Tooltip, Legend, ScatterChart, Scatter, ResponsiveContainer, BarChart, Bar } from 'recharts';
 
 const AdvancedMultidimensionalStochasticAnalyzer = () => {
   const [activeModel, setActiveModel] = useState('gbm');
   const [dimensionMode, setDimensionMode] = useState('3D');
   const [analysisMode, setAnalysisMode] = useState('trajectory');
   const [projectionView, setProjectionView] = useState('xy');
-  const [numSteps, setNumSteps] = useState(1000);
-  const [timeHorizon, setTimeHorizon] = useState(1.0);
+  const [numSteps] = useState(1000);
+  const [timeHorizon] = useState(1.0);
   const [parameters, setParameters] = useState({
     mu: 0.05,          // drift rate
     sigma: 0.2,        // volatility
@@ -31,7 +30,7 @@ const AdvancedMultidimensionalStochasticAnalyzer = () => {
   });
 
   // Multi-dimensional stochastic process generators with correlated components
-  const generateCorrelatedRandoms = (rho_xy, rho_xz, rho_yz) => {
+  const generateCorrelatedRandoms = useCallback((rho_xy: number, rho_xz: number, rho_yz: number) => {
     // Generate three independent standard normals
     const u1 = Math.random() * 2 - 1;
     const u2 = Math.random() * 2 - 1;
@@ -48,11 +47,11 @@ const AdvancedMultidimensionalStochasticAnalyzer = () => {
     const z = rho_xz * z1 + 
              (rho_yz - rho_xy * rho_xz) / Math.sqrt(1 - rho_xy ** 2) * z2 + 
              Math.sqrt(1 - rho_xz ** 2 - ((rho_yz - rho_xy * rho_xz) / Math.sqrt(1 - rho_xy ** 2)) ** 2) * z3;
-    
-    return { x, y, z };
-  };
 
-  const generateMultidimensionalGBM = (steps, T) => {
+    return { x, y, z };
+  }, []);
+
+  const generateMultidimensionalGBM = useCallback((steps: number, T: number) => {
     const dt = T / steps;
     const path = [{
       time: 0, x: 100, y: 100, z: 100, 
@@ -90,9 +89,9 @@ const AdvancedMultidimensionalStochasticAnalyzer = () => {
       });
     }
     return path;
-  };
+  }, [parameters, generateCorrelatedRandoms]);
 
-  const generateMultidimensionalOU = (steps, T) => {
+  const generateMultidimensionalOU = useCallback((steps: number, T: number) => {
     const dt = T / steps;
     const equilibrium = { x: Math.log(100), y: Math.log(100), z: Math.log(100) };
     const path = [{
@@ -136,9 +135,9 @@ const AdvancedMultidimensionalStochasticAnalyzer = () => {
       });
     }
     return path;
-  };
+  }, [parameters, generateCorrelatedRandoms]);
 
-  const generateMultidimensionalJumpDiffusion = (steps, T) => {
+  const generateMultidimensionalJumpDiffusion = useCallback((steps: number, T: number) => {
     const dt = T / steps;
     const path = [{
       time: 0, x: 100, y: 100, z: 100,
@@ -189,9 +188,9 @@ const AdvancedMultidimensionalStochasticAnalyzer = () => {
       });
     }
     return path;
-  };
+  }, [parameters, generateCorrelatedRandoms]);
 
-  const generateMultidimensionalFractionalBrownian = (steps, T) => {
+  const generateMultidimensionalFractionalBrownian = useCallback((steps: number, T: number) => {
     const dt = T / steps;
     const path = [{
       time: 0, x: 100, y: 100, z: 100,
@@ -263,7 +262,7 @@ const AdvancedMultidimensionalStochasticAnalyzer = () => {
       });
     }
     return path;
-  };
+  }, [parameters, generateCorrelatedRandoms]);
 
   // Generate process data based on selected model
   const processData = useMemo(() => {
@@ -285,14 +284,14 @@ const AdvancedMultidimensionalStochasticAnalyzer = () => {
         default: return generateMultidimensionalGBM(numSteps, timeHorizon);
       }
     }
-  }, [activeModel, dimensionMode, numSteps, timeHorizon, parameters]);
+  }, [activeModel, dimensionMode, numSteps, timeHorizon, generateMultidimensionalGBM, generateMultidimensionalOU, generateMultidimensionalJumpDiffusion, generateMultidimensionalFractionalBrownian]);
 
   // Multidimensional financial metrics
   const multidimensionalMetrics = useMemo(() => {
     if (processData.length < 2) return {};
     
     // Calculate returns for each dimension
-    const returnsX = [], returnsY = [], returnsZ = [];
+    const returnsX: number[] = [], returnsY: number[] = [], returnsZ: number[] = [];
     for (let i = 1; i < processData.length; i++) {
       returnsX.push(Math.log(processData[i].x / processData[i-1].x));
       returnsY.push(Math.log(processData[i].y / processData[i-1].y));
@@ -598,25 +597,25 @@ const AdvancedMultidimensionalStochasticAnalyzer = () => {
       {/* Multidimensional Model Analysis Framework */}
       <div className="bg-blue-50 border border-blue-200 p-6 rounded-lg mb-8">
         <h3 className="text-lg font-semibold text-blue-900 mb-3">
-          Dimensional Analysis: {multidimensionalModelConfigurations[activeModel].name}
+          Dimensional Analysis: {multidimensionalModelConfigurations[activeModel as keyof typeof multidimensionalModelConfigurations].name}
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div>
             <p className="text-blue-800 font-mono text-sm mb-2">
               <strong>Mathematical Framework:</strong><br />
-              {multidimensionalModelConfigurations[activeModel].equation}
+              {multidimensionalModelConfigurations[activeModel as keyof typeof multidimensionalModelConfigurations].equation}
             </p>
             <p className="text-blue-700 text-sm">
-              <strong>Application Domain:</strong> {multidimensionalModelConfigurations[activeModel].application}
+              <strong>Application Domain:</strong> {multidimensionalModelConfigurations[activeModel as keyof typeof multidimensionalModelConfigurations].application}
             </p>
           </div>
           <div>
             <p className="text-blue-700 text-sm mb-2">
               <strong>Dimensional Analysis:</strong><br />
-              {multidimensionalModelConfigurations[activeModel].dimensionalAnalysis}
+              {multidimensionalModelConfigurations[activeModel as keyof typeof multidimensionalModelConfigurations].dimensionalAnalysis}
             </p>
             <p className="text-blue-700 text-sm">
-              <strong>Complexity Assessment:</strong> {multidimensionalModelConfigurations[activeModel].complexity}
+              <strong>Complexity Assessment:</strong> {multidimensionalModelConfigurations[activeModel as keyof typeof multidimensionalModelConfigurations].complexity}
             </p>
           </div>
           <div className="bg-white p-4 rounded border">
@@ -661,17 +660,16 @@ const AdvancedMultidimensionalStochasticAnalyzer = () => {
                   angle: -90, position: 'insideLeft' 
                 }}
               />
-              <Tooltip 
-                formatter={(value, name) => [value.toFixed(2), name]}
-                labelFormatter={(label, payload) => 
+              <Tooltip
+                formatter={(value: number | string, name: string) => [typeof value === 'number' ? value.toFixed(2) : value, name]}
+                labelFormatter={(_label, payload) =>
                   payload?.[0] ? `t = ${payload[0].payload.time.toFixed(3)}` : ''
                 }
               />
-              <Scatter 
+              <Scatter
                 data={projectionData}
                 fill="#2563eb"
                 fillOpacity={0.6}
-                size={20}
               />
             </ScatterChart>
           </ResponsiveContainer>
@@ -782,7 +780,7 @@ const AdvancedMultidimensionalStochasticAnalyzer = () => {
             Dimensional Properties Analysis
           </h3>
           <div className="space-y-3">
-            {multidimensionalModelConfigurations[activeModel as keyof typeof multidimensionalModelConfigurations].spatialProperties.map((property: any, idx: any) => (
+            {multidimensionalModelConfigurations[activeModel as keyof typeof multidimensionalModelConfigurations].spatialProperties.map((property: string, idx: number) => (
               <div key={idx} className="text-green-800 text-sm flex items-start">
                 <span className="text-green-600 mr-2 font-bold">•</span>
                 <span>{property}</span>
