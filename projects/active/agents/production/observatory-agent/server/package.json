@@ -1,0 +1,17 @@
+{
+  "name": "multi-agent-observatory-server-node",
+  "version": "1.0.0",
+  "description": "Multi-Agent Observatory Server - Node.js Version",
+  "main": "src/server-node.js",
+  "scripts": {
+    "start": "node src/server-node.js",
+    "dev": "node --watch src/server-node.js",
+    "test": "echo \"Node.js server ready\""
+  },
+  "dependencies": {
+    "better-sqlite3": "^9.2.2",
+    "ws": "^8.16.0"
+  },
+  "keywords": ["observability", "multi-agent", "websocket", "monitoring"],
+  "license": "MIT"
+}

@@ -1,0 +1,60 @@
+{
+  "name": "financial-localization",
+  "description": "MCP server providing financial localization and translation services",
+  "version": "1.0.0",
+  "server": {
+    "command": "node",
+    "args": ["src/index.js"],
+    "env": {
+      "NODE_ENV": "production"
+    }
+  },
+  "capabilities": {
+    "tools": [
+      {
+        "name": "translate_financial_term",
+        "description": "Translate financial terminology to specified language"
+      },
+      {
+        "name": "format_currency",
+        "description": "Format currency amounts according to locale"
+      },
+      {
+        "name": "get_supported_locales",
+        "description": "Get list of supported locales and languages"
+      },
+      {
+        "name": "localize_financial_interface",
+        "description": "Localize entire financial interface strings"
+      },
+      {
+        "name": "validate_financial_translation",
+        "description": "Validate accuracy of financial translations"
+      }
+    ],
+    "resources": [
+      {
+        "uri": "financial://translations/terms",
+        "name": "Financial Terms Dictionary"
+      },
+      {
+        "uri": "financial://locale/currencies",
+        "name": "Currency Locale Mappings"
+      },
+      {
+        "uri": "financial://formats/numbers",
+        "name": "Number Format Patterns"
+      }
+    ]
+  },
+  "supported_languages": [
+    "en", "es", "fr", "de", "it", "pt", "ja", "ko", "zh", "ru", "ar"
+  ],
+  "supported_locales": [
+    "en-US", "en-GB", "es-ES", "fr-FR", "de-DE", "it-IT", "pt-BR", 
+    "ja-JP", "ko-KR", "zh-CN", "ru-RU", "ar-SA"
+  ],
+  "financial_domains": [
+    "general", "risk", "options", "derivatives", "portfolio", "ui"
+  ]
+}

@@ -1,0 +1,44 @@
+# Dockerfile for Webhook System
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+RUN pip install --no-cache-dir \
+    fastapi==0.100.0 \
+    uvicorn==0.23.1 \
+    flask==2.3.2 \
+    requests==2.31.0 \
+    sqlalchemy==2.0.17 \
+    prometheus-client==0.17.0 \
+    pyyaml==6.0 \
+    redis==4.5.5 \
+    httpx==0.24.1
+
+# Copy webhook system files (use standalone version)
+COPY services/webhooks/webhook_server_standalone.py /app/webhook_server.py
+
+# Create data directory
+RUN mkdir -p /app/data /app/logs
+
+# Environment variables
+ENV PYTHONUNBUFFERED=1
+ENV WEBHOOK_DB_PATH=/app/data/webhooks.db
+ENV LOG_LEVEL=INFO
+ENV WEBHOOK_PORT=8000
+ENV METRICS_PORT=9090
+
+# Expose ports
+EXPOSE 8000 9090
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Run the standalone webhook server
+CMD ["python", "webhook_server.py"]

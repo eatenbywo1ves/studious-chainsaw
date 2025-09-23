@@ -1,0 +1,124 @@
+version: '3.8'
+
+# Load environment variables from .env file
+# Copy .env.template to .env and configure secure passwords
+
+networks:
+  monitoring:
+    driver: bridge
+
+volumes:
+  prometheus_data:
+  grafana_data:
+  jaeger_data:
+
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: enterprise-ai-prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'
+      # Admin API disabled for security - enable only for debugging
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus:/etc/prometheus
+      - prometheus_data:/prometheus
+    networks:
+      - monitoring
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: enterprise-ai-grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-changeme123!}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+    networks:
+      - monitoring
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: enterprise-ai-alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+      - '--web.external-url=http://localhost:9093'
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./alertmanager:/etc/alertmanager
+    networks:
+      - monitoring
+    restart: unless-stopped
+
+  # Optional: Node Exporter for system metrics
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: enterprise-ai-node-exporter
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($|/)'
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    networks:
+      - monitoring
+    restart: unless-stopped
+
+  # Jaeger All-in-One for distributed tracing
+  jaeger:
+    image: jaegertracing/all-in-one:1.53
+    container_name: enterprise-ai-jaeger
+    environment:
+      COLLECTOR_OTLP_ENABLED: true
+      LOG_LEVEL: info
+      SPAN_STORAGE_TYPE: memory
+      MEMORY_MAX_TRACES: 50000
+    ports:
+      # Jaeger UI
+      - "16686:16686"
+      # Jaeger HTTP collector (Thrift)
+      - "14268:14268"
+      # Jaeger gRPC collector
+      - "14250:14250"
+      # OTLP HTTP receiver
+      - "4318:4318"
+      # OTLP gRPC receiver
+      - "4317:4317"
+      # Zipkin HTTP receiver
+      - "9411:9411"
+      # Admin/health check port
+      - "14269:14269"
+    networks:
+      - monitoring
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:14269/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

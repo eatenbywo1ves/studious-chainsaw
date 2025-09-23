@@ -1,0 +1,153 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: observatory-agent
+  namespace: mcp-system
+  labels:
+    app: observatory-agent
+    component: monitoring
+    version: v1
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: observatory-agent
+  template:
+    metadata:
+      labels:
+        app: observatory-agent
+        component: monitoring
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+      - name: observatory-agent
+        image: mcp/observatory-agent:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        env:
+        - name: OBSERVATORY_PORT
+          value: "8080"
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: PYTHONPATH
+          value: "/app/shared:/app"
+        - name: DATABASE_PATH
+          value: "/app/database/observatory.db"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        volumeMounts:
+        - name: database
+          mountPath: /app/database
+        - name: logs
+          mountPath: /app/logs
+        - name: config
+          mountPath: /app/configs
+          readOnly: true
+      volumes:
+      - name: database
+        persistentVolumeClaim:
+          claimName: observatory-database-pvc
+      - name: logs
+        emptyDir: {}
+      - name: config
+        configMap:
+          name: mcp-config
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: observatory-service
+  namespace: mcp-system
+  labels:
+    app: observatory-agent
+    component: monitoring
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  selector:
+    app: observatory-agent
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: observatory-database-pvc
+  namespace: mcp-system
+  labels:
+    app: observatory-agent
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: fast-ssd
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: observatory-agent-hpa
+  namespace: mcp-system
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: observatory-agent
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 75
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 85

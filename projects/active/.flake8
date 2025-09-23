@@ -1,0 +1,13 @@
+[flake8]
+max-line-length = 130
+exclude = node_modules,frontend,__pycache__,.venv,.git
+extend-ignore = E203,W503,F841,F821
+per-file-ignores = 
+    # Ignore unused variables in test files - they're often used for setup
+    test_*.py:F841,F821
+    *test*.py:F841,F821
+    # Allow some flexibility in exception handling and long demo lines
+    *.py:E722
+    *demo*.py:E501
+    *monitoring*.py:E501
+    *tmux*.py:E501

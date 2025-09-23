@@ -1,0 +1,126 @@
+version: '3.8'
+
+services:
+  # Redis for agent communication
+  redis:
+    image: redis:7-alpine
+    container_name: monorepo-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - agent-network
+
+  # Redis Commander for monitoring
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: monorepo-redis-commander
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis
+    restart: unless-stopped
+    networks:
+      - agent-network
+
+  # Director Agent
+  director-agent:
+    build:
+      context: ./agents/director-agent
+      dockerfile: Dockerfile
+    container_name: monorepo-director-agent
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - API_PORT=8000
+    depends_on:
+      - redis
+    volumes:
+      - ./agents/director-agent:/app
+      - director-data:/app/data
+    restart: unless-stopped
+    networks:
+      - agent-network
+
+  # UI/UX Agent
+  ui-ux-agent:
+    build:
+      context: ./agents/ui-ux-agent
+      dockerfile: Dockerfile
+    container_name: monorepo-ui-ux-agent
+    ports:
+      - "8765:8765"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - WEBSOCKET_PORT=8765
+    depends_on:
+      - redis
+    volumes:
+      - ./agents/ui-ux-agent:/app
+      - ui-ux-data:/app/data
+    restart: unless-stopped
+    networks:
+      - agent-network
+
+  # Multi-Agent Observatory Server (using Bun)
+  observatory-server:
+    image: oven/bun:1-alpine
+    container_name: monorepo-observatory-server
+    working_dir: /app
+    ports:
+      - "8080:8080"
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - SERVER_PORT=8080
+      - WS_PORT=3001
+    volumes:
+      - ./agents/multi-agent-observatory:/app
+      - observatory-data:/app/data
+    command: bun run start:server
+    restart: unless-stopped
+    networks:
+      - agent-network
+
+  # Financial Simulator (if containerized)
+  financial-simulator:
+    image: node:20-alpine
+    container_name: monorepo-financial-simulator
+    working_dir: /app
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./financial-apps/financial-simulator:/app
+    command: npm run dev -- --host
+    environment:
+      - NODE_ENV=development
+    networks:
+      - agent-network
+
+volumes:
+  redis-data:
+    driver: local
+  director-data:
+    driver: local
+  ui-ux-data:
+    driver: local
+  observatory-data:
+    driver: local
+
+networks:
+  agent-network:
+    driver: bridge
+    name: monorepo-network

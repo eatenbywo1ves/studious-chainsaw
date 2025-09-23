@@ -1,0 +1,80 @@
+{
+  "timestamp": "2025-09-04T20:21:20.206706",
+  "overall": "WARNING",
+  "checks": {
+    "python_environment": {
+      "status": "HEALTHY",
+      "python_version": "3.13.5",
+      "pip_version": "25.1.1",
+      "shared_libs": "OK",
+      "missing_packages": []
+    },
+    "node_environment": {
+      "status": "WARNING",
+      "node_version": "v22.17.1",
+      "npm_version": "11.4.2",
+      "node_options": "NOT SET",
+      "heap_configured": false,
+      "node_modules": "EXISTS",
+      "running_processes": 44
+    },
+    "directory_structure": {
+      "status": "HEALTHY",
+      "required_dirs": 10,
+      "missing_dirs": []
+    },
+    "configurations": {
+      "status": "HEALTHY",
+      "mcp_configs": 8,
+      "agent_configs": 1,
+      "claude_configs": 7
+    },
+    "agents": {
+      "status": "HEALTHY",
+      "total_agents": 3,
+      "active_agents": 0,
+      "agent_names": [
+        "Director Agent",
+        "Multi-Agent Observatory",
+        "Von Neumann Agent"
+      ]
+    },
+    "mcp_servers": {
+      "status": "HEALTHY",
+      "total_servers": 5,
+      "server_names": [
+        "Filesystem Server",
+        "Financial Localization Server",
+        "Financial Stochastic Server",
+        "Multidimensional Stochastic Server",
+        "Random Walk Server"
+      ]
+    },
+    "logging": {
+      "status": "HEALTHY",
+      "log_files": 4,
+      "recent_errors": 0
+    },
+    "memory": {
+      "status": "HEALTHY",
+      "ram_percent": 22.0,
+      "ram_available_gb": 49.88,
+      "ram_total_gb": 63.92,
+      "swap_percent": 22.8
+    },
+    "disk_space": {
+      "status": "HEALTHY",
+      "percent_used": 27.1,
+      "free_gb": 678.84,
+      "total_gb": 930.71
+    },
+    "network": {
+      "status": "HEALTHY",
+      "connectivity": "OK"
+    }
+  },
+  "issues": [],
+  "recommendations": [
+    "Run: export NODE_OPTIONS=\"--max-old-space-size=4096\""
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "ghidra_home": "C:\\Users\\Corbin\\Downloads\\ghidra-master\\build\\ghidra_12.0_DEV",
+  "scripts_directory": "C:\\Users\\Corbin\\Downloads\\ghidra-master\\build\\ghidra_12.0_DEV\\Ghidra\\Features\\Base\\ghidra_scripts",
+  "headless_path": "C:\\Users\\Corbin\\Downloads\\ghidra-master\\build\\ghidra_12.0_DEV\\support\\analyzeHeadless.bat",
+  "export_script": "ExportForClaude.py",
+  "claude_api": {
+    "model": "claude-3-opus-20240229",
+    "max_tokens": 4096,
+    "temperature": 0.7
+  },
+  "analysis_options": {
+    "vulnerability_scan": true,
+    "malware_analysis": true,
+    "crypto_detection": true,
+    "protocol_analysis": true
+  },
+  "output_directory": "outputs",
+  "cache_directory": ".cache"
+}

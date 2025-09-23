@@ -14,7 +14,7 @@ from typing import Dict, Any, Optional, List
 import uuid
 
 class DirectorAgentObservatoryAdapter:
-    def __init__(self, director_instance, server_url="ws://localhost:8080/ws", agent_name="DirectorAgent"):
+    def __init__(self, director_instance, server_url="ws://localhost:8090/ws", agent_name="DirectorAgent"):
         self.director = director_instance
         self.server_url = server_url
         self.agent_name = agent_name

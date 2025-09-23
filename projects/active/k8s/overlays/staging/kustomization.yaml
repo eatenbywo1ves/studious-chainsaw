@@ -1,0 +1,90 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: mcp-staging
+  annotations:
+    description: "MCP & Agent Architecture Staging Environment"
+
+namespace: mcp-staging
+
+resources:
+  - ../../base
+
+namePrefix: staging-
+
+commonLabels:
+  environment: staging
+  app.kubernetes.io/environment: staging
+
+patches:
+  - target:
+      kind: Deployment
+      name: api-gateway
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 2
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/memory
+        value: "128Mi"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/memory
+        value: "256Mi"
+
+  - target:
+      kind: Deployment
+      name: observatory-agent
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/memory
+        value: "256Mi"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/memory
+        value: "512Mi"
+
+  - target:
+      kind: HorizontalPodAutoscaler
+      name: api-gateway-hpa
+    patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 2
+      - op: replace
+        path: /spec/maxReplicas
+        value: 4
+
+  - target:
+      kind: Ingress
+      name: mcp-ingress
+    patch: |-
+      - op: replace
+        path: /spec/rules/0/host
+        value: staging-api.mcp.local
+      - op: replace
+        path: /spec/rules/1/host
+        value: staging-observatory.mcp.local
+
+configMapGenerator:
+  - name: staging-config
+    literals:
+      - ENVIRONMENT=staging
+      - LOG_LEVEL=DEBUG
+      - RATE_LIMIT_REQUESTS_PER_MINUTE=500
+      - REDIS_MAX_CONNECTIONS=10
+
+secretGenerator:
+  - name: staging-secrets
+    literals:
+      - JWT_SECRET=staging-jwt-secret-key
+      - REDIS_PASSWORD=staging-redis-pass
+      - POSTGRES_PASSWORD=staging-postgres-pass
+
+replicas:
+  - name: api-gateway
+    count: 2
+  - name: observatory-agent
+    count: 1

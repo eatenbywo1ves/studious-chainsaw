@@ -6,6 +6,7 @@
 
 const readline = require('readline');
 const { EventEmitter } = require('events');
+const HealthCheck = require('./health-check');
 
 class MCPServer extends EventEmitter {
     constructor(name, version = '1.0.0') {
@@ -14,12 +15,14 @@ class MCPServer extends EventEmitter {
         this.version = version;
         this.methods = new Map();
         this.running = false;
+        this.healthCheck = new HealthCheck(name, version);
 
         // Register default methods
         this.registerMethod('initialize', this.handleInitialize.bind(this));
         this.registerMethod('ping', this.handlePing.bind(this));
         this.registerMethod('list_tools', this.handleListTools.bind(this));
         this.registerMethod('shutdown', this.handleShutdown.bind(this));
+        this.registerMethod('health', this.handleHealth.bind(this));
     }
 
     registerMethod(name, handler) {
@@ -52,6 +55,10 @@ class MCPServer extends EventEmitter {
     async handleShutdown() {
         this.running = false;
         process.exit(0);
+    }
+
+    async handleHealth() {
+        return await this.healthCheck.getHealthStatus();
     }
 
     async handleRequest(request) {

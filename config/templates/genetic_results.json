@@ -1,0 +1,30 @@
+{
+  "timestamp": "2025-09-11T23:19:07.185283",
+  "best_filters": [
+    {
+      "expression": "tcp.flags.syn == 1 || tcp.port == 139 || tcp.flags.ack == 1",
+      "fitness": 0.9183999999999999,
+      "matches": 586
+    },
+    {
+      "expression": "tcp.flags.syn == 1 || tcp.port == 139 || tcp.flags.ack == 1 || tcp.flags.syn == 1 && https && ssh",
+      "fitness": 0.9178,
+      "matches": 588
+    },
+    {
+      "expression": "(tcp.flags.syn == 1 || tcp.port == 139 || tcp.flags.ack == 1) || tcp.flags.syn == 1 && https && ssh",
+      "fitness": 0.9175,
+      "matches": 589
+    },
+    {
+      "expression": "tcp.flags.syn == 1 || tcp.port == 139 || tcp.flags.ack == 1",
+      "fitness": 0.9175,
+      "matches": 589
+    },
+    {
+      "expression": "tcp.flags.syn == 1 || tcp.port == 139 || tcp.flags.ack == 1",
+      "fitness": 0.9171999999999999,
+      "matches": 590
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "name": "code-analysis-agent",
+  "version": "1.0.0",
+  "description": "Local Python code quality analyzer with zero network traffic",
+  "scan_interval": 300,
+  "directories": [
+    "C:\\Users\\Corbin\\development"
+  ],
+  "exclude_patterns": [
+    "__pycache__",
+    ".git",
+    "node_modules",
+    ".venv",
+    "venv",
+    "build",
+    "dist",
+    "*.egg-info",
+    ".pytest_cache",
+    ".tox",
+    "ghidra"
+  ],
+  "file_extensions": [
+    ".py"
+  ],
+  "max_file_size_mb": 10,
+  "generate_reports": true,
+  "report_path": "C:\\Users\\Corbin\\development\\logs\\code-analysis",
+  "thresholds": {
+    "complexity_warning": 20,
+    "complexity_error": 50,
+    "documentation_warning": 50,
+    "documentation_error": 20,
+    "todos_warning": 5,
+    "todos_error": 15,
+    "globals_warning": 10,
+    "globals_error": 20
+  },
+  "features": {
+    "analyze_complexity": true,
+    "check_documentation": true,
+    "count_todos": true,
+    "estimate_test_coverage": true,
+    "detect_code_smells": true,
+    "generate_metrics": true
+  }
+}

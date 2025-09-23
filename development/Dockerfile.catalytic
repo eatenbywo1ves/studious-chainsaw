@@ -1,0 +1,48 @@
+# Production Dockerfile for Catalytic Computing System
+FROM python:3.11-slim
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    build-essential \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements first for better caching
+COPY requirements-catalytic.txt /app/
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements-catalytic.txt
+
+# Copy application code
+COPY apps/api-gateway/production_api_server_fixed.py /app/production_api_server.py
+COPY apps/catalytic/*.py /app/apps/catalytic/
+COPY libs /app/libs/
+
+# Create necessary directories
+RUN mkdir -p /app/data /app/logs /app/cache
+
+# Environment variables for optimization
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONPATH=/app
+ENV NUMBA_CACHE_DIR=/app/cache
+ENV OMP_NUM_THREADS=4
+ENV MKL_NUM_THREADS=4
+ENV LATTICE_MEMORY_OPTIMIZATION=enabled
+ENV PARALLEL_CORES=12
+ENV CACHE_SIZE=1024
+ENV MAX_LATTICES=100
+
+# Expose ports
+EXPOSE 8080 8082
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
+
+# Run the production server
+CMD ["uvicorn", "production_api_server:app", "--host", "0.0.0.0", "--port", "8080", "--workers", "4"]

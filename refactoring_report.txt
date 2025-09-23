@@ -1,0 +1,84 @@
+======================================================================
+FILE PATH REFACTORING ANALYSIS REPORT
+======================================================================
+Analyzed: C:\Users\Corbin\projects
+Generated: 2025-09-18T02:05:30.261425
+
+SUMMARY
+----------------------------------------
+Total issues found: 115818
+Refactoring proposals: 5088
+
+ISSUES BY CATEGORY
+----------------------------------------
+
+ Deep Nesting (9954 issues)
+  - active\ghidra\build\tmp\javadoc\docking\widgets\fieldpanel\field (depth: 9)
+  - active\ghidra\build\tmp\javadoc\docking\widgets\fieldpanel\internal (depth: 9)
+  - active\ghidra\build\tmp\javadoc\docking\widgets\fieldpanel\listener (depth: 9)
+  - active\ghidra\build\tmp\javadoc\docking\widgets\fieldpanel\support (depth: 9)
+  - active\ghidra\build\tmp\javadoc\docking\widgets\imagepanel\actions (depth: 9)
+  ... and 9949 more
+
+ Problematic Names (93263 issues)
+  - inconsistent_casing: 93232 occurrences
+  - spaces_in_name: 19 occurrences
+  - numbered_prefix: 6 occurrences
+  - old_suffix: 4 occurrences
+  - copy_suffix: 2 occurrences
+
+ Redundant Structures (4 patterns)
+  - Pattern: agent-[number] (10 instances)
+  - Pattern: win_x86-[number] (10 instances)
+  - Pattern: json-schema-2019-[number] (6 instances)
+
+========================================
+REFACTORING PROPOSALS
+----------------------------------------
+
+[SUCCESS] Flatten Directory (5064 items)
+  Target: active\ghidra\build\tmp\javadoc\ghidra\app\plugin\assembler\sleigh\expr
+  Reason: Directory nested 11 levels deep
+  Suggestion: Consider flattening or reorganizing structure
+
+  Target: active\ghidra\build\tmp\javadoc\ghidra\app\plugin\assembler\sleigh\expr\match
+  Reason: Directory nested 12 levels deep
+  Suggestion: Consider flattening or reorganizing structure
+
+  Target: active\ghidra\build\tmp\javadoc\ghidra\app\plugin\assembler\sleigh\grammars
+  Reason: Directory nested 11 levels deep
+  Suggestion: Consider flattening or reorganizing structure
+
+
+[SUCCESS] Rename (19 items)
+  Target: active\ghidra\dependencies\downloads\PyDev 9.3.0.zip
+  Reason: Spaces in filename
+  Suggestion: Rename to: PyDev_9.3.0.zip
+
+  Target: active\ghidra\dependencies\GhidraDev\PyDev 9.3.0.zip
+  Reason: Spaces in filename
+  Suggestion: Rename to: PyDev_9.3.0.zip
+
+  Target: active\ghidra\Ghidra\Features\Base\.launch\Ghidra Code Coverage.launch
+  Reason: Spaces in filename
+  Suggestion: Rename to: Ghidra_Code_Coverage.launch
+
+
+[SUCCESS] Archive Or Delete (4 items)
+  Target: active\ghidra\Ghidra\Features\FileFormats\build\classes\java\main\ghidra\file\formats\ios\dmg\DmgHeaderV1_old.class
+  Reason: Old or backup file: old_suffix, inconsistent_casing
+  Suggestion: Move to archive directory or delete if no longer needed
+
+  Target: active\ghidra\Ghidra\Features\FileFormats\build\classes\java\main\ghidra\file\formats\ios\dmg\DmgHeaderV2_old.class
+  Reason: Old or backup file: old_suffix, inconsistent_casing
+  Suggestion: Move to archive directory or delete if no longer needed
+
+  Target: active\ghidra\Ghidra\Features\FileFormats\src\main\java\ghidra\file\formats\ios\dmg\DmgHeaderV1_old.java
+  Reason: Old or backup file: old_suffix, inconsistent_casing
+  Suggestion: Move to archive directory or delete if no longer needed
+
+
+[SUCCESS] Consolidate (1 items)
+  Target: active\agents\production\observatory-agent\agents/agent-1
+  Reason: Multiple numbered directories following pattern: agent-[number]
+  Suggestion: Consider using descriptive names or consolidating into a single configurable solution

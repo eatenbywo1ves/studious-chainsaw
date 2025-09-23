@@ -1,0 +1,53 @@
+#!/bin/bash
+# Claude Code Persistent Configuration
+# To make this permanent, add this line to your ~/.bashrc:
+# source /c/Users/Corbin/development/.bashrc_claude
+
+# Auto-load aliases if the file exists
+if [ -f "/c/Users/Corbin/development/.claude_aliases" ]; then
+    source /c/Users/Corbin/development/.claude_aliases
+fi
+
+# Set persistent environment variables
+export PYTHONPATH="/c/Users/Corbin/development/shared:$PYTHONPATH"
+export DEVELOPMENT_DIR="/c/Users/Corbin/development"
+export CLAUDE_WORKSPACE="/c/Users/Corbin/development"
+
+# Quick function to reload all configurations
+claude-reload() {
+    source /c/Users/Corbin/development/.claude_aliases
+    echo "✅ Claude aliases reloaded!"
+}
+
+# Function to quickly edit aliases
+claude-edit() {
+    ${EDITOR:-nano} /c/Users/Corbin/development/.claude_aliases
+    claude-reload
+}
+
+# Function to show most used commands from history
+claude-top() {
+    history | awk '{CMD[$2]++;count++;}END { for (a in CMD)print CMD[a] " " CMD[a]/count*100 "% " a;}' | grep -v "./" | column -c3 -s " " -t | sort -nr | nl | head -n10
+}
+
+# Auto-display help on startup
+claude-help() {
+    echo "🚀 Claude Code Enhanced Environment"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "📌 Quick Commands:"
+    echo "  claude-reload  - Reload all aliases"
+    echo "  claude-edit    - Edit alias file"
+    echo "  claude-top     - Show most used commands"
+    echo "  alias          - List all aliases"
+    echo ""
+    echo "🎯 Your Top Shortcuts:"
+    echo "  git st         - Git status"
+    echo "  git lg         - Pretty git log"
+    echo "  dev            - Go to development"
+    echo "  pyshared       - Python with modules"
+    echo "  apigate        - Run API gateway"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+}
+
+# Show help on startup (comment out if too verbose)
+# claude-help

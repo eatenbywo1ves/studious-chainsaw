@@ -1,0 +1,34 @@
+{
+  "environment": {
+    "development": {
+      "base_path": "C:\\Users\\Corbin\\development",
+      "agents_path": "C:\\Users\\Corbin\\development\\agents",
+      "mcp_servers_path": "C:\\Users\\Corbin\\development\\mcp-servers",
+      "shared_path": "C:\\Users\\Corbin\\development\\shared",
+      "configs_path": "C:\\Users\\Corbin\\development\\configs"
+    },
+    "legacy": {
+      "base_path": "C:\\Users\\Corbin\\projects",
+      "agents_path": "C:\\Users\\Corbin\\projects\\agents",
+      "mcp_servers_path": "C:\\Users\\Corbin\\projects\\mcp-servers"
+    }
+  },
+  "runtime": {
+    "python": {
+      "version": "3.11+",
+      "virtual_env": true,
+      "requirements_file": "requirements.txt"
+    },
+    "node": {
+      "version": "18+",
+      "package_manager": "npm",
+      "runtime": "bun"
+    }
+  },
+  "monitoring": {
+    "observatory_enabled": true,
+    "health_checks": true,
+    "metrics_collection": true,
+    "real_time_dashboard": true
+  }
+}

@@ -1,0 +1,305 @@
+{
+  "services": {
+    "mcp_servers": {
+      "filesystem": {
+        "enabled": true,
+        "command": "cmd",
+        "args": ["/c", "npx", "-y", "@modelcontextprotocol/server-filesystem"],
+        "path": "C:\\Users\\Corbin\\development",
+        "health_check": {
+          "enabled": true,
+          "endpoint": "/health",
+          "interval": 30
+        },
+        "retry_policy": {
+          "max_retries": 3,
+          "backoff": "exponential",
+          "initial_delay": 1000
+        },
+        "capabilities": ["read", "write", "list", "search"]
+      },
+      "financial-stochastic": {
+        "enabled": true,
+        "command": "node",
+        "args": ["C:\\Users\\Corbin\\development\\mcp-servers\\financial\\stochastic\\src\\index.js"],
+        "port": 3001,
+        "capabilities": ["gbm", "heston", "merton", "ou_process", "cir"],
+        "rate_limit": {
+          "requests_per_minute": 100,
+          "burst_size": 20
+        },
+        "health_check": {
+          "enabled": true,
+          "endpoint": "/health",
+          "interval": 30
+        }
+      },
+      "financial-localization": {
+        "enabled": true,
+        "command": "node",
+        "args": ["C:\\Users\\Corbin\\development\\mcp-servers\\financial\\localization\\src\\index.js"],
+        "port": 3002,
+        "capabilities": ["translate", "format_currency", "localize"],
+        "supported_languages": ["en", "es", "fr", "de", "ja", "zh"],
+        "health_check": {
+          "enabled": true,
+          "endpoint": "/health",
+          "interval": 30
+        }
+      },
+      "multidimensional-stochastic": {
+        "enabled": true,
+        "command": "node",
+        "args": ["C:\\Users\\Corbin\\development\\mcp-servers\\financial\\multidimensional\\src\\index.js"],
+        "port": 3003,
+        "capabilities": ["multi_gbm", "multi_heston", "portfolio_metrics"],
+        "health_check": {
+          "enabled": true,
+          "endpoint": "/health",
+          "interval": 30
+        }
+      },
+      "random-walk": {
+        "enabled": true,
+        "command": "node",
+        "args": ["C:\\Users\\Corbin\\development\\mcp-servers\\utilities\\random-walk\\src\\index.js"],
+        "port": 3004,
+        "capabilities": ["simple_walk", "biased_walk", "levy_walk", "correlated_walk"],
+        "health_check": {
+          "enabled": true,
+          "endpoint": "/health",
+          "interval": 30
+        }
+      }
+    },
+    "agents": {
+      "director": {
+        "enabled": true,
+        "type": "coordination",
+        "port": 8000,
+        "max_concurrent_tasks": 10,
+        "scheduling_algorithm": "priority_queue",
+        "capabilities": ["orchestration", "workflow", "task_distribution"],
+        "health_check": {
+          "enabled": true,
+          "endpoint": "/health",
+          "interval": 30
+        },
+        "performance": {
+          "max_memory_mb": 512,
+          "timeout_seconds": 300
+        }
+      },
+      "observatory": {
+        "enabled": true,
+        "type": "monitoring",
+        "port": 8080,
+        "metrics_interval": 5000,
+        "retention_days": 30,
+        "capabilities": ["monitoring", "metrics", "logging", "alerting"],
+        "health_check": {
+          "enabled": true,
+          "endpoint": "/health",
+          "interval": 15
+        },
+        "database": {
+          "type": "sqlite",
+          "path": "C:\\Users\\Corbin\\development\\agents\\production\\observatory-agent\\server\\database\\observatory.db"
+        }
+      },
+      "von-neumann": {
+        "enabled": true,
+        "type": "autonomous",
+        "port": 8001,
+        "capabilities": ["self_modification", "code_generation", "reasoning"],
+        "health_check": {
+          "enabled": true,
+          "endpoint": "/health",
+          "interval": 30
+        },
+        "constraints": {
+          "max_iterations": 100,
+          "safety_checks": true,
+          "require_approval": true
+        }
+      }
+    },
+    "gateway": {
+      "enabled": true,
+      "port": 9000,
+      "cors": {
+        "enabled": true,
+        "origins": ["*"],
+        "methods": ["GET", "POST", "PUT", "DELETE"],
+        "headers": ["*"]
+      },
+      "rate_limiting": {
+        "enabled": true,
+        "requests_per_minute": 100,
+        "burst_size": 20
+      },
+      "authentication": {
+        "enabled": true,
+        "methods": ["jwt", "api_key", "basic"],
+        "jwt": {
+          "expiry_hours": 24,
+          "algorithm": "HS256"
+        },
+        "api_key": {
+          "expiry_days": 365,
+          "header": "X-API-Key"
+        },
+        "rate_limiting": {
+          "max_login_attempts": 5,
+          "lockout_duration_minutes": 15
+        }
+      },
+      "circuit_breaker": {
+        "enabled": true,
+        "failure_threshold": 5,
+        "timeout": 60,
+        "success_threshold": 3
+      }
+    }
+  },
+  "infrastructure": {
+    "logging": {
+      "level": "INFO",
+      "format": "json",
+      "destinations": ["file", "console"],
+      "file": {
+        "path": "C:\\Users\\Corbin\\development\\logs",
+        "rotation": {
+          "enabled": true,
+          "max_size": "100MB",
+          "max_files": 10,
+          "compress": true
+        }
+      },
+      "console": {
+        "colorize": true,
+        "timestamp": true
+      }
+    },
+    "monitoring": {
+      "metrics_enabled": true,
+      "tracing_enabled": true,
+      "sample_rate": 0.1,
+      "exporters": {
+        "prometheus": {
+          "enabled": false,
+          "port": 9090,
+          "path": "/metrics"
+        },
+        "jaeger": {
+          "enabled": false,
+          "endpoint": "http://localhost:14268/api/traces"
+        }
+      }
+    },
+    "storage": {
+      "cache": {
+        "enabled": true,
+        "type": "redis",
+        "ttl_seconds": 300,
+        "max_size_mb": 100,
+        "redis": {
+          "host": "localhost",
+          "port": 6379,
+          "db": 0,
+          "password": null,
+          "max_connections": 10,
+          "key_prefix": "mcp:"
+        }
+      },
+      "database": {
+        "type": "sqlite",
+        "connection_pool": {
+          "min_connections": 2,
+          "max_connections": 10
+        }
+      },
+      "redis": {
+        "cache": {
+          "host": "localhost",
+          "port": 6379,
+          "db": 0,
+          "password": null,
+          "max_connections": 10,
+          "key_prefix": "mcp:"
+        },
+        "pubsub": {
+          "host": "localhost",
+          "port": 6379,
+          "db": 1,
+          "password": null,
+          "max_connections": 20
+        },
+        "sessions": {
+          "host": "localhost",
+          "port": 6379,
+          "db": 2,
+          "password": null,
+          "max_connections": 5
+        }
+      }
+    },
+    "security": {
+      "tls": {
+        "enabled": false,
+        "cert_path": "",
+        "key_path": ""
+      },
+      "api_keys": {
+        "enabled": false,
+        "rotation_days": 90
+      },
+      "encryption": {
+        "at_rest": false,
+        "in_transit": false
+      }
+    },
+    "resilience": {
+      "circuit_breaker": {
+        "enabled": true,
+        "threshold": 5,
+        "timeout": 60000,
+        "reset_timeout": 30000
+      },
+      "retry": {
+        "enabled": true,
+        "max_attempts": 3,
+        "backoff": "exponential",
+        "initial_delay": 1000,
+        "max_delay": 10000
+      },
+      "timeout": {
+        "default": 30000,
+        "long_running": 300000
+      }
+    }
+  },
+  "environment": {
+    "current": "development",
+    "paths": {
+      "base": "C:\\Users\\Corbin\\development",
+      "agents": "C:\\Users\\Corbin\\development\\agents",
+      "mcp_servers": "C:\\Users\\Corbin\\development\\mcp-servers",
+      "shared": "C:\\Users\\Corbin\\development\\shared",
+      "configs": "C:\\Users\\Corbin\\development\\configs",
+      "logs": "C:\\Users\\Corbin\\development\\logs"
+    }
+  },
+  "features": {
+    "hot_reload": true,
+    "auto_discovery": true,
+    "health_checks": true,
+    "distributed_tracing": true,
+    "message_queue": true,
+    "api_gateway": true,
+    "circuit_breakers": true,
+    "authentication": true,
+    "workflow_engine": true,
+    "redis_cache": true
+  }
+}

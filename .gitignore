@@ -14,6 +14,37 @@
 .claude.json
 .mcp.json
 .config/
+.claude.json.backup
+.claude.json.corrupted.*
+.mcp.json.backup
+.mcp.json.backup-
+
+# ===========================================
+# Windows System Files
+# ===========================================
+NTUSER.DAT*
+ntuser.dat.*
+ntuser.ini
+nul
+AppData/
+Application Data/
+Contacts/
+Cookies/
+Desktop/
+Documents/
+Favorites/
+Links/
+Local Settings/
+Music/
+My Documents/
+OneDrive/
+Pictures/
+Recent/
+Saved Games/
+Searches/
+SendTo/
+Start Menu/
+Videos/
 
 # ===========================================
 # IDE and Editor Files
@@ -25,6 +56,7 @@
 *~
 .DS_Store
 Thumbs.db
+.vs-kubernetes/
 
 # ===========================================
 # Python
@@ -142,3 +174,45 @@ temp/
 # ===========================================
 .claude/
 claude
+
+# ===========================================
+# Development Tools
+# ===========================================
+.aitk/
+.azure/
+.bun/
+.ghidra/
+.gradle/
+.kube/
+.local/
+.matplotlib/
+.minikube/
+.ollama/
+.streamlit/
+.windows-build-tools/
+.python_history
+npm-cache/
+curl/
+
+# ===========================================
+# VSIX and Archives
+# ===========================================
+*.vsix
+Tools/software-archives/
+
+# ===========================================
+# Temporary Reports and Logs
+# ===========================================
+*_report.md
+*_summary.md
+*_guide.md
+*_analyzer.py
+*_optimization*.json
+*_optimization*.py
+cleanup_*.py
+cleanup_*.bat
+cleanup_*.sh
+check_*.bat
+optimize*.bat
+schedule_*.bat
+schedule_*.ps1

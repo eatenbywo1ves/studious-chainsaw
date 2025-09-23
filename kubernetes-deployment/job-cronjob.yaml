@@ -1,0 +1,36 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: data-processing-job
+  namespace: default
+spec:
+  completions: 3
+  parallelism: 2
+  backoffLimit: 4
+  template:
+    spec:
+      containers:
+      - name: processor
+        image: busybox
+        command: ["sh", "-c", "echo 'Processing data...'; sleep 10; echo 'Done!'"]
+      restartPolicy: Never
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: backup-cronjob
+  namespace: default
+spec:
+  schedule: "*/5 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: backup
+            image: busybox
+            command:
+            - /bin/sh
+            - -c
+            - echo "Running backup at $(date)"; sleep 5; echo "Backup completed"
+          restartPolicy: OnFailure

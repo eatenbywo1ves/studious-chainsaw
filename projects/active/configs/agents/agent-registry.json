@@ -1,0 +1,74 @@
+{
+  "agentRegistry": {
+    "production": {
+      "director-agent": {
+        "name": "Director Agent",
+        "description": "Central orchestrator for multi-agent generative AI video system",
+        "path": "C:\\Users\\Corbin\\development\\agents\\production\\director-agent",
+        "main": "director_agent.py",
+        "type": "coordination",
+        "status": "active",
+        "dependencies": [
+          "redis",
+          "pydantic",
+          "aiofiles"
+        ],
+        "capabilities": [
+          "project_management",
+          "task_orchestration",
+          "agent_coordination",
+          "workflow_management"
+        ],
+        "version": null,
+        "author": null,
+        "last_modified": null
+      },
+      "observatory-agent": {
+        "name": "Multi-Agent Observatory",
+        "description": "Real-time monitoring and observability platform for multi-agent systems",
+        "path": "C:\\Users\\Corbin\\development\\agents\\production\\observatory-agent",
+        "main": "server/index.js",
+        "type": "monitoring",
+        "status": "active",
+        "dependencies": [
+          "bun",
+          "sqlite",
+          "websocket"
+        ],
+        "capabilities": [
+          "real_time_monitoring",
+          "health_checks",
+          "metrics_collection",
+          "dashboard_visualization"
+        ],
+        "version": null,
+        "author": null,
+        "last_modified": null
+      }
+    },
+    "experimental": {
+      "von-neumann-agent": {
+        "name": "Von Neumann Agent",
+        "description": "Self-replicating and self-modifying agent system",
+        "path": "C:\\Users\\Corbin\\development\\agents\\production\\von-neumann-agent",
+        "main": "main.py",
+        "type": "autonomous",
+        "status": "experimental",
+        "dependencies": [],
+        "capabilities": [
+          "self_replication",
+          "self_modification",
+          "autonomous_operation"
+        ],
+        "version": null,
+        "author": null,
+        "last_modified": null
+      }
+    },
+    "templates": {}
+  },
+  "metadata": {
+    "version": "1.0.0",
+    "updated": "2025-08-27T21:19:00Z"
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "C:/Users/Corbin/development"]
+    },
+    "playwright": {
+      "command": "npx",
+      "args": ["-y", "@executeautomation/playwright-mcp-server"]
+    },
+    "random-walk": {
+      "command": "node",
+      "args": ["src/index.js"],
+      "cwd": "C:/Users/Corbin/development/mcp-servers/utilities/random-walk"
+    },
+    "financial-stochastic": {
+      "command": "node",
+      "args": ["src/index.js"],
+      "cwd": "C:/Users/Corbin/development/mcp-servers/financial/stochastic"
+    },
+    "multidimensional-stochastic": {
+      "command": "node",
+      "args": ["src/index.js"],
+      "cwd": "C:/Users/Corbin/development/mcp-servers/financial/multidimensional"
+    },
+    "financial-localization": {
+      "command": "node", 
+      "args": ["src/index.js"],
+      "cwd": "C:/Users/Corbin/development/mcp-servers/financial/localization"
+    }
+  }
+}

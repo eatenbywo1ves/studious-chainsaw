@@ -1,0 +1,6 @@
+# Basic Agent Template Requirements
+asyncio
+logging
+dataclasses
+pathlib
+typing-extensions>=4.0.0

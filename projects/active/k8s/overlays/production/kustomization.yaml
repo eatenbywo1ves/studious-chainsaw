@@ -1,0 +1,136 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: mcp-production
+  annotations:
+    description: "MCP & Agent Architecture Production Environment"
+
+namespace: mcp-production
+
+resources:
+  - ../../base
+
+namePrefix: prod-
+
+commonLabels:
+  environment: production
+  app.kubernetes.io/environment: production
+
+patches:
+  - target:
+      kind: Deployment
+      name: api-gateway
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 5
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/memory
+        value: "512Mi"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/cpu
+        value: "500m"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/memory
+        value: "1Gi"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/cpu
+        value: "1"
+
+  - target:
+      kind: Deployment
+      name: observatory-agent
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 3
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/memory
+        value: "1Gi"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/cpu
+        value: "500m"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/memory
+        value: "2Gi"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/cpu
+        value: "1"
+
+  - target:
+      kind: HorizontalPodAutoscaler
+      name: api-gateway-hpa
+    patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 5
+      - op: replace
+        path: /spec/maxReplicas
+        value: 20
+
+  - target:
+      kind: HorizontalPodAutoscaler
+      name: observatory-agent-hpa
+    patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 3
+      - op: replace
+        path: /spec/maxReplicas
+        value: 10
+
+  - target:
+      kind: StatefulSet
+      name: redis
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 3
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/memory
+        value: "512Mi"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/memory
+        value: "1Gi"
+
+  - target:
+      kind: Ingress
+      name: mcp-ingress
+    patch: |-
+      - op: replace
+        path: /spec/rules/0/host
+        value: api.mcp.production.com
+      - op: replace
+        path: /spec/rules/1/host
+        value: observatory.mcp.production.com
+      - op: add
+        path: /metadata/annotations/nginx.ingress.kubernetes.io~1rate-limit
+        value: "1000"
+
+configMapGenerator:
+  - name: production-config
+    literals:
+      - ENVIRONMENT=production
+      - LOG_LEVEL=INFO
+      - RATE_LIMIT_REQUESTS_PER_MINUTE=1000
+      - REDIS_MAX_CONNECTIONS=50
+      - ENABLE_METRICS=true
+      - ENABLE_TRACING=true
+      - DATABASE_POOL_SIZE=20
+
+secretGenerator:
+  - name: production-secrets
+    literals:
+      - JWT_SECRET=production-super-secret-jwt-key-256-bit
+      - REDIS_PASSWORD=production-redis-secure-password
+      - POSTGRES_PASSWORD=production-postgres-secure-password
+      - TLS_CERT_PASSWORD=production-tls-cert-password
+
+replicas:
+  - name: api-gateway
+    count: 5
+  - name: observatory-agent
+    count: 3
+  - name: redis
+    count: 3

@@ -1,0 +1,56 @@
+{
+  "stars": [
+    {"name": "Sirius", "x": -8.6, "y": 2.3, "z": -1.4, "magnitude": -1.46, "color": "#A0B5FF", "type": "A1V"},
+    {"name": "Canopus", "x": 25.4, "y": -52.7, "z": 310, "magnitude": -0.74, "color": "#FFF4C8", "type": "F0II"},
+    {"name": "Arcturus", "x": -15.2, "y": 19.2, "z": 37, "magnitude": -0.05, "color": "#FFCC6F", "type": "K1.5III"},
+    {"name": "Alpha Centauri A", "x": -3.2, "y": -0.9, "z": -4.4, "magnitude": -0.01, "color": "#FFE4B5", "type": "G2V"},
+    {"name": "Vega", "x": 7.7, "y": 38.8, "z": 25, "magnitude": 0.03, "color": "#CAD7FF", "type": "A0V"},
+    {"name": "Capella", "x": 11.0, "y": 46.0, "z": 43, "magnitude": 0.08, "color": "#FFE4B5", "type": "G5III"},
+    {"name": "Rigel", "x": 24.3, "y": -8.2, "z": 860, "magnitude": 0.13, "color": "#B8D0FF", "type": "B8I"},
+    {"name": "Procyon", "x": -5.2, "y": 5.2, "z": 11.5, "magnitude": 0.37, "color": "#F5F0DD", "type": "F5IV"},
+    {"name": "Betelgeuse", "x": 88.8, "y": 7.4, "z": 640, "magnitude": 0.42, "color": "#FFA040", "type": "M1I"},
+    {"name": "Achernar", "x": 24.0, "y": -57.2, "z": 139, "magnitude": 0.46, "color": "#B8D0FF", "type": "B6V"},
+    {"name": "Beta Centauri", "x": 14.7, "y": -60.4, "z": 390, "magnitude": 0.61, "color": "#B2C7FF", "type": "B1III"},
+    {"name": "Altair", "x": 2.6, "y": 8.9, "z": 16.7, "magnitude": 0.77, "color": "#D6E3FF", "type": "A7V"},
+    {"name": "Aldebaran", "x": 16.5, "y": 16.5, "z": 65, "magnitude": 0.85, "color": "#FFCC6F", "type": "K5III"},
+    {"name": "Antares", "x": 88.0, "y": -26.4, "z": 600, "magnitude": 0.91, "color": "#FF8040", "type": "M1.5I"},
+    {"name": "Spica", "x": 13.4, "y": -11.2, "z": 250, "magnitude": 0.97, "color": "#B2C7FF", "type": "B1III"},
+    {"name": "Pollux", "x": 7.5, "y": 28.0, "z": 34, "magnitude": 1.14, "color": "#FFA040", "type": "K0III"},
+    {"name": "Fomalhaut", "x": 6.5, "y": -29.6, "z": 25, "magnitude": 1.16, "color": "#D6E3FF", "type": "A3V"},
+    {"name": "Deneb", "x": 49.5, "y": 45.3, "z": 2600, "magnitude": 1.25, "color": "#D6E3FF", "type": "A2I"},
+    {"name": "Mimosa", "x": 12.8, "y": -59.7, "z": 280, "magnitude": 1.25, "color": "#B2C7FF", "type": "B0.5III"},
+    {"name": "Regulus", "x": 10.1, "y": 12.0, "z": 79, "magnitude": 1.35, "color": "#B8D0FF", "type": "B8IV"}
+  ],
+  "constellations": [
+    {
+      "name": "Ursa Major",
+      "connections": [
+        ["Dubhe", "Merak"],
+        ["Merak", "Phecda"],
+        ["Phecda", "Megrez"],
+        ["Megrez", "Alioth"],
+        ["Alioth", "Mizar"],
+        ["Mizar", "Alkaid"]
+      ]
+    },
+    {
+      "name": "Orion",
+      "connections": [
+        ["Betelgeuse", "Bellatrix"],
+        ["Betelgeuse", "Alnitak"],
+        ["Rigel", "Saiph"],
+        ["Rigel", "Alnitak"],
+        ["Alnitak", "Alnilam"],
+        ["Alnilam", "Mintaka"]
+      ]
+    }
+  ],
+  "metadata": {
+    "epoch": "J2000.0",
+    "coordinate_system": "Cartesian",
+    "units": {
+      "position": "light-years",
+      "magnitude": "apparent"
+    }
+  }
+}

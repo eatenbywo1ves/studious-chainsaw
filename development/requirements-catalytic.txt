@@ -1,0 +1,28 @@
+# Catalytic Computing System Requirements
+# Core dependencies for production deployment
+
+# Scientific Computing
+numpy==1.24.3
+scipy==1.10.1
+igraph==0.10.4
+numba==0.57.0
+matplotlib==3.7.1
+
+# Web Framework
+fastapi==0.100.0
+uvicorn[standard]==0.23.1
+httpx==0.24.1
+
+# Monitoring & Metrics
+prometheus-client==0.17.0
+psutil==5.9.5
+
+# Utilities
+pyyaml==6.0
+python-multipart==0.0.6
+aiofiles==23.1.0
+python-dotenv==1.0.0
+
+# Optional GPU support (commented out for CPU-only deployment)
+# cupy-cuda11x==12.0.0
+# torch==2.0.1

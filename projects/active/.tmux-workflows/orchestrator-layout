@@ -1,0 +1,56 @@
+# Agent Orchestrator Focused Layout
+# Prefix + O to activate this layout
+
+# Create orchestrator session
+new-session -d -s orchestrator -n main -c ~/development/shared/orchestration
+
+# Window 1: Orchestrator Console
+new-window -t orchestrator:1 -n console -c ~/development/shared/orchestration
+split-window -h -t orchestrator:console
+split-window -v -t orchestrator:console.1
+send-keys -t orchestrator:console.0 "python -c 'from agent_orchestrator import AgentOrchestrator; import asyncio; import json; orchestrator = AgentOrchestrator({\"kubernetes_enabled\": True}); asyncio.run(orchestrator.initialize()); print(\"Orchestrator initialized\")'" Enter
+send-keys -t orchestrator:console.1 "watch -n 2 'kubectl get pods -l app=agent'" Enter
+send-keys -t orchestrator:console.2 "kubectl get events --field-selector reason=Created,reason=Started,reason=Killing -w" Enter
+
+# Window 2: Agent Monitoring
+new-window -t orchestrator:2 -n agents
+split-window -h -t orchestrator:agents
+split-window -v -t orchestrator:agents.0
+split-window -v -t orchestrator:agents.1
+send-keys -t orchestrator:agents.0 "watch -n 3 'kubectl get pods -o wide'" Enter
+send-keys -t orchestrator:agents.1 "watch -n 5 'kubectl top pods'" Enter
+send-keys -t orchestrator:agents.2 "kubectl logs -l app=agent --tail=50 -f" Enter
+send-keys -t orchestrator:agents.3 "watch -n 5 'kubectl get hpa'" Enter
+
+# Window 3: Scaling Metrics
+new-window -t orchestrator:3 -n scaling
+split-window -h -t orchestrator:scaling
+send-keys -t orchestrator:scaling.0 "watch -n 5 'python -c \"from shared.orchestration.agent_orchestrator import AgentOrchestrator; print(\\\"Scaling decisions...\\\")\"'" Enter
+send-keys -t orchestrator:scaling.1 "watch -n 3 'kubectl get deployment -o wide'" Enter
+
+# Window 4: Workflow Execution
+new-window -t orchestrator:4 -n workflows -c ~/development/shared/orchestration
+split-window -h -t orchestrator:workflows
+split-window -v -t orchestrator:workflows.1
+send-keys -t orchestrator:workflows.0 "python -c 'import json; print(\"Active workflows monitoring...\")'; tail -f ~/development/logs/workflow-executor.log || echo 'No workflow executor logs'" Enter
+send-keys -t orchestrator:workflows.1 "watch -n 5 'python -c \"print(\\\"Workflow Status Dashboard\\\")\"'" Enter  
+send-keys -t orchestrator:workflows.2 "redis-cli --scan --pattern 'workflow:*' | xargs redis-cli mget" Enter
+
+# Window 5: Network & Service Mesh
+new-window -t orchestrator:5 -n network
+split-window -h -t orchestrator:network
+send-keys -t orchestrator:network.0 "watch -n 3 'kubectl get svc'" Enter
+send-keys -t orchestrator:network.1 "watch -n 5 'kubectl get ingress'" Enter
+
+# Window 6: Resource Usage
+new-window -t orchestrator:6 -n resources
+split-window -h -t orchestrator:resources
+split-window -v -t orchestrator:resources.0
+split-window -v -t orchestrator:resources.1
+send-keys -t orchestrator:resources.0 "watch -n 5 'kubectl describe nodes | grep -E \"Name:|Allocated resources:\" -A 5'" Enter
+send-keys -t orchestrator:resources.1 "watch -n 3 'kubectl get pods --all-namespaces -o wide'" Enter
+send-keys -t orchestrator:resources.2 "watch -n 10 'kubectl top nodes'" Enter
+send-keys -t orchestrator:resources.3 "iostat -x 2" Enter
+
+# Select console window
+select-window -t orchestrator:console

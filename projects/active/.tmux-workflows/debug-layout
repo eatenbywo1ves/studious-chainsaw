@@ -1,0 +1,68 @@
+# Debug & Troubleshooting Layout
+# Prefix + D to activate this layout
+
+# Create debug session
+new-session -d -s debug -n main -c ~/development
+
+# Window 1: Interactive Debug Console
+new-window -t debug:1 -n console -c ~/development/shared
+split-window -h -t debug:console
+send-keys -t debug:console.0 "python -i -c 'import sys; sys.path.append(\".\"); from libraries.workflow_engine import *; from orchestration.agent_orchestrator import *; from libraries.message_queue import *; print(\"Debug environment loaded - all workflow components available\")'" Enter
+send-keys -t debug:console.1 "cd ~/development && python -c 'print(\"Python debugging ready\"); import pdb; pdb.set_trace()'" 
+
+# Window 2: System State Inspection
+new-window -t debug:2 -n state -c ~/development/shared
+split-window -h -t debug:state
+split-window -v -t debug:state.1
+send-keys -t debug:state.0 "watch -n 3 'ps aux | grep python | grep -E \"workflow|orchestrator|queue\"'" Enter
+send-keys -t debug:state.1 "watch -n 5 'lsof -i :8080-8090 || echo \"No services on debug ports\"'" Enter
+send-keys -t debug:state.2 "watch -n 3 'netstat -tulpn | grep python'" Enter
+
+# Window 3: Database Debug
+new-window -t debug:3 -n database
+split-window -h -t debug:database  
+send-keys -t debug:database.0 "psql -h localhost -U postgres -d events" Enter
+send-keys -t debug:database.1 "redis-cli" Enter
+
+# Window 4: File System Debug
+new-window -t debug:4 -n filesystem
+split-window -h -t debug:filesystem
+split-window -v -t debug:filesystem.1
+send-keys -t debug:filesystem.0 "watch -n 5 'find ~/development/shared -name \"*.py\" -exec grep -l \"TODO\\|FIXME\\|XXX\" {} \;'" Enter
+send-keys -t debug:filesystem.1 "watch -n 10 'find ~/development/logs -name \"*.log\" -mmin -5'" Enter
+send-keys -t debug:filesystem.2 "tail -f /tmp/tmux-clone.log || echo 'No tmux-clone logs'" Enter
+
+# Window 5: Network Debug
+new-window -t debug:5 -n network
+split-window -h -t debug:network
+split-window -v -t debug:network.1
+send-keys -t debug:network.0 "tcpdump -i lo -n" Enter
+send-keys -t debug:network.1 "watch -n 2 'ss -tulpn | grep :808'" Enter
+send-keys -t debug:network.2 "curl -v http://localhost:8080/health || echo 'Service not responding'" Enter
+
+# Window 6: Performance Debug
+new-window -t debug:6 -n perf
+split-window -h -t debug:perf
+split-window -v -t debug:perf.0
+split-window -v -t debug:perf.1
+send-keys -t debug:perf.0 "top -p \$(pgrep python)" Enter
+send-keys -t debug:perf.1 "strace -p \$(pgrep -f workflow_engine) -e trace=network || echo 'No workflow engine process'" Enter
+send-keys -t debug:perf.2 "watch -n 5 'pmap \$(pgrep python | head -1) || echo \"No python processes\"'" Enter
+send-keys -t debug:perf.3 "vmstat 2" Enter
+
+# Window 7: Container Debug (if using Docker)
+new-window -t debug:7 -n containers
+split-window -h -t debug:containers
+split-window -v -t debug:containers.1
+send-keys -t debug:containers.0 "docker ps -a" Enter
+send-keys -t debug:containers.1 "docker logs -f \$(docker ps -q) || echo 'No containers running'" Enter
+send-keys -t debug:containers.2 "watch -n 5 'docker stats --no-stream'" Enter
+
+# Window 8: Test Debug
+new-window -t debug:8 -n testing -c ~/development/shared
+split-window -h -t debug:testing
+send-keys -t debug:testing.0 "python -m pytest tests/ -v -s --tb=long --pdb" Enter
+send-keys -t debug:testing.1 "watch -n 10 'python -m pytest tests/ --collect-only -q'" Enter
+
+# Select console for interactive debugging
+select-window -t debug:console

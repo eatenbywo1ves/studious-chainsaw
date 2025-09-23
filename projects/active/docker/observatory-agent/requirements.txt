@@ -1,0 +1,37 @@
+# Observatory Agent Dependencies
+aiohttp>=3.8.0,<4.0.0
+aiohttp-cors>=0.7.0
+aiosqlite>=0.19.0
+structlog>=23.1.0
+prometheus-client>=0.19.0
+redis>=5.0.0
+asyncio>=3.4.3
+websockets>=11.0.0
+
+# Data processing and analytics
+pandas>=2.0.0
+numpy>=1.24.0
+matplotlib>=3.7.0
+seaborn>=0.12.0
+
+# Time series and metrics
+influxdb-client>=1.38.0
+psutil>=5.9.0
+py-cpuinfo>=9.0.0
+
+# Production optimizations
+uvloop>=0.19.0
+orjson>=3.9.0
+aiodns>=3.1.0
+cchardet>=2.1.7
+
+# Monitoring and observability
+opentelemetry-api>=1.20.0
+opentelemetry-sdk>=1.20.0
+opentelemetry-instrumentation-aiohttp-client>=0.41b0
+opentelemetry-instrumentation-sqlite3>=0.41b0
+
+# Real-time dashboard
+plotly>=5.15.0
+dash>=2.13.0
+dash-bootstrap-components>=1.4.0

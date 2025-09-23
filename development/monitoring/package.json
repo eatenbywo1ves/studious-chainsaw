@@ -1,0 +1,29 @@
+{
+  "name": "development-monitoring",
+  "version": "1.0.0",
+  "description": "Comprehensive monitoring system for development environment",
+  "main": "start-monitor.js",
+  "scripts": {
+    "start": "node start-monitor.js",
+    "health": "node health-checker.js",
+    "health:watch": "node health-checker.js --watch",
+    "build": "node build-monitor.js build",
+    "test": "node build-monitor.js test",
+    "watch": "node build-monitor.js watch",
+    "dashboard": "node dashboard.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "ws": "^8.14.2"
+  },
+  "devDependencies": {},
+  "keywords": [
+    "monitoring",
+    "health-check",
+    "performance",
+    "alerting",
+    "dashboard"
+  ],
+  "author": "Development Team",
+  "license": "MIT"
+}

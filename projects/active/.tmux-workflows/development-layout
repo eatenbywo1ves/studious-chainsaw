@@ -1,0 +1,62 @@
+# Development Layout - Full Workflow Architecture
+# Prefix + W to activate this layout
+
+# Create or switch to development session
+new-session -d -s development -n main -c ~/development
+
+# Window 1: Main development
+new-window -t development:1 -n editor -c ~/development
+send-keys -t development:editor "code ." Enter
+
+# Window 2: Workflow Engine
+new-window -t development:2 -n workflow -c ~/development/shared/libraries
+split-window -h -t development:workflow
+send-keys -t development:workflow.0 "python -c 'from workflow_engine import get_workflow_engine; engine = get_workflow_engine(); print(\"Workflow Engine Ready\"); import time; time.sleep(999)'" Enter
+send-keys -t development:workflow.1 "tail -f ~/development/logs/workflow-engine.log || echo 'No workflow logs yet'" Enter
+
+# Window 3: Agent Orchestrator  
+new-window -t development:3 -n orchestrator -c ~/development/shared/orchestration
+split-window -h -t development:orchestrator
+split-window -v -t development:orchestrator.1
+send-keys -t development:orchestrator.0 "python agent_orchestrator.py" Enter
+send-keys -t development:orchestrator.1 "kubectl get pods -w" Enter
+send-keys -t development:orchestrator.2 "kubectl get events --sort-by=.metadata.creationTimestamp -w" Enter
+
+# Window 4: Message Queue & Redis
+new-window -t development:4 -n messaging -c ~/development/shared/libraries  
+split-window -h -t development:messaging
+split-window -v -t development:messaging.1
+send-keys -t development:messaging.0 "python -c 'from message_queue import get_message_broker; import asyncio; broker = get_message_broker(); asyncio.run(broker.start()); print(\"Message Broker Started\")'" Enter
+send-keys -t development:messaging.1 "redis-cli monitor" Enter
+send-keys -t development:messaging.2 "watch -n 2 'redis-cli info | grep -E \"connected_clients|used_memory|keyspace\"'" Enter
+
+# Window 5: Service Discovery
+new-window -t development:5 -n services -c ~/development/shared/libraries
+split-window -h -t development:services
+send-keys -t development:services.0 "python -c 'from service_discovery import get_service_discovery; import asyncio; discovery = get_service_discovery(); asyncio.run(discovery.start()); print(\"Service Discovery Started\")'" Enter  
+send-keys -t development:services.1 "watch -n 3 'python -c \"from service_discovery import get_service_discovery; print(get_service_discovery().get_statistics())\"'" Enter
+
+# Window 6: Database & Event Store
+new-window -t development:6 -n database -c ~/development/shared/event_sourcing
+split-window -h -t development:database
+send-keys -t development:database.0 "psql -h localhost -U postgres -d events -c 'SELECT COUNT(*) as total_events FROM events;'" Enter
+send-keys -t development:database.1 "tail -f /var/log/postgresql/postgresql*.log || echo 'PostgreSQL logs not accessible'" Enter
+
+# Window 7: Testing
+new-window -t development:7 -n testing -c ~/development/shared
+split-window -h -t development:testing
+send-keys -t development:testing.0 "python -m pytest tests/ -v --tb=short" Enter
+send-keys -t development:testing.1 "watch -n 10 'python -m pytest tests/ -x -q'" Enter
+
+# Window 8: System Monitor
+new-window -t development:8 -n monitor
+split-window -h -t development:monitor
+split-window -v -t development:monitor.0
+split-window -v -t development:monitor.1
+send-keys -t development:monitor.0 "htop" Enter
+send-keys -t development:monitor.1 "iotop" Enter  
+send-keys -t development:monitor.2 "docker stats" Enter
+send-keys -t development:monitor.3 "df -h && echo '' && free -h" Enter
+
+# Select main editor window
+select-window -t development:editor

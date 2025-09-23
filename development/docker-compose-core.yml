@@ -1,0 +1,65 @@
+# Core Services for Catalytic Computing System
+# Simplified deployment without external dependencies
+
+services:
+  # Catalytic Computing API Gateway
+  catalytic-api:
+    image: catalytic-computing:latest
+    container_name: catalytic-api
+    ports:
+      - "8180:8080"  # API port (mapped to 8180 to avoid conflicts)
+      - "8182:8082"  # Metrics port
+    environment:
+      - PYTHONUNBUFFERED=1
+      - LATTICE_MEMORY_OPTIMIZATION=enabled
+      - PARALLEL_CORES=12
+      - MAX_LATTICES=100
+      - CACHE_SIZE=1024
+      - LOG_LEVEL=INFO
+    volumes:
+      - ./logs:/app/logs
+      - ./cache:/app/cache
+    restart: unless-stopped
+    networks:
+      - catalytic-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Webhook Event System
+  webhook-system:
+    image: webhook-system:latest
+    container_name: webhook-system
+    ports:
+      - "8185:8000"  # Webhook API (mapped to 8185 to avoid conflicts)
+      - "9192:9090"  # Webhook metrics
+    environment:
+      - PYTHONUNBUFFERED=1
+      - WEBHOOK_DB_PATH=/app/data/webhooks.db
+      - LOG_LEVEL=INFO
+      - MAX_RETRIES=3
+      - RETRY_DELAY=5
+    volumes:
+      - webhook-data:/app/data
+      - ./logs/webhooks:/app/logs
+    restart: unless-stopped
+    networks:
+      - catalytic-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    depends_on:
+      - catalytic-api
+
+networks:
+  catalytic-network:
+    driver: bridge
+
+volumes:
+  webhook-data:
+    driver: local

@@ -1,0 +1,17 @@
+{
+  "service": {
+    "name": "api-gateway",
+    "port": 8080,
+    "workers": 4,
+    "timeout": 30
+  },
+  "features": {
+    "cache": true,
+    "compression": false,
+    "rate_limiting": true
+  },
+  "logging": {
+    "level": "INFO",
+    "file": "logs/service.log"
+  }
+}

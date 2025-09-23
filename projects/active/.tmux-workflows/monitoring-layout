@@ -1,0 +1,76 @@
+# Monitoring & Observability Layout
+# Prefix + M to activate this layout
+
+# Create monitoring session
+new-session -d -s monitoring -n dashboard
+
+# Window 1: System Dashboard
+new-window -t monitoring:1 -n system -c ~/development
+split-window -h -t monitoring:system
+split-window -v -t monitoring:system.0
+split-window -v -t monitoring:system.1
+send-keys -t monitoring:system.0 "htop -u $USER" Enter
+send-keys -t monitoring:system.1 "iotop -ao" Enter
+send-keys -t monitoring:system.2 "watch -n 2 'df -h | head -10'" Enter  
+send-keys -t monitoring:system.3 "watch -n 3 'free -h && echo && netstat -tulpn | grep LISTEN | wc -l; echo \" active listeners\"'" Enter
+
+# Window 2: Application Metrics
+new-window -t monitoring:2 -n metrics -c ~/development/shared
+split-window -h -t monitoring:metrics
+split-window -v -t monitoring:metrics.1
+send-keys -t monitoring:metrics.0 "watch -n 5 'python -c \"from libraries.workflow_engine import get_workflow_engine; import json; print(json.dumps(get_workflow_engine().get_statistics(), indent=2))\"'" Enter
+send-keys -t monitoring:metrics.1 "watch -n 5 'python -c \"from libraries.message_queue import get_message_broker; import json; print(json.dumps(get_message_broker().get_statistics(), indent=2))\"'" Enter
+send-keys -t monitoring:metrics.2 "watch -n 5 'python -c \"from libraries.service_discovery import get_service_discovery; import json; print(json.dumps(get_service_discovery().get_statistics(), indent=2))\"'" Enter
+
+# Window 3: Database Monitoring
+new-window -t monitoring:3 -n database
+split-window -h -t monitoring:database
+split-window -v -t monitoring:database.1
+send-keys -t monitoring:database.0 "watch -n 5 'psql -h localhost -U postgres -c \"SELECT schemaname,tablename,n_tup_ins as inserts,n_tup_upd as updates,n_tup_del as deletes FROM pg_stat_user_tables ORDER BY n_tup_ins DESC LIMIT 10;\"'" Enter
+send-keys -t monitoring:database.1 "watch -n 5 'redis-cli info | grep -E \"used_memory_human|connected_clients|total_commands_processed|keyspace\"'" Enter  
+send-keys -t monitoring:database.2 "watch -n 10 'psql -h localhost -U postgres -c \"SELECT datname,numbackends,xact_commit,xact_rollback FROM pg_stat_database WHERE datname NOT IN (\\\"template0\\\",\\\"template1\\\");\"'" Enter
+
+# Window 4: Kubernetes Monitoring  
+new-window -t monitoring:4 -n k8s
+split-window -h -t monitoring:k8s
+split-window -v -t monitoring:k8s.0
+split-window -v -t monitoring:k8s.1
+send-keys -t monitoring:k8s.0 "watch -n 3 'kubectl get pods -A'" Enter
+send-keys -t monitoring:k8s.1 "watch -n 5 'kubectl top pods -A'" Enter
+send-keys -t monitoring:k8s.2 "watch -n 5 'kubectl get events --sort-by=.metadata.creationTimestamp | tail -20'" Enter
+send-keys -t monitoring:k8s.3 "kubectl get pods -w" Enter
+
+# Window 5: Network Monitoring
+new-window -t monitoring:5 -n network
+split-window -h -t monitoring:network
+split-window -v -t monitoring:network.1  
+send-keys -t monitoring:network.0 "watch -n 2 'ss -tuln'" Enter
+send-keys -t monitoring:network.1 "watch -n 5 'netstat -i'" Enter
+send-keys -t monitoring:network.2 "tcpdump -i any -n -c 100 port 6379 or port 5432" Enter
+
+# Window 6: Logs Aggregation
+new-window -t monitoring:6 -n logs -c ~/development
+split-window -h -t monitoring:logs
+split-window -v -t monitoring:logs.0
+split-window -v -t monitoring:logs.1
+send-keys -t monitoring:logs.0 "tail -f logs/workflow-engine.log || echo 'No workflow engine logs'" Enter
+send-keys -t monitoring:logs.1 "tail -f logs/agent-orchestrator.log || echo 'No orchestrator logs'" Enter
+send-keys -t monitoring:logs.2 "tail -f logs/message-queue.log || echo 'No message queue logs'" Enter
+send-keys -t monitoring:logs.3 "journalctl -u docker -f || echo 'No docker logs available'" Enter
+
+# Window 7: Error Monitoring
+new-window -t monitoring:7 -n errors
+split-window -h -t monitoring:errors
+send-keys -t monitoring:errors.0 "tail -f ~/development/logs/*.log | grep -i error || echo 'No error logs found'" Enter
+send-keys -t monitoring:errors.1 "watch -n 10 'find ~/development/logs -name \"*.log\" -exec grep -l ERROR {} \; | head -10'" Enter
+
+# Window 8: Performance Analysis
+new-window -t monitoring:8 -n performance
+split-window -h -t monitoring:performance
+split-window -v -t monitoring:performance.1
+send-keys -t monitoring:performance.0 "watch -n 10 'ps aux --sort=-%cpu | head -15'" Enter
+send-keys -t monitoring:performance.1 "watch -n 10 'ps aux --sort=-%mem | head -15'" Enter
+send-keys -t monitoring:performance.2 "vmstat 5" Enter
+
+# Select system dashboard
+select-window -t monitoring:system

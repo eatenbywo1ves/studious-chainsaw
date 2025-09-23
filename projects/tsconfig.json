@@ -12,10 +12,18 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+    "composite": true,
+    "incremental": true,
+    "tsBuildInfoFile": ".tsbuildinfo"
   },
   "include": [
     "*.ts",
     "*.tsx"
+  ],
+  "references": [
+    { "path": "./packages/shared" },
+    { "path": "./packages/stochastic-components" },
+    { "path": "./packages/random-walk-components" }
   ]
 }

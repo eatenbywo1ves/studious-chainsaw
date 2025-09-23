@@ -1,0 +1,270 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MCP Server Schema",
+  "description": "Schema for MCP server configuration and registration",
+  "type": "object",
+  "properties": {
+    "server_id": {
+      "type": "string",
+      "description": "Unique identifier for the MCP server"
+    },
+    "name": {
+      "type": "string",
+      "description": "Human-readable name of the MCP server"
+    },
+    "description": {
+      "type": "string",
+      "description": "Brief description of server functionality"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Semantic version of the server"
+    },
+    "category": {
+      "type": "string",
+      "enum": ["financial", "utilities", "development", "automation"],
+      "description": "Category of MCP server"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["active", "inactive", "experimental", "deprecated"],
+      "description": "Current status of the server"
+    },
+    "path": {
+      "type": "string",
+      "description": "File system path to server directory"
+    },
+    "main": {
+      "type": "string",
+      "description": "Main executable file"
+    },
+    "command": {
+      "type": "string",
+      "description": "Command to run the server"
+    },
+    "args": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Command line arguments"
+    },
+    "env": {
+      "type": "object",
+      "patternProperties": {
+        "^[A-Z_][A-Z0-9_]*$": {
+          "type": "string"
+        }
+      },
+      "description": "Environment variables"
+    },
+    "cwd": {
+      "type": "string",
+      "description": "Working directory for the server"
+    },
+    "capabilities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of server capabilities/tools"
+    },
+    "dependencies": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of required dependencies"
+    },
+    "tools": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Tool name"
+          },
+          "description": {
+            "type": "string",
+            "description": "Tool description"
+          },
+          "input_schema": {
+            "type": "object",
+            "description": "JSON schema for tool input"
+          },
+          "output_schema": {
+            "type": "object",
+            "description": "JSON schema for tool output"
+          }
+        },
+        "required": ["name", "description"]
+      },
+      "description": "Available tools provided by the server"
+    },
+    "resources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "uri": {
+            "type": "string",
+            "format": "uri",
+            "description": "Resource URI"
+          },
+          "name": {
+            "type": "string",
+            "description": "Resource name"
+          },
+          "description": {
+            "type": "string",
+            "description": "Resource description"
+          },
+          "mime_type": {
+            "type": "string",
+            "description": "MIME type of the resource"
+          }
+        },
+        "required": ["uri", "name"]
+      },
+      "description": "Available resources provided by the server"
+    },
+    "prompts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Prompt name"
+          },
+          "description": {
+            "type": "string",
+            "description": "Prompt description"
+          },
+          "arguments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "required": {
+                  "type": "boolean"
+                }
+              },
+              "required": ["name"]
+            }
+          }
+        },
+        "required": ["name", "description"]
+      },
+      "description": "Available prompt templates"
+    },
+    "configuration": {
+      "type": "object",
+      "properties": {
+        "port": {
+          "type": "integer",
+          "minimum": 1024,
+          "maximum": 65535,
+          "description": "Port number for server (if applicable)"
+        },
+        "timeout": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Request timeout in seconds"
+        },
+        "max_connections": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Maximum concurrent connections"
+        },
+        "rate_limit": {
+          "type": "object",
+          "properties": {
+            "requests_per_minute": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "burst_size": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        }
+      }
+    },
+    "health_check": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "interval": {
+          "type": "number",
+          "minimum": 1,
+          "description": "Health check interval in seconds"
+        },
+        "timeout": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Health check timeout in seconds"
+        },
+        "endpoint": {
+          "type": "string",
+          "description": "Health check endpoint (if HTTP-based)"
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "author": {
+          "type": "string"
+        },
+        "license": {
+          "type": "string"
+        },
+        "repository": {
+          "type": "string",
+          "format": "uri"
+        },
+        "documentation": {
+          "type": "string",
+          "format": "uri"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "required": [
+    "server_id",
+    "name",
+    "description",
+    "category",
+    "status",
+    "path",
+    "main",
+    "command"
+  ],
+  "additionalProperties": false
+}

@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  # Jaeger All-in-One for development and small deployments
+  jaeger:
+    image: jaegertracing/all-in-one:1.53
+    container_name: jaeger-aio
+    environment:
+      COLLECTOR_OTLP_ENABLED: true
+      LOG_LEVEL: info
+    ports:
+      # Jaeger UI
+      - "16686:16686"
+      # Jaeger HTTP collector (for OpenTelemetry)
+      - "14268:14268"
+      # Jaeger gRPC collector
+      - "14250:14250"  
+      # OTLP HTTP receiver
+      - "4318:4318"
+      # OTLP gRPC receiver  
+      - "4317:4317"
+      # Zipkin HTTP receiver
+      - "9411:9411"
+      # Admin port
+      - "14269:14269"
+    networks:
+      - enterprise-monitoring
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:14269/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Jaeger Query Service (if you need separate query service)
+  jaeger-query:
+    image: jaegertracing/jaeger-query:1.53
+    container_name: jaeger-query
+    environment:
+      SPAN_STORAGE_TYPE: memory
+      LOG_LEVEL: info
+    ports:
+      - "16687:16686"  # Alternative UI port
+    depends_on:
+      - jaeger
+    networks:
+      - enterprise-monitoring
+    restart: unless-stopped
+    profiles:
+      - "production"  # Only start in production profile
+
+networks:
+  enterprise-monitoring:
+    external: true
+    name: enterprise-monitoring

@@ -1,0 +1,29 @@
+{
+  "name": "adaptive-control-mcp-server",
+  "version": "1.0.0",
+  "description": "MCP server for multi-agent adaptive coordination and control algorithms",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --inspect src/index.js",
+    "test": "node test/test-adaptive.js"
+  },
+  "keywords": [
+    "mcp",
+    "adaptive-control",
+    "multi-agent",
+    "coordination",
+    "lyapunov",
+    "mrac",
+    "consensus"
+  ],
+  "author": "Observatory System",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.5.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

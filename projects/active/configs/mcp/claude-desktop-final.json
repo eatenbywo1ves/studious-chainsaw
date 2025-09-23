@@ -1,0 +1,40 @@
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "C:/Users/Corbin/development"]
+    },
+    "financial-localization": {
+      "command": "node",
+      "args": ["src/index.js"],
+      "cwd": "C:/Users/Corbin/development/mcp-servers/financial/localization",
+      "env": {
+        "NODE_ENV": "production"
+      }
+    },
+    "financial-stochastic": {
+      "command": "node",
+      "args": ["src/index.js"],
+      "cwd": "C:/Users/Corbin/development/mcp-servers/financial/stochastic",
+      "env": {
+        "NODE_ENV": "production"
+      }
+    },
+    "multidimensional-stochastic": {
+      "command": "node",
+      "args": ["src/index.js"],
+      "cwd": "C:/Users/Corbin/development/mcp-servers/financial/multidimensional",
+      "env": {
+        "NODE_ENV": "production"
+      }
+    },
+    "random-walk": {
+      "command": "node",
+      "args": ["src/index.js"],
+      "cwd": "C:/Users/Corbin/development/mcp-servers/utilities/random-walk",
+      "env": {
+        "NODE_ENV": "production"
+      }
+    }
+  }
+}

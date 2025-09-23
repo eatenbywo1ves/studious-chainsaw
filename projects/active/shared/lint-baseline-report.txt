@@ -1,0 +1,155 @@
+.\__init__.py:1:17: W292 no newline at end of file
+.\analytics\dashboard_framework.py:817:69: W292 no newline at end of file
+.\analytics\olap_engine.py:418:5: C901 'OLAPEngine._execute_in_memory_query' is too complex (16)
+.\analytics\olap_engine.py:478:5: C901 'OLAPEngine._execute_database_query' is too complex (13)
+.\analytics\olap_engine.py:685:61: W292 no newline at end of file
+.\analytics\predictive_engine.py:237:5: C901 'PredictiveEngine._engineer_features' is too complex (13)
+.\analytics\predictive_engine.py:429:5: C901 'PredictiveEngine.predict' is too complex (13)
+.\analytics\predictive_engine.py:745:30: F541 f-string is missing placeholders
+.\analytics\predictive_engine.py:751:20: W292 no newline at end of file
+.\analytics\stream_processor.py:446:6: W292 no newline at end of file
+.\event_sourcing\__init__.py:24:2: W292 no newline at end of file
+.\event_sourcing\commands.py:503:19: W292 no newline at end of file
+.\event_sourcing\event_store.py:246:21: E122 continuation line missing indentation or outdented
+.\event_sourcing\event_store.py:505:25: W292 no newline at end of file
+.\event_sourcing\integration.py:587:34: W292 no newline at end of file
+.\event_sourcing\projections.py:300:5: C901 'SystemMetricsProjection.handle_event' is too complex (14)
+.\event_sourcing\projections.py:586:22: W292 no newline at end of file
+.\event_sourcing\queries.py:599:10: W292 no newline at end of file
+.\event_sourcing\sagas.py:185:25: F541 f-string is missing placeholders
+.\event_sourcing\sagas.py:185:39: E261 at least two spaces before inline comment
+.\event_sourcing\sagas.py:520:9: F811 redefinition of unused 'Event' from line 19
+.\event_sourcing\sagas.py:578:10: W292 no newline at end of file
+.\gateway\api_gateway.py:24:1: E402 module level import not at top of file
+.\gateway\api_gateway.py:27:1: E402 module level import not at top of file
+.\gateway\api_gateway.py:28:1: E402 module level import not at top of file
+.\gateway\api_gateway.py:32:1: E402 module level import not at top of file
+.\gateway\api_gateway.py:35:1: E402 module level import not at top of file
+.\gateway\api_gateway.py:411:43: W504 line break after binary operator
+.\gateway\api_gateway.py:916:24: W292 no newline at end of file
+.\libraries\__init__.py:1:27: W292 no newline at end of file
+.\libraries\agent_registry.py:233:93: W292 no newline at end of file
+.\libraries\authentication.py:586:21: W292 no newline at end of file
+.\libraries\circuit_breaker.py:491:36: W292 no newline at end of file
+.\libraries\config_manager.py:389:34: W292 no newline at end of file
+.\libraries\distributed_tracing.py:620:16: W292 no newline at end of file
+.\libraries\mcp_registry.py:293:97: W292 no newline at end of file
+.\libraries\message_queue.py:410:5: C901 'MessageBroker._consume_queue' is too complex (14)
+.\libraries\message_queue.py:574:57: W292 no newline at end of file
+.\libraries\redis_manager.py:339:17: F841 local variable 'timestamp' is assigned to but never used
+.\libraries\redis_manager.py:459:61: W292 no newline at end of file
+.\libraries\service_discovery.py:447:59: W292 no newline at end of file
+.\libraries\workflow_engine.py:228:5: C901 'WorkflowEngine.execute_workflow' is too complex (14)
+.\libraries\workflow_engine.py:566:37: W292 no newline at end of file
+.\ml_pipeline\mlops_platform.py:411:30: F541 f-string is missing placeholders
+.\ml_pipeline\mlops_platform.py:579:87: W504 line break after binary operator
+.\ml_pipeline\mlops_platform.py:705:92: W504 line break after binary operator
+.\ml_pipeline\mlops_platform.py:758:10: W292 no newline at end of file
+.\multi_tenant\__init__.py:27:2: W292 no newline at end of file
+.\multi_tenant\quotas.py:672:10: W292 no newline at end of file
+.\multi_tenant\tenant_manager.py:710:10: W292 no newline at end of file
+.\orchestration\agent_orchestrator.py:500:5: C901 'AgentOrchestrator.terminate_agent' is too complex (13)
+.\orchestration\agent_orchestrator.py:900:9: F841 local variable 'request' is assigned to but never used
+.\orchestration\agent_orchestrator.py:1033:88: W504 line break after binary operator
+.\orchestration\agent_orchestrator.py:1049:23: F821 undefined name 'np'
+.\orchestration\agent_orchestrator.py:1055:26: F821 undefined name 'np'
+.\orchestration\agent_orchestrator.py:1061:57: W504 line break after binary operator
+.\orchestration\agent_orchestrator.py:1064:65: W504 line break after binary operator
+.\orchestration\agent_orchestrator.py:1176:10: W292 no newline at end of file
+.\security\__init__.py:30:2: W292 no newline at end of file
+.\security\mfa.py:210:39: F821 undefined name 'Tuple'
+.\security\mfa.py:644:50: W292 no newline at end of file
+.\security\oauth2.py:314:9: F841 local variable 'public_key' is assigned to but never used
+.\security\oauth2.py:813:25: W292 no newline at end of file
+.\security\rbac.py:556:47: W504 line break after binary operator
+.\security\rbac.py:659:9: F841 local variable 'reasons' is assigned to but never used
+.\security\rbac.py:664:62: W504 line break after binary operator
+.\security\rbac.py:774:54: F821 undefined name 'Tuple'
+.\security\rbac.py:823:10: W292 no newline at end of file
+.\security\saml.py:493:5: C901 'SAMLProvider.process_saml_response' is too complex (13)
+.\security\saml.py:670:10: W292 no newline at end of file
+.\tests\test_authentication.py:16:1: E402 module level import not at top of file
+.\tests\test_authentication.py:70:9: F841 local variable 'user' is assigned to but never used
+.\tests\test_authentication.py:423:14: E226 missing whitespace around arithmetic operator
+.\tests\test_authentication.py:431:14: E226 missing whitespace around arithmetic operator
+.\tests\test_authentication.py:435:33: W292 no newline at end of file
+.\tests\test_circuit_breaker.py:15:1: E402 module level import not at top of file
+.\tests\test_circuit_breaker.py:37:62: E226 missing whitespace around arithmetic operator
+.\tests\test_circuit_breaker.py:152:9: F841 local variable 'result' is assigned to but never used
+.\tests\test_circuit_breaker.py:233:9: F841 local variable 'stats' is assigned to but never used
+.\tests\test_circuit_breaker.py:261:9: F841 local variable 'cb2' is assigned to but never used
+.\tests\test_circuit_breaker.py:384:40: E226 missing whitespace around arithmetic operator
+.\tests\test_circuit_breaker.py:384:63: E226 missing whitespace around arithmetic operator
+.\tests\test_circuit_breaker.py:427:14: E226 missing whitespace around arithmetic operator
+.\tests\test_circuit_breaker.py:435:14: E226 missing whitespace around arithmetic operator
+.\tests\test_circuit_breaker.py:439:33: W292 no newline at end of file
+.\tests\test_end_to_end_integration.py:17:1: E402 module level import not at top of file
+.\tests\test_end_to_end_integration.py:20:1: E402 module level import not at top of file
+.\tests\test_end_to_end_integration.py:21:1: E402 module level import not at top of file
+.\tests\test_end_to_end_integration.py:24:1: E402 module level import not at top of file
+.\tests\test_end_to_end_integration.py:25:1: E402 module level import not at top of file
+.\tests\test_end_to_end_integration.py:26:1: E402 module level import not at top of file
+.\tests\test_end_to_end_integration.py:27:1: E402 module level import not at top of file
+.\tests\test_end_to_end_integration.py:28:1: E402 module level import not at top of file
+.\tests\test_end_to_end_integration.py:84:13: F841 local variable 'service_discovery' is assigned to but never used
+.\tests\test_end_to_end_integration.py:85:13: F841 local variable 'config_manager' is assigned to but never used
+.\tests\test_end_to_end_integration.py:86:13: F841 local variable 'auth_manager' is assigned to but never used
+.\tests\test_end_to_end_integration.py:87:13: F841 local variable 'cache_manager' is assigned to but never used
+.\tests\test_end_to_end_integration.py:88:13: F841 local variable 'pubsub_manager' is assigned to but never used
+.\tests\test_end_to_end_integration.py:89:13: F841 local variable 'workflow_engine' is assigned to but never used
+.\tests\test_end_to_end_integration.py:90:13: F841 local variable 'circuit_breaker_registry' is assigned to but never used
+.\tests\test_end_to_end_integration.py:91:13: F841 local variable 'message_broker' is assigned to but never used
+.\tests\test_end_to_end_integration.py:92:13: F841 local variable 'trace_collector' is assigned to but never used
+.\tests\test_end_to_end_integration.py:321:13: F841 local variable 'task' is assigned to but never used
+.\tests\test_end_to_end_integration.py:538:25: E226 missing whitespace around arithmetic operator
+.\tests\test_end_to_end_integration.py:540:18: E226 missing whitespace around arithmetic operator
+.\tests\test_end_to_end_integration.py:546:15: F541 f-string is missing placeholders
+.\tests\test_end_to_end_integration.py:550:41: E226 missing whitespace around arithmetic operator
+.\tests\test_end_to_end_integration.py:550:48: E226 missing whitespace around arithmetic operator
+.\tests\test_end_to_end_integration.py:562:25: E226 missing whitespace around arithmetic operator
+.\tests\test_end_to_end_integration.py:564:18: E226 missing whitespace around arithmetic operator
+.\tests\test_end_to_end_integration.py:581:46: E226 missing whitespace around arithmetic operator
+.\tests\test_end_to_end_integration.py:587:25: E226 missing whitespace around arithmetic operator
+.\tests\test_end_to_end_integration.py:610:24: W292 no newline at end of file
+.\tests\test_event_sourcing.py:475:34: W292 no newline at end of file
+.\tests\test_redis_integration.py:16:1: E402 module level import not at top of file
+.\tests\test_redis_integration.py:21:1: E402 module level import not at top of file
+.\tests\test_redis_integration.py:230:13: F841 local variable 'subscribers' is assigned to but never used
+.\tests\test_redis_integration.py:424:13: F841 local variable 'success' is assigned to but never used
+.\tests\test_redis_integration.py:445:25: E226 missing whitespace around arithmetic operator
+.\tests\test_redis_integration.py:447:18: E226 missing whitespace around arithmetic operator
+.\tests\test_redis_integration.py:456:39: E226 missing whitespace around arithmetic operator
+.\tests\test_redis_integration.py:456:46: E226 missing whitespace around arithmetic operator
+.\tests\test_redis_integration.py:463:25: E226 missing whitespace around arithmetic operator
+.\tests\test_redis_integration.py:484:24: W292 no newline at end of file
+.\tests\test_redis_simple.py:16:1: E402 module level import not at top of file
+.\tests\test_redis_simple.py:149:11: F541 f-string is missing placeholders
+.\tests\test_redis_simple.py:159:24: W292 no newline at end of file
+.\tests\test_workflow_engine.py:16:1: E402 module level import not at top of file
+.\tests\test_workflow_engine.py:67:5: F841 local variable 'task1' is assigned to but never used
+.\tests\test_workflow_engine.py:72:5: F841 local variable 'task2' is assigned to but never used
+.\tests\test_workflow_engine.py:118:5: F841 local variable 'start_time' is assigned to but never used
+.\tests\test_workflow_engine.py:120:5: F841 local variable 'end_time' is assigned to but never used
+.\tests\test_workflow_engine.py:151:44: E226 missing whitespace around arithmetic operator
+.\tests\test_workflow_engine.py:187:5: F841 local variable 'success_task' is assigned to but never used
+.\tests\test_workflow_engine.py:276:58: E226 missing whitespace around arithmetic operator
+.\tests\test_workflow_engine.py:279:35: E226 missing whitespace around arithmetic operator
+.\tests\test_workflow_engine.py:326:40: E226 missing whitespace around arithmetic operator
+.\tests\test_workflow_engine.py:338:5: F841 local variable 'success' is assigned to but never used
+.\tests\test_workflow_engine.py:379:14: E226 missing whitespace around arithmetic operator
+.\tests\test_workflow_engine.py:387:14: E226 missing whitespace around arithmetic operator
+.\tests\test_workflow_engine.py:391:33: W292 no newline at end of file
+.\utilities\__init__.py:1:27: W292 no newline at end of file
+.\utilities\config_manager.py:217:1: E302 expected 2 blank lines, found 1
+.\utilities\config_manager.py:224:1: E302 expected 2 blank lines, found 1
+.\utilities\config_manager.py:228:1: E302 expected 2 blank lines, found 1
+.\utilities\config_manager.py:232:1: E302 expected 2 blank lines, found 1
+.\utilities\config_manager.py:236:1: E302 expected 2 blank lines, found 1
+.\utilities\config_manager.py:238:65: W292 no newline at end of file
+.\utilities\health_checks.py:21:1: E402 module level import not at top of file
+.\utilities\health_checks.py:22:1: E402 module level import not at top of file
+.\utilities\health_checks.py:482:24: W292 no newline at end of file
+.\utilities\logging_utils.py:398:21: F541 f-string is missing placeholders
+.\utilities\logging_utils.py:420:21: F541 f-string is missing placeholders
+.\utilities\logging_utils.py:442:21: F541 f-string is missing placeholders
+.\utilities\logging_utils.py:451:81: W292 no newline at end of file

@@ -1,0 +1,35 @@
+{
+  "name": "financial-localization-mcp",
+  "version": "1.0.0",
+  "description": "MCP server providing financial localization and translation services",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "build": "echo 'No build step needed for this MCP server'",
+    "test": "echo 'Tests not implemented yet'"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "localization",
+    "i18n",
+    "financial",
+    "translation"
+  ],
+  "author": "Claude Code Assistant",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.17.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "mcp": {
+    "server": {
+      "name": "financial-localization",
+      "version": "1.0.0"
+    }
+  }
+}

@@ -1,0 +1,69 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'enterprise-ai-platform'
+    environment: 'production'
+
+rule_files:
+  - "rules/*.yml"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # API Gateway monitoring
+  - job_name: 'api-gateway'
+    static_configs:
+      - targets: ['localhost:9000']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    scrape_timeout: 5s
+
+  # Observatory monitoring
+  - job_name: 'observatory'
+    static_configs:
+      - targets: ['localhost:8080']
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+
+  # Service Discovery monitoring
+  - job_name: 'service-discovery'
+    static_configs:
+      - targets: ['localhost:8765']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+  # Dynamic service discovery from API Gateway
+  - job_name: 'dynamic-services'
+    http_sd_configs:
+      - url: 'http://localhost:9000/prometheus/targets'
+        refresh_interval: 60s
+    relabel_configs:
+      - source_labels: [__meta_service_name]
+        target_label: service_name
+      - source_labels: [__meta_service_type]
+        target_label: service_type
+
+  # Agent monitoring (multi-target pattern)
+  - job_name: 'agents'
+    static_configs:
+      - targets:
+        - 'localhost:8888'  # demo-api
+        - 'localhost:8999'  # integration-test
+    metrics_path: '/metrics'
+    scrape_interval: 20s
+
+  # System metrics (if node_exporter is available)
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['localhost:9100']
+    scrape_interval: 30s

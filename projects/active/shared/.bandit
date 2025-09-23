@@ -1,0 +1,11 @@
+[bandit]
+exclude = tests,build,dist,.venv,venv
+skips = B101,B601,B602,B603
+targets = .
+
+[bandit.assert_used]
+skips = ['**/tests/**', '**/*test*.py']
+
+[bandit.hardcoded_password_string]
+# Allow test passwords and configuration defaults
+word_list = test,example,dummy,mock,fake

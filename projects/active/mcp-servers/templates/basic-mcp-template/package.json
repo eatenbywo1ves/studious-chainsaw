@@ -1,0 +1,31 @@
+{
+  "name": "my-mcp-server",
+  "version": "1.0.0",
+  "description": "Basic MCP server template",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "test": "npm run test:unit",
+    "test:unit": "node --test src/test/*.test.js",
+    "lint": "eslint src/",
+    "build": "echo 'No build step needed for basic template'"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "server"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.4.0"
+  },
+  "devDependencies": {
+    "eslint": "^9.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

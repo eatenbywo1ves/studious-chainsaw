@@ -1,0 +1,135 @@
+{
+  "mcpServers": {
+    "filesystem": {
+      "name": "Filesystem Server",
+      "description": "File system operations MCP server",
+      "path": "C:\\Users\\Corbin\\development\\mcp-servers\\utilities\\filesystem",
+      "main": "index.js",
+      "category": "utilities",
+      "status": "active",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "C:\\Users\\Corbin\\development"
+      ],
+      "env": {},
+      "capabilities": [
+        "file_operations",
+        "directory_listing",
+        "file_search"
+      ],
+      "version": null,
+      "author": null,
+      "port": null,
+      "dependencies": null
+    },
+    "financial-localization": {
+      "name": "Financial Localization Server",
+      "description": "Financial terminology translation and localization",
+      "path": "C:\\Users\\Corbin\\development\\mcp-servers\\financial\\localization",
+      "main": "src\\index.js",
+      "category": "financial",
+      "status": "active",
+      "command": "node",
+      "args": [
+        "src\\index.js"
+      ],
+      "env": {
+        "NODE_ENV": "production"
+      },
+      "capabilities": [
+        "translation",
+        "currency_formatting",
+        "locale_support"
+      ],
+      "version": null,
+      "author": null,
+      "port": null,
+      "dependencies": null
+    },
+    "financial-stochastic": {
+      "name": "Financial Stochastic Server",
+      "description": "Stochastic financial modeling and simulation",
+      "path": "C:\\Users\\Corbin\\development\\mcp-servers\\financial\\stochastic",
+      "main": "src\\index.js",
+      "category": "financial",
+      "status": "active",
+      "command": "node",
+      "args": [
+        "src\\index.js"
+      ],
+      "env": {
+        "NODE_ENV": "production"
+      },
+      "capabilities": [
+        "gbm",
+        "ou_process",
+        "heston_model",
+        "merton_jump",
+        "cir_process",
+        "risk_metrics"
+      ],
+      "version": null,
+      "author": null,
+      "port": null,
+      "dependencies": null
+    },
+    "multidimensional-stochastic": {
+      "name": "Multidimensional Stochastic Server",
+      "description": "Multi-asset stochastic process modeling",
+      "path": "C:\\Users\\Corbin\\development\\mcp-servers\\financial\\multidimensional",
+      "main": "src\\index.js",
+      "category": "financial",
+      "status": "active",
+      "command": "node",
+      "args": [
+        "src\\index.js"
+      ],
+      "env": {
+        "NODE_ENV": "production"
+      },
+      "capabilities": [
+        "multi_gbm",
+        "multi_ou",
+        "multi_heston",
+        "portfolio_metrics",
+        "correlation_analysis"
+      ],
+      "version": null,
+      "author": null,
+      "port": null,
+      "dependencies": null
+    },
+    "random-walk": {
+      "name": "Random Walk Server",
+      "description": "Random walk and stochastic process generation",
+      "path": "C:\\Users\\Corbin\\development\\mcp-servers\\utilities\\random-walk",
+      "main": "src\\index.js",
+      "category": "utilities",
+      "status": "active",
+      "command": "node",
+      "args": [
+        "src\\index.js"
+      ],
+      "env": {
+        "NODE_ENV": "production"
+      },
+      "capabilities": [
+        "simple_walk",
+        "biased_walk",
+        "levy_walk",
+        "correlated_walk",
+        "walk_analysis"
+      ],
+      "version": null,
+      "author": null,
+      "port": null,
+      "dependencies": null
+    }
+  },
+  "metadata": {
+    "version": "1.0.0",
+    "updated": "2025-08-27T21:19:00Z"
+  }
+}
