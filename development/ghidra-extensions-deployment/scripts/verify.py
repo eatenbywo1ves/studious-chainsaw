@@ -23,19 +23,31 @@ class Colors:
 
 def print_success(message: str) -> None:
     """Print success message in green."""
-    print(f"{Colors.GREEN}✓ {message}{Colors.ENDC}")
+    try:
+        print(f"{Colors.GREEN}✓ {message}{Colors.ENDC}")
+    except UnicodeEncodeError:
+        print(f"{Colors.GREEN}[OK] {message}{Colors.ENDC}")
 
 def print_error(message: str) -> None:
     """Print error message in red."""
-    print(f"{Colors.RED}✗ {message}{Colors.ENDC}")
+    try:
+        print(f"{Colors.RED}✗ {message}{Colors.ENDC}")
+    except UnicodeEncodeError:
+        print(f"{Colors.RED}[ERROR] {message}{Colors.ENDC}")
 
 def print_warning(message: str) -> None:
     """Print warning message in yellow."""
-    print(f"{Colors.YELLOW}⚠ {message}{Colors.ENDC}")
+    try:
+        print(f"{Colors.YELLOW}⚠ {message}{Colors.ENDC}")
+    except UnicodeEncodeError:
+        print(f"{Colors.YELLOW}[WARNING] {message}{Colors.ENDC}")
 
 def print_info(message: str) -> None:
     """Print info message in blue."""
-    print(f"{Colors.BLUE}ℹ {message}{Colors.ENDC}")
+    try:
+        print(f"{Colors.BLUE}ℹ {message}{Colors.ENDC}")
+    except UnicodeEncodeError:
+        print(f"{Colors.BLUE}[INFO] {message}{Colors.ENDC}")
 
 def find_ghidra_installation() -> str:
     """Find Ghidra installation directory."""
@@ -43,10 +55,16 @@ def find_ghidra_installation() -> str:
     ghidra_dir = os.environ.get('GHIDRA_INSTALL_DIR')
     if ghidra_dir and os.path.exists(ghidra_dir):
         return ghidra_dir
-    
+
     # Search common locations
     if sys.platform == 'win32':
+        home = Path.home()
         search_paths = [
+            # User development directories
+            str(home / 'development' / 'ghidra*'),
+            str(home / 'dev' / 'ghidra*'),
+            str(home / 'Downloads' / 'ghidra*'),
+            # System directories
             r'C:\ghidra*',
             r'C:\Tools\ghidra*',
             r'C:\Program Files\ghidra*',
@@ -55,21 +73,30 @@ def find_ghidra_installation() -> str:
         ]
     else:
         search_paths = [
-            '/opt/ghidra*',
-            '/usr/local/ghidra*',
+            # User directories
+            os.path.expanduser('~/development/ghidra*'),
+            os.path.expanduser('~/dev/ghidra*'),
+            os.path.expanduser('~/Downloads/ghidra*'),
             os.path.expanduser('~/ghidra*'),
             os.path.expanduser('~/tools/ghidra*'),
+            # System directories
+            '/opt/ghidra*',
+            '/usr/local/ghidra*',
             '/Applications/ghidra*'
         ]
-    
+
     for pattern in search_paths:
-        paths = Path(pattern.replace('*', '')).parent.glob(Path(pattern).name)
-        for path in paths:
-            if path.is_dir():
-                run_script = 'ghidraRun.bat' if sys.platform == 'win32' else 'ghidraRun'
-                if (path / run_script).exists():
-                    return str(path)
-    
+        try:
+            paths = Path(pattern.replace('*', '')).parent.glob(Path(pattern).name)
+            for path in paths:
+                if path.is_dir():
+                    run_script = 'ghidraRun.bat' if sys.platform == 'win32' else 'ghidraRun'
+                    if (path / run_script).exists():
+                        return str(path)
+        except (OSError, FileNotFoundError):
+            # Skip paths that don't exist or can't be accessed
+            continue
+
     return None
 
 def get_ghidra_version(ghidra_dir: str) -> str:
@@ -91,7 +118,18 @@ def get_ghidra_version(ghidra_dir: str) -> str:
 def get_extensions_directory(ghidra_version: str) -> Path:
     """Get the user's Ghidra extensions directory."""
     home = Path.home()
-    return home / '.ghidra' / f'.ghidra_{ghidra_version}_DEV' / 'Extensions'
+    ghidra_dir = home / '.ghidra'
+
+    # Try different version suffixes in order of preference
+    version_suffixes = ['_DEV', '_PUBLIC', '_build', '']
+
+    for suffix in version_suffixes:
+        candidate_dir = ghidra_dir / f'.ghidra_{ghidra_version}{suffix}' / 'Extensions'
+        if candidate_dir.parent.exists():
+            return candidate_dir
+
+    # Fallback to the original _DEV pattern if nothing is found
+    return ghidra_dir / f'.ghidra_{ghidra_version}_DEV' / 'Extensions'
 
 def verify_extension(ext_dir: Path, ext_name: str, required_files: List[str]) -> Tuple[bool, List[str]]:
     """Verify that an extension is properly installed."""
@@ -207,14 +245,16 @@ def verify_installation(verbose: bool = False) -> bool:
     print("\n5. Checking Java Environment")
     try:
         import subprocess
-        result = subprocess.run(['java', '-version'], 
-                              capture_output=True, text=True, stderr=subprocess.STDOUT)
+        result = subprocess.run(['java', '-version'],
+                              capture_output=True, text=True)
         if result.returncode == 0:
-            java_output = result.stdout.split('\n')[0]
+            # Java version info goes to stderr
+            java_output = result.stderr.split('\n')[0] if result.stderr else result.stdout.split('\n')[0]
             print_success(f"Java found: {java_output}")
-            
+
             # Check for Java 17+
-            if 'version "17' in result.stdout or 'version "18' in result.stdout or 'version "19' in result.stdout or 'version "20' in result.stdout or 'version "21' in result.stdout:
+            version_text = result.stderr if result.stderr else result.stdout
+            if any(version in version_text for version in ['version "17', 'version "18', 'version "19', 'version "20', 'version "21']):
                 print_success("Java version 17+ detected (recommended)")
             else:
                 print_warning("Java 17+ is recommended for Ghidra 12.0+")
@@ -228,14 +268,20 @@ def verify_installation(verbose: bool = False) -> bool:
     # Step 7: Summary
     print("\n" + "=" * 50)
     if all_good:
-        print(f"{Colors.GREEN}{Colors.BOLD}✓ All checks passed!{Colors.ENDC}")
+        try:
+            print(f"{Colors.GREEN}{Colors.BOLD}✓ All checks passed!{Colors.ENDC}")
+        except UnicodeEncodeError:
+            print(f"{Colors.GREEN}{Colors.BOLD}[SUCCESS] All checks passed!{Colors.ENDC}")
         print("\nNext steps:")
         print("1. Start Ghidra")
-        print("2. Navigate to File → Configure → Extensions")
+        print("2. Navigate to File -> Configure -> Extensions")
         print("3. Enable the extensions")
         print("4. Restart Ghidra")
     else:
-        print(f"{Colors.RED}{Colors.BOLD}✗ Some checks failed{Colors.ENDC}")
+        try:
+            print(f"{Colors.RED}{Colors.BOLD}✗ Some checks failed{Colors.ENDC}")
+        except UnicodeEncodeError:
+            print(f"{Colors.RED}{Colors.BOLD}[ERROR] Some checks failed{Colors.ENDC}")
         print("\nPlease run the installation script again or check the errors above")
     
     return all_good

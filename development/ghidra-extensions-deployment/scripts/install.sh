@@ -35,15 +35,17 @@ if [ -z "$GHIDRA_INSTALL_DIR" ]; then
     echo
     echo "Searching for Ghidra installation..."
     
-    # Search common locations
-    SEARCH_PATHS="/opt/ghidra* /usr/local/ghidra* $HOME/ghidra* $HOME/tools/ghidra* /Applications/ghidra*"
-    
-    for path in $SEARCH_PATHS; do
-        if [ -f "$path/ghidraRun" ]; then
-            GHIDRA_INSTALL_DIR="$path"
-            echo "Found Ghidra at: $path"
-            break
-        fi
+    # Search common locations - user directories first, then system directories
+    SEARCH_PATHS="$HOME/development/ghidra* $HOME/dev/ghidra* $HOME/Downloads/ghidra* $HOME/ghidra* $HOME/tools/ghidra* /opt/ghidra* /usr/local/ghidra* /Applications/ghidra*"
+
+    for path_pattern in $SEARCH_PATHS; do
+        for path in $path_pattern; do
+            if [ -d "$path" ] && [ -f "$path/ghidraRun" ]; then
+                GHIDRA_INSTALL_DIR="$path"
+                echo "Found Ghidra at: $path"
+                break 2
+            fi
+        done
     done
     
     if [ -z "$GHIDRA_INSTALL_DIR" ]; then
@@ -71,8 +73,28 @@ fi
 echo "Detected Ghidra version: $GHIDRA_VERSION"
 echo
 
-# Step 3: Create Extensions directory if it doesn't exist
-EXTENSIONS_DIR="$HOME/.ghidra/.ghidra_${GHIDRA_VERSION}_DEV/Extensions"
+# Step 3: Detect version suffix and create Extensions directory
+echo "Detecting Ghidra user directory..."
+GHIDRA_BASE_DIR="$HOME/.ghidra"
+VERSION_SUFFIX=""
+
+# Try different version suffixes in order of preference
+for suffix in "_DEV" "_PUBLIC" "_build" ""; do
+    TEST_DIR="$GHIDRA_BASE_DIR/.ghidra_${GHIDRA_VERSION}${suffix}"
+    if [ -d "$TEST_DIR" ]; then
+        VERSION_SUFFIX="$suffix"
+        break
+    fi
+done
+
+if [ -z "$VERSION_SUFFIX" ]; then
+    echo "Using default _DEV suffix"
+    VERSION_SUFFIX="_DEV"
+fi
+
+EXTENSIONS_DIR="$GHIDRA_BASE_DIR/.ghidra_${GHIDRA_VERSION}${VERSION_SUFFIX}/Extensions"
+echo "Using extensions directory: $EXTENSIONS_DIR"
+
 if [ ! -d "$EXTENSIONS_DIR" ]; then
     echo "Creating Extensions directory..."
     mkdir -p "$EXTENSIONS_DIR"

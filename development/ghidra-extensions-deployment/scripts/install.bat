@@ -22,13 +22,49 @@ if "%GHIDRA_INSTALL_DIR%"=="" (
     echo.
     echo Searching for Ghidra installation...
     
-    REM Search common locations
-    set SEARCH_PATHS=C:\ghidra* C:\Tools\ghidra* C:\Program Files\ghidra* D:\ghidra* D:\Tools\ghidra*
-    
-    for %%p in (%SEARCH_PATHS%) do (
-        if exist "%%p\ghidraRun.bat" (
-            set GHIDRA_INSTALL_DIR=%%p
-            echo Found Ghidra at: %%p
+    REM Search common locations - user directories first, then system directories
+    echo Searching for Ghidra installation...
+
+    REM Check user development directory
+    for /d %%d in ("%USERPROFILE%\development\ghidra_*") do (
+        if exist "%%d\ghidraRun.bat" (
+            set GHIDRA_INSTALL_DIR=%%d
+            echo Found Ghidra at: %%d
+            goto :found_ghidra
+        )
+    )
+
+    REM Check user dev directory
+    for /d %%d in ("%USERPROFILE%\dev\ghidra_*") do (
+        if exist "%%d\ghidraRun.bat" (
+            set GHIDRA_INSTALL_DIR=%%d
+            echo Found Ghidra at: %%d
+            goto :found_ghidra
+        )
+    )
+
+    REM Check Downloads directory
+    for /d %%d in ("%USERPROFILE%\Downloads\ghidra_*") do (
+        if exist "%%d\ghidraRun.bat" (
+            set GHIDRA_INSTALL_DIR=%%d
+            echo Found Ghidra at: %%d
+            goto :found_ghidra
+        )
+    )
+
+    REM Check system directories
+    for /d %%d in ("C:\ghidra_*") do (
+        if exist "%%d\ghidraRun.bat" (
+            set GHIDRA_INSTALL_DIR=%%d
+            echo Found Ghidra at: %%d
+            goto :found_ghidra
+        )
+    )
+
+    for /d %%d in ("C:\Tools\ghidra_*") do (
+        if exist "%%d\ghidraRun.bat" (
+            set GHIDRA_INSTALL_DIR=%%d
+            echo Found Ghidra at: %%d
             goto :found_ghidra
         )
     )
@@ -60,11 +96,32 @@ if exist "%GHIDRA_INSTALL_DIR%\Ghidra\application.properties" (
 echo Detected Ghidra version: %GHIDRA_VERSION%
 echo.
 
-REM Step 3: Create Extensions directory if it doesn't exist
-set EXTENSIONS_DIR=%USERPROFILE%\.ghidra\.ghidra_%GHIDRA_VERSION%_DEV\Extensions
-if not exist "%EXTENSIONS_DIR%" (
+REM Step 3: Detect version suffix and create Extensions directory
+echo Detecting Ghidra user directory...
+set VERSION_SUFFIX=
+set GHIDRA_BASE_DIR=%USERPROFILE%\.ghidra
+
+REM Try different version suffixes in order of preference
+for %%s in (_DEV _PUBLIC _build "") do (
+    set "TEST_DIR=!GHIDRA_BASE_DIR!\.ghidra_!GHIDRA_VERSION!%%s"
+    if exist "!TEST_DIR!" (
+        set "VERSION_SUFFIX=%%s"
+        goto :suffix_found
+    )
+)
+
+:suffix_found
+if "%VERSION_SUFFIX%"=="" (
+    echo Using default _DEV suffix
+    set VERSION_SUFFIX=_DEV
+)
+
+set "EXTENSIONS_DIR=!GHIDRA_BASE_DIR!\.ghidra_!GHIDRA_VERSION!!VERSION_SUFFIX!\Extensions"
+echo Using extensions directory: !EXTENSIONS_DIR!
+
+if not exist "!EXTENSIONS_DIR!" (
     echo Creating Extensions directory...
-    mkdir "%EXTENSIONS_DIR%"
+    mkdir "!EXTENSIONS_DIR!"
 )
 
 REM Step 4: Install CryptoDetect
@@ -72,15 +129,15 @@ echo Installing CryptoDetect Extension...
 echo ----------------------------------------
 
 set CRYPTO_SOURCE=%~dp0..\extensions\crypto_detect\source
-set CRYPTO_DEST=%EXTENSIONS_DIR%\crypto_detect
+set "CRYPTO_DEST=!EXTENSIONS_DIR!\crypto_detect"
 
-if exist "%CRYPTO_DEST%" (
+if exist "!CRYPTO_DEST!" (
     echo Removing existing CryptoDetect installation...
-    rmdir /s /q "%CRYPTO_DEST%"
+    rmdir /s /q "!CRYPTO_DEST!"
 )
 
 echo Copying CryptoDetect files...
-xcopy /E /I /Y "%CRYPTO_SOURCE%" "%CRYPTO_DEST%" >nul 2>&1
+xcopy /E /I /Y "%CRYPTO_SOURCE%" "!CRYPTO_DEST!" >nul 2>&1
 
 if %errorLevel% equ 0 (
     echo [SUCCESS] CryptoDetect installed successfully
@@ -94,15 +151,15 @@ echo Installing RetSync Extension...
 echo ----------------------------------------
 
 set RETSYNC_SOURCE=%~dp0..\extensions\retsync\ghidra_10.2
-set RETSYNC_DEST=%EXTENSIONS_DIR%\retsync
+set "RETSYNC_DEST=!EXTENSIONS_DIR!\retsync"
 
-if exist "%RETSYNC_DEST%" (
+if exist "!RETSYNC_DEST!" (
     echo Removing existing RetSync installation...
-    rmdir /s /q "%RETSYNC_DEST%"
+    rmdir /s /q "!RETSYNC_DEST!"
 )
 
 echo Copying RetSync files...
-xcopy /E /I /Y "%RETSYNC_SOURCE%" "%RETSYNC_DEST%" >nul 2>&1
+xcopy /E /I /Y "%RETSYNC_SOURCE%" "!RETSYNC_DEST!" >nul 2>&1
 
 if %errorLevel% equ 0 (
     echo [SUCCESS] RetSync installed successfully
@@ -117,14 +174,14 @@ echo ----------------------------------------
 
 set INSTALL_SUCCESS=1
 
-if exist "%CRYPTO_DEST%\extension.properties" (
+if exist "!CRYPTO_DEST!\extension.properties" (
     echo [OK] CryptoDetect extension files found
 ) else (
     echo [FAIL] CryptoDetect extension files missing
     set INSTALL_SUCCESS=0
 )
 
-if exist "%RETSYNC_DEST%\extension.properties" (
+if exist "!RETSYNC_DEST!\extension.properties" (
     echo [OK] RetSync extension files found
 ) else (
     echo [FAIL] RetSync extension files missing
@@ -137,7 +194,7 @@ if %INSTALL_SUCCESS% equ 1 (
     echo    INSTALLATION COMPLETED SUCCESSFULLY
     echo.
     echo Extensions have been installed to:
-    echo %EXTENSIONS_DIR%
+    echo !EXTENSIONS_DIR!
     echo.
     echo Next steps:
     echo 1. Start Ghidra
