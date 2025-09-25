@@ -1,0 +1,99 @@
+# Build artifacts
+build/
+*.class
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# Gradle
+.gradle/
+gradle-app.setting
+!gradle-wrapper.jar
+.gradletasknamecache
+
+# IDE files
+.idea/
+*.iml
+*.iws
+*.ipr
+.project
+.classpath
+.settings/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+
+# Logs
+*.log
+logs/
+*.log.*
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+*.old
+tmp/
+temp/
+
+# Distribution packages  
+dist/
+*.egg-info/
+.eggs/
+
+# Documentation build
+site/
+docs/_build/
+
+# Test coverage
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+.pytest_cache/
+
+# Ghidra specific
+.ghidra_cache/
+*.gpr
+*.rep/
+*.lock
+*.lock~
+
+# Keep empty directories
+!.gitkeep
+
+# Local configuration
+local.properties
+config.local.*
+
+# Sensitive data
+*.pem
+*.key
+*.crt
+*.p12
+secrets/
+credentials/

@@ -1,0 +1,9 @@
+<?xml version='1.0' encoding='ISO-8859-1' ?>
+
+<tocdef>
+    <tocitem text="CryptoDetect" target="CryptoDetect.html">
+        <tocitem text="Overview" target="CryptoDetect_Overview.html"/>
+        <tocitem text="Usage" target="CryptoDetect_Usage.html"/>
+        <tocitem text="Configuration" target="CryptoDetect_Configuration.html"/>
+    </tocitem>
+</tocdef>

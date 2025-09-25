@@ -1,0 +1,53 @@
+plugins {
+    id 'java'
+    id 'java-library'
+}
+
+// Apply Ghidra plugin
+apply from: "${project.hasProperty('GHIDRA_INSTALL_DIR') ? GHIDRA_INSTALL_DIR : '../../..'}/support/buildExtension.gradle"
+
+repositories {
+    mavenCentral()
+    flatDir {
+        dirs "${project.hasProperty('GHIDRA_INSTALL_DIR') ? GHIDRA_INSTALL_DIR : '../../..'}/Ghidra/Framework"
+    }
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+dependencies {
+    // Ghidra dependencies (provided by buildExtension.gradle)
+    
+    // Testing dependencies
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.mockito:mockito-core:4.11.0'
+}
+
+// Extension-specific configuration
+ext.moduleName = 'CryptoDetect'
+ext.moduleVersion = '1.0.0-SNAPSHOT'
+
+// Custom tasks
+task copyDependencies(type: Copy) {
+    from configurations.runtimeClasspath
+    into 'lib/dependencies'
+}
+
+// Build configuration
+compileJava {
+    options.compilerArgs += ['-Xlint:deprecation', '-Xlint:unchecked']
+}
+
+// JAR configuration
+jar {
+    manifest {
+        attributes(
+            'Implementation-Title': project.name,
+            'Implementation-Version': project.version,
+            'Main-Class': 'cryptodetect.CryptoDetectPlugin'
+        )
+    }
+}

@@ -1,0 +1,300 @@
+name: Build and Release Ghidra Extensions
+
+on:
+  push:
+    branches: [ main, develop ]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: 'Release type'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+env:
+  GRADLE_VERSION: '7.6'
+  JAVA_VERSION: '17'
+
+jobs:
+  build-crypto-detect:
+    name: Build CryptoDetect Extension
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        ghidra-version: ['12.0', '11.1', '11.0']
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+    
+    - name: Set up Java
+      uses: actions/setup-java@v3
+      with:
+        java-version: ${{ env.JAVA_VERSION }}
+        distribution: 'temurin'
+    
+    - name: Set up Gradle
+      uses: gradle/gradle-build-action@v2
+      with:
+        gradle-version: ${{ env.GRADLE_VERSION }}
+    
+    - name: Download Ghidra
+      run: |
+        if [ "${{ matrix.os }}" == "ubuntu-latest" ]; then
+          wget https://github.com/NationalSecurityAgency/ghidra/releases/download/Ghidra_${{ matrix.ghidra-version }}_build/ghidra_${{ matrix.ghidra-version }}_PUBLIC.zip
+          unzip -q ghidra_${{ matrix.ghidra-version }}_PUBLIC.zip
+          echo "GHIDRA_INSTALL_DIR=$PWD/ghidra_${{ matrix.ghidra-version }}_PUBLIC" >> $GITHUB_ENV
+        elif [ "${{ matrix.os }}" == "windows-latest" ]; then
+          Invoke-WebRequest -Uri https://github.com/NationalSecurityAgency/ghidra/releases/download/Ghidra_${{ matrix.ghidra-version }}_build/ghidra_${{ matrix.ghidra-version }}_PUBLIC.zip -OutFile ghidra.zip
+          Expand-Archive -Path ghidra.zip -DestinationPath .
+          echo "GHIDRA_INSTALL_DIR=$PWD\ghidra_${{ matrix.ghidra-version }}_PUBLIC" | Out-File -FilePath $env:GITHUB_ENV -Append
+        fi
+      shell: bash
+      if: matrix.os != 'macos-latest'
+    
+    - name: Download Ghidra (macOS)
+      run: |
+        curl -L -o ghidra.zip https://github.com/NationalSecurityAgency/ghidra/releases/download/Ghidra_${{ matrix.ghidra-version }}_build/ghidra_${{ matrix.ghidra-version }}_PUBLIC.zip
+        unzip -q ghidra.zip
+        echo "GHIDRA_INSTALL_DIR=$PWD/ghidra_${{ matrix.ghidra-version }}_PUBLIC" >> $GITHUB_ENV
+      if: matrix.os == 'macos-latest'
+    
+    - name: Build CryptoDetect Extension
+      run: |
+        cd extensions/crypto_detect/source
+        gradle clean build
+      env:
+        GHIDRA_INSTALL_DIR: ${{ env.GHIDRA_INSTALL_DIR }}
+    
+    - name: Run Tests
+      run: |
+        cd extensions/crypto_detect/source
+        gradle test
+      env:
+        GHIDRA_INSTALL_DIR: ${{ env.GHIDRA_INSTALL_DIR }}
+      continue-on-error: true
+    
+    - name: Package Extension
+      run: |
+        cd extensions/crypto_detect/source
+        mkdir -p ../releases
+        if [ -f "dist/crypto_detect.zip" ]; then
+          cp dist/crypto_detect.zip ../releases/crypto_detect-${{ matrix.ghidra-version }}-${{ matrix.os }}.zip
+        elif [ -f "build/distributions/crypto_detect.zip" ]; then
+          cp build/distributions/crypto_detect.zip ../releases/crypto_detect-${{ matrix.ghidra-version }}-${{ matrix.os }}.zip
+        fi
+      shell: bash
+    
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: crypto-detect-${{ matrix.ghidra-version }}-${{ matrix.os }}
+        path: extensions/crypto_detect/releases/*.zip
+        if-no-files-found: warn
+
+  package-retsync:
+    name: Package RetSync Extension
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+    
+    - name: Create RetSync packages
+      run: |
+        cd extensions/retsync
+        mkdir -p releases
+        
+        # Package existing RetSync version
+        if [ -d "ghidra_10.2" ]; then
+          cd ghidra_10.2
+          zip -r ../releases/retsync-10.2.zip . -x "*.git*"
+          cd ..
+        fi
+    
+    - name: Upload RetSync Artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: retsync-packages
+        path: extensions/retsync/releases/*.zip
+
+  verify-installation:
+    name: Verify Installation Scripts
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: Test verification script
+      run: |
+        python scripts/verify.py --report verification-report.json
+      continue-on-error: true
+    
+    - name: Upload verification report
+      uses: actions/upload-artifact@v3
+      with:
+        name: verification-report-${{ matrix.os }}
+        path: verification-report.json
+        if-no-files-found: ignore
+
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    needs: [build-crypto-detect, package-retsync]
+    if: startsWith(github.ref, 'refs/tags/v')
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+    
+    - name: Download all artifacts
+      uses: actions/download-artifact@v3
+      with:
+        path: artifacts/
+    
+    - name: Create checksums
+      run: |
+        cd artifacts
+        find . -type f -name "*.zip" -exec sha256sum {} \; > checksums.txt
+    
+    - name: Generate release notes
+      id: release_notes
+      run: |
+        VERSION=${GITHUB_REF#refs/tags/}
+        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+        
+        cat << EOF > release_notes.md
+        # Ghidra Extensions Release $VERSION
+        
+        ## 📦 Included Extensions
+        
+        ### CryptoDetect
+        - Advanced cryptographic routine detection
+        - Support for AES, DES, SHA, MD5, RSA algorithms
+        - Interactive UI with confidence scoring
+        
+        ### RetSync
+        - Real-time synchronization between Ghidra and debuggers
+        - Support for IDA Pro, x64dbg, OllyDbg, WinDbg
+        
+        ## 📋 Compatibility
+        
+        - **Ghidra**: 10.0 - 12.0+
+        - **Java**: 17+ recommended
+        - **OS**: Windows, Linux, macOS
+        
+        ## 🚀 Installation
+        
+        1. Download the appropriate package for your Ghidra version
+        2. Run the installation script from the repository
+        3. Or manually install via Ghidra's Extension Manager
+        
+        ## 📝 Checksums
+        
+        See \`checksums.txt\` for SHA256 hashes of all packages.
+        
+        ## 🔗 Links
+        
+        - [Installation Guide](https://github.com/${{ github.repository }}/blob/main/README.md)
+        - [Documentation](https://github.com/${{ github.repository }}/tree/main/docs)
+        - [Issue Tracker](https://github.com/${{ github.repository }}/issues)
+        EOF
+    
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        name: Release ${{ steps.release_notes.outputs.VERSION }}
+        body_path: release_notes.md
+        files: |
+          artifacts/**/*.zip
+          artifacts/checksums.txt
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  documentation:
+    name: Generate Documentation
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: Install dependencies
+      run: |
+        pip install mkdocs mkdocs-material mkdocs-mermaid2-plugin
+    
+    - name: Generate documentation structure
+      run: |
+        mkdir -p docs
+        
+        # Create MkDocs configuration
+        cat << EOF > mkdocs.yml
+        site_name: Ghidra Extensions Documentation
+        site_url: https://github.com/${{ github.repository }}
+        repo_name: ${{ github.repository }}
+        repo_url: https://github.com/${{ github.repository }}
+        
+        theme:
+          name: material
+          palette:
+            - scheme: default
+              toggle:
+                icon: material/brightness-7
+                name: Switch to dark mode
+            - scheme: slate
+              toggle:
+                icon: material/brightness-4
+                name: Switch to light mode
+        
+        plugins:
+          - search
+          - mermaid2
+        
+        nav:
+          - Home: index.md
+          - Installation: installation.md
+          - Extensions:
+            - CryptoDetect: extensions/crypto-detect.md
+            - RetSync: extensions/retsync.md
+          - Development: development.md
+          - FAQ: faq.md
+        EOF
+        
+        # Copy README as index
+        cp README.md docs/index.md
+    
+    - name: Build documentation
+      run: mkdocs build
+      continue-on-error: true
+    
+    - name: Upload documentation
+      uses: actions/upload-artifact@v3
+      with:
+        name: documentation
+        path: site/
+        if-no-files-found: ignore
