@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File System Activity Heatmap - Catalytic Platform</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            overflow-x: hidden;
+        }
+
+        #header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+
+        #header h1 {
+            font-size: 1.5rem;
+            font-weight: 300;
+            margin-bottom: 0.5rem;
+        }
+
+        #filters {
+            display: flex;
+            gap: 1rem;
+            margin-top: 0.5rem;
+        }
+
+        select, input {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 0.3rem 0.8rem;
+            border-radius: 4px;
+        }
+
+        #main-container {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            height: calc(100vh - 100px);
+        }
+
+        #directory-tree {
+            background: #16213e;
+            padding: 1rem;
+            overflow-y: auto;
+            border-right: 1px solid #333;
+        }
+
+        .tree-item {
+            padding: 0.3rem 0.5rem;
+            cursor: pointer;
+            transition: background 0.2s;
+            border-radius: 4px;
+            margin: 2px 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .tree-item:hover {
+            background: rgba(102, 126, 234, 0.2);
+        }
+
+        .tree-item.selected {
+            background: rgba(102, 126, 234, 0.4);
+        }
+
+        .tree-icon {
+            width: 16px;
+            text-align: center;
+        }
+
+        #heatmap-container {
+            padding: 1rem;
+            overflow: auto;
+            background: radial-gradient(circle at center, #1e3c72 0%, #1a1a2e 100%);
+        }
+
+        .heatmap-cell {
+            stroke: #333;
+            stroke-width: 1px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .heatmap-cell:hover {
+            stroke: #fff;
+            stroke-width: 2px;
+            filter: brightness(1.3);
+        }
+
+        .cell-label {
+            font-size: 10px;
+            fill: #fff;
+            text-anchor: middle;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .cell-group:hover .cell-label {
+            opacity: 1;
+        }
+
+        #tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.95);
+            border: 1px solid #667eea;
+            border-radius: 8px;
+            padding: 0.8rem;
+            display: none;
+            pointer-events: none;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+            z-index: 1000;
+        }
+
+        #tooltip h4 {
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+
+        #tooltip .metric {
+            display: flex;
+            justify-content: space-between;
+            gap: 2rem;
+            margin: 0.2rem 0;
+            font-size: 0.9rem;
+        }
+
+        #tooltip .metric-label {
+            opacity: 0.7;
+        }
+
+        #stats-panel {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(22, 33, 62, 0.95);
+            border: 1px solid #667eea;
+            border-radius: 8px;
+            padding: 1rem;
+            backdrop-filter: blur(10px);
+            min-width: 200px;
+        }
+
+        #stats-panel h3 {
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+            color: #667eea;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 0.3rem 0;
+            font-size: 0.9rem;
+        }
+
+        .stat-value {
+            color: #f39c12;
+            font-weight: bold;
+        }
+
+        #time-slider {
+            position: fixed;
+            bottom: 20px;
+            left: 270px;
+            right: 240px;
+            background: rgba(22, 33, 62, 0.95);
+            border: 1px solid #667eea;
+            border-radius: 8px;
+            padding: 1rem;
+            backdrop-filter: blur(10px);
+        }
+
+        #time-slider input[type="range"] {
+            width: 100%;
+            margin: 0.5rem 0;
+        }
+
+        #time-display {
+            text-align: center;
+            color: #667eea;
+            font-size: 0.9rem;
+        }
+
+        .legend {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(22, 33, 62, 0.95);
+            border: 1px solid #667eea;
+            border-radius: 8px;
+            padding: 1rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .legend h3 {
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+            opacity: 0.8;
+        }
+
+        .legend-scale {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .legend-gradient {
+            width: 150px;
+            height: 20px;
+            border-radius: 4px;
+            background: linear-gradient(to right, #1a1a2e, #2e86de, #f39c12, #e74c3c);
+        }
+
+        .legend-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            margin-top: 0.3rem;
+        }
+    </style>
+</head>
+<body>
+    <div id="header">
+        <h1>🔥 File System Activity Heatmap</h1>
+        <div id="filters">
+            <select id="time-range">
+                <option value="1h">Last Hour</option>
+                <option value="6h">Last 6 Hours</option>
+                <option value="24h" selected>Last 24 Hours</option>
+                <option value="7d">Last 7 Days</option>
+                <option value="30d">Last 30 Days</option>
+            </select>
+            <select id="activity-type">
+                <option value="all">All Activity</option>
+                <option value="read">Reads Only</option>
+                <option value="write">Writes Only</option>
+                <option value="modify">Modifications</option>
+                <option value="delete">Deletions</option>
+            </select>
+            <input type="search" id="search" placeholder="Search files...">
+        </div>
+    </div>
+
+    <div id="main-container">
+        <div id="directory-tree">
+            <h3 style="margin-bottom: 1rem; font-size: 1rem; opacity: 0.8;">Directory Structure</h3>
+            <div id="tree-content"></div>
+        </div>
+        <div id="heatmap-container">
+            <svg id="heatmap"></svg>
+            <div class="legend">
+                <h3>Activity Intensity</h3>
+                <div class="legend-gradient"></div>
+                <div class="legend-labels">
+                    <span>Low</span>
+                    <span>Medium</span>
+                    <span>High</span>
+                    <span>Critical</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="stats-panel">
+        <h3>Activity Statistics</h3>
+        <div class="stat-row">
+            <span>Total Operations:</span>
+            <span class="stat-value" id="total-ops">0</span>
+        </div>
+        <div class="stat-row">
+            <span>Active Files:</span>
+            <span class="stat-value" id="active-files">0</span>
+        </div>
+        <div class="stat-row">
+            <span>Hot Directories:</span>
+            <span class="stat-value" id="hot-dirs">0</span>
+        </div>
+        <div class="stat-row">
+            <span>Peak Activity:</span>
+            <span class="stat-value" id="peak-time">--:--</span>
+        </div>
+    </div>
+
+    <div id="time-slider">
+        <div id="time-display">Current Time: <span id="current-time">Now</span></div>
+        <input type="range" id="time-range-slider" min="0" max="100" value="100">
+        <div style="display: flex; justify-content: space-between; font-size: 0.8rem; opacity: 0.7;">
+            <span>24h ago</span>
+            <span>12h ago</span>
+            <span>Now</span>
+        </div>
+    </div>
+
+    <div id="tooltip"></div>
+
+    <script src="fs-heatmap.js"></script>
+</body>
+</html>

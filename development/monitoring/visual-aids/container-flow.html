@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Docker Container Flow Diagram - Catalytic Platform</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0c4a6e 0%, #164e63 50%, #155e75 100%);
+            color: #e0f2fe;
+            overflow: hidden;
+        }
+
+        #header {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        #header h1 {
+            font-size: 1.5rem;
+            font-weight: 300;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        #environment-selector {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .env-button {
+            background: rgba(56, 189, 248, 0.2);
+            border: 1px solid #38bdf8;
+            color: #e0f2fe;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .env-button:hover {
+            background: rgba(56, 189, 248, 0.3);
+        }
+
+        .env-button.active {
+            background: #38bdf8;
+            color: #0c4a6e;
+        }
+
+        #main-container {
+            position: relative;
+            height: calc(100vh - 80px);
+            overflow: hidden;
+        }
+
+        #flow-diagram {
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 30% 70%, rgba(56, 189, 248, 0.1) 0%, transparent 50%);
+        }
+
+        .container-node {
+            cursor: pointer;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+            transition: all 0.3s ease;
+        }
+
+        .container-node:hover {
+            filter: drop-shadow(0 6px 12px rgba(56, 189, 248, 0.4));
+            transform: scale(1.05);
+        }
+
+        .container-body {
+            stroke: #38bdf8;
+            stroke-width: 2;
+            rx: 12;
+        }
+
+        .container-header {
+            fill: rgba(56, 189, 248, 0.8);
+            rx: 12;
+        }
+
+        .container-name {
+            fill: #0c4a6e;
+            font-weight: bold;
+            text-anchor: middle;
+            font-size: 14px;
+        }
+
+        .container-status {
+            font-size: 12px;
+            text-anchor: middle;
+            fill: #e0f2fe;
+        }
+
+        .container-stats {
+            font-size: 10px;
+            fill: #94a3b8;
+            text-anchor: start;
+        }
+
+        .network-link {
+            stroke: #38bdf8;
+            stroke-width: 2;
+            fill: none;
+            opacity: 0.6;
+            marker-end: url(#arrow);
+            stroke-dasharray: 5,5;
+            animation: dash 2s linear infinite;
+        }
+
+        @keyframes dash {
+            to {
+                stroke-dashoffset: -10;
+            }
+        }
+
+        .network-link.active {
+            opacity: 1;
+            stroke-width: 3;
+            stroke: #fbbf24;
+        }
+
+        .volume-mount {
+            stroke: #10b981;
+            stroke-width: 1.5;
+            stroke-dasharray: 3,3;
+            opacity: 0.7;
+        }
+
+        .network-label {
+            fill: #e0f2fe;
+            font-size: 10px;
+            text-anchor: middle;
+            opacity: 0.8;
+        }
+
+        #sidebar {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 300px;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 1rem;
+            overflow-y: auto;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+        }
+
+        #sidebar.open {
+            transform: translateX(0);
+        }
+
+        #sidebar h3 {
+            color: #38bdf8;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .info-section {
+            margin: 1rem 0;
+            padding: 1rem;
+            background: rgba(56, 189, 248, 0.1);
+            border-radius: 8px;
+            border: 1px solid rgba(56, 189, 248, 0.2);
+        }
+
+        .info-section h4 {
+            color: #38bdf8;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 0.3rem 0;
+            font-size: 0.85rem;
+        }
+
+        .info-label {
+            opacity: 0.7;
+        }
+
+        .info-value {
+            color: #fbbf24;
+            font-weight: bold;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+
+        .status-running { background: #10b981; }
+        .status-stopped { background: #ef4444; }
+        .status-restarting { background: #f59e0b; }
+
+        #legend {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 1rem;
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(56, 189, 248, 0.2);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 0.3rem 0;
+            font-size: 0.85rem;
+        }
+
+        .legend-line {
+            width: 25px;
+            height: 2px;
+        }
+
+        #controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .control-button {
+            background: rgba(56, 189, 248, 0.2);
+            border: 1px solid #38bdf8;
+            color: #e0f2fe;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .control-button:hover {
+            background: rgba(56, 189, 248, 0.3);
+        }
+
+        #tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.95);
+            border: 1px solid #38bdf8;
+            border-radius: 8px;
+            padding: 0.8rem;
+            display: none;
+            pointer-events: none;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 20px rgba(56, 189, 248, 0.3);
+            z-index: 1000;
+            max-width: 300px;
+        }
+
+        .close-sidebar {
+            background: none;
+            border: none;
+            color: #e0f2fe;
+            font-size: 1.2rem;
+            cursor: pointer;
+            float: right;
+            margin: -0.5rem -0.5rem 0 0;
+        }
+
+        .resource-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 0.3rem 0;
+        }
+
+        .resource-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #10b981, #fbbf24, #ef4444);
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div id="header">
+        <h1>🐳 Docker Container Flow</h1>
+        <div id="environment-selector">
+            <button class="env-button active" data-env="local">Local</button>
+            <button class="env-button" data-env="staging">Staging</button>
+            <button class="env-button" data-env="production">Production</button>
+        </div>
+    </div>
+
+    <div id="main-container">
+        <svg id="flow-diagram"></svg>
+
+        <div id="controls">
+            <button class="control-button" onclick="refreshContainers()">🔄 Refresh</button>
+            <button class="control-button" onclick="toggleAutoRefresh()">⏰ Auto Refresh</button>
+            <button class="control-button" onclick="showNetworkView()">🌐 Networks</button>
+            <button class="control-button" onclick="showVolumeView()">💾 Volumes</button>
+        </div>
+
+        <div id="legend">
+            <h3 style="margin-bottom: 0.5rem; font-size: 0.9rem;">Legend</h3>
+            <div class="legend-item">
+                <div class="legend-line" style="background: #38bdf8; border-radius: 1px;"></div>
+                <span>Network Connection</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-line" style="background: #fbbf24; border-radius: 1px;"></div>
+                <span>Active Traffic</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-line" style="background: #10b981; border-radius: 1px; border: 1px dashed;"></div>
+                <span>Volume Mount</span>
+            </div>
+            <div class="legend-item">
+                <span class="status-indicator status-running"></span>
+                <span>Running</span>
+            </div>
+            <div class="legend-item">
+                <span class="status-indicator status-stopped"></span>
+                <span>Stopped</span>
+            </div>
+        </div>
+
+        <div id="sidebar">
+            <button class="close-sidebar" onclick="closeSidebar()">×</button>
+            <h3>Container Details</h3>
+            <div id="sidebar-content">
+                <p style="opacity: 0.7;">Select a container to view details</p>
+            </div>
+        </div>
+
+        <div id="tooltip"></div>
+    </div>
+
+    <script src="container-flow.js"></script>
+</body>
+</html>

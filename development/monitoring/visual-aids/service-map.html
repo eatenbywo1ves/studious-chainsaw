@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Service Dependency Map - Catalytic Platform</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #fff;
+            overflow: hidden;
+        }
+
+        #header {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(10px);
+        }
+
+        #header h1 {
+            font-size: 1.5rem;
+            font-weight: 300;
+        }
+
+        #stats {
+            display: flex;
+            gap: 2rem;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #4fc3f7;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+
+        #visualization {
+            position: relative;
+            height: calc(100vh - 80px);
+            background: radial-gradient(circle at center, rgba(79, 195, 247, 0.1) 0%, transparent 70%);
+        }
+
+        .node {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .node:hover {
+            filter: brightness(1.2);
+        }
+
+        .node-label {
+            pointer-events: none;
+            font-size: 12px;
+            font-weight: 500;
+            text-anchor: middle;
+            fill: #fff;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+        }
+
+        .link {
+            fill: none;
+            stroke-opacity: 0.6;
+            transition: all 0.3s ease;
+        }
+
+        .link.active {
+            stroke-opacity: 1;
+            filter: drop-shadow(0 0 3px currentColor);
+        }
+
+        .link-arrow {
+            fill: #4fc3f7;
+            opacity: 0.8;
+        }
+
+        #tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid #4fc3f7;
+            border-radius: 8px;
+            padding: 1rem;
+            display: none;
+            pointer-events: none;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        #tooltip h3 {
+            color: #4fc3f7;
+            margin-bottom: 0.5rem;
+        }
+
+        #tooltip .info {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        #tooltip .label {
+            opacity: 0.7;
+        }
+
+        #legend {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 1rem;
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+        }
+
+        #legend h3 {
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 0.3rem 0;
+            font-size: 0.85rem;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        #controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        button {
+            background: rgba(79, 195, 247, 0.2);
+            border: 1px solid #4fc3f7;
+            color: #fff;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            background: rgba(79, 195, 247, 0.3);
+        }
+
+        button.active {
+            background: #4fc3f7;
+            color: #1e3c72;
+        }
+    </style>
+</head>
+<body>
+    <div id="header">
+        <h1>🔗 Service Dependency Map</h1>
+        <div id="stats">
+            <div class="stat">
+                <div class="stat-value" id="service-count">0</div>
+                <div class="stat-label">Services</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="connection-count">0</div>
+                <div class="stat-label">Connections</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="health-score">100%</div>
+                <div class="stat-label">Health</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="visualization">
+        <svg id="service-map"></svg>
+        <div id="tooltip"></div>
+        <div id="legend">
+            <h3>Service Types</h3>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #4fc3f7;"></div>
+                <span>API Gateway</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #66bb6a;"></div>
+                <span>MCP Server</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #ff7043;"></div>
+                <span>Database</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #ab47bc;"></div>
+                <span>Cache</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #ffd54f;"></div>
+                <span>Webhook</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #26c6da;"></div>
+                <span>Monitoring</span>
+            </div>
+        </div>
+        <div id="controls">
+            <button onclick="toggleAnimation()" id="animate-btn">Pause Animation</button>
+            <button onclick="resetView()">Reset View</button>
+            <button onclick="toggleLayout()" id="layout-btn">Force Layout</button>
+        </div>
+    </div>
+
+    <script src="service-map.js"></script>
+</body>
+</html>

@@ -182,6 +182,21 @@ private/
 .migration_backup/
 rollback_manifest_*.json
 
+# Local development configs
+.gk/
+.testcontainers.properties
+
+# Build artifacts
+*.zip
+*.tar.gz
+dist/
+releases/
+
+# IDE and editor configs
+.vscode/settings.json
+.idea/workspace.xml
+*.sublime-*
+
 # MacOS
 .AppleDouble
 .LSOverride
