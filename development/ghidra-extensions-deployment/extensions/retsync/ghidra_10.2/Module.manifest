@@ -1,0 +1,4 @@
+MODULE FILE LICENSE: GPL 2
+MODULE NAME: RetSync
+MODULE DESCRIPTION: Real-time synchronization plugin for Ghidra with IDA Pro, x64dbg, OllyDbg, and WinDbg
+MODULE VERSION: 10.2
