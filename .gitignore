@@ -216,3 +216,25 @@ check_*.bat
 optimize*.bat
 schedule_*.bat
 schedule_*.ps1
+
+# Ghidra distribution files (use archives instead)
+development/ghidra_11.4.2_PUBLIC/
+development/ghidra_complete/
+development/ghidra_bridge/
+
+# Temporary development folders
+development/.odo/
+development/New Folder*/
+
+# Archives (reference only)
+development/archives/ghidra-reference-scripts/original-distribution/
+
+# Large binary files
+*.zip
+*.tar.gz
+development/ghidra_11.4.2_PUBLIC_complete.zip
+
+# Compiled Python
+development/__pycache__/
+*.pyc
+
