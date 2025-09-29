@@ -1,0 +1,131 @@
+# KA Lattice Local Production Configuration
+# Configuration for Knowledge-Augmented Lattice Framework deployment
+
+# Orchestrator configuration
+orchestrator:
+  max_instances: 4                    # Maximum number of lattice instances
+  auto_scaling: true                  # Enable auto-scaling based on load
+  scale_up_threshold: 0.8            # CPU/memory threshold for scaling up
+  scale_down_threshold: 0.3          # CPU/memory threshold for scaling down
+  health_check_interval: 30          # Health check interval in seconds
+  persistence_path: ./ka_lattice_state  # Path for state persistence
+  enable_monitoring: true            # Enable monitoring
+  monitoring_port: 9090              # Monitoring port
+
+# Knowledge base configuration
+knowledge:
+  storage_path: ./ka_knowledge        # Knowledge base storage path
+  cleanup_days: 30                   # Days before cleaning old patterns
+  cache_size: 100                    # Pattern cache size
+
+# Production cycle configuration
+production:
+  warmup_iterations: 100             # Warmup iterations before production
+  optimization_interval: 300         # Optimization interval in seconds
+  enable_gpu: true                   # Enable GPU acceleration if available
+  target_throughput: 1000.0          # Target throughput per second
+
+# Lattice configuration
+lattice:
+  default_dimensions: 4              # Default lattice dimensions
+  default_size: 10                   # Default size per dimension
+  knowledge_capacity: 5000           # Knowledge entries capacity
+  learning_enabled: true             # Enable adaptive learning
+
+  # GPU configuration
+  gpu:
+    preferred_backend: cuda          # Preferred GPU backend (cuda, cupy, pytorch, cpu)
+    device_id: 0                     # GPU device ID
+    memory_safety_margin: 0.9        # GPU memory safety margin
+
+# Monitoring configuration
+monitoring:
+  enable_prometheus: true            # Enable Prometheus metrics
+  prometheus_port: 9090              # Prometheus metrics port
+  enable_grafana: false              # Enable Grafana dashboards
+  grafana_port: 3000                 # Grafana port
+
+  # Metrics to track
+  metrics:
+    - computation_latency
+    - throughput
+    - memory_usage
+    - gpu_utilization
+    - knowledge_hit_rate
+    - error_rate
+
+# Performance thresholds
+performance:
+  max_latency_ms: 100               # Maximum acceptable latency
+  min_throughput_per_second: 100    # Minimum required throughput
+  max_error_rate: 0.05              # Maximum error rate (5%)
+
+  # Memory limits
+  max_memory_per_instance_mb: 2048  # Maximum memory per instance
+  total_memory_limit_mb: 8192       # Total memory limit
+
+# Logging configuration
+logging:
+  level: INFO                        # Logging level (DEBUG, INFO, WARNING, ERROR)
+  file: ka_lattice_production.log   # Log file path
+  max_size_mb: 100                  # Maximum log file size
+  backup_count: 5                    # Number of backup log files
+
+# Workload configuration (for testing)
+workload:
+  types:
+    - transform                      # Data transformation operations
+    - reduce                         # Reduction operations
+    - pathfind                       # Path finding in lattice
+    - analyze                        # Structure analysis
+
+  # Workload distribution
+  distribution:
+    transform: 0.4
+    reduce: 0.3
+    pathfind: 0.2
+    analyze: 0.1
+
+  # Data sizes
+  data_sizes:
+    small: [10, 10]
+    medium: [100, 100]
+    large: [1000, 1000]
+
+# Production phases configuration
+phases:
+  initialization:
+    timeout: 60                      # Initialization timeout in seconds
+
+  warmup:
+    iterations: 100                  # Warmup iterations
+    duration: 30                     # Warmup duration in seconds
+
+  production:
+    checkpoint_interval: 300         # Checkpoint interval in seconds
+
+  optimization:
+    interval: 300                    # Optimization interval in seconds
+    min_improvement: 0.01            # Minimum improvement threshold
+
+  maintenance:
+    window_seconds: 60               # Maintenance window duration
+    max_errors_before: 10            # Max errors before maintenance
+
+  cooldown:
+    duration: 30                     # Cooldown duration before shutdown
+
+# Fault tolerance configuration
+fault_tolerance:
+  max_retries: 3                     # Maximum retry attempts
+  retry_delay: 5                     # Retry delay in seconds
+  circuit_breaker_threshold: 5       # Circuit breaker threshold
+  recovery_timeout: 60               # Recovery timeout in seconds
+
+# Security configuration
+security:
+  enable_auth: false                 # Enable authentication
+  api_key: ""                       # API key (if auth enabled)
+  enable_ssl: false                  # Enable SSL/TLS
+  cert_path: ""                     # SSL certificate path
+  key_path: ""                      # SSL key path
