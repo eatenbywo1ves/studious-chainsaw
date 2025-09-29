@@ -238,3 +238,12 @@ development/ghidra_11.4.2_PUBLIC_complete.zip
 development/__pycache__/
 *.pyc
 
+
+# IDE and Application Personal Settings
+.JavaHelp/Favorites.xml
+.gk/repoMapping.json
+.testcontainers.properties
+
+# Python Package Cache Directories
+.cupy/
+.odo/
