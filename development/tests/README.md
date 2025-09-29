@@ -1,344 +1,222 @@
-# Catalytic Computing System - Test Suite Documentation
+# Test Suite Documentation
 
 ## Overview
 
-Comprehensive test suite for the Catalytic Computing System, providing unit, integration, performance, and end-to-end testing with >90% code coverage.
+This test suite provides comprehensive testing for the Catalytic Computing development environment, including unit tests, integration tests, and performance benchmarks.
 
 ## Test Structure
 
 ```
 tests/
-├── unit/                    # Unit tests for individual components
-│   ├── core/               # Core interface and implementation tests
-│   ├── gpu/                # GPU abstraction and backend tests
-│   ├── config/             # Configuration management tests
-│   ├── storage/            # Storage layer tests
-│   └── exceptions/         # Error handling tests
-├── integration/            # Integration tests for component interactions
-│   ├── api/               # API endpoint integration tests
-│   ├── gpu/               # GPU backend integration tests
-│   └── workflows/         # End-to-end workflow tests
-├── performance/           # Performance and benchmark tests
-├── e2e/                  # End-to-end system tests
-├── conftest.py           # Shared fixtures and configuration
-└── run_tests.py          # Test runner script
-```
-
-## Running Tests
-
-### Quick Start
-
-```bash
-# Run all tests with coverage
-python tests/run_tests.py
-
-# Run specific test suite
-python tests/run_tests.py unit          # Unit tests only
-python tests/run_tests.py integration   # Integration tests
-python tests/run_tests.py performance   # Performance tests
-python tests/run_tests.py e2e          # End-to-end tests
-
-# Run with markers
-python tests/run_tests.py -m gpu       # GPU tests only
-python tests/run_tests.py -m "not slow" # Skip slow tests
-
-# Run specific test file
-python tests/run_tests.py -t tests/unit/gpu/test_gpu_manager.py
-
-# Quick check (fast unit tests only)
-python tests/run_tests.py quick
-```
-
-### Advanced Options
-
-```bash
-# Run CI suite (all checks)
-python tests/run_tests.py ci
-
-# Run with verbose output
-python tests/run_tests.py -v
-
-# Skip coverage reporting
-python tests/run_tests.py --no-coverage
-
-# Generate coverage report only
-python tests/run_tests.py coverage
+├── unit/                  # Fast, isolated unit tests
+│   ├── apps/             # Application-specific tests
+│   │   └── test_catalytic.py
+│   ├── services/         # Service-specific tests
+│   └── test_gpu_libraries.py
+├── integration/          # Integration tests with dependencies
+│   └── test_saas_platform.py
+├── performance/          # Performance benchmarks
+│   └── test_benchmarks.py
+├── conftest.py          # Shared test configuration
+└── README.md           # This file
 ```
 
 ## Test Categories
 
-### Unit Tests (`tests/unit/`)
+### Unit Tests (`pytest tests/unit/`)
+- **GPU Libraries**: PyTorch, CuPy, Numba functionality
+- **Catalytic Computing**: Core algorithms and memory efficiency
+- **GPU Acceleration**: Backend factory and implementations
+- **KA Lattice**: Knowledge-augmented lattice functionality
 
-Fast, isolated tests for individual components:
+### Integration Tests (`pytest tests/integration/`)
+- **SaaS Platform**: API endpoints and workflows
+- **Database**: PostgreSQL connectivity and schema
+- **Redis**: Caching and session management
+- **Docker**: Container orchestration
+- **End-to-End**: Complete user workflows
 
-- **GPU Tests** (`gpu/`): Test GPU manager, factory, and backend implementations
-- **Config Tests** (`config/`): Test settings validation and environment variables
-- **Core Tests** (`core/`): Test interfaces and base implementations
-- **Storage Tests** (`storage/`): Test storage backends and abstractions
+### Performance Tests (`pytest tests/performance/`)
+- **GPU Performance**: Matrix operations and memory transfer
+- **Catalytic Performance**: Lattice creation and path finding
+- **Scalability**: Performance across different problem sizes
+- **Comparative**: CPU vs GPU, Catalytic vs Traditional
 
-### Integration Tests (`tests/integration/`)
+## Running Tests
 
-Tests for component interactions:
+### Quick Test Run
+```bash
+# Run all unit tests
+pytest tests/unit/ -v
 
-- **API Integration** (`api/`): Test REST API endpoints with real components
-- **GPU Integration** (`gpu/`): Test GPU backend selection and fallbacks
-- **Workflow Tests** (`workflows/`): Test complete processing pipelines
+# Run specific test file
+pytest tests/unit/test_gpu_libraries.py -v
 
-### Performance Tests (`tests/performance/`)
+# Run tests with specific markers
+pytest -m "not gpu" -v  # Skip GPU tests
+```
 
-Benchmark and performance validation:
+### Full Test Suite
+```bash
+# Run all tests
+pytest tests/ -v
 
-- Memory efficiency tests (validate 200x reduction claim)
-- GPU acceleration benchmarks
-- Scaling tests with various lattice sizes
-- Concurrent operation stress tests
+# Run with coverage
+pytest tests/ --cov=apps --cov=services --cov-report=html
 
-### End-to-End Tests (`tests/e2e/`)
+# Run performance benchmarks
+pytest tests/performance/ --benchmark-only
+```
 
-Complete system tests simulating production usage:
+### GPU Tests
+```bash
+# Run only GPU tests (requires GPU hardware)
+pytest -m gpu -v
 
-- Production deployment scenarios
-- Failover and recovery testing
-- Real-world computational workflows
+# Run GPU tests with performance benchmarks
+pytest -m "gpu and performance" --benchmark-only
+```
+
+### Integration Tests
+```bash
+# Run integration tests (requires running services)
+pytest tests/integration/ -v
+
+# Run with specific service requirements
+pytest -m database -v  # Database tests only
+pytest -m redis -v     # Redis tests only
+```
 
 ## Test Markers
 
-Tests are marked with pytest markers for selective execution:
+- `unit`: Fast, isolated unit tests
+- `integration`: Tests requiring external services
+- `performance`: Performance and benchmark tests
+- `gpu`: Tests requiring GPU hardware
+- `slow`: Long-running tests
+- `database`: Tests requiring PostgreSQL
+- `redis`: Tests requiring Redis
+- `docker`: Tests requiring Docker
 
-- `@pytest.mark.unit` - Unit tests (fast, isolated)
-- `@pytest.mark.integration` - Integration tests
-- `@pytest.mark.performance` - Performance benchmarks
-- `@pytest.mark.gpu` - Tests requiring GPU hardware
-- `@pytest.mark.slow` - Long-running tests (>5 seconds)
-- `@pytest.mark.benchmark` - Benchmark tests
+## Configuration
 
-## Test Fixtures
+### pytest.ini
+Contains test configuration including:
+- Test discovery patterns
+- Output formatting
+- Coverage settings
+- Marker definitions
+- Timeout settings
 
-Common fixtures are provided in `conftest.py`:
+### conftest.py
+Provides shared fixtures:
+- `temp_dir`: Temporary directory
+- `mock_gpu_env`: Mock GPU environment
+- `sample_data`: Test data
+- `database_url`: Test database URL
+- `redis_url`: Test Redis URL
 
-```python
-# Configuration fixtures
-test_config           # Test configuration instance
-sample_lattice_params # Sample lattice parameters
+## Requirements
 
-# GPU fixtures
-mock_gpu_device      # Mock GPU device for testing
-gpu_manager         # GPU manager instance
-
-# Data fixtures
-numpy_arrays        # Various numpy arrays for testing
-sample_coordinates  # Sample coordinate data
-
-# Infrastructure fixtures
-temp_dir           # Temporary directory (auto-cleanup)
-mock_database      # Mock database connection
-mock_redis         # Mock Redis client
-async_client       # Async HTTP client for API testing
-
-# Utilities
-performance_tracker # Track performance metrics
-captured_logs      # Capture log messages
-helpers            # Test helper utilities
-```
-
-## Writing Tests
-
-### Test Naming Convention
-
-```python
-# Unit tests
-def test_<component>_<behavior>_<expected_result>():
-    """Test that component behaves correctly with expected result."""
-    pass
-
-# Integration tests
-def test_integration_<workflow>_<scenario>():
-    """Test integration workflow for specific scenario."""
-    pass
-
-# Performance tests
-def test_performance_<operation>_<metric>():
-    """Test performance of operation measuring specific metric."""
-    pass
-```
-
-### Example Test
-
-```python
-import pytest
-from unittest.mock import Mock, patch
-import numpy as np
-
-class TestGPUManager:
-    """Test GPU Manager functionality"""
-
-    @pytest.fixture
-    def manager(self):
-        """Create GPU manager instance"""
-        from apps.catalytic.gpu.manager import GPUManager
-        return GPUManager()
-
-    def test_singleton_instance(self, manager):
-        """Test that GPUManager returns singleton instance"""
-        from apps.catalytic.gpu.manager import GPUManager
-
-        manager2 = GPUManager()
-        assert manager is manager2
-
-    @pytest.mark.gpu
-    def test_device_detection(self, manager):
-        """Test GPU device detection"""
-        devices = manager.get_all_devices()
-
-        if manager.is_gpu_available():
-            assert len(devices) > 0
-            assert devices[0].total_memory_mb > 0
-        else:
-            pytest.skip("No GPU available")
-
-    @pytest.mark.benchmark
-    def test_memory_allocation_performance(self, manager, benchmark):
-        """Benchmark memory allocation"""
-        result = benchmark(manager.allocate_memory, 100.0)
-        assert result is True
-```
-
-## Coverage Requirements
-
-- **Overall**: >80% coverage
-- **Core modules**: >90% coverage
-- **GPU abstraction**: >85% coverage
-- **API endpoints**: 100% coverage
-- **Critical paths**: 100% coverage
-
-View coverage reports:
+### Basic Testing
 ```bash
-# Terminal report
-coverage report
-
-# HTML report
-coverage html
-open htmlcov/index.html
+pip install -r requirements-dev.txt
 ```
 
-## CI/CD Integration
+### GPU Testing
+- NVIDIA GPU with CUDA support
+- PyTorch with CUDA
+- CuPy for CUDA 12.x
+- Numba with CUDA support
 
-Tests are automatically run in CI/CD pipeline:
-
-1. **Pre-commit**: Quick unit tests
-2. **Pull Request**: Full test suite
-3. **Main Branch**: Full suite + performance tests
-4. **Release**: Full suite + e2e tests
-
-### GitHub Actions Configuration
-
-```yaml
-name: Test Suite
-
-on: [push, pull_request]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v3
-    - uses: actions/setup-python@v4
-      with:
-        python-version: '3.10'
-
-    - name: Install dependencies
-      run: |
-        pip install -r requirements.txt
-        pip install -r requirements-test.txt
-
-    - name: Run tests
-      run: python tests/run_tests.py ci
-
-    - name: Upload coverage
-      uses: codecov/codecov-action@v3
-```
-
-## Test Data
-
-Test data is organized as follows:
-
-- **Fixtures**: Small test data in `conftest.py`
-- **Files**: Test files in `tests/data/`
-- **Generators**: Data generators in `tests/utils/`
+### Integration Testing
+- PostgreSQL server
+- Redis server
+- Docker and Docker Compose (for containerized tests)
 
 ## Performance Baselines
 
-Performance tests validate against these baselines:
+### Expected GPU Performance (GTX 1080)
+- **PyTorch**: >6.0 TFLOPS matrix multiplication
+- **CuPy**: >6.0 TFLOPS matrix multiplication
+- **Memory Transfer**: <10ms for 1M elements
 
-| Metric | Baseline | Target |
-|--------|----------|--------|
-| Memory Reduction | 100x | 200x |
-| GPU Speedup | 10x | 50x |
-| Path Finding (1000 vertices) | 100ms | 50ms |
-| XOR Transform (1MB) | 10ms | 5ms |
-| API Response Time | 500ms | 200ms |
+### Expected Catalytic Performance
+- **Memory Efficiency**: >100x reduction vs traditional
+- **Path Finding**: <1ms for small lattices
+- **Scalability**: Linear or near-linear scaling
 
 ## Troubleshooting
 
-### Common Issues
+### GPU Tests Failing
+1. Check GPU availability: `nvidia-smi`
+2. Verify CUDA installation
+3. Test GPU libraries individually
+4. Check memory usage: `gpustat`
 
-1. **GPU Tests Failing**
-   ```bash
-   # Skip GPU tests if no hardware available
-   pytest -m "not gpu"
-   ```
+### Integration Tests Failing
+1. Verify services are running: `docker-compose ps`
+2. Check network connectivity
+3. Validate service configurations
+4. Review service logs
 
-2. **Import Errors**
-   ```bash
-   # Ensure project is in Python path
-   export PYTHONPATH=$PYTHONPATH:/path/to/development
-   ```
+### Performance Tests Slow
+1. Check system resources
+2. Close unnecessary applications
+3. Use GPU monitoring: `nvidia-smi -l 1`
+4. Verify thermal throttling
 
-3. **Slow Tests**
-   ```bash
-   # Run only fast tests
-   pytest -m "not slow"
-   ```
+## Continuous Integration
 
-4. **Coverage Not Generated**
-   ```bash
-   # Install coverage package
-   pip install pytest-cov coverage
-   ```
+Tests are automatically run in CI/CD pipeline:
+- **Development Workflow**: Quick validation on feature branches
+- **CI/CD Pipeline**: Full test suite on main branch
+- **GPU Performance**: Scheduled weekly performance monitoring
+
+### GitHub Actions Workflows
+- `development.yml`: Quick checks for development
+- `ci-cd.yml`: Full CI/CD pipeline
+- `gpu-performance.yml`: GPU performance monitoring
+
+## Adding New Tests
+
+### Unit Tests
+```python
+def test_new_functionality():
+    # Arrange
+    input_data = "test input"
+    
+    # Act
+    result = function_under_test(input_data)
+    
+    # Assert
+    assert result == expected_output
+```
+
+### Performance Tests
+```python
+@pytest.mark.performance
+def test_performance_benchmark(benchmark):
+    result = benchmark(function_to_benchmark)
+    assert result is not None
+```
+
+### GPU Tests
+```python
+@pytest.mark.gpu
+def test_gpu_functionality():
+    torch = pytest.importorskip("torch")
+    if not torch.cuda.is_available():
+        pytest.skip("GPU not available")
+    # Test GPU functionality
+```
 
 ## Best Practices
 
-1. **Keep tests fast**: Unit tests should run in <1 second
-2. **Use fixtures**: Share common setup across tests
-3. **Mock external dependencies**: Don't rely on external services
-4. **Test edge cases**: Include boundary conditions
-5. **Document complex tests**: Add comments for clarity
-6. **Use meaningful assertions**: Be specific about expectations
-7. **Clean up resources**: Use fixtures with cleanup
-8. **Parameterize tests**: Test multiple inputs efficiently
-
-## Contributing
-
-When adding new features:
-
-1. Write tests first (TDD approach)
-2. Ensure >90% coverage for new code
-3. Add appropriate test markers
-4. Update this documentation
-5. Run full test suite before committing
-
-## Test Reports
-
-Test reports are generated in:
-
-- `htmlcov/` - HTML coverage reports
-- `test-results/` - JUnit XML reports
-- `.coverage` - Coverage database
-
-## Contact
-
-For test-related questions or issues:
-- Create an issue in the repository
-- Tag with `testing` label
-- Include test output and environment details
+1. **Fast Unit Tests**: Keep unit tests fast (<1s each)
+2. **Isolated Tests**: Each test should be independent
+3. **Clear Assertions**: Use descriptive assertion messages
+4. **Proper Cleanup**: Clean up resources in teardown
+5. **Skip When Needed**: Skip tests when dependencies unavailable
+6. **Performance Baselines**: Set realistic performance expectations
+7. **Error Messages**: Provide helpful error messages for failures
