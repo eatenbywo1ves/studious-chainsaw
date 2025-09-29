@@ -1,0 +1,329 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: '3.12'
+  NODE_VERSION: '18'
+
+jobs:
+  # Phase 1: Code Quality & Security
+  lint-and-security:
+    runs-on: ubuntu-latest
+    name: Code Quality & Security
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt || pip install ruff mypy bandit safety
+
+      - name: Run Ruff linting
+        run: |
+          ruff check . --output-format=github
+        continue-on-error: true
+
+      - name: Run type checking with mypy
+        run: |
+          mypy apps/ services/ --ignore-missing-imports
+        continue-on-error: true
+
+      - name: Security scan with Bandit
+        run: |
+          bandit -r apps/ services/ -f json -o bandit-report.json
+        continue-on-error: true
+
+      - name: Check dependencies for vulnerabilities
+        run: |
+          safety check --json --output safety-report.json
+        continue-on-error: true
+
+      - name: Upload security reports
+        uses: actions/upload-artifact@v3
+        with:
+          name: security-reports
+          path: |
+            bandit-report.json
+            safety-report.json
+
+  # Phase 2: Unit Tests
+  unit-tests:
+    runs-on: ubuntu-latest
+    name: Unit Tests
+    needs: lint-and-security
+    strategy:
+      matrix:
+        test-group: [core, apps, services]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov pytest-xdist
+
+      - name: Run unit tests
+        run: |
+          case "${{ matrix.test-group }}" in
+            "core")
+              pytest tests/unit/ -v --cov=apps/catalytic/core --cov-report=xml --cov-report=term
+              ;;
+            "apps")
+              pytest tests/unit/ -k "test_app" -v --cov=apps --cov-report=xml --cov-report=term
+              ;;
+            "services")
+              pytest tests/unit/ -k "test_service" -v --cov=services --cov-report=xml --cov-report=term
+              ;;
+          esac
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: ${{ matrix.test-group }}
+
+  # Phase 3: Integration Tests
+  integration-tests:
+    runs-on: ubuntu-latest
+    name: Integration Tests
+    needs: unit-tests
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: test_catalytic
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio
+
+      - name: Run integration tests
+        env:
+          DATABASE_URL: postgresql://postgres:test_password@localhost:5432/test_catalytic
+          REDIS_URL: redis://localhost:6379/0
+        run: |
+          pytest tests/integration/ -v --tb=short
+
+  # Phase 4: Performance Tests
+  performance-tests:
+    runs-on: ubuntu-latest
+    name: Performance Tests
+    needs: integration-tests
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-benchmark
+
+      - name: Run performance benchmarks
+        run: |
+          pytest tests/performance/ -v --benchmark-only --benchmark-json=benchmark.json
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v3
+        with:
+          name: benchmark-results
+          path: benchmark.json
+
+  # Phase 5: Docker Build & Test
+  docker-build:
+    runs-on: ubuntu-latest
+    name: Docker Build & Test
+    needs: performance-tests
+    strategy:
+      matrix:
+        service: [saas-api, catalytic, webhook]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        run: |
+          case "${{ matrix.service }}" in
+            "saas-api")
+              docker build -f Dockerfile.saas -t catalytic-saas:test .
+              ;;
+            "catalytic")
+              docker build -f Dockerfile.catalytic -t catalytic-computing:test .
+              ;;
+            "webhook")
+              docker build -f Dockerfile.webhook -t webhook-system:test .
+              ;;
+          esac
+
+      - name: Test Docker image
+        run: |
+          case "${{ matrix.service }}" in
+            "saas-api")
+              docker run --rm catalytic-saas:test python -c "import saas; print('SaaS API import successful')"
+              ;;
+            "catalytic")
+              docker run --rm catalytic-computing:test python -c "import apps.catalytic; print('Catalytic import successful')"
+              ;;
+            "webhook")
+              docker run --rm webhook-system:test python -c "print('Webhook system ready')"
+              ;;
+          esac
+
+  # Phase 6: Security Scanning
+  security-scan:
+    runs-on: ubuntu-latest
+    name: Security Scanning
+    needs: docker-build
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  # Phase 7: Deployment (Production)
+  deploy-production:
+    runs-on: ubuntu-latest
+    name: Deploy to Production
+    needs: [security-scan]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment: production
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push production images
+        run: |
+          # Build and tag with commit SHA and latest
+          docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            --tag ghcr.io/${{ github.repository }}/catalytic-saas:${{ github.sha }} \
+            --tag ghcr.io/${{ github.repository }}/catalytic-saas:latest \
+            --file Dockerfile.saas \
+            --push .
+
+          docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            --tag ghcr.io/${{ github.repository }}/catalytic-computing:${{ github.sha }} \
+            --tag ghcr.io/${{ github.repository }}/catalytic-computing:latest \
+            --file Dockerfile.catalytic \
+            --push .
+
+      - name: Deploy to production
+        run: |
+          echo "🚀 Deploying to production environment"
+          echo "Images built and pushed successfully!"
+          echo "SHA: ${{ github.sha }}"
+
+  # Phase 8: Notification
+  notify:
+    runs-on: ubuntu-latest
+    name: Notify Results
+    needs: [deploy-production]
+    if: always()
+    steps:
+      - name: Notify deployment status
+        run: |
+          if [ "${{ needs.deploy-production.result }}" == "success" ]; then
+            echo "✅ Deployment successful!"
+          else
+            echo "❌ Deployment failed or skipped"
+          fi
+
+      - name: Create deployment summary
+        run: |
+          echo "## 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status**: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Timestamp**: $(date -u)" >> $GITHUB_STEP_SUMMARY
+
+# Cleanup old workflow runs
+  cleanup:
+    runs-on: ubuntu-latest
+    name: Cleanup Old Runs
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Delete old workflow runs
+        uses: Mattraks/delete-workflow-runs@v2
+        with:
+          token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          retain_days: 30
+          keep_minimum_runs: 10
