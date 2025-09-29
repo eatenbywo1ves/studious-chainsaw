@@ -1,0 +1,9 @@
+/bin/
+/build/
+/dist/
+/.gradle/
+.antProperties.xml
+.classpath
+.project
+.pydevproject
+.settings
