@@ -1,0 +1,526 @@
+name: Deploy to Staging Environment
+
+on:
+  workflow_run:
+    workflows: ["Catalytic Computing - Comprehensive CI/CD Pipeline"]
+    types: [completed]
+    branches: [develop, main]
+  workflow_dispatch:
+    inputs:
+      force_deploy:
+        description: 'Force deployment even if CI/CD pipeline failed'
+        required: false
+        default: false
+        type: boolean
+      skip_smoke_tests:
+        description: 'Skip smoke tests after deployment'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  ENVIRONMENT: staging
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  KUBE_NAMESPACE: catalytic-staging
+  
+concurrency:
+  group: staging-deployment
+  cancel-in-progress: true
+
+jobs:
+  deploy_staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' || inputs.force_deploy }}
+    environment:
+      name: staging
+      url: https://staging.catalytic.dev
+    outputs:
+      deployment_url: ${{ steps.deploy.outputs.url }}
+      frontend_version: ${{ steps.get_images.outputs.frontend_version }}
+      api_version: ${{ steps.get_images.outputs.api_version }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download deployment manifest
+        uses: actions/download-artifact@v4
+        with:
+          name: deployment-manifest
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+
+      - name: Parse deployment manifest
+        id: get_images
+        run: |
+          if [[ -f "deployment-manifest.json" ]]; then
+            FRONTEND_IMAGE=$(jq -r '.images.frontend' deployment-manifest.json)
+            API_IMAGE=$(jq -r '.images.api' deployment-manifest.json)
+            echo "frontend_image=$FRONTEND_IMAGE" >> $GITHUB_OUTPUT
+            echo "api_image=$API_IMAGE" >> $GITHUB_OUTPUT
+            echo "frontend_version=$(echo $FRONTEND_IMAGE | cut -d':' -f2)" >> $GITHUB_OUTPUT
+            echo "api_version=$(echo $API_IMAGE | cut -d':' -f2)" >> $GITHUB_OUTPUT
+          else
+            echo "No deployment manifest found, using latest images"
+            echo "frontend_image=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ github.sha }}" >> $GITHUB_OUTPUT
+            echo "api_image=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/api:${{ github.sha }}" >> $GITHUB_OUTPUT
+            echo "frontend_version=${{ github.sha }}" >> $GITHUB_OUTPUT
+            echo "api_version=${{ github.sha }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.28.0'
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig --region ${{ secrets.AWS_REGION }} --name catalytic-cluster
+
+      - name: Verify cluster access
+        run: |
+          kubectl cluster-info
+          kubectl get nodes
+
+      - name: Create namespace if not exists
+        run: |
+          kubectl create namespace ${{ env.KUBE_NAMESPACE }} --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Deploy database migrations
+        run: |
+          kubectl create job --from=cronjob/db-migration db-migration-$(date +%s) -n ${{ env.KUBE_NAMESPACE }} || true
+          kubectl wait --for=condition=complete --timeout=300s job -l app=db-migration -n ${{ env.KUBE_NAMESPACE }} || true
+
+      - name: Generate Kubernetes manifests
+        run: |
+          mkdir -p k8s/staging
+          
+          # Frontend deployment
+          cat > k8s/staging/frontend-deployment.yml << EOF
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: frontend
+            namespace: ${{ env.KUBE_NAMESPACE }}
+            labels:
+              app: frontend
+              env: staging
+          spec:
+            replicas: 2
+            strategy:
+              type: RollingUpdate
+              rollingUpdate:
+                maxSurge: 1
+                maxUnavailable: 0
+            selector:
+              matchLabels:
+                app: frontend
+                env: staging
+            template:
+              metadata:
+                labels:
+                  app: frontend
+                  env: staging
+                annotations:
+                  prometheus.io/scrape: "true"
+                  prometheus.io/port: "3000"
+                  prometheus.io/path: "/api/metrics"
+              spec:
+                containers:
+                - name: frontend
+                  image: ${{ steps.get_images.outputs.frontend_image }}
+                  ports:
+                  - containerPort: 3000
+                    name: http
+                  env:
+                  - name: NODE_ENV
+                    value: "production"
+                  - name: DATABASE_URL
+                    valueFrom:
+                      secretKeyRef:
+                        name: app-secrets
+                        key: database-url
+                  - name: NEXTAUTH_SECRET
+                    valueFrom:
+                      secretKeyRef:
+                        name: app-secrets
+                        key: nextauth-secret
+                  - name: STRIPE_SECRET_KEY
+                    valueFrom:
+                      secretKeyRef:
+                        name: app-secrets
+                        key: stripe-secret-key
+                  - name: SENDGRID_API_KEY
+                    valueFrom:
+                      secretKeyRef:
+                        name: app-secrets
+                        key: sendgrid-api-key
+                  resources:
+                    limits:
+                      cpu: "1000m"
+                      memory: "1Gi"
+                    requests:
+                      cpu: "500m"
+                      memory: "512Mi"
+                  livenessProbe:
+                    httpGet:
+                      path: /api/health
+                      port: 3000
+                    initialDelaySeconds: 30
+                    periodSeconds: 10
+                  readinessProbe:
+                    httpGet:
+                      path: /api/health
+                      port: 3000
+                    initialDelaySeconds: 5
+                    periodSeconds: 5
+                  securityContext:
+                    allowPrivilegeEscalation: false
+                    runAsNonRoot: true
+                    runAsUser: 1001
+                    capabilities:
+                      drop:
+                      - ALL
+          ---
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: frontend-service
+            namespace: ${{ env.KUBE_NAMESPACE }}
+            labels:
+              app: frontend
+          spec:
+            selector:
+              app: frontend
+              env: staging
+            ports:
+            - protocol: TCP
+              port: 80
+              targetPort: 3000
+            type: ClusterIP
+          EOF
+          
+          # API deployment
+          cat > k8s/staging/api-deployment.yml << EOF
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: api
+            namespace: ${{ env.KUBE_NAMESPACE }}
+            labels:
+              app: api
+              env: staging
+          spec:
+            replicas: 3
+            strategy:
+              type: RollingUpdate
+              rollingUpdate:
+                maxSurge: 1
+                maxUnavailable: 0
+            selector:
+              matchLabels:
+                app: api
+                env: staging
+            template:
+              metadata:
+                labels:
+                  app: api
+                  env: staging
+                annotations:
+                  prometheus.io/scrape: "true"
+                  prometheus.io/port: "8000"
+                  prometheus.io/path: "/metrics"
+              spec:
+                containers:
+                - name: api
+                  image: ${{ steps.get_images.outputs.api_image }}
+                  ports:
+                  - containerPort: 8000
+                    name: http
+                  env:
+                  - name: ENVIRONMENT
+                    value: "staging"
+                  - name: DATABASE_URL
+                    valueFrom:
+                      secretKeyRef:
+                        name: app-secrets
+                        key: database-url
+                  - name: REDIS_URL
+                    valueFrom:
+                      secretKeyRef:
+                        name: app-secrets
+                        key: redis-url
+                  resources:
+                    limits:
+                      cpu: "1000m"
+                      memory: "1Gi"
+                    requests:
+                      cpu: "500m"
+                      memory: "512Mi"
+                  livenessProbe:
+                    httpGet:
+                      path: /health
+                      port: 8000
+                    initialDelaySeconds: 30
+                    periodSeconds: 10
+                  readinessProbe:
+                    httpGet:
+                      path: /ready
+                      port: 8000
+                    initialDelaySeconds: 5
+                    periodSeconds: 5
+                  securityContext:
+                    allowPrivilegeEscalation: false
+                    runAsNonRoot: true
+                    runAsUser: 1001
+                    capabilities:
+                      drop:
+                      - ALL
+          ---
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: api-service
+            namespace: ${{ env.KUBE_NAMESPACE }}
+            labels:
+              app: api
+          spec:
+            selector:
+              app: api
+              env: staging
+            ports:
+            - protocol: TCP
+              port: 80
+              targetPort: 8000
+            type: ClusterIP
+          EOF
+          
+          # Ingress
+          cat > k8s/staging/ingress.yml << EOF
+          apiVersion: networking.k8s.io/v1
+          kind: Ingress
+          metadata:
+            name: catalytic-ingress
+            namespace: ${{ env.KUBE_NAMESPACE }}
+            annotations:
+              kubernetes.io/ingress.class: alb
+              alb.ingress.kubernetes.io/scheme: internet-facing
+              alb.ingress.kubernetes.io/target-type: ip
+              alb.ingress.kubernetes.io/ssl-redirect: "443"
+              alb.ingress.kubernetes.io/certificate-arn: ${{ secrets.SSL_CERTIFICATE_ARN }}
+          spec:
+            rules:
+            - host: staging.catalytic.dev
+              http:
+                paths:
+                - path: /api
+                  pathType: Prefix
+                  backend:
+                    service:
+                      name: api-service
+                      port:
+                        number: 80
+                - path: /
+                  pathType: Prefix
+                  backend:
+                    service:
+                      name: frontend-service
+                      port:
+                        number: 80
+          EOF
+
+      - name: Deploy to Kubernetes
+        id: deploy
+        run: |
+          # Apply deployments
+          kubectl apply -f k8s/staging/
+          
+          # Wait for rollout to complete
+          kubectl rollout status deployment/frontend -n ${{ env.KUBE_NAMESPACE }} --timeout=600s
+          kubectl rollout status deployment/api -n ${{ env.KUBE_NAMESPACE }} --timeout=600s
+          
+          # Get ingress URL
+          INGRESS_HOST=$(kubectl get ingress catalytic-ingress -n ${{ env.KUBE_NAMESPACE }} -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+          echo "url=https://staging.catalytic.dev" >> $GITHUB_OUTPUT
+          echo "ingress_host=$INGRESS_HOST" >> $GITHUB_OUTPUT
+
+      - name: Wait for deployment to be ready
+        run: |
+          echo "Waiting for deployment to be ready..."
+          timeout 300 bash -c '
+            while ! curl -f -s https://staging.catalytic.dev/api/health > /dev/null; do
+              echo "Waiting for API to be ready..."
+              sleep 10
+            done
+          '
+          echo "✅ Staging deployment is ready!"
+
+  smoke_tests:
+    name: Smoke Tests
+    runs-on: ubuntu-latest
+    needs: deploy_staging
+    if: ${{ !inputs.skip_smoke_tests }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install test dependencies
+        run: |
+          npm install -g newman
+          pip install requests pytest
+
+      - name: Run health check tests
+        run: |
+          echo "Running health check tests..."
+          
+          # API Health Check
+          response=$(curl -s -o /dev/null -w "%{http_code}" https://staging.catalytic.dev/api/health)
+          if [ "$response" -ne 200 ]; then
+            echo "❌ API health check failed with status $response"
+            exit 1
+          fi
+          echo "✅ API health check passed"
+          
+          # Frontend Health Check
+          response=$(curl -s -o /dev/null -w "%{http_code}" https://staging.catalytic.dev/)
+          if [ "$response" -ne 200 ]; then
+            echo "❌ Frontend health check failed with status $response"
+            exit 1
+          fi
+          echo "✅ Frontend health check passed"
+
+      - name: Run API smoke tests
+        run: |
+          python -c "
+          import requests
+          import sys
+          
+          base_url = 'https://staging.catalytic.dev/api'
+          
+          # Test endpoints
+          endpoints = ['/health', '/ready', '/metrics']
+          
+          for endpoint in endpoints:
+              try:
+                  response = requests.get(f'{base_url}{endpoint}', timeout=10)
+                  if response.status_code == 200:
+                      print(f'✅ {endpoint}: OK')
+                  else:
+                      print(f'❌ {endpoint}: Failed with status {response.status_code}')
+                      sys.exit(1)
+              except Exception as e:
+                  print(f'❌ {endpoint}: Error - {str(e)}')
+                  sys.exit(1)
+          
+          print('🎉 All smoke tests passed!')
+          "
+
+      - name: Run Postman collection tests
+        run: |
+          if [ -f "tests/postman/staging-smoke-tests.json" ]; then
+            newman run tests/postman/staging-smoke-tests.json \
+              --environment tests/postman/staging-environment.json \
+              --reporters cli,json \
+              --reporter-json-export staging-test-results.json
+          else
+            echo "No Postman collection found, skipping..."
+          fi
+
+      - name: Performance baseline check
+        run: |
+          echo "Running performance baseline check..."
+          
+          # Simple load test with curl
+          response_time=$(curl -s -w "%{time_total}" -o /dev/null https://staging.catalytic.dev/api/health)
+          threshold=2.0
+          
+          if (( $(echo "$response_time > $threshold" | bc -l) )); then
+            echo "⚠️ Response time ($response_time s) exceeds threshold ($threshold s)"
+          else
+            echo "✅ Response time ($response_time s) is within acceptable range"
+          fi
+
+  update_monitoring:
+    name: Update Monitoring Configuration
+    runs-on: ubuntu-latest
+    needs: [deploy_staging, smoke_tests]
+    if: always() && needs.deploy_staging.result == 'success'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Update Grafana dashboards
+        run: |
+          if [ -f "monitoring/grafana/staging-dashboard.json" ]; then
+            curl -X POST \
+              -H "Authorization: Bearer ${{ secrets.GRAFANA_API_TOKEN }}" \
+              -H "Content-Type: application/json" \
+              -d @monitoring/grafana/staging-dashboard.json \
+              "${{ secrets.GRAFANA_URL }}/api/dashboards/db" || echo "Failed to update Grafana dashboard"
+          fi
+
+      - name: Update Prometheus alerts
+        run: |
+          kubectl create configmap prometheus-staging-alerts \
+            --from-file=monitoring/prometheus/staging-alerts.yml \
+            -n monitoring \
+            --dry-run=client -o yaml | kubectl apply -f - || echo "Failed to update Prometheus alerts"
+
+  notify_deployment:
+    name: Notify Deployment Status
+    runs-on: ubuntu-latest
+    needs: [deploy_staging, smoke_tests, update_monitoring]
+    if: always()
+    steps:
+      - name: Notify success
+        if: needs.deploy_staging.result == 'success' && needs.smoke_tests.result == 'success'
+        uses: 8398a7/action-slack@v3
+        with:
+          status: success
+          channel: '#deployments'
+          message: |
+            🚀 *Staging Deployment Successful*
+            
+            *Environment:* Staging
+            *URL:* ${{ needs.deploy_staging.outputs.deployment_url }}
+            *Frontend Version:* `${{ needs.deploy_staging.outputs.frontend_version }}`
+            *API Version:* `${{ needs.deploy_staging.outputs.api_version }}`
+            *Deployed by:* ${{ github.actor }}
+            
+            ✅ All smoke tests passed
+            📊 Monitoring dashboards updated
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Notify failure
+        if: needs.deploy_staging.result != 'success' || needs.smoke_tests.result != 'success'
+        uses: 8398a7/action-slack@v3
+        with:
+          status: failure
+          channel: '#alerts'
+          message: |
+            ❌ *Staging Deployment Failed*
+            
+            *Environment:* Staging
+            *Triggered by:* ${{ github.actor }}
+            
+            *Status:*
+            - Deployment: ${{ needs.deploy_staging.result }}
+            - Smoke Tests: ${{ needs.smoke_tests.result }}
+            
+            Please check the logs for details.
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

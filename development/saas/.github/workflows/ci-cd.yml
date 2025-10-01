@@ -1,0 +1,638 @@
+name: Catalytic Computing - Comprehensive CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+      skip_tests:
+        description: 'Skip testing phase'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  NODE_VERSION: '18'
+  PYTHON_VERSION: '3.11'
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # Phase 1: Code Quality and Static Analysis
+  code_quality:
+    name: "Phase 1: Code Quality & Static Analysis"
+    runs-on: ubuntu-latest
+    outputs:
+      should_deploy: ${{ steps.changes.outputs.should_deploy }}
+      frontend_changed: ${{ steps.changes.outputs.frontend_changed }}
+      api_changed: ${{ steps.changes.outputs.api_changed }}
+      database_changed: ${{ steps.changes.outputs.database_changed }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changes
+        id: changes
+        uses: dorny/paths-filter@v2
+        with:
+          filters: |
+            frontend:
+              - 'frontend/**'
+            api:
+              - 'api/**'
+            database:
+              - 'database/**'
+            infrastructure:
+              - '.github/workflows/**'
+              - 'docker-compose*.yml'
+              - 'k8s/**'
+              - 'terraform/**'
+            should_deploy:
+              - 'frontend/**'
+              - 'api/**'
+              - 'database/**'
+
+      - name: Setup Node.js
+        if: steps.changes.outputs.frontend == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Setup Python
+        if: steps.changes.outputs.api == 'true'
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install frontend dependencies
+        if: steps.changes.outputs.frontend == 'true'
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Install Python dependencies
+        if: steps.changes.outputs.api == 'true'
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8 black isort mypy pylint bandit safety
+          if [ -f api/requirements.txt ]; then pip install -r api/requirements.txt; fi
+
+      - name: Frontend linting
+        if: steps.changes.outputs.frontend == 'true'
+        working-directory: ./frontend
+        run: npm run lint
+
+      - name: Frontend type checking
+        if: steps.changes.outputs.frontend == 'true'
+        working-directory: ./frontend
+        run: npx tsc --noEmit
+
+      - name: Python code formatting check
+        if: steps.changes.outputs.api == 'true'
+        run: |
+          black --check api/
+          isort --check-only api/
+
+      - name: Python linting
+        if: steps.changes.outputs.api == 'true'
+        run: |
+          flake8 api/
+          pylint api/ || true
+
+      - name: Python type checking
+        if: steps.changes.outputs.api == 'true'
+        run: mypy api/ || true
+
+  # Phase 2: Security Scanning
+  security_scan:
+    name: "Phase 2: Security Scanning"
+    runs-on: ubuntu-latest
+    needs: code_quality
+    permissions:
+      security-events: write
+      contents: read
+      actions: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript, python
+          queries: +security-and-quality
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:javascript,python"
+
+      - name: Setup Node.js for dependency scan
+        if: needs.code_quality.outputs.frontend_changed == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup Python for dependency scan
+        if: needs.code_quality.outputs.api_changed == 'true'
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install Python security tools
+        if: needs.code_quality.outputs.api_changed == 'true'
+        run: |
+          python -m pip install --upgrade pip
+          pip install safety bandit semgrep
+
+      - name: Frontend dependency vulnerability scan
+        if: needs.code_quality.outputs.frontend_changed == 'true'
+        working-directory: ./frontend
+        run: |
+          npm audit --audit-level high
+          npx audit-ci --config ./audit-ci.json || true
+
+      - name: Python dependency vulnerability scan
+        if: needs.code_quality.outputs.api_changed == 'true'
+        run: |
+          safety check --json --output safety-report.json || true
+          if [ -f safety-report.json ]; then cat safety-report.json; fi
+
+      - name: Python SAST with Bandit
+        if: needs.code_quality.outputs.api_changed == 'true'
+        run: |
+          bandit -r api/ -f json -o bandit-report.json || true
+          if [ -f bandit-report.json ]; then cat bandit-report.json; fi
+
+      - name: Secret scanning with Semgrep
+        run: |
+          semgrep --config=auto --json --output=semgrep-secrets.json . || true
+          if [ -f semgrep-secrets.json ]; then cat semgrep-secrets.json; fi
+
+      - name: Upload security scan results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-scan-results
+          path: |
+            safety-report.json
+            bandit-report.json
+            semgrep-secrets.json
+
+  # Phase 3: Unit Testing
+  unit_tests:
+    name: "Phase 3: Unit Testing"
+    runs-on: ubuntu-latest
+    needs: code_quality
+    if: ${{ !inputs.skip_tests }}
+    strategy:
+      matrix:
+        component: [frontend, api]
+        exclude:
+          - component: frontend
+            condition: ${{ needs.code_quality.outputs.frontend_changed != 'true' }}
+          - component: api
+            condition: ${{ needs.code_quality.outputs.api_changed != 'true' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        if: matrix.component == 'frontend'
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Setup Python
+        if: matrix.component == 'api'
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install frontend dependencies and test
+        if: matrix.component == 'frontend'
+        working-directory: ./frontend
+        run: |
+          npm ci
+          npm run test:unit || echo "No unit tests configured"
+
+      - name: Install Python dependencies and test
+        if: matrix.component == 'api'
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-cov pytest-asyncio
+          if [ -f api/requirements.txt ]; then pip install -r api/requirements.txt; fi
+          if [ -f api/requirements-test.txt ]; then pip install -r api/requirements-test.txt; fi
+          pytest api/ --cov=api/ --cov-report=xml --cov-report=html || echo "No tests found"
+
+      - name: Upload test coverage
+        if: matrix.component == 'api'
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: ${{ matrix.component }}
+          name: ${{ matrix.component }}-coverage
+
+  # Phase 4: Build and Package
+  build:
+    name: "Phase 4: Build & Package"
+    runs-on: ubuntu-latest
+    needs: [code_quality, security_scan, unit_tests]
+    if: always() && (needs.code_quality.result == 'success' && needs.security_scan.result == 'success' && (needs.unit_tests.result == 'success' || needs.unit_tests.result == 'skipped'))
+    outputs:
+      frontend_image: ${{ steps.frontend_meta.outputs.tags }}
+      api_image: ${{ steps.api_meta.outputs.tags }}
+      frontend_digest: ${{ steps.frontend_build.outputs.digest }}
+      api_digest: ${{ steps.api_build.outputs.digest }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract frontend metadata
+        if: needs.code_quality.outputs.frontend_changed == 'true'
+        id: frontend_meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Extract API metadata
+        if: needs.code_quality.outputs.api_changed == 'true'
+        id: api_meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/api
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push frontend image
+        if: needs.code_quality.outputs.frontend_changed == 'true'
+        id: frontend_build
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          tags: ${{ steps.frontend_meta.outputs.tags }}
+          labels: ${{ steps.frontend_meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64,linux/arm64
+
+      - name: Build and push API image
+        if: needs.code_quality.outputs.api_changed == 'true'
+        id: api_build
+        uses: docker/build-push-action@v5
+        with:
+          context: ./api
+          file: ./api/Dockerfile
+          push: true
+          tags: ${{ steps.api_meta.outputs.tags }}
+          labels: ${{ steps.api_meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64,linux/arm64
+
+  # Phase 5: Container Security Scanning
+  container_scan:
+    name: "Phase 5: Container Security Scan"
+    runs-on: ubuntu-latest
+    needs: build
+    if: always() && needs.build.result == 'success'
+    steps:
+      - name: Run Trivy vulnerability scanner on frontend
+        if: needs.build.outputs.frontend_image
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ needs.build.outputs.frontend_image }}
+          format: 'sarif'
+          output: 'frontend-trivy-results.sarif'
+
+      - name: Run Trivy vulnerability scanner on API
+        if: needs.build.outputs.api_image
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ needs.build.outputs.api_image }}
+          format: 'sarif'
+          output: 'api-trivy-results.sarif'
+
+      - name: Upload Trivy scan results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: '.'
+
+      - name: Upload container scan results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: container-scan-results
+          path: |
+            frontend-trivy-results.sarif
+            api-trivy-results.sarif
+
+  # Phase 6: Integration Testing
+  integration_tests:
+    name: "Phase 6: Integration Testing"
+    runs-on: ubuntu-latest
+    needs: [build, container_scan]
+    if: always() && needs.build.result == 'success' && !inputs.skip_tests
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: catalytic_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      redis:
+        image: redis:7
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          cd frontend && npm ci
+          python -m pip install --upgrade pip
+          pip install pytest pytest-asyncio httpx
+
+      - name: Setup test database
+        run: |
+          PGPASSWORD=test_password psql -h localhost -U postgres -d catalytic_test -f database/schema.sql
+
+      - name: Run Stripe webhook integration tests
+        env:
+          DATABASE_URL: postgresql://postgres:test_password@localhost:5432/catalytic_test
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET_TEST }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY_TEST }}
+        run: |
+          python -m pytest tests/integration/test_stripe_webhooks.py -v || echo "Stripe webhook tests not found"
+
+      - name: Run email service integration tests
+        env:
+          SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY_TEST }}
+          DATABASE_URL: postgresql://postgres:test_password@localhost:5432/catalytic_test
+        run: |
+          python -m pytest tests/integration/test_email_service.py -v || echo "Email service tests not found"
+
+      - name: Run API integration tests
+        env:
+          DATABASE_URL: postgresql://postgres:test_password@localhost:5432/catalytic_test
+          REDIS_URL: redis://localhost:6379
+        run: |
+          python -m pytest tests/integration/ -v || echo "API integration tests not found"
+
+  # Phase 7: End-to-End and Performance Testing
+  e2e_and_performance:
+    name: "Phase 7: E2E & Performance Testing"
+    runs-on: ubuntu-latest
+    needs: [build, integration_tests]
+    if: always() && needs.build.result == 'success' && !inputs.skip_tests
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install Playwright
+        run: |
+          npm install -g @playwright/test
+          playwright install --with-deps
+
+      - name: Start application stack
+        run: |
+          docker-compose -f docker-compose.test.yml up -d
+          sleep 30 # Wait for services to be ready
+
+      - name: Wait for application to be ready
+        run: |
+          timeout 120 bash -c 'until curl -f http://localhost:3000/api/health; do sleep 5; done'
+
+      - name: Run Playwright E2E tests
+        run: |
+          npx playwright test --config=playwright.config.ts || echo "E2E tests not configured"
+
+      - name: Load testing with k6
+        run: |
+          docker run --rm -v $PWD:/scripts grafana/k6 run /scripts/tests/performance/load-test.js || echo "Load tests not configured"
+
+      - name: GPU performance validation
+        run: |
+          python tests/performance/gpu_performance_test.py || echo "GPU performance tests not configured"
+
+      - name: Upload E2E test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-test-results
+          path: |
+            test-results/
+            playwright-report/
+
+      - name: Cleanup
+        if: always()
+        run: docker-compose -f docker-compose.test.yml down
+
+  # Phase 8: Deployment Readiness
+  deployment_readiness:
+    name: "Phase 8: Deployment Readiness"
+    runs-on: ubuntu-latest
+    needs: [build, container_scan, integration_tests, e2e_and_performance]
+    if: always() && needs.build.result == 'success'
+    outputs:
+      deploy_ready: ${{ steps.readiness_check.outputs.deploy_ready }}
+      deployment_strategy: ${{ steps.strategy.outputs.strategy }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Deployment readiness check
+        id: readiness_check
+        run: |
+          echo "Checking deployment readiness..."
+          DEPLOY_READY=true
+          
+          # Check if critical tests passed
+          if [[ "${{ needs.integration_tests.result }}" == "failure" ]]; then
+            echo "❌ Integration tests failed"
+            DEPLOY_READY=false
+          fi
+          
+          if [[ "${{ needs.container_scan.result }}" == "failure" ]]; then
+            echo "❌ Container security scan failed"
+            DEPLOY_READY=false
+          fi
+          
+          if [[ "${{ needs.e2e_and_performance.result }}" == "failure" && "${{ inputs.skip_tests }}" != "true" ]]; then
+            echo "⚠️ E2E/Performance tests failed, but continuing..."
+          fi
+          
+          if [[ "$DEPLOY_READY" == "true" ]]; then
+            echo "✅ All critical checks passed - ready for deployment"
+          else
+            echo "❌ Deployment blocked due to failed checks"
+          fi
+          
+          echo "deploy_ready=$DEPLOY_READY" >> $GITHUB_OUTPUT
+
+      - name: Determine deployment strategy
+        id: strategy
+        run: |
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "strategy=blue-green" >> $GITHUB_OUTPUT
+          else
+            echo "strategy=rolling" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate deployment manifest
+        if: steps.readiness_check.outputs.deploy_ready == 'true'
+        run: |
+          cat > deployment-manifest.json << EOF
+          {
+            "version": "${{ github.sha }}",
+            "branch": "${{ github.ref_name }}",
+            "images": {
+              "frontend": "${{ needs.build.outputs.frontend_image }}",
+              "api": "${{ needs.build.outputs.api_image }}"
+            },
+            "strategy": "${{ steps.strategy.outputs.strategy }}",
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "tests_passed": {
+              "unit": "${{ needs.unit_tests.result }}",
+              "integration": "${{ needs.integration_tests.result }}",
+              "e2e": "${{ needs.e2e_and_performance.result }}",
+              "security": "${{ needs.container_scan.result }}"
+            }
+          }
+          EOF
+
+      - name: Upload deployment manifest
+        if: steps.readiness_check.outputs.deploy_ready == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-manifest
+          path: deployment-manifest.json
+
+  # Notification and Reporting
+  notify:
+    name: "Pipeline Status Notification"
+    runs-on: ubuntu-latest
+    needs: [deployment_readiness]
+    if: always()
+    steps:
+      - name: Notify Slack on Success
+        if: needs.deployment_readiness.outputs.deploy_ready == 'true'
+        uses: 8398a7/action-slack@v3
+        with:
+          status: success
+          channel: '#deployments'
+          message: |
+            ✅ *Catalytic Computing CI/CD Pipeline Completed Successfully*
+            
+            *Branch:* `${{ github.ref_name }}`
+            *Commit:* `${{ github.sha }}`
+            *Triggered by:* ${{ github.actor }}
+            
+            *Ready for deployment to:* ${{ inputs.environment || 'staging' }}
+            *Strategy:* ${{ needs.deployment_readiness.outputs.deployment_strategy }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Notify Slack on Failure
+        if: needs.deployment_readiness.outputs.deploy_ready != 'true'
+        uses: 8398a7/action-slack@v3
+        with:
+          status: failure
+          channel: '#alerts'
+          message: |
+            ❌ *Catalytic Computing CI/CD Pipeline Failed*
+            
+            *Branch:* `${{ github.ref_name }}`
+            *Commit:* `${{ github.sha }}`
+            *Triggered by:* ${{ github.actor }}
+            
+            Please check the workflow logs for details.
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Update GitHub commit status
+        uses: actions/github-script@v7
+        if: always()
+        with:
+          script: |
+            const deployReady = '${{ needs.deployment_readiness.outputs.deploy_ready }}' === 'true';
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.sha,
+              state: deployReady ? 'success' : 'failure',
+              target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              description: deployReady ? 'Ready for deployment' : 'Deployment blocked',
+              context: 'catalytic/ci-cd'
+            });

@@ -219,3 +219,20 @@ $RECYCLE.BIN/
 .directory
 .Trash-*
 .nfs*
+# Next.js build artifacts
+.next/
+out/
+build/
+
+# Terraform state files
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+.terraform/
+.terraform.lock.hcl
+terraform.tfvars
+terraform.tfvars.json
+
+# SaaS specific
+saas/frontend/.next/
+saas/frontend/out/

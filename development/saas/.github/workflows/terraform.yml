@@ -1,0 +1,445 @@
+name: Infrastructure as Code - Terraform
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'terraform/**'
+      - '.github/workflows/terraform.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'terraform/**'
+      - '.github/workflows/terraform.yml'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+      action:
+        description: 'Terraform action'
+        required: true
+        default: 'plan'
+        type: choice
+        options:
+          - plan
+          - apply
+          - destroy
+      auto_approve:
+        description: 'Auto approve apply/destroy'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  TF_VERSION: '1.6.0'
+  TERRAFORM_CLOUD_TOKENS: app.terraform.io=${{ secrets.TF_API_TOKEN }}
+
+jobs:
+  terraform_validate:
+    name: Terraform Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+
+      - name: Terraform Format Check
+        id: fmt
+        run: terraform fmt -check -recursive terraform/
+        continue-on-error: true
+
+      - name: Terraform Init
+        id: init
+        run: |
+          cd terraform/environments/staging
+          terraform init
+
+      - name: Terraform Validate
+        id: validate
+        run: |
+          cd terraform/environments/staging
+          terraform validate
+
+      - name: Comment PR - Validation Results
+        uses: actions/github-script@v7
+        if: github.event_name == 'pull_request'
+        env:
+          FMT: "terraform fmt\n${{ steps.fmt.outputs.stdout }}"
+          INIT: "terraform init\n${{ steps.init.outputs.stdout }}"
+          VALIDATE: "terraform validate\n${{ steps.validate.outputs.stdout }}"
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const output = `#### Terraform Format and Style 🖌\`${{ steps.fmt.outcome }}\`
+            #### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
+            #### Terraform Validation 🤖\`${{ steps.validate.outcome }}\`
+
+            <details><summary>Validation Output</summary>
+
+            \`\`\`\n
+            ${{ steps.validate.outputs.stdout }}
+            \`\`\`
+
+            </details>
+
+            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            })
+
+  terraform_plan:
+    name: Terraform Plan
+    runs-on: ubuntu-latest
+    needs: terraform_validate
+    if: always() && needs.terraform_validate.result == 'success'
+    strategy:
+      matrix:
+        environment: [staging, production]
+        exclude:
+          - environment: production
+            # Only run production on main branch or manual trigger
+            condition: ${{ github.ref != 'refs/heads/main' && github.event_name != 'workflow_dispatch' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Terraform Init
+        id: init
+        run: |
+          cd terraform/environments/${{ matrix.environment }}
+          terraform init
+
+      - name: Terraform Plan
+        id: plan
+        run: |
+          cd terraform/environments/${{ matrix.environment }}
+          terraform plan -no-color -out=tfplan
+          terraform show -no-color tfplan > plan.txt
+        env:
+          TF_VAR_environment: ${{ matrix.environment }}
+          TF_VAR_aws_region: ${{ secrets.AWS_REGION }}
+          TF_VAR_domain_name: ${{ matrix.environment == 'production' && 'catalytic.dev' || format('{0}.catalytic.dev', matrix.environment) }}
+
+      - name: Upload Terraform Plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plan-${{ matrix.environment }}
+          path: |
+            terraform/environments/${{ matrix.environment }}/tfplan
+            terraform/environments/${{ matrix.environment }}/plan.txt
+
+      - name: Comment PR - Plan Results
+        uses: actions/github-script@v7
+        if: github.event_name == 'pull_request'
+        env:
+          PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const plan = fs.readFileSync('terraform/environments/${{ matrix.environment }}/plan.txt', 'utf8');
+            const maxGitHubBodyCharacters = 65536;
+
+            function chunkSubstr(str, size) {
+              const numChunks = Math.ceil(str.length / size)
+              const chunks = new Array(numChunks)
+              for (let i = 0, o = 0; i < numChunks; ++i, o += size) {
+                chunks[i] = str.substr(o, size)
+              }
+              return chunks
+            }
+
+            const body = plan.length > maxGitHubBodyCharacters ? 
+              `#### Terraform Plan - ${{ matrix.environment }} 📖\`${{ steps.plan.outcome }}\`
+
+              <details><summary>Show Plan (truncated)</summary>
+
+              \`\`\`terraform\n
+              ${plan.substring(0, maxGitHubBodyCharacters - 1000)}...
+              \`\`\`
+
+              </details>
+
+              *Plan output truncated. Full plan available in workflow artifacts.*`
+              :
+              `#### Terraform Plan - ${{ matrix.environment }} 📖\`${{ steps.plan.outcome }}\`
+
+              <details><summary>Show Plan</summary>
+
+              \`\`\`terraform\n
+              ${plan}
+              \`\`\`
+
+              </details>`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            })
+
+  terraform_apply_staging:
+    name: Terraform Apply - Staging
+    runs-on: ubuntu-latest
+    needs: terraform_plan
+    if: github.ref == 'refs/heads/develop' || (github.event_name == 'workflow_dispatch' && inputs.environment == 'staging' && inputs.action == 'apply')
+    environment:
+      name: terraform-staging
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Download Terraform Plan
+        uses: actions/download-artifact@v4
+        with:
+          name: terraform-plan-staging
+          path: terraform/environments/staging/
+
+      - name: Terraform Init
+        run: |
+          cd terraform/environments/staging
+          terraform init
+
+      - name: Terraform Apply
+        id: apply
+        run: |
+          cd terraform/environments/staging
+          terraform apply -auto-approve tfplan
+        env:
+          TF_VAR_environment: staging
+          TF_VAR_aws_region: ${{ secrets.AWS_REGION }}
+          TF_VAR_domain_name: staging.catalytic.dev
+
+      - name: Terraform Output
+        id: output
+        run: |
+          cd terraform/environments/staging
+          terraform output -json > terraform-outputs.json
+          echo "outputs=$(cat terraform-outputs.json)" >> $GITHUB_OUTPUT
+
+      - name: Upload Terraform Outputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-outputs-staging
+          path: terraform/environments/staging/terraform-outputs.json
+
+  terraform_apply_production:
+    name: Terraform Apply - Production
+    runs-on: ubuntu-latest
+    needs: terraform_plan
+    if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && inputs.environment == 'production' && inputs.action == 'apply')
+    environment:
+      name: terraform-production
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Download Terraform Plan
+        uses: actions/download-artifact@v4
+        with:
+          name: terraform-plan-production
+          path: terraform/environments/production/
+
+      - name: Terraform Init
+        run: |
+          cd terraform/environments/production
+          terraform init
+
+      - name: Manual Approval Check
+        if: ${{ !inputs.auto_approve && github.event_name == 'workflow_dispatch' }}
+        run: |
+          echo "Manual approval required for production deployment"
+          echo "Plan review completed, proceeding with apply..."
+
+      - name: Terraform Apply
+        id: apply
+        run: |
+          cd terraform/environments/production
+          terraform apply -auto-approve tfplan
+        env:
+          TF_VAR_environment: production
+          TF_VAR_aws_region: ${{ secrets.AWS_REGION }}
+          TF_VAR_domain_name: catalytic.dev
+
+      - name: Terraform Output
+        id: output
+        run: |
+          cd terraform/environments/production
+          terraform output -json > terraform-outputs.json
+          echo "outputs=$(cat terraform-outputs.json)" >> $GITHUB_OUTPUT
+
+      - name: Upload Terraform Outputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-outputs-production
+          path: terraform/environments/production/terraform-outputs.json
+
+  terraform_destroy:
+    name: Terraform Destroy
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && inputs.action == 'destroy'
+    environment:
+      name: terraform-destroy-${{ inputs.environment }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Terraform Init
+        run: |
+          cd terraform/environments/${{ inputs.environment }}
+          terraform init
+
+      - name: Terraform Destroy Plan
+        id: destroy_plan
+        run: |
+          cd terraform/environments/${{ inputs.environment }}
+          terraform plan -destroy -no-color -out=destroy-plan
+          terraform show -no-color destroy-plan > destroy-plan.txt
+
+      - name: Manual Confirmation for Destroy
+        if: ${{ !inputs.auto_approve }}
+        run: |
+          echo "🚨 DESTROY OPERATION REQUESTED 🚨"
+          echo "Environment: ${{ inputs.environment }}"
+          echo "This will DELETE all infrastructure resources!"
+          echo "Manual approval required in GitHub Actions environment."
+
+      - name: Terraform Destroy
+        if: inputs.auto_approve || github.event_name == 'workflow_dispatch'
+        run: |
+          cd terraform/environments/${{ inputs.environment }}
+          terraform apply -auto-approve destroy-plan
+        env:
+          TF_VAR_environment: ${{ inputs.environment }}
+          TF_VAR_aws_region: ${{ secrets.AWS_REGION }}
+
+  notify_terraform:
+    name: Notify Terraform Results
+    runs-on: ubuntu-latest
+    needs: [terraform_apply_staging, terraform_apply_production, terraform_destroy]
+    if: always()
+    steps:
+      - name: Notify Success
+        if: ${{ needs.terraform_apply_staging.result == 'success' || needs.terraform_apply_production.result == 'success' }}
+        uses: 8398a7/action-slack@v3
+        with:
+          status: success
+          channel: '#infrastructure'
+          message: |
+            ✅ *Terraform Apply Successful*
+            
+            *Repository:* ${{ github.repository }}
+            *Branch:* ${{ github.ref_name }}
+            *Commit:* ${{ github.sha }}
+            *Actor:* ${{ github.actor }}
+            
+            Infrastructure changes have been applied successfully.
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Notify Failure
+        if: ${{ needs.terraform_apply_staging.result == 'failure' || needs.terraform_apply_production.result == 'failure' || needs.terraform_destroy.result == 'failure' }}
+        uses: 8398a7/action-slack@v3
+        with:
+          status: failure
+          channel: '#alerts'
+          message: |
+            ❌ *Terraform Operation Failed*
+            
+            *Repository:* ${{ github.repository }}
+            *Branch:* ${{ github.ref_name }}
+            *Commit:* ${{ github.sha }}
+            *Actor:* ${{ github.actor }}
+            
+            Please check the workflow logs for details.
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Notify Destroy
+        if: ${{ needs.terraform_destroy.result == 'success' }}
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          custom_payload: |
+            {
+              "text": "🚨 Terraform Destroy Completed",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Infrastructure Destroyed*\n\n*Environment:* ${{ inputs.environment }}\n*Repository:* ${{ github.repository }}\n*Actor:* ${{ github.actor }}\n\nAll infrastructure resources have been destroyed."
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

@@ -1,0 +1,422 @@
+name: Kubernetes Deployment
+
+on:
+  workflow_run:
+    workflows: ["Catalytic Computing - Comprehensive CI/CD Pipeline"]
+    types: [completed]
+    branches: [main, develop]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+      image_tag:
+        description: 'Image tag to deploy'
+        required: false
+        default: ''
+        type: string
+      force_deploy:
+        description: 'Force deployment even if CI failed'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  validate_manifests:
+    name: Validate Kubernetes Manifests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.28.0'
+
+      - name: Install kubeval
+        run: |
+          wget https://github.com/instrumenta/kubeval/releases/latest/download/kubeval-linux-amd64.tar.gz
+          tar xf kubeval-linux-amd64.tar.gz
+          sudo mv kubeval /usr/local/bin
+
+      - name: Validate Kubernetes manifests
+        run: |
+          find k8s/ -name "*.yml" -o -name "*.yaml" | xargs kubeval
+
+      - name: Lint Kubernetes manifests
+        run: |
+          # Install kube-score
+          wget https://github.com/zegl/kube-score/releases/latest/download/kube-score_linux_amd64.tar.gz
+          tar -xzf kube-score_linux_amd64.tar.gz
+          sudo mv kube-score /usr/local/bin/
+          
+          # Run kube-score on manifests
+          find k8s/ -name "*.yml" -o -name "*.yaml" | xargs kube-score score --output-format ci
+
+  deploy_staging:
+    name: Deploy to Staging Kubernetes
+    runs-on: ubuntu-latest
+    needs: validate_manifests
+    if: (github.event.workflow_run.conclusion == 'success' && github.ref == 'refs/heads/develop') || (github.event_name == 'workflow_dispatch' && inputs.environment == 'staging')
+    environment:
+      name: kubernetes-staging
+      url: https://staging.catalytic.dev
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.28.0'
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig --region ${{ secrets.AWS_REGION }} --name catalytic-cluster
+
+      - name: Verify cluster access
+        run: |
+          kubectl cluster-info
+          kubectl get nodes
+
+      - name: Create/Update namespace
+        run: |
+          kubectl create namespace catalytic-staging --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Deploy secrets
+        run: |
+          # Create or update secrets
+          kubectl create secret generic app-secrets \
+            --from-literal=database-url="${{ secrets.DATABASE_URL_STAGING }}" \
+            --from-literal=redis-url="${{ secrets.REDIS_URL_STAGING }}" \
+            --from-literal=nextauth-secret="${{ secrets.NEXTAUTH_SECRET_STAGING }}" \
+            --from-literal=stripe-secret-key="${{ secrets.STRIPE_SECRET_KEY_STAGING }}" \
+            --from-literal=sendgrid-api-key="${{ secrets.SENDGRID_API_KEY_STAGING }}" \
+            --namespace catalytic-staging \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Determine image tag
+        id: image_tag
+        run: |
+          if [[ -n "${{ inputs.image_tag }}" ]]; then
+            echo "tag=${{ inputs.image_tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${{ github.sha }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate deployment manifests
+        run: |
+          # Replace placeholders in Kubernetes manifests
+          find k8s/base/ -name "*.yml" -o -name "*.yaml" | while read file; do
+            envsubst < "$file" > "${file}.processed"
+            mv "${file}.processed" "$file"
+          done
+        env:
+          ENVIRONMENT: staging
+          NAMESPACE: catalytic-staging
+          IMAGE_TAG: ${{ steps.image_tag.outputs.tag }}
+          REGISTRY: ${{ env.REGISTRY }}
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}
+          REPLICAS_FRONTEND: 2
+          REPLICAS_API: 3
+
+      - name: Apply Kubernetes manifests
+        run: |
+          # Apply base configurations
+          kubectl apply -f k8s/base/ -n catalytic-staging
+          
+          # Wait for deployments to be ready
+          kubectl rollout status deployment/frontend -n catalytic-staging --timeout=600s
+          kubectl rollout status deployment/api -n catalytic-staging --timeout=600s
+
+      - name: Verify deployment
+        run: |
+          # Check pod status
+          kubectl get pods -n catalytic-staging
+          
+          # Check service endpoints
+          kubectl get services -n catalytic-staging
+          
+          # Verify ingress
+          kubectl get ingress -n catalytic-staging
+
+      - name: Run deployment tests
+        run: |
+          # Port forward for testing
+          kubectl port-forward -n catalytic-staging svc/frontend-service 8080:80 &
+          FRONTEND_PF_PID=$!
+          kubectl port-forward -n catalytic-staging svc/api-service 8081:80 &
+          API_PF_PID=$!
+          
+          sleep 30
+          
+          # Test endpoints
+          curl -f http://localhost:8080/api/health || exit 1
+          curl -f http://localhost:8081/health || exit 1
+          
+          # Cleanup port forwards
+          kill $FRONTEND_PF_PID $API_PF_PID
+
+  deploy_production:
+    name: Deploy to Production Kubernetes
+    runs-on: ubuntu-latest
+    needs: validate_manifests
+    if: (github.event.workflow_run.conclusion == 'success' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && inputs.environment == 'production')
+    environment:
+      name: kubernetes-production
+      url: https://catalytic.dev
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.28.0'
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig --region ${{ secrets.AWS_REGION }} --name catalytic-cluster
+
+      - name: Determine deployment strategy
+        id: strategy
+        run: |
+          # Check current active environment
+          ACTIVE_ENV=$(kubectl get service catalytic-production-service -n catalytic-production -o jsonpath='{.spec.selector.environment}' 2>/dev/null || echo "blue")
+          
+          if [[ "$ACTIVE_ENV" == "blue" ]]; then
+            TARGET_ENV="green"
+            TARGET_NS="catalytic-green"
+          else
+            TARGET_ENV="blue"
+            TARGET_NS="catalytic-blue"
+          fi
+          
+          echo "active_env=$ACTIVE_ENV" >> $GITHUB_OUTPUT
+          echo "target_env=$TARGET_ENV" >> $GITHUB_OUTPUT
+          echo "target_ns=$TARGET_NS" >> $GITHUB_OUTPUT
+          
+          echo "Current active: $ACTIVE_ENV"
+          echo "Deploying to: $TARGET_ENV"
+
+      - name: Create/Update target namespace
+        run: |
+          kubectl create namespace ${{ steps.strategy.outputs.target_ns }} --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Deploy secrets to target environment
+        run: |
+          kubectl create secret generic app-secrets \
+            --from-literal=database-url="${{ secrets.DATABASE_URL_PRODUCTION }}" \
+            --from-literal=redis-url="${{ secrets.REDIS_URL_PRODUCTION }}" \
+            --from-literal=nextauth-secret="${{ secrets.NEXTAUTH_SECRET_PRODUCTION }}" \
+            --from-literal=stripe-secret-key="${{ secrets.STRIPE_SECRET_KEY_PRODUCTION }}" \
+            --from-literal=sendgrid-api-key="${{ secrets.SENDGRID_API_KEY_PRODUCTION }}" \
+            --namespace ${{ steps.strategy.outputs.target_ns }} \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Determine image tag
+        id: image_tag
+        run: |
+          if [[ -n "${{ inputs.image_tag }}" ]]; then
+            echo "tag=${{ inputs.image_tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${{ github.sha }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate production manifests
+        run: |
+          # Create production-specific manifests
+          find k8s/base/ -name "*.yml" -o -name "*.yaml" | while read file; do
+            envsubst < "$file" > "${file}.prod"
+          done
+        env:
+          ENVIRONMENT: ${{ steps.strategy.outputs.target_env }}
+          NAMESPACE: ${{ steps.strategy.outputs.target_ns }}
+          IMAGE_TAG: ${{ steps.image_tag.outputs.tag }}
+          REGISTRY: ${{ env.REGISTRY }}
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}
+          REPLICAS_FRONTEND: 5
+          REPLICAS_API: 10
+
+      - name: Deploy to target environment
+        run: |
+          # Apply to target namespace
+          find k8s/base/ -name "*.prod" | xargs kubectl apply -f
+          
+          # Wait for deployments
+          kubectl rollout status deployment/frontend -n ${{ steps.strategy.outputs.target_ns }} --timeout=900s
+          kubectl rollout status deployment/api -n ${{ steps.strategy.outputs.target_ns }} --timeout=900s
+
+      - name: Health check new deployment
+        run: |
+          # Port forward to test new deployment
+          kubectl port-forward -n ${{ steps.strategy.outputs.target_ns }} svc/frontend-service 8080:80 &
+          FRONTEND_PF_PID=$!
+          kubectl port-forward -n ${{ steps.strategy.outputs.target_ns }} svc/api-service 8081:80 &  
+          API_PF_PID=$!
+          
+          sleep 30
+          
+          # Health checks
+          curl -f http://localhost:8080/api/health || exit 1
+          curl -f http://localhost:8081/health || exit 1
+          
+          # Cleanup
+          kill $FRONTEND_PF_PID $API_PF_PID
+
+      - name: Switch production traffic
+        id: traffic_switch
+        run: |
+          echo "Switching production traffic to ${{ steps.strategy.outputs.target_env }}..."
+          
+          # Update production service selectors
+          kubectl patch service catalytic-production-frontend -n catalytic-production \
+            -p '{"spec":{"selector":{"environment":"${{ steps.strategy.outputs.target_env }}"}}}'
+          
+          kubectl patch service catalytic-production-api -n catalytic-production \
+            -p '{"spec":{"selector":{"environment":"${{ steps.strategy.outputs.target_env }}"}}}'
+          
+          sleep 30
+          
+          # Verify production traffic
+          curl -f https://catalytic.dev/api/health || exit 1
+          
+          echo "Traffic switch completed successfully"
+
+      - name: Scale down old environment
+        run: |
+          OLD_ENV="${{ steps.strategy.outputs.active_env }}"
+          OLD_NS="catalytic-blue"
+          if [[ "$OLD_ENV" == "blue" ]]; then
+            OLD_NS="catalytic-blue"
+          else
+            OLD_NS="catalytic-green"
+          fi
+          
+          echo "Scaling down old environment: $OLD_ENV"
+          
+          # Scale down old deployments (keep for rollback capability)
+          kubectl scale deployment frontend --replicas=1 -n $OLD_NS || true
+          kubectl scale deployment api --replicas=1 -n $OLD_NS || true
+
+  rollback_production:
+    name: Rollback Production
+    runs-on: ubuntu-latest
+    if: failure() && github.ref == 'refs/heads/main'
+    steps:
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.28.0'
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig --region ${{ secrets.AWS_REGION }} --name catalytic-cluster
+
+      - name: Execute rollback
+        run: |
+          echo "🚨 EXECUTING EMERGENCY ROLLBACK"
+          
+          # Determine current and previous environments
+          CURRENT_ENV=$(kubectl get service catalytic-production-frontend -n catalytic-production -o jsonpath='{.spec.selector.environment}' 2>/dev/null || echo "green")
+          
+          if [[ "$CURRENT_ENV" == "blue" ]]; then
+            ROLLBACK_ENV="green"
+            ROLLBACK_NS="catalytic-green"
+          else
+            ROLLBACK_ENV="blue" 
+            ROLLBACK_NS="catalytic-blue"
+          fi
+          
+          echo "Rolling back from $CURRENT_ENV to $ROLLBACK_ENV"
+          
+          # Scale up previous environment
+          kubectl scale deployment frontend --replicas=5 -n $ROLLBACK_NS
+          kubectl scale deployment api --replicas=10 -n $ROLLBACK_NS
+          
+          # Wait for rollback environment to be ready
+          kubectl rollout status deployment/frontend -n $ROLLBACK_NS --timeout=300s
+          kubectl rollout status deployment/api -n $ROLLBACK_NS --timeout=300s
+          
+          # Switch traffic back
+          kubectl patch service catalytic-production-frontend -n catalytic-production \
+            -p "{\"spec\":{\"selector\":{\"environment\":\"$ROLLBACK_ENV\"}}}"
+          kubectl patch service catalytic-production-api -n catalytic-production \
+            -p "{\"spec\":{\"selector\":{\"environment\":\"$ROLLBACK_ENV\"}}}"
+          
+          echo "✅ Rollback completed"
+
+  notify_kubernetes:
+    name: Notify Kubernetes Deployment Status
+    runs-on: ubuntu-latest
+    needs: [deploy_staging, deploy_production, rollback_production]
+    if: always()
+    steps:
+      - name: Notify success
+        if: needs.deploy_staging.result == 'success' || needs.deploy_production.result == 'success'
+        uses: 8398a7/action-slack@v3
+        with:
+          status: success
+          channel: '#deployments'
+          message: |
+            🚀 *Kubernetes Deployment Successful*
+            
+            *Environment:* ${{ (needs.deploy_production.result == 'success' && 'Production') || 'Staging' }}
+            *Repository:* ${{ github.repository }}
+            *Branch:* ${{ github.ref_name }}
+            *Commit:* ${{ github.sha }}
+            *Actor:* ${{ github.actor }}
+            
+            Services are now running and healthy.
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Notify failure
+        if: needs.deploy_staging.result == 'failure' || needs.deploy_production.result == 'failure'
+        uses: 8398a7/action-slack@v3
+        with:
+          status: failure
+          channel: '#alerts'
+          message: |
+            ❌ *Kubernetes Deployment Failed*
+            
+            *Environment:* ${{ (needs.deploy_production.result == 'failure' && 'Production') || 'Staging' }}
+            *Repository:* ${{ github.repository }}
+            *Branch:* ${{ github.ref_name }}
+            *Commit:* ${{ github.sha }}
+            *Actor:* ${{ github.actor }}
+            
+            ${{ needs.rollback_production.result == 'success' && '🔄 Automatic rollback completed' || 'Please check logs and take manual action if needed' }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
