@@ -1,333 +1,240 @@
-# Development Environment Monitoring System
+# Catalytic Computing - Grafana Monitoring Dashboards
 
-A comprehensive monitoring solution for development environments, providing health checks, performance monitoring, alerting, and real-time dashboards.
+Comprehensive monitoring dashboards for the Catalytic Computing platform, featuring system metrics, business metrics, and automated deployment capabilities.
 
-## Features
+## 📊 Dashboard Overview
 
-- **Health Check Endpoints**: Automatic health monitoring for all MCP servers and services
-- **Performance Monitoring**: Real-time CPU, memory, disk, and network monitoring
-- **Build Monitoring**: Track build times, success rates, and test execution
-- **Real-time Dashboard**: Web-based dashboard with live updates
-- **Alerting System**: Configurable alerts with multiple notification channels
-- **Monitoring Scripts**: Standalone utilities for health checks and build monitoring
+### System Metrics Dashboard
+Monitors technical performance and infrastructure health:
 
-## Quick Start
+- **API Performance**: Response times, throughput, and error rates
+- **GPU Utilization**: GPU usage, memory, and temperature monitoring
+- **Memory Efficiency**: Tracks 28,571x efficiency improvements
+- **Processing Speed**: Monitors 649x speed improvement targets
+- **Database Performance**: Connection pools and query performance
+- **Docker Container Health**: Container status and resource usage
+- **Redis Cache Performance**: Hit rates and memory usage
+- **Lattice Operations**: XOR transforms and path finding metrics
 
-1. **Install Dependencies**:
-   ```bash
-   cd C:/Users/Corbin/development/monitoring
-   npm install
-   ```
+### Business Metrics Dashboard
+Tracks key business KPIs and SaaS metrics:
 
-2. **Start the Monitoring System**:
-   ```bash
-   npm start
-   ```
+- **User Metrics**: Registration, activation, and churn rates
+- **Revenue Tracking**: MRR, ARR, and growth rates
+- **Subscription Analytics**: Trial conversions and cancellations
+- **API Usage**: Usage by plan type and limits
+- **Payment Processing**: Success/failure rates
+- **Support Analytics**: Ticket volumes and resolution times
+- **Geographic Distribution**: User locations and regional performance
+- **Customer Analytics**: CLV, CAC, and retention metrics
 
-3. **Access the Dashboard**:
-   Open http://localhost:3002 in your browser
+## 🚀 Quick Start
 
-## Components
+### Prerequisites
+- Docker and Docker Compose installed
+- Grafana and Prometheus services running
+- Python 3.7+ for deployment scripts
 
-### 1. Health Check System
-
-- **Base Health Check Module**: `health-check.js`
-- **Service Health Checker**: `health-checker.js`
-- **MCP Server Integration**: Automatic health endpoints for all MCP servers
-
-**Usage**:
+### 1. Start Monitoring Stack
 ```bash
-# Check all services once
-npm run health
+# Start monitoring services with Docker Compose
+docker compose --profile monitoring up -d
 
-# Continuous monitoring
-npm run health:watch
+# Or use the setup script for complete automation
+python scripts/setup-monitoring.py
 ```
 
-### 2. Performance Monitoring
-
-- **Performance Monitor**: `performance-monitor.js`
-- **Real-time Metrics**: CPU, Memory, Disk, Network
-- **Service Response Times**: HTTP endpoint monitoring
-- **Build and Test Metrics**: Duration tracking and success rates
-
-**Metrics Collected**:
-- System CPU usage percentage
-- Memory usage (process and system)
-- Disk usage and accessibility
-- Service availability and response times
-- Build duration and success rates
-- Test execution times and results
-
-### 3. Monitoring Dashboard
-
-- **Dashboard Server**: `dashboard.js`
-- **Real-time Updates**: WebSocket-based live data
-- **Interactive Charts**: CPU and memory usage over time
-- **Service Status**: Visual service health indicators
-- **Alert Management**: View and manage active alerts
-
-**Features**:
-- Responsive web interface
-- Real-time charts using Chart.js
-- Service status indicators
-- Build and test metrics display
-- Alert notifications
-- Data export (JSON, CSV, Prometheus)
-
-### 4. Alerting System
-
-- **Alert Engine**: `alerting-system.js`
-- **Multiple Channels**: Console, File, Webhook, Email (configurable)
-- **Alert Rules**: Filtering, routing, and escalation
-- **Cooldown Protection**: Prevent alert flooding
-
-**Alert Types**:
-- High CPU usage (>80%)
-- High memory usage (>85%)
-- Service unavailability
-- Slow response times (>5s)
-- Build failures
-- Test failures
-
-### 5. Build Monitoring
-
-- **Build Monitor**: `build-monitor.js`
-- **Test Execution**: Monitor test runs and results
-- **File Watching**: Auto-rebuild on file changes
-- **Metrics Tracking**: Build times and success rates
-
-**Usage**:
+### 2. Deploy Dashboards
 ```bash
-# Run single build
-npm run build [project-path] [build-command]
+# Set your Grafana API key
+export GRAFANA_API_KEY="your_api_key_here"
 
-# Run tests
-npm run test [project-path] [test-command]
+# Deploy dashboards automatically
+./scripts/deploy-dashboards.sh
 
-# Watch for changes
-npm run watch [project-path] [build-command] [test-command]
+# Or on Windows
+scripts\deploy-dashboards.bat
 ```
 
-## Configuration
+### 3. Access Dashboards
+- **Grafana**: http://localhost:3000
+- **Prometheus**: http://localhost:9090
 
-### Monitor Configuration (`monitor-config.js`)
+Default Grafana credentials: `admin/admin`
 
-```javascript
-module.exports = {
-    // Monitoring interval (5 seconds)
-    interval: 5000,
-    
-    // Services to monitor
-    services: [
-        {
-            name: 'webhook-audio-tracker',
-            type: 'express',
-            healthUrl: 'http://localhost:3000/health',
-            port: 3000
-        },
-        // ... more services
-    ],
-    
-    // Alert thresholds
-    thresholds: {
-        cpu: 80,
-        memory: 85,
-        disk: 90,
-        responseTime: 5000
-    },
-    
-    // Dashboard settings
-    dashboard: {
-        port: 3002,
-        refreshInterval: 5000
-    }
-};
+## 📁 Directory Structure
+
+```
+monitoring/
+├── grafana/
+│   ├── dashboards/                    # Dashboard JSON configurations
+│   │   ├── system-metrics-dashboard.json
+│   │   └── business-metrics-dashboard.json
+│   └── provisioning/                  # Grafana provisioning configs
+│       ├── dashboards/
+│       │   └── dashboard-provisioning.yml
+│       └── datasources/
+│           └── datasources.yml
+├── prometheus/
+│   ├── prometheus.yml                 # Prometheus configuration
+│   └── alerts/
+│       └── catalytic-computing.yml    # Alert rules
+└── README.md                          # This file
 ```
 
-### Adding New Services
+## 🛠 Deployment Scripts
 
-1. Add service configuration to `monitor-config.js`:
-   ```javascript
-   {
-       name: 'my-service',
-       type: 'express', // or 'mcp'
-       healthUrl: 'http://localhost:8080/health', // for HTTP services
-       port: 8080,
-       processName: 'node', // for process monitoring
-       description: 'My Custom Service'
-   }
-   ```
+### Automated Setup
+- `scripts/setup-monitoring.py`: Complete monitoring stack setup
+- `scripts/deploy-grafana-dashboards.py`: Dashboard deployment with validation
+- `scripts/validate-dashboards.py`: Dashboard configuration validation
 
-2. For MCP servers, ensure they include the health check module:
-   ```javascript
-   const HealthCheck = require('./health-check');
-   // Add health endpoint to your server
-   ```
+### Platform Scripts
+- `scripts/deploy-dashboards.sh`: Linux/macOS deployment
+- `scripts/deploy-dashboards.bat`: Windows deployment
 
-## API Endpoints
+## 📊 Metrics Reference
 
-### Dashboard API
+### System Metrics
 
-- `GET /api/metrics?range=3600000` - Get metrics for time range
-- `GET /api/status` - Get current system status
-- `GET /api/alerts` - Get active alerts
-- `GET /api/export/json` - Export metrics as JSON
-- `GET /api/export/csv` - Export metrics as CSV
-- `GET /api/export/prometheus` - Export metrics in Prometheus format
+| Metric | Description | Target/Alert |
+|--------|-------------|--------------|
+| `catalytic_memory_efficiency_ratio` | Memory efficiency improvement | Target: 28,571x |
+| `catalytic_processing_speed_ratio` | Processing speed improvement | Target: 649x |
+| `http_request_duration_seconds` | API response times | Alert: >1s (95th percentile) |
+| `lattice_operations_total` | Lattice operations per second | Monitor trends |
+| `db_connections_active` | Active database connections | Alert: >80% of pool |
+| `redis_keyspace_hits_total` | Cache hit rate | Alert: <80% |
+| `nvidia_gpu_utilization_gpu` | GPU utilization percentage | Alert: >90% |
 
-### Health Endpoints
+### Business Metrics
 
-Each monitored service exposes:
-- `/health` - Basic health status
-- `/metrics` - Detailed performance metrics
+| Metric | Description | Target/Alert |
+|--------|-------------|--------------|
+| `current_mrr` | Monthly Recurring Revenue | Growth target: >15% |
+| `customer_churn_total` | Customer churn count | Alert: >10% monthly |
+| `trial_conversions_total` | Trial to paid conversions | Target: >20% |
+| `active_users_by_plan` | Users by subscription plan | Monitor distribution |
+| `stripe_payments_successful_total` | Payment success rate | Alert: <98% |
+| `customer_lifetime_value` | Average customer LTV | Target: >$1000 |
+| `customer_acquisition_cost` | Average customer CAC | Target: <$400 |
 
-## Alerting
+## 🔧 Configuration
 
-### Alert Channels
+### Template Variables
+Both dashboards include template variables for filtering:
+- `environment`: Filter by deployment environment
+- `instance`: Filter by specific instances
+- `plan_type`: Filter by subscription plan (business dashboard)
+- `time_range`: Quick time range selection
 
-1. **Console**: Colored output to terminal
-2. **File**: JSON log entries to `logs/alerts.log`
-3. **Webhook**: HTTP POST to configured endpoint
-4. **Email**: Email notifications (requires setup)
-5. **Slack**: Slack channel notifications (requires setup)
+### Annotations
+- **Deployments**: Marked automatically from Kubernetes
+- **Alerts**: Shows firing alerts from Prometheus
+- **Product Releases**: Tracks version deployments
+- **Marketing Campaigns**: Marks campaign starts
 
-### Alert Rules
+### Refresh Settings
+- **System Metrics**: 30-second refresh for real-time monitoring
+- **Business Metrics**: 5-minute refresh for trending analysis
 
-Configure custom alert rules in `monitor-config.js`:
+## 🚨 Alert Rules
 
-```javascript
-alerting: {
-    enabled: true,
-    channels: ['console', 'file', 'webhook'],
-    rules: [
-        {
-            type: 'filter',
-            conditions: { severity: 'info' },
-            action: 'suppress'
-        },
-        {
-            type: 'routing',
-            conditions: { severity: 'critical' },
-            channels: ['webhook', 'email']
-        }
-    ]
-}
-```
+### Critical Alerts
+- High API response time (>1s for 5 minutes)
+- High error rate (>0.1 req/sec for 2 minutes)
+- Database connection pool exhausted (>10 waiting for 2 minutes)
 
-## Monitoring Scripts
+### Warning Alerts
+- Memory efficiency below target (<20,000 for 10 minutes)
+- Processing speed below target (<500 for 10 minutes)
+- Low cache hit rate (<80% for 5 minutes)
 
-### Health Checker
+## 📈 Performance Targets
+
+### System Performance
+- **API Response Time**: <500ms (95th percentile)
+- **Memory Efficiency**: 28,571x improvement over traditional methods
+- **Processing Speed**: 649x improvement over standard algorithms
+- **Cache Hit Rate**: >90%
+- **Database Query Time**: <100ms (95th percentile)
+
+### Business Metrics
+- **Monthly Growth Rate**: >15%
+- **Customer Churn**: <5% monthly
+- **Trial Conversion**: >20%
+- **Payment Success Rate**: >98%
+- **CLV:CAC Ratio**: >5:1
+
+## 🔍 Troubleshooting
+
+### Dashboard Issues
 ```bash
-# Single check
-node health-checker.js
+# Validate dashboard configurations
+python scripts/validate-dashboards.py
 
-# Continuous monitoring
-node health-checker.js --watch --interval 30000
+# Check Grafana logs
+docker logs catalytic-grafana
+
+# Test Prometheus connectivity
+curl http://localhost:9090/-/healthy
 ```
 
-### Build Monitor
+### Missing Metrics
+1. Verify Prometheus is scraping targets: http://localhost:9090/targets
+2. Check service `/metrics` endpoints are accessible
+3. Validate metric names in Prometheus: http://localhost:9090/graph
+
+### Deployment Issues
 ```bash
-# Monitor build
-node build-monitor.js build ./my-project "npm run build"
+# Check Docker services status
+docker compose ps
 
-# Monitor tests
-node build-monitor.js test ./my-project "npm test"
+# Restart monitoring stack
+docker compose --profile monitoring restart
 
-# Watch project for changes
-node build-monitor.js watch ./my-project "npm run build" "npm test"
+# View detailed logs
+docker compose --profile monitoring logs -f
 ```
 
-## Data Export
+## 🔄 Updates and Maintenance
 
-### Export Formats
+### Dashboard Updates
+1. Modify JSON files in `monitoring/grafana/dashboards/`
+2. Validate changes: `python scripts/validate-dashboards.py`
+3. Deploy updates: `./scripts/deploy-dashboards.sh`
 
-1. **JSON**: Complete metrics data
-2. **CSV**: Simplified metrics for spreadsheets
-3. **Prometheus**: Compatible with Prometheus monitoring
+### Adding New Metrics
+1. Expose metrics from your application (Prometheus format)
+2. Add scrape configuration to `prometheus.yml`
+3. Create panels in dashboards using new metrics
+4. Test and validate before deployment
 
-### Automated Exports
-
-Configure automatic exports in `monitor-config.js`:
-
-```javascript
-export: {
-    formats: ['json', 'csv', 'prometheus'],
-    schedule: '0 0 * * *', // Daily at midnight
-    retention: 7 // Keep 7 days
-}
-```
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Dashboard not loading**: Check if port 3002 is available
-2. **Services not detected**: Verify service configuration in `monitor-config.js`
-3. **High memory usage**: Adjust retention settings to reduce data storage
-
-### Logs
-
-Monitor logs in:
-- `logs/monitoring.log` - General monitoring logs
-- `logs/alerts.log` - Alert history
-- `reports/` - Status reports
-
-### Debug Mode
-
-Run with debug output:
+### Backup and Recovery
 ```bash
-DEBUG=* npm start
+# Backup current dashboards
+curl -H "Authorization: Bearer $GRAFANA_API_KEY" \
+     http://localhost:3000/api/search?type=dash-db > dashboard-backup.json
+
+# Export specific dashboard
+curl -H "Authorization: Bearer $GRAFANA_API_KEY" \
+     http://localhost:3000/api/dashboards/uid/DASHBOARD_UID > dashboard.json
 ```
 
-## Integration
+## 📞 Support
 
-### With Existing Services
+For issues related to:
+- **Dashboard Configuration**: Check validation script output
+- **Metric Collection**: Verify Prometheus scraping configuration
+- **Performance Issues**: Review alert rules and thresholds
+- **Business Metrics**: Validate data source connections
 
-Add health endpoints to your services:
+## 🎯 Roadmap
 
-```javascript
-// Express.js example
-const HealthCheck = require('./health-check');
-const health = new HealthCheck('my-service', '1.0.0');
-
-app.get('/health', health.middleware());
-```
-
-### With CI/CD
-
-Use health checker in build pipelines:
-
-```bash
-# Check health before deployment
-npm run health || exit 1
-
-# Monitor build
-npm run build && npm run test
-```
-
-## Performance Impact
-
-- **CPU Usage**: <1% during normal operation
-- **Memory Usage**: ~50MB for monitoring system
-- **Disk Usage**: Configurable retention (default 24h)
-- **Network**: Minimal impact from health checks
-
-## Security Considerations
-
-- Dashboard runs on localhost by default
-- No authentication required for local development
-- Configure firewall rules for production use
-- Sensitive data not logged by default
-
-## Support
-
-For issues or questions:
-1. Check logs in `logs/` directory
-2. Verify configuration in `monitor-config.js`
-3. Test individual components separately
-4. Review service status in dashboard
-
-## License
-
-MIT License - see LICENSE file for details.
+### Planned Enhancements
+- [ ] Machine Learning anomaly detection
+- [ ] Automated scaling recommendations
+- [ ] Advanced forecasting models
+- [ ] Custom alerting channels
+- [ ] Mobile-responsive dashboard views
+- [ ] Real-time collaboration features
