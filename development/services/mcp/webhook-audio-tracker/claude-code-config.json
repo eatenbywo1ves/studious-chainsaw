@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "webhook-audio-tracker": {
+      "command": "node",
+      "args": [
+        "C:/Users/Corbin/development/services/mcp/webhook-audio-tracker/mcp-server.js"
+      ],
+      "description": "Audio feedback system for Claude Code events - plays sounds for tasks, errors, builds, and workflows"
+    }
+  }
+}

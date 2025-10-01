@@ -1,0 +1,99 @@
+"""
+GPU Utilities Module
+Provides CUDA environment initialization and GPU detection utilities
+"""
+
+from .cuda_init import initialize_cuda_environment, is_cuda_available
+from .profiler import GPUProfiler, ProfileEntry, ProfileSummary, get_profiler
+from .profiler_compare import ProfilerComparison, OperationComparison, compare_profiling_runs
+from .profiler_optimizer import ProfilerOptimizer, OptimizationSuggestion
+from .profiler_glyphs import (
+    GlyphAnalyzer,
+    GlyphDescriptor,
+    GlyphRenderer,
+    GlyphShape,
+    IterationMarker,
+    get_glyph_analyzer
+)
+from .profiler_transformations import (
+    TransformationType,
+    TransformationCondition,
+    TransformationProof,
+    TransformationRule,
+    TransformationCatalog,
+    get_transformation_catalog
+)
+from .profiler_complexity import (
+    ComplexityTier,
+    ComplexityClass,
+    AlgorithmicComplexity,
+    OperationalComplexity,
+    TransformationComplexity,
+    ComplexityScore,
+    ComplexityAnalyzer,
+    ComplexityHierarchy,
+    ComplexityVisualizer,
+    get_complexity_analyzer
+)
+from .profiler_verifier import (
+    InferenceRule,
+    ProofMethod,
+    ProofStep,
+    FormalProof,
+    VerificationResult,
+    PerformanceGuarantee,
+    ProofGenerator,
+    ProofVerifier,
+    ProofLibrary,
+    get_proof_generator,
+    get_proof_verifier,
+    get_proof_library
+)
+
+__all__ = [
+    'initialize_cuda_environment',
+    'is_cuda_available',
+    'GPUProfiler',
+    'ProfileEntry',
+    'ProfileSummary',
+    'get_profiler',
+    'ProfilerComparison',
+    'OperationComparison',
+    'compare_profiling_runs',
+    'ProfilerOptimizer',
+    'OptimizationSuggestion',
+    'GlyphAnalyzer',
+    'GlyphDescriptor',
+    'GlyphRenderer',
+    'GlyphShape',
+    'IterationMarker',
+    'get_glyph_analyzer',
+    'TransformationType',
+    'TransformationCondition',
+    'TransformationProof',
+    'TransformationRule',
+    'TransformationCatalog',
+    'get_transformation_catalog',
+    'ComplexityTier',
+    'ComplexityClass',
+    'AlgorithmicComplexity',
+    'OperationalComplexity',
+    'TransformationComplexity',
+    'ComplexityScore',
+    'ComplexityAnalyzer',
+    'ComplexityHierarchy',
+    'ComplexityVisualizer',
+    'get_complexity_analyzer',
+    'InferenceRule',
+    'ProofMethod',
+    'ProofStep',
+    'FormalProof',
+    'VerificationResult',
+    'PerformanceGuarantee',
+    'ProofGenerator',
+    'ProofVerifier',
+    'ProofLibrary',
+    'get_proof_generator',
+    'get_proof_verifier',
+    'get_proof_library',
+]

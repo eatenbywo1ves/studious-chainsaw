@@ -10,7 +10,7 @@ class AudioManager {
     this.audioProfiles = new Map();
     this.soundQueue = [];
     this.isPlaying = false;
-
+    
     this.initializeDefaultProfiles();
     this.ensureAudioDirectory();
   }
@@ -52,12 +52,7 @@ class AudioManager {
       git_push: { frequency: 440, duration: 150, type: 'sine' },
       git_merge: { frequencies: [440, 554], duration: 300, type: 'sine' },
       pr_opened: { frequencies: [659, 784], duration: 400, type: 'sine' },
-      pr_merged: { frequencies: [523, 659, 784, 1047], duration: 800, type: 'sine' },
-      // Claude Code events
-      claude_task_start: { frequencies: [523, 659], duration: 300, type: 'sine' },
-      claude_task_complete: { frequencies: [523, 659, 784], duration: 400, type: 'sine' },
-      claude_error: { frequencies: [330, 220], duration: 500, type: 'sawtooth' },
-      claude_tool_use: { frequency: 440, duration: 100, type: 'sine' }
+      pr_merged: { frequencies: [523, 659, 784, 1047], duration: 800, type: 'sine' }
     });
 
     // Monitoring profile - status-based sounds
@@ -91,7 +86,7 @@ class AudioManager {
 
     // Determine sound based on event characteristics
     let soundType = 'webhook_received';
-
+    
     // Check for specific patterns in the event
     if (event.body) {
       if (event.body.status === 'success' || event.body.success === true) {
@@ -115,24 +110,11 @@ class AudioManager {
     if (this.muted) return;
 
     const profile = this.audioProfiles.get(profileName) || this.audioProfiles.get('default');
-    const soundConfig = profile ? profile[soundType] || profile['test'] : null;
+    const soundConfig = profile[soundType] || profile['test'];
 
-    // Validate soundConfig before adding to queue
-    if (!soundConfig) {
-      console.warn(`Sound type "${soundType}" not found in profile "${profileName}", using default test sound`);
-      const defaultProfile = this.audioProfiles.get('default');
-      const fallbackConfig = defaultProfile ? defaultProfile['test'] : null;
-      if (fallbackConfig) {
-        this.soundQueue.push({ soundConfig: fallbackConfig, soundType: 'test', profileName: 'default' });
-      } else {
-        console.error('No fallback sound available');
-        return;
-      }
-    } else {
-      // Add to queue
-      this.soundQueue.push({ soundConfig, soundType, profileName });
-    }
-
+    // Add to queue
+    this.soundQueue.push({ soundConfig, soundType, profileName });
+    
     // Process queue if not already playing
     if (!this.isPlaying) {
       this.processQueue();
@@ -148,24 +130,15 @@ class AudioManager {
     this.isPlaying = true;
     const { soundConfig, soundType, profileName } = this.soundQueue.shift();
 
-    // Additional safety check
-    if (!soundConfig) {
-      console.error('Invalid soundConfig in queue');
-      setTimeout(() => this.processQueue(), 50);
-      return;
-    }
-
     try {
       if (soundConfig.frequencies) {
         // Play a sequence of tones
         for (const freq of soundConfig.frequencies) {
           await this.generateAndPlayTone(freq, soundConfig.duration / soundConfig.frequencies.length, soundConfig.type);
         }
-      } else if (soundConfig.frequency) {
+      } else {
         // Play a single tone
         await this.generateAndPlayTone(soundConfig.frequency, soundConfig.duration, soundConfig.type);
-      } else {
-        console.error('Sound config missing frequency data:', soundConfig);
       }
     } catch (error) {
       console.error('Error playing sound:', error);
@@ -192,7 +165,7 @@ class AudioManager {
         // For Unix-like systems, try to use sox or ffplay
         const durationInSeconds = duration / 1000;
         const command = `play -n synth ${durationInSeconds} ${waveType} ${frequency} vol ${this.volume} 2>/dev/null || ffplay -f lavfi -i "sine=frequency=${frequency}:duration=${durationInSeconds}" -autoexit -nodisp -loglevel quiet 2>/dev/null || echo -e "\a"`;
-
+        
         exec(command, (error) => {
           if (error) {
             // Fallback to console beep
@@ -208,7 +181,7 @@ class AudioManager {
     if (!this.audioProfiles.has(profileName)) {
       this.audioProfiles.set(profileName, {});
     }
-
+    
     const profile = this.audioProfiles.get(profileName);
     Object.assign(profile, sounds);
   }

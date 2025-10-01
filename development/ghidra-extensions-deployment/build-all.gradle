@@ -1,0 +1,676 @@
+/*
+ * Catalytic Computing - Master Build Script for All Ghidra Extensions
+ * 
+ * This script builds and packages all Ghidra extensions in the Catalytic Computing platform.
+ * It handles both Gradle-based extensions and script-based extensions.
+ */
+
+buildscript {
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+    }
+}
+
+// Project configuration
+ext {
+    buildVersion = project.hasProperty('buildVersion') ? project.buildVersion : '1.0.0'
+    ghidraVersion = project.hasProperty('ghidraVersion') ? project.ghidraVersion : '11.4.2'
+    
+    // Base directory for all extensions
+    extensionsBaseDir = file("${rootDir}/..")
+    
+    // Extension configurations
+    extensions = [
+        'GhidraCtrlP': [
+            type: 'gradle',
+            buildDir: file("${extensionsBaseDir}/GhidraCtrlP"),
+            hasGradleBuild: true,
+            description: 'Fast navigation and command palette for Ghidra'
+        ],
+        'GhidraLookup': [
+            type: 'gradle', 
+            buildDir: file("${extensionsBaseDir}/GhidraLookup"),
+            hasGradleBuild: true,
+            description: 'Win32 API documentation lookup functionality'
+        ],
+        'GhidrAssist': [
+            type: 'gradle',
+            buildDir: file("${extensionsBaseDir}/GhidrAssist"), 
+            hasGradleBuild: true,
+            description: 'AI-assisted reverse engineering features'
+        ],
+        'Ghidrathon': [
+            type: 'gradle',
+            buildDir: file("${extensionsBaseDir}/Ghidrathon"),
+            hasGradleBuild: true,
+            description: 'Python 3 integration for Ghidra scripting'
+        ]
+    ]
+    
+    // Output directories
+    outputDir = file("${buildDir}/catalytic-ghidra-extensions")
+    distDir = file("${outputDir}/dist")
+    docDir = file("${outputDir}/docs")
+    scriptsDir = file("${outputDir}/scripts")
+}
+
+// Clean all extension builds
+task cleanAll {
+    description = 'Clean all extension build artifacts'
+    group = 'build'
+    
+    doLast {
+        logger.lifecycle("Cleaning all extension builds...")
+        
+        extensions.each { name, config ->
+            if (config.buildDir.exists() && config.hasGradleBuild) {
+                logger.lifecycle("Cleaning ${name}...")
+                try {
+                    exec {
+                        workingDir config.buildDir
+                        commandLine getGradleWrapper(config.buildDir), 'clean'
+                        ignoreExitValue true
+                    }
+                } catch (Exception e) {
+                    logger.warn("Failed to clean ${name}: ${e.message}")
+                }
+            }
+        }
+        
+        // Clean output directory
+        delete buildDir
+        logger.lifecycle("All extensions cleaned successfully!")
+    }
+}
+
+// Build all extensions
+task buildAll {
+    description = 'Build all Ghidra extensions'
+    group = 'build'
+    dependsOn cleanAll
+    
+    doLast {
+        logger.lifecycle("Building all Ghidra extensions...")
+        
+        // Ensure output directories exist
+        outputDir.mkdirs()
+        distDir.mkdirs()
+        docDir.mkdirs()
+        scriptsDir.mkdirs()
+        
+        extensions.each { name, config ->
+            buildExtension(name, config)
+        }
+        
+        logger.lifecycle("All extensions built successfully!")
+        logger.lifecycle("Output directory: ${outputDir}")
+    }
+}
+
+// Package all extensions for distribution
+task packageAll {
+    description = 'Package all extensions for distribution'
+    group = 'distribution'
+    dependsOn buildAll
+    
+    doLast {
+        logger.lifecycle("Creating master distribution package...")
+        
+        def masterZip = file("${buildDir}/CatalyticComputing-GhidraExtensions-${buildVersion}.zip")
+        
+        ant.zip(destfile: masterZip) {
+            zipfileset(dir: outputDir, prefix: "catalytic-ghidra-extensions-${buildVersion}")
+        }
+        
+        logger.lifecycle("Master distribution package created:")
+        logger.lifecycle("  Location: ${masterZip}")
+        logger.lifecycle("  Size: ${(masterZip.length() / 1024 / 1024).round(2)} MB")
+    }
+}
+
+// Install extensions to local Ghidra installation
+task installAll {
+    description = 'Install all extensions to local Ghidra installation'
+    group = 'distribution'
+    dependsOn buildAll
+    
+    doLast {
+        def ghidraDir = System.getenv('GHIDRA_INSTALL_DIR')
+        if (!ghidraDir) {
+            logger.error("GHIDRA_INSTALL_DIR environment variable not set!")
+            logger.error("Please set it to your Ghidra installation directory")
+            return
+        }
+        
+        def extensionsDir = file("${ghidraDir}/Extensions/Ghidra")
+        if (!extensionsDir.exists()) {
+            logger.error("Ghidra extensions directory not found: ${extensionsDir}")
+            return
+        }
+        
+        logger.lifecycle("Installing extensions to: ${extensionsDir}")
+        
+        // Install all built extensions
+        def installedCount = 0
+        fileTree(distDir).include("**/*.zip").each { zipFile ->
+            copy {
+                from zipFile
+                into extensionsDir
+            }
+            logger.lifecycle("Installed: ${zipFile.name}")
+            installedCount++
+        }
+        
+        logger.lifecycle("Successfully installed ${installedCount} extensions!")
+        logger.lifecycle("Restart Ghidra and use File -> Install Extensions to enable them.")
+    }
+}
+
+// Generate comprehensive documentation
+task generateDocs {
+    description = 'Generate comprehensive documentation for all extensions'
+    group = 'documentation'
+    
+    doLast {
+        logger.lifecycle("Generating documentation...")
+        
+        // Create master documentation
+        def masterDoc = file("${docDir}/README.md")
+        masterDoc.text = generateMasterDocumentation()
+        
+        // Create installation guide
+        def installGuide = file("${docDir}/INSTALLATION_GUIDE.md")
+        installGuide.text = generateInstallationGuide()
+        
+        // Create build guide
+        def buildGuide = file("${docDir}/BUILD_GUIDE.md")
+        buildGuide.text = generateBuildGuide()
+        
+        // Copy individual extension documentation
+        extensions.each { name, config ->
+            def readmeFile = file("${config.buildDir}/README.md")
+            if (readmeFile.exists()) {
+                copy {
+                    from readmeFile
+                    into docDir
+                    rename { "${name}-README.md" }
+                }
+            }
+        }
+        
+        logger.lifecycle("Documentation generated in: ${docDir}")
+    }
+}
+
+// Test all extensions
+task testAll {
+    description = 'Run tests for all extensions (where available)'
+    group = 'verification'
+    
+    doLast {
+        logger.lifecycle("Running tests for all extensions...")
+        
+        extensions.each { name, config ->
+            if (config.buildDir.exists() && config.hasGradleBuild) {
+                logger.lifecycle("Testing ${name}...")
+                try {
+                    exec {
+                        workingDir config.buildDir
+                        commandLine getGradleWrapper(config.buildDir), 'test'
+                        ignoreExitValue true
+                    }
+                } catch (Exception e) {
+                    logger.warn("Test execution failed for ${name}: ${e.message}")
+                }
+            }
+        }
+        
+        logger.lifecycle("Test execution completed!")
+    }
+}
+
+// Helper methods
+def buildExtension(String name, Map config) {
+    logger.lifecycle("Building ${name}...")
+    
+    if (!config.buildDir.exists()) {
+        logger.error("Extension directory not found: ${config.buildDir}")
+        return
+    }
+    
+    try {
+        if (config.hasGradleBuild) {
+            // Build using Gradle
+            exec {
+                workingDir config.buildDir
+                commandLine getGradleWrapper(config.buildDir), 'build'
+            }
+            
+            // Copy built artifacts
+            copyBuiltArtifacts(name, config)
+        }
+        
+        logger.lifecycle("Successfully built ${name}")
+        
+    } catch (Exception e) {
+        logger.error("Failed to build ${name}: ${e.message}")
+        throw e
+    }
+}
+
+def copyBuiltArtifacts(String name, Map config) {
+    // Create extension output directory
+    def extensionDistDir = file("${distDir}/${name}")
+    extensionDistDir.mkdirs()
+    
+    // Copy distribution files
+    def buildDistDir = file("${config.buildDir}/dist")
+    if (buildDistDir.exists()) {
+        copy {
+            from buildDistDir
+            into extensionDistDir
+            include '*.zip'
+        }
+    }
+    
+    // Alternative: look for JAR files in build/libs
+    def buildLibsDir = file("${config.buildDir}/build/libs")
+    if (buildLibsDir.exists()) {
+        copy {
+            from buildLibsDir
+            into extensionDistDir
+            include '*.jar'
+        }
+    }
+    
+    // Alternative: look for distributions in build/distributions
+    def buildDistributions = file("${config.buildDir}/build/distributions")
+    if (buildDistributions.exists()) {
+        copy {
+            from buildDistributions
+            into extensionDistDir
+            include '*.zip'
+        }
+    }
+}
+
+def getGradleWrapper(File projectDir) {
+    def wrapperScript = System.getProperty('os.name').toLowerCase().contains('windows') ? 
+        'gradlew.bat' : './gradlew'
+    
+    def wrapperFile = file("${projectDir}/${wrapperScript}")
+    if (wrapperFile.exists()) {
+        return wrapperScript
+    }
+    
+    // Fallback to system gradle
+    return 'gradle'
+}
+
+def generateMasterDocumentation() {
+    return """# Catalytic Computing - Ghidra Extensions Suite
+
+A comprehensive collection of professional Ghidra extensions designed to enhance reverse engineering workflows with modern tooling, AI assistance, and improved navigation.
+
+## Version Information
+- **Suite Version**: ${buildVersion}
+- **Target Ghidra Version**: ${ghidraVersion}
+- **Build Date**: ${new Date().format('yyyy-MM-dd HH:mm:ss')}
+
+## Extensions Overview
+
+${extensions.collect { name, config ->
+    "### ${name}\n${config.description}\n"
+}.join('\n')}
+
+## Features Highlights
+
+- **GhidraCtrlP**: VS Code-style Ctrl+P navigation with fuzzy search
+- **GhidraLookup**: Comprehensive Win32 API documentation integration
+- **GhidrAssist**: Advanced AI-powered code analysis and explanation
+- **Ghidrathon**: Full Python 3 scripting environment with modern libraries
+
+## Quick Start
+
+1. Download the master distribution package
+2. Set GHIDRA_INSTALL_DIR environment variable
+3. Run installation script or manually install via Ghidra UI
+4. Configure extensions as needed
+5. Restart Ghidra and begin enhanced reverse engineering
+
+## Architecture
+
+This suite is designed with modularity and extensibility in mind. Each extension:
+- Follows Ghidra extension best practices
+- Includes comprehensive documentation
+- Supports both headless and GUI modes
+- Integrates seamlessly with existing workflows
+
+## Support
+
+For issues, feature requests, or contributions:
+- Check individual extension documentation
+- Review installation and build guides
+- Visit the Catalytic Computing development repository
+
+---
+*Generated by Catalytic Computing Build System v${buildVersion}*
+"""
+}
+
+def generateInstallationGuide() {
+    return """# Ghidra Extensions Installation Guide
+
+This guide covers installing all Catalytic Computing Ghidra extensions.
+
+## Prerequisites
+
+- **Ghidra**: ${ghidraVersion} or later
+- **Java**: 17 or later (required by Ghidra)
+- **Python**: 3.8+ (required for Ghidrathon)
+- **Operating System**: Windows, Linux, or macOS
+
+## Environment Setup
+
+### 1. Set Environment Variables
+
+Set the GHIDRA_INSTALL_DIR environment variable:
+
+**Windows:**
+```cmd
+set GHIDRA_INSTALL_DIR=C:\\path\\to\\ghidra
+```
+
+**Linux/macOS:**
+```bash
+export GHIDRA_INSTALL_DIR=/path/to/ghidra
+```
+
+### 2. Python Setup (for Ghidrathon)
+
+Install required Python dependencies:
+```bash
+pip install jep==4.2.0
+```
+
+## Installation Methods
+
+### Method 1: Automated Installation
+
+1. Extract the distribution package
+2. Navigate to the extracted directory
+3. Run the installation script:
+   ```
+   gradle installAll
+   ```
+
+### Method 2: Manual Installation
+
+1. Extract the distribution package
+2. For each extension ZIP in the `dist/` directory:
+   - Copy to `\$GHIDRA_INSTALL_DIR/Extensions/Ghidra/`
+   - Launch Ghidra
+   - Go to **File** → **Install Extensions**
+   - Select the copied ZIP file
+   - Restart Ghidra when prompted
+
+## Extension-Specific Configuration
+
+### GhidraCtrlP
+- **Setup**: No additional configuration required
+- **Usage**: Assign keyboard shortcut (recommended: Ctrl+P)
+- **Access**: Window → Script Manager → CtrlPQuicklaunchScript
+
+### GhidraLookup
+- **Setup**: Enable in File → Configure → Miscellaneous
+- **Usage**: Right-click on Win32 API functions
+- **Features**: Automatic constant analysis, MSDN integration
+
+### GhidrAssist
+- **Setup**: Configure API keys in Tools → GhidrAssist Settings
+- **Requirements**: OpenAI API, local LLM, or compatible service
+- **Features**: Code explanation, automated analysis, MCP integration
+
+### Ghidrathon
+- **Setup**: Run configuration after installation:
+  ```bash
+  python ghidrathon_configure.py /path/to/ghidra
+  ```
+- **Requirements**: Python 3.8+, Jep library
+- **Features**: Full Python 3 scripting, modern library support
+
+## Verification
+
+After installation, verify extensions are loaded:
+
+1. Launch Ghidra
+2. Go to **Help** → **About Ghidra**
+3. Check that all extensions appear in the list
+4. Test basic functionality of each extension
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Extensions not appearing**
+   - Ensure ZIP files are in correct `Extensions/Ghidra/` directory
+   - Check Ghidra version compatibility
+   - Restart Ghidra after installation
+
+2. **Java version errors**
+   - Verify Java 17+ is installed
+   - Check JAVA_HOME environment variable
+
+3. **Python errors (Ghidrathon)**
+   - Ensure Python 3.8+ is installed
+   - Verify Jep library is properly installed
+   - Run Ghidrathon configuration script
+
+4. **Build errors**
+   - Set GHIDRA_INSTALL_DIR environment variable
+   - Ensure Ghidra installation is complete
+   - Check file permissions
+
+### Getting Help
+
+- Review individual extension README files
+- Check Ghidra logs for error messages
+- Ensure all prerequisites are met
+- Contact Catalytic Computing support
+
+---
+*Installation Guide v${buildVersion}*
+"""
+}
+
+def generateBuildGuide() {
+    return """# Build Guide - Catalytic Computing Ghidra Extensions
+
+This guide explains how to build the Ghidra extensions from source.
+
+## Prerequisites
+
+- **Ghidra**: ${ghidraVersion} or later (installed)
+- **Java JDK**: 17 or later
+- **Gradle**: 7.0+ (or use included wrapper)
+- **Python**: 3.8+ (for Ghidrathon)
+- **Git**: For source code management
+
+## Build Environment Setup
+
+### 1. Set Environment Variables
+
+```bash
+export GHIDRA_INSTALL_DIR=/path/to/ghidra
+export JAVA_HOME=/path/to/jdk17
+```
+
+### 2. Verify Prerequisites
+
+```bash
+java -version    # Should show Java 17+
+gradle -version  # Should show Gradle 7.0+
+python --version # Should show Python 3.8+
+```
+
+## Building Extensions
+
+### Build All Extensions
+
+```bash
+# Clean and build everything
+gradle buildAll
+
+# Package for distribution
+gradle packageAll
+
+# Install to local Ghidra
+gradle installAll
+```
+
+### Build Individual Extensions
+
+```bash
+# Build specific extension
+cd /path/to/GhidraCtrlP
+gradle build
+
+# Build and install
+gradle build installToGhidra
+```
+
+### Build Tasks Reference
+
+| Task | Description |
+|------|-------------|
+| `cleanAll` | Clean all build artifacts |
+| `buildAll` | Build all extensions |
+| `packageAll` | Create distribution packages |
+| `installAll` | Install to local Ghidra |
+| `testAll` | Run available tests |
+| `generateDocs` | Generate documentation |
+
+## Extension-Specific Build Notes
+
+### GhidraCtrlP
+- **Type**: Script-based extension
+- **Build**: Packages Python and Java scripts
+- **Output**: ZIP file with scripts and manifests
+
+### GhidraLookup
+- **Type**: Java-based extension with resources
+- **Build**: Compiles Java sources, packages data
+- **Dependencies**: JSON library for API data
+
+### GhidrAssist
+- **Type**: Complex Java extension with dependencies
+- **Build**: Compiles multiple packages, includes libraries
+- **Dependencies**: Jackson, Lucene, OkHttp, MCP libraries
+
+### Ghidrathon
+- **Type**: Java extension with native dependencies
+- **Build**: Requires Jep library and Python setup
+- **Special**: Python environment configuration needed
+
+## Build Outputs
+
+### Directory Structure
+```
+build/
+├── catalytic-ghidra-extensions/
+│   ├── dist/                    # Extension ZIP files
+│   │   ├── GhidraCtrlP/
+│   │   ├── GhidraLookup/
+│   │   ├── GhidrAssist/
+│   │   └── Ghidrathon/
+│   ├── docs/                    # Documentation
+│   └── scripts/                 # Utility scripts
+└── CatalyticComputing-GhidraExtensions-${buildVersion}.zip
+```
+
+## Development Workflow
+
+### 1. Setup Development Environment
+```bash
+git clone <repository>
+cd ghidra-extensions
+export GHIDRA_INSTALL_DIR=/path/to/ghidra
+```
+
+### 2. Make Changes
+```bash
+# Edit source files
+# Update documentation
+# Add tests if applicable
+```
+
+### 3. Build and Test
+```bash
+gradle buildAll
+gradle testAll
+gradle installAll
+```
+
+### 4. Package for Distribution
+```bash
+gradle packageAll
+gradle generateDocs
+```
+
+## Troubleshooting Build Issues
+
+### Common Problems
+
+1. **GHIDRA_INSTALL_DIR not set**
+   ```
+   Solution: Export the environment variable before building
+   ```
+
+2. **Java version mismatch**
+   ```
+   Solution: Ensure JAVA_HOME points to JDK 17+
+   ```
+
+3. **Gradle daemon issues**
+   ```bash
+   gradle --stop
+   gradle cleanAll buildAll
+   ```
+
+4. **Permission errors**
+   ```bash
+   chmod +x gradlew  # Make wrapper executable
+   ```
+
+5. **Missing dependencies**
+   ```bash
+   # For Ghidrathon
+   pip install jep==4.2.0
+   ```
+
+### Build Logs
+
+Check build logs for detailed error information:
+- Extension build logs: `<extension>/build/reports/`
+- Master build logs: `build/reports/`
+
+## Continuous Integration
+
+The build system supports CI/CD workflows:
+
+```yaml
+# Example GitHub Actions
+- name: Build Extensions
+  run: |
+    export GHIDRA_INSTALL_DIR=\${{ github.workspace }}/ghidra
+    gradle buildAll testAll packageAll
+```
+
+---
+*Build Guide v${buildVersion}*
+"""
+}
+
+// Default task
+defaultTasks 'buildAll'

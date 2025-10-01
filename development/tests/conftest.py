@@ -47,6 +47,51 @@ def redis_url():
     """Test Redis URL."""
     return "redis://localhost:6379/1"
 
+@pytest.fixture
+def sample_config():
+    """Provide sample SSH monitor configuration for tests"""
+    return {
+        "device": {
+            "name": "Test Device",
+            "tailscale_hostname": "test-device",
+            "ssh_port": 8022,
+            "ssh_user": "testuser"
+        },
+        "monitoring": {
+            "check_interval_seconds": 30,
+            "connection_timeout_seconds": 10,
+            "max_retry_attempts": 5,
+            "exponential_backoff": True,
+            "backoff_multiplier": 2,
+            "max_backoff_seconds": 300
+        },
+        "reconnection": {
+            "enabled": True,
+            "restart_sshd_command": "sshd",
+            "restart_tailscale_command": None
+        },
+        "notifications": {
+            "log_to_file": False,
+            "console_output": False,
+            "notify_on_failure": True,
+            "notify_on_recovery": True
+        }
+    }
+
+@pytest.fixture
+def mock_gpu_available():
+    """Mock GPU availability for tests"""
+    from unittest.mock import patch
+    with patch('torch.cuda.is_available', return_value=True):
+        yield
+
+@pytest.fixture
+def mock_gpu_unavailable():
+    """Mock GPU unavailability for tests"""
+    from unittest.mock import patch
+    with patch('torch.cuda.is_available', return_value=False):
+        yield
+
 # Skip GPU tests if CUDA is not available
 def pytest_configure(config):
     """Configure pytest with custom markers."""
