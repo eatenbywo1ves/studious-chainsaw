@@ -12,7 +12,6 @@ from .interface import (
 )
 
 from .unified_lattice import UnifiedCatalyticLattice
-from .builder import LatticeBuilder
 
 __all__ = [
     'ILatticeComputer',
@@ -20,6 +19,5 @@ __all__ = [
     'ITransformer',
     'IAnalyzer',
     'LatticeMetrics',
-    'UnifiedCatalyticLattice',
-    'LatticeBuilder'
+    'UnifiedCatalyticLattice'
 ]

@@ -5,19 +5,24 @@ Combines GPU acceleration with graph algorithms
 
 import time
 import logging
-from typing import Tuple, List, Optional, Dict, Any, Union
+from typing import Tuple, List, Optional, Dict, Any, Union, TYPE_CHECKING
 import numpy as np
+import numpy.typing as npt
+
+if TYPE_CHECKING:
+    import igraph as ig
 
 try:
     import igraph as ig
     IGRAPH_AVAILABLE = True
 except ImportError:
     IGRAPH_AVAILABLE = False
-    ig = None
+    ig = None  # type: ignore
 
 from .interface import BaseLatticeComputer, LatticeMetrics, IPathFinder, ITransformer, IAnalyzer
 from ..gpu.factory import GPUFactory
 from ..gpu.base import BaseLatticeGPU
+from ..gpu.operation_router import get_operation_analyzer, OperationType
 from libs.config import get_settings, GPUBackend
 from libs.utils.exceptions import LatticeException, PathNotFoundException
 
@@ -36,7 +41,8 @@ class UnifiedCatalyticLattice(BaseLatticeComputer, IPathFinder, ITransformer, IA
         size: int,
         backend: Optional[GPUBackend] = None,
         aux_memory_size: int = 1000,
-        enable_gpu: bool = True
+        enable_gpu: bool = True,
+        enable_smart_routing: bool = True
     ):
         """
         Initialize unified catalytic lattice
@@ -47,12 +53,17 @@ class UnifiedCatalyticLattice(BaseLatticeComputer, IPathFinder, ITransformer, IA
             backend: Specific GPU backend to use
             aux_memory_size: Size of auxiliary memory
             enable_gpu: Enable GPU acceleration
+            enable_smart_routing: Enable smart CPU/GPU routing based on operation type
         """
         super().__init__(dimensions, size)
 
         self.config = get_settings()
         self.aux_memory_size = aux_memory_size
         self.enable_gpu = enable_gpu
+        self.enable_smart_routing = enable_smart_routing
+
+        # Initialize operation router for smart GPU/CPU selection
+        self.operation_router = get_operation_analyzer() if enable_smart_routing else None
 
         # Initialize GPU backend if enabled
         self.gpu_backend: Optional[BaseLatticeGPU] = None
@@ -64,6 +75,8 @@ class UnifiedCatalyticLattice(BaseLatticeComputer, IPathFinder, ITransformer, IA
                     backend=backend
                 )
                 logger.info(f"Using GPU backend: {self.gpu_backend.__class__.__name__}")
+                if enable_smart_routing:
+                    logger.info("Smart operation routing enabled")
             except Exception as e:
                 logger.warning(f"GPU initialization failed: {e}, using CPU fallback")
                 self.gpu_backend = None
@@ -76,12 +89,27 @@ class UnifiedCatalyticLattice(BaseLatticeComputer, IPathFinder, ITransformer, IA
         self._path_cache: Dict[Tuple[int, int], Tuple[List[int], float]] = {}
         self._metrics_cache: Optional[LatticeMetrics] = None
 
-    def build_lattice(self) -> Union[ig.Graph, Dict]:
-        """Build the lattice structure"""
+    def build_lattice(self) -> Union['ig.Graph', Dict[int, List[int]]]:
+        """Build the lattice structure with smart GPU/CPU routing
+
+        Returns:
+            Union[ig.Graph, Dict[int, List[int]]]: iGraph Graph object if available,
+                otherwise dictionary mapping vertex indices to neighbor lists
+        """
         start_time = time.perf_counter()
 
-        # Build on GPU if available
-        if self.gpu_backend:
+        # Smart routing decision: Lattice creation has marginal GPU benefit (1.19x)
+        use_gpu = False
+        if self.operation_router and self.enable_smart_routing and self.gpu_backend:
+            use_gpu, reason = self.operation_router.route_operation(
+                operation_type=OperationType.LATTICE_CREATION,
+                element_count=self.n_points,
+                gpu_available=self.gpu_backend is not None
+            )
+            logger.debug(f"Lattice creation routing: {'GPU' if use_gpu else 'CPU'} - {reason}")
+
+        # Build on GPU if routing decision says so
+        if use_gpu and self.gpu_backend:
             self.gpu_backend.build_lattice()
 
         # Build graph structure for advanced operations
@@ -127,10 +155,20 @@ class UnifiedCatalyticLattice(BaseLatticeComputer, IPathFinder, ITransformer, IA
 
         start_time = time.perf_counter()
 
-        # Use GPU if available
-        if self.gpu_backend:
+        # Smart routing decision: Graph algorithms are MUCH faster on CPU (100x)
+        use_gpu = False
+        if self.operation_router and self.enable_smart_routing and self.gpu_backend:
+            use_gpu, reason = self.operation_router.route_operation(
+                operation_type=OperationType.PATH_FINDING,
+                element_count=self.n_points,
+                gpu_available=self.gpu_backend is not None
+            )
+            logger.debug(f"Path finding routing: {'GPU' if use_gpu else 'CPU'} - {reason}")
+
+        # Execute based on routing decision
+        if use_gpu and self.gpu_backend:
             path, exec_time = self.gpu_backend.find_shortest_path(start, end)
-        # Use igraph if available
+        # Use igraph if available (CPU, much faster for graph algorithms)
         elif self.graph:
             paths = self.graph.get_shortest_paths(start, to=end, mode='all')
             path = paths[0] if paths else []
@@ -199,14 +237,25 @@ class UnifiedCatalyticLattice(BaseLatticeComputer, IPathFinder, ITransformer, IA
 
     def xor_transform(
         self,
-        data: np.ndarray,
-        key: Optional[np.ndarray] = None
-    ) -> np.ndarray:
-        """Apply XOR transformation"""
-        if self.gpu_backend:
+        data: npt.NDArray[np.uint8],
+        key: Optional[npt.NDArray[np.uint8]] = None
+    ) -> npt.NDArray[np.uint8]:
+        """Apply XOR transformation with smart GPU/CPU routing"""
+        # Smart routing decision: Small XOR ops have high GPU overhead (35ms vs 0.2ms)
+        use_gpu = False
+        if self.operation_router and self.enable_smart_routing and self.gpu_backend:
+            use_gpu, reason = self.operation_router.route_operation(
+                operation_type=OperationType.TRANSFORM,
+                data=data,
+                gpu_available=self.gpu_backend is not None
+            )
+            logger.debug(f"XOR transform routing: {'GPU' if use_gpu else 'CPU'} - {reason}")
+
+        # Execute on GPU if routing decision says so
+        if use_gpu and self.gpu_backend:
             return self.gpu_backend.xor_transform(data, key)
 
-        # CPU fallback
+        # CPU implementation (fast for small operations)
         data_uint = data.astype(np.uint8)
         if key is None:
             key = np.random.randint(0, 256, size=len(data), dtype=np.uint8)
@@ -217,10 +266,10 @@ class UnifiedCatalyticLattice(BaseLatticeComputer, IPathFinder, ITransformer, IA
 
     def apply_transformation(
         self,
-        data: np.ndarray,
+        data: npt.NDArray[np.number],
         transformation: str,
-        **kwargs
-    ) -> np.ndarray:
+        **kwargs: Any
+    ) -> npt.NDArray[np.number]:
         """Apply named transformation"""
         if transformation == "xor":
             return self.xor_transform(data, kwargs.get('key'))
@@ -274,7 +323,7 @@ class UnifiedCatalyticLattice(BaseLatticeComputer, IPathFinder, ITransformer, IA
 
         return community_list
 
-    def calculate_centrality(self, method: str = "betweenness") -> np.ndarray:
+    def calculate_centrality(self, method: str = "betweenness") -> npt.NDArray[np.float64]:
         """Calculate vertex centrality"""
         if not self.graph:
             # Simple degree-based centrality for non-graph
@@ -390,7 +439,7 @@ class UnifiedCatalyticLattice(BaseLatticeComputer, IPathFinder, ITransformer, IA
 
         return []  # No path found
 
-    def cleanup(self):
+    def cleanup(self) -> None:
         """Clean up resources"""
         if self.gpu_backend:
             self.gpu_backend.free_memory()
@@ -401,3 +450,17 @@ class UnifiedCatalyticLattice(BaseLatticeComputer, IPathFinder, ITransformer, IA
         self.auxiliary_memory = None
 
         super().cleanup()
+
+    def __enter__(self) -> 'UnifiedCatalyticLattice':
+        """Context manager entry"""
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> bool:
+        """Context manager exit with automatic cleanup"""
+        try:
+            self.cleanup()
+        except Exception as e:
+            logger.warning(f"Error during context cleanup: {e}")
+
+        # Don't suppress exceptions
+        return False

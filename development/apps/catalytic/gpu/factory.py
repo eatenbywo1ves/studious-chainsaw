@@ -2,7 +2,7 @@
 GPU Factory - Creates appropriate GPU implementation based on configuration and availability
 """
 
-from typing import Optional, Dict, Type
+from typing import Optional, Dict, Type, List
 import logging
 
 from libs.config import get_settings, GPUBackend
