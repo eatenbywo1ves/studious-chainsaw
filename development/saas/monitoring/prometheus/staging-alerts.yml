@@ -1,0 +1,53 @@
+groups:
+  - name: catalytic.staging.rules
+    rules:
+    # Staging service availability (more relaxed than production)
+    - alert: StagingServiceDown
+      expr: up{environment="staging"} == 0
+      for: 10m
+      labels:
+        severity: warning
+        environment: staging
+      annotations:
+        summary: "Staging service {{ $labels.job }} is down"
+        description: "{{ $labels.job }} has been down for more than 10 minutes in staging"
+
+    - alert: StagingHighErrorRate
+      expr: rate(http_requests_total{status=~"5..",environment="staging"}[5m]) / rate(http_requests_total{environment="staging"}[5m]) > 0.15
+      for: 10m
+      labels:
+        severity: warning
+        environment: staging
+      annotations:
+        summary: "High error rate in staging"
+        description: "Error rate is {{ $value | humanizePercentage }} for {{ $labels.job }} in staging"
+
+    - alert: StagingHighResponseTime
+      expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{environment="staging"}[5m])) > 5.0
+      for: 15m
+      labels:
+        severity: warning
+        environment: staging
+      annotations:
+        summary: "High response time in staging"
+        description: "95th percentile response time is {{ $value }}s for {{ $labels.job }} in staging"
+
+    - alert: StagingDatabaseIssues
+      expr: pg_up{environment="staging"} == 0
+      for: 5m
+      labels:
+        severity: warning
+        environment: staging
+      annotations:
+        summary: "Staging database connectivity issues"
+        description: "Cannot connect to staging database"
+
+    - alert: StagingDeploymentIssues
+      expr: kube_pod_status_phase{phase!="Running",namespace="catalytic-staging"} > 0
+      for: 20m
+      labels:
+        severity: warning
+        environment: staging
+      annotations:
+        summary: "Staging deployment issues"
+        description: "Pod {{ $labels.pod }} in staging has been not running for more than 20 minutes"

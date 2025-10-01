@@ -1,0 +1,107 @@
+global:
+  scrape_interval: 30s
+  evaluation_interval: 30s
+  external_labels:
+    environment: 'staging'
+    cluster: 'catalytic-cluster'
+
+rule_files:
+  - "staging-alerts.yml"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    scrape_interval: 30s
+
+  # API Service (Staging)
+  - job_name: 'api-staging'
+    kubernetes_sd_configs:
+      - role: endpoints
+        namespaces:
+          names:
+            - catalytic-staging
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scrape]
+        action: keep
+        regex: true
+      - source_labels: [__meta_kubernetes_service_name]
+        action: keep
+        regex: api-service
+      - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_path]
+        action: replace
+        target_label: __metrics_path__
+        regex: (.+)
+      - source_labels: [__address__, __meta_kubernetes_service_annotation_prometheus_io_port]
+        action: replace
+        target_label: __address__
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:$2
+      - target_label: environment
+        replacement: staging
+
+  # Frontend Service (Staging)
+  - job_name: 'frontend-staging'
+    kubernetes_sd_configs:
+      - role: endpoints
+        namespaces:
+          names:
+            - catalytic-staging
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scrape]
+        action: keep
+        regex: true
+      - source_labels: [__meta_kubernetes_service_name]
+        action: keep
+        regex: frontend-service
+      - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_path]
+        action: replace
+        target_label: __metrics_path__
+        regex: (.+)
+      - target_label: environment
+        replacement: staging
+
+  # External Health Checks for Staging
+  - job_name: 'blackbox-http-staging'
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+        - https://staging.catalytic.dev
+        - https://staging.catalytic.dev/api/health
+        - https://staging.catalytic.dev/api/ready
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+      - target_label: environment
+        replacement: staging
+
+  # Database monitoring (shared with production but tagged differently)
+  - job_name: 'postgresql-staging'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+    scrape_interval: 60s
+    relabel_configs:
+      - target_label: environment
+        replacement: staging
+
+  # Redis monitoring for staging
+  - job_name: 'redis-staging'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+    scrape_interval: 60s
+    relabel_configs:
+      - target_label: environment
+        replacement: staging
