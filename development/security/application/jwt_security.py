@@ -224,6 +224,8 @@ class JWTSecurityManager:
                 token,
                 self.public_key,
                 algorithms=[self.algorithm],
+                audience=["catalytic-api", "saas-api"],
+                issuer="catalytic-computing-api",
                 options={
                     "verify_signature": True,
                     "verify_exp": True,
