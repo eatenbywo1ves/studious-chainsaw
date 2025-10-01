@@ -58,7 +58,7 @@ except ImportError:
 # DATABASE SETUP
 # ============================================================================
 
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://catalytic:secure_password@localhost/catalytic_saas")
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://localhost/catalytic_saas")
 
 engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
