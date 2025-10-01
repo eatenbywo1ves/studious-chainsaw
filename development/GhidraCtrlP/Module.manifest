@@ -1,0 +1,13 @@
+MODULE FILE HEADER:
+
+MODULE NAME: GhidraCtrlP  
+MODULE VERSION: 1.0.0
+MODULE DESCRIPTION: Fast navigation and command palette for Ghidra
+
+GHIDRA MODULE ENTRY POINT: ghidra_scripts
+
+MODULE DEPENDENCIES:
+  Base (SOURCE)
+  Utility (SOURCE)
+  SoftwareModeling (SOURCE)
+  Decompiler (SOURCE)

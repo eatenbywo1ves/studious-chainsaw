@@ -1,0 +1,100 @@
+/* ###
+ * IP: GHIDRA
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+// GhidraCtrlP Extension Build Script
+// This extension provides VS Code-style Ctrl+P navigation for Ghidra
+
+//----------------------START "DO NOT MODIFY" SECTION------------------------------
+def ghidraInstallDir
+
+if (System.env.GHIDRA_INSTALL_DIR) {
+	ghidraInstallDir = System.env.GHIDRA_INSTALL_DIR
+}
+else if (project.hasProperty("GHIDRA_INSTALL_DIR")) {
+	ghidraInstallDir = project.getProperty("GHIDRA_INSTALL_DIR")
+}
+
+if (ghidraInstallDir) {
+	apply from: new File(ghidraInstallDir).getCanonicalPath() + "/support/buildExtension.gradle"
+}
+else {
+	throw new GradleException("GHIDRA_INSTALL_DIR is not defined!")
+}
+//----------------------END "DO NOT MODIFY" SECTION-------------------------------
+
+// Extension metadata
+version = "1.0.0"
+description = "Fast navigation and command palette for Ghidra"
+
+// Custom tasks for script-based extension
+task packageScripts(type: Zip) {
+    description = "Package GhidraCtrlP scripts for distribution"
+    group = "distribution"
+    
+    archiveBaseName = 'GhidraCtrlP'
+    archiveVersion = project.version
+    destinationDirectory = file("${project.buildDir}/distributions")
+    
+    from projectDir
+    include 'ghidra_scripts/**'
+    include 'docs/**'
+    include 'README.md'
+    include 'extension.properties'
+    include 'Module.manifest'
+    
+    exclude '**/.git/**'
+    exclude '**/.gradle/**'
+    exclude '**/build/**'
+}
+
+// Override the default build task to use our custom packaging
+build.dependsOn packageScripts
+build.finalizedBy packageScripts
+
+// Create installation task
+task installToGhidra {
+    description = "Install GhidraCtrlP to local Ghidra installation"
+    group = "installation"
+    dependsOn packageScripts
+    
+    doLast {
+        def ghidraDir = System.getenv('GHIDRA_INSTALL_DIR')
+        if (!ghidraDir) {
+            println "GHIDRA_INSTALL_DIR environment variable not set"
+            return
+        }
+        
+        def extensionsDir = file("${ghidraDir}/Extensions/Ghidra")
+        if (!extensionsDir.exists()) {
+            println "Ghidra extensions directory not found: ${extensionsDir}"
+            return
+        }
+        
+        def packageFile = file("${project.buildDir}/distributions/GhidraCtrlP-${project.version}.zip")
+        if (packageFile.exists()) {
+            copy {
+                from packageFile
+                into extensionsDir
+            }
+            println "GhidraCtrlP installed to: ${extensionsDir}"
+        }
+    }
+}
+
+// Clean task enhancement
+clean {
+    delete "${project.buildDir}/distributions"
+}

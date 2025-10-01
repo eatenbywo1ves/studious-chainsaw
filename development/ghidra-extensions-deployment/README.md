@@ -1,195 +1,255 @@
-# Ghidra Extensions Deployment
+# Catalytic Computing - Ghidra Extensions Deployment System
 
-This repository provides production-ready Ghidra extensions with automated deployment, installation scripts, and comprehensive documentation.
+A comprehensive build and deployment system for packaging and distributing professional Ghidra extensions.
 
-## Available Extensions
+## Overview
 
-### 1. CryptoDetect Extension
-Advanced cryptographic routine detection for Ghidra 12.0+
+This deployment system automates the building, packaging, validation, and installation of four powerful Ghidra extensions:
 
-**Features:**
-- Multi-algorithm detection (AES, DES, SHA, MD5, RSA)
-- Pattern matching with confidence scoring
-- Entropy analysis for encrypted data detection
-- Interactive UI with sortable results table
-- Real-time background processing
-- Direct navigation to detected crypto routines
+- **GhidraCtrlP**: VS Code-style Ctrl+P navigation with fuzzy search
+- **GhidraLookup**: Win32 API documentation lookup with automatic constant analysis  
+- **GhidrAssist**: AI-powered reverse engineering with LLM integration
+- **Ghidrathon**: Full Python 3 scripting environment for Ghidra
 
-**Version:** 1.0.0-SNAPSHOT  
-**Compatibility:** Ghidra 12.0+
+## Features
 
-### 2. RetSync Extension
-Real-time synchronization between Ghidra and debuggers (IDA Pro, x64dbg, OllyDbg, WinDbg)
-
-**Features:**
-- Bidirectional synchronization of cursor position
-- Synchronized breakpoints across tools
-- Comments and label synchronization
-- Real-time collaboration support
-
-**Version:** 10.2  
-**Compatibility:** Ghidra 9.1.2 - 10.2+
+- ✅ **Automated Building**: Build all extensions with a single command
+- ✅ **Cross-Platform**: Works on Windows, Linux, and macOS
+- ✅ **Validation Suite**: Comprehensive testing of packaged extensions
+- ✅ **Master Distribution**: Single ZIP containing all extensions
+- ✅ **Auto-Installation**: Direct installation to Ghidra
+- ✅ **Documentation Generation**: Automatic creation of user guides
+- ✅ **CI/CD Ready**: Designed for automated deployment pipelines
 
 ## Quick Start
 
 ### Prerequisites
-- Ghidra 12.0 or later installed
-- Java 17+ runtime environment
-- Windows, Linux, or macOS operating system
 
-### Installation
+1. **Set Environment Variable**:
+   ```powershell
+   # Windows
+   $env:GHIDRA_INSTALL_DIR = "C:\path\to\ghidra_11.4.2_PUBLIC"
+   
+   # Linux/macOS
+   export GHIDRA_INSTALL_DIR=/path/to/ghidra_11.4.2_PUBLIC
+   ```
 
-#### Windows
-```batch
-# Set Ghidra installation directory
-set GHIDRA_INSTALL_DIR=C:\path\to\ghidra
+2. **Requirements**:
+   - Ghidra 11.4.2 or later
+   - Java 17+ (required by Ghidra)
+   - Python 3.8+ (for Ghidrathon)
 
-# Run installation script
-scripts\install.bat
+### Build and Deploy
+
+**Windows:**
+```powershell
+# Build all extensions
+.\package-extensions.ps1
+
+# Build and install to Ghidra
+.\package-extensions.ps1 -Install
+
+# Validate extensions
+.\validate-extensions.ps1
 ```
 
-#### Linux/macOS
+**Linux/macOS:**
 ```bash
-# Set Ghidra installation directory
-export GHIDRA_INSTALL_DIR=/path/to/ghidra
+# Build all extensions
+./build-all.sh
 
-# Run installation script
-chmod +x scripts/install.sh
-./scripts/install.sh
+# Build and install to Ghidra  
+./build-all.sh install
+
+# Validate (use PowerShell script or manual testing)
 ```
 
-## Directory Structure
+### Manual Installation
 
+1. Run the build script to create packages
+2. Copy ZIP files from `build/catalytic-ghidra-extensions/dist/` to `$GHIDRA_INSTALL_DIR/Extensions/Ghidra/`
+3. Launch Ghidra → **File** → **Install Extensions**
+4. Select the copied ZIP files and restart Ghidra
+
+## Build System Architecture
+
+### Directory Structure
 ```
 ghidra-extensions-deployment/
-├── extensions/
-│   ├── crypto_detect/         # CryptoDetect extension
-│   │   ├── source/            # Source code
-│   │   ├── releases/          # Built packages
-│   │   └── docs/              # Documentation
-│   └── retsync/              # RetSync extension
-│       ├── ghidra_10.2/      # Version-specific builds
-│       ├── releases/         # Built packages
-│       └── docs/             # Documentation
-├── scripts/                  # Installation and utility scripts
-│   ├── install.bat          # Windows installer
-│   ├── install.sh           # Unix/Linux installer
-│   └── verify.py            # Installation verification
-├── .github/
-│   └── workflows/           # GitHub Actions CI/CD
-│       └── build-and-release.yml
-└── README.md                # This file
+├── build-all.gradle          # Gradle-based master build
+├── build-all.sh             # Linux/macOS shell script
+├── build-all.bat            # Windows batch script  
+├── package-extensions.ps1    # PowerShell build script (recommended)
+├── validate-extensions.ps1   # Validation test suite
+├── build/                    # Build output directory
+│   ├── catalytic-ghidra-extensions/
+│   │   ├── dist/            # Individual extension packages
+│   │   │   ├── GhidraCtrlP/
+│   │   │   ├── GhidraLookup/
+│   │   │   ├── GhidrAssist/
+│   │   │   └── Ghidrathon/
+│   │   └── docs/            # Generated documentation
+│   ├── CatalyticComputing-GhidraExtensions-1.0.0.zip  # Master package
+│   └── validation-report.json  # Test results
+└── build-infrastructure/     # Advanced Gradle configurations
 ```
 
-## Building from Source
+### Build Process
 
-### CryptoDetect Extension
+1. **Extension Analysis**: Detect existing builds and extension types
+2. **Package Creation**: Create proper ZIP files for each extension
+3. **Documentation Generation**: Auto-generate installation guides
+4. **Master Package**: Combine all extensions into single distribution
+5. **Validation**: Run comprehensive tests on all packages
+6. **Installation**: Optional direct installation to Ghidra
 
-```batch
-cd extensions\crypto_detect\source
-set GHIDRA_INSTALL_DIR=C:\path\to\ghidra
-build-package.bat
+## Extension Details
+
+### GhidraCtrlP
+- **Type**: Script-based extension
+- **Size**: ~0.3 MB
+- **Features**: Fuzzy search, keyboard shortcuts, command palette
+- **Installation**: Copy scripts to ghidra_scripts directory
+
+### GhidraLookup  
+- **Type**: Java-based extension with resources
+- **Size**: ~1.1 MB
+- **Features**: Win32 API docs, constant analysis, MSDN integration
+- **Dependencies**: JSON library for API data
+
+### GhidrAssist
+- **Type**: Complex Java extension
+- **Size**: ~35 MB (includes AI libraries)
+- **Features**: LLM integration, code explanation, RAG, MCP tools
+- **Dependencies**: Jackson, Lucene, OkHttp, MCP libraries
+
+### Ghidrathon
+- **Type**: Java extension with Python integration
+- **Size**: ~0.7 MB
+- **Features**: Python 3.8+ scripting, Jep integration, modern libraries
+- **Requirements**: Python runtime and Jep library
+
+## Validation Suite
+
+The validation system performs comprehensive testing:
+
+- ✅ **Package Integrity**: ZIP files exist and are properly formatted
+- ✅ **Size Validation**: Packages are reasonable size (not corrupted)
+- ✅ **Structure Testing**: Extensions contain required files
+- ✅ **Documentation Verification**: All guides are present and complete
+- ✅ **Master Package**: Distribution bundle is properly created
+
+### Running Validation
+
+```powershell
+.\validate-extensions.ps1
 ```
 
-The built package will be available in `extensions/crypto_detect/source/dist/`
+Sample output:
+```
+Validating GhidraCtrlP...
+  PASS: ZIP file exists
+  PASS: ZIP file not empty (Size: 0.26 MB)
+  PASS: ZIP structure valid (Entries: 9)
 
-### RetSync Extension
+Tests Passed: 18 / 18 (100%)
+ALL TESTS PASSED! Extensions are ready for deployment.
+```
 
-RetSync is provided as a pre-built binary. To rebuild from source, visit the [RetSync GitHub repository](https://github.com/bootleg/ret-sync).
+## Advanced Usage
 
-## Installation Methods
+### Custom Build Versions
+```powershell
+.\package-extensions.ps1 -BuildVersion "2.0.0" -GhidraVersion "11.5.0"
+```
 
-### Method 1: Script Installation (Recommended)
-Use the provided installation scripts for automatic setup.
+### CI/CD Integration
+```yaml
+# GitHub Actions example
+- name: Build Ghidra Extensions
+  run: |
+    $env:GHIDRA_INSTALL_DIR = "${{ github.workspace }}/ghidra"
+    .\package-extensions.ps1
+    .\validate-extensions.ps1
 
-### Method 2: Manual Installation
-1. Download the extension package from `releases/`
-2. Open Ghidra
-3. Navigate to File → Install Extensions
-4. Click the green "+" button
-5. Select the extension ZIP file
-6. Restart Ghidra
+- name: Upload Extensions
+  uses: actions/upload-artifact@v3
+  with:
+    name: ghidra-extensions
+    path: build/CatalyticComputing-GhidraExtensions-*.zip
+```
 
-### Method 3: Development Installation
-1. Copy extension folder to `~/.ghidra/.ghidra_<version>/Extensions/`
-2. Restart Ghidra
-3. Enable in Window → Script Manager
-
-## Extension Configuration
-
-### CryptoDetect
-After installation:
-1. Open a binary in Ghidra
-2. Navigate to Window → CryptoDetect
-3. Click "Analyze" to start detection
-4. Double-click results to navigate to code
-
-### RetSync
-Configuration steps:
-1. Install the corresponding plugin in your debugger
-2. Start the sync server in Ghidra (Tools → RetSync)
-3. Connect from your debugger
-4. Synchronization begins automatically
-
-## Compatibility Matrix
-
-| Extension     | Ghidra 9.x | Ghidra 10.x | Ghidra 11.x | Ghidra 12.x |
-|--------------|------------|-------------|-------------|-------------|
-| CryptoDetect | ❌         | ❌          | ⚠️          | ✅          |
-| RetSync      | ✅         | ✅          | ⚠️          | 🔄          |
-
-Legend:
-- ✅ Fully supported
-- ⚠️ Partially supported (may require modifications)
-- ❌ Not supported
-- 🔄 In development
+### Gradle Integration
+```bash
+# Use advanced Gradle build system
+gradle -f build-all.gradle buildAll packageAll
+```
 
 ## Troubleshooting
 
 ### Common Issues
 
-**Issue: Extension not appearing in Ghidra**
-- Verify GHIDRA_INSTALL_DIR is set correctly
-- Check extension compatibility with your Ghidra version
-- Ensure Java 17+ is installed
+1. **GHIDRA_INSTALL_DIR not set**
+   ```
+   Solution: Set the environment variable before running scripts
+   ```
 
-**Issue: Build fails with Gradle errors**
-- Update Gradle to version 7.5+
-- Verify GHIDRA_INSTALL_DIR environment variable
-- Check network connectivity for dependency downloads
+2. **PowerShell execution policy**
+   ```powershell
+   Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+   ```
 
-**Issue: RetSync connection fails**
-- Ensure both tools are using the same port (default: 9100)
-- Check firewall settings
-- Verify debugger plugin is installed correctly
+3. **Missing ZIP files**
+   ```
+   Solution: Ensure individual extensions have been built first
+   Check: ../GhidraExtensionName/dist/ directories
+   ```
 
-## Contributing
+4. **Validation failures**
+   ```
+   Check: build/validation-report.json for detailed error info
+   ```
 
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+### Getting Help
 
-### Development Setup
-1. Fork this repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
+- Review individual extension README files
+- Check build logs for error messages  
+- Verify all prerequisites are installed
+- Ensure GHIDRA_INSTALL_DIR points to valid installation
 
-## License
+## Development
 
-- **CryptoDetect**: MIT License (see extensions/crypto_detect/source/LICENSE)
-- **RetSync**: MIT License (see extensions/retsync/ghidra_10.2/LICENCE)
+### Adding New Extensions
+
+1. Create extension directory in parent folder
+2. Add entry to build scripts' extension lists
+3. Ensure proper `extension.properties` and `Module.manifest` files
+4. Update validation tests if needed
+
+### Modifying Build Process
+
+- **PowerShell Script**: Best for Windows, most features
+- **Shell Script**: Good for Linux/macOS
+- **Gradle Build**: Most flexible, requires Gradle installation
+- **Batch Script**: Windows fallback option
+
+## Release History
+
+- **v1.0.0**: Initial release with all four extensions
+- **v1.1.0**: Added comprehensive validation suite  
+- **v1.2.0**: PowerShell build system with enhanced features
 
 ## Support
 
-For issues, feature requests, or questions:
-- Open an issue on GitHub
-- Check existing documentation in `docs/`
-- Review extension-specific README files
-
-## Acknowledgments
-
-- CryptoDetect: Developed for advanced cryptographic analysis in reverse engineering
-- RetSync: Created by [bootleg](https://github.com/bootleg/ret-sync) for multi-tool synchronization
+For issues, feature requests, or contributions:
+- Check individual extension documentation
+- Review build logs and validation reports
+- Contact Catalytic Computing development team
 
 ---
 
-*Last updated: 2025-01-24*
+*Catalytic Computing - Enhancing Reverse Engineering Through Automation*
+
+**Build System Version**: 1.0.0  
+**Compatible Ghidra Version**: 11.4.2+  
+**Last Updated**: September 29, 2024
