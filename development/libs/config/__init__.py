@@ -9,7 +9,11 @@ from .settings import (
     APIConfig,
     WebhookConfig,
     StorageConfig,
-    get_settings
+    GPUBackend,
+    Environment,
+    StorageBackend,
+    get_settings,
+    reload_settings
 )
 
 __all__ = [
@@ -19,5 +23,9 @@ __all__ = [
     'APIConfig',
     'WebhookConfig',
     'StorageConfig',
-    'get_settings'
+    'GPUBackend',
+    'Environment',
+    'StorageBackend',
+    'get_settings',
+    'reload_settings'
 ]

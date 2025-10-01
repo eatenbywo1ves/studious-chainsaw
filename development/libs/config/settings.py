@@ -10,11 +10,11 @@ from functools import lru_cache
 from enum import Enum
 
 try:
-    from pydantic import BaseSettings, Field, validator
-except ImportError:
-    # Fallback for Pydantic v2
     from pydantic_settings import BaseSettings
-    from pydantic import Field, field_validator as validator
+    from pydantic import Field, field_validator
+except ImportError:
+    # Fallback for Pydantic v1
+    from pydantic import BaseSettings, Field, validator as field_validator
 
 
 class Environment(str, Enum):
@@ -99,7 +99,14 @@ class GPUConfig(BaseSettings):
     gpu_timeout_seconds: float = Field(30.0, ge=1.0, description="GPU operation timeout")
     auto_select_device: bool = Field(True, description="Automatically select best GPU device")
 
-    @validator('preferred_backend')
+    # Smart Routing Configuration
+    enable_smart_routing: bool = Field(True, description="Enable smart GPU/CPU operation routing")
+    gpu_threshold_elements: int = Field(1000, ge=10, description="Min elements for GPU consideration")
+    gpu_optimal_threshold: int = Field(10000, ge=100, description="Elements for optimal GPU performance")
+    routing_overhead_tolerance_ms: float = Field(10.0, ge=0.1, description="Max acceptable routing overhead")
+
+    @field_validator('preferred_backend')
+    @classmethod
     def validate_backend_availability(cls, v):
         """Validate that the preferred backend is available"""
         # This would check actual availability in production
@@ -244,14 +251,16 @@ class CatalyticSettings(BaseSettings):
         description="Data storage path"
     )
 
-    @validator('debug')
-    def set_debug_from_env(cls, v, values):
+    @field_validator('debug')
+    @classmethod
+    def set_debug_from_env(cls, v, info):
         """Set debug based on environment"""
-        if 'environment' in values and values['environment'] == Environment.DEVELOPMENT:
+        if info.data.get('environment') == Environment.DEVELOPMENT:
             return True
         return v
 
-    @validator('data_path', 'base_path')
+    @field_validator('data_path', 'base_path')
+    @classmethod
     def ensure_paths_exist(cls, v):
         """Ensure required paths exist"""
         v.mkdir(parents=True, exist_ok=True)

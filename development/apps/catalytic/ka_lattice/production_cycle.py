@@ -12,6 +12,7 @@ from datetime import datetime, timedelta
 from dataclasses import dataclass, field
 import logging
 import json
+import numpy as np
 
 from .ka_core import KALatticeCore, LatticeState, ComputationResult
 from libs.utils.exceptions import CatalyticException
@@ -123,7 +124,7 @@ class ProductionCycleManager:
             start_time=datetime.now()
         )
 
-        logger.info(f"Production cycle transition: {old_phase} → {new_phase}")
+        logger.info(f"Production cycle transition: {old_phase} -> {new_phase}")
 
         # Execute callbacks
         for callback in self.phase_callbacks[new_phase]:

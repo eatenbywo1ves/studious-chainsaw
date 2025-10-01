@@ -12,6 +12,7 @@ import signal
 import logging
 from pathlib import Path
 from datetime import datetime
+from typing import Optional
 import json
 import yaml
 import numpy as np

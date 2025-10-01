@@ -116,8 +116,9 @@ class KALatticeCore(UnifiedCatalyticLattice):
             LatticeState.INITIALIZING: [LatticeState.BUILDING, LatticeState.ERROR],
             LatticeState.BUILDING: [LatticeState.READY, LatticeState.ERROR],
             LatticeState.READY: [LatticeState.PROCESSING, LatticeState.LEARNING,
-                                 LatticeState.OPTIMIZING, LatticeState.SUSPENDED],
-            LatticeState.PROCESSING: [LatticeState.READY, LatticeState.ERROR],
+                                 LatticeState.OPTIMIZING, LatticeState.SUSPENDED,
+                                 LatticeState.TERMINATED],
+            LatticeState.PROCESSING: [LatticeState.READY, LatticeState.ERROR, LatticeState.TERMINATED],
             LatticeState.LEARNING: [LatticeState.READY, LatticeState.OPTIMIZING],
             LatticeState.OPTIMIZING: [LatticeState.READY],
             LatticeState.SUSPENDED: [LatticeState.READY, LatticeState.TERMINATED],
@@ -129,9 +130,9 @@ class KALatticeCore(UnifiedCatalyticLattice):
             if new_state in valid_transitions.get(self._state, []):
                 self._state_history.append((self._state, datetime.now()))
                 self._state = new_state
-                logger.info(f"Lattice state transition: {self._state_history[-1][0]} → {new_state}")
+                logger.info(f"Lattice state transition: {self._state_history[-1][0]} -> {new_state}")
             else:
-                raise LatticeException(f"Invalid state transition: {self._state} → {new_state}")
+                raise LatticeException(f"Invalid state transition: {self._state} -> {new_state}")
 
     @property
     def state(self) -> LatticeState:
