@@ -1,0 +1,84 @@
+# Hardened Production Dockerfile for Catalytic Computing System
+# Security Features:
+# - Non-root user execution
+# - Distroless base image for minimal attack surface
+# - Security scanning integration
+# - Secure defaults and hardening
+
+# Use multi-stage build for security
+FROM python:3.11-slim as builder
+
+# Set working directory
+WORKDIR /app
+
+# Create non-root user
+RUN groupadd -r catalytic && useradd -r -g catalytic catalytic
+
+# Install only required system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    build-essential \
+    curl \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# Copy requirements first for better caching
+COPY requirements-catalytic.txt /app/
+
+# Install Python dependencies to user directory for security
+RUN pip install --no-cache-dir --user -r requirements-catalytic.txt
+
+# Production stage with distroless approach
+FROM gcr.io/distroless/python3-debian11:nonroot
+
+# Copy Python packages from builder
+COPY --from=builder /root/.local /home/nonroot/.local
+
+# Set PATH to include user installed packages
+ENV PATH=/home/nonroot/.local/bin:$PATH
+ENV PYTHONPATH=/app:/home/nonroot/.local/lib/python3.11/site-packages
+
+# Copy application code with proper ownership
+COPY --chown=nonroot:nonroot apps/api-gateway/production_api_server_fixed.py /app/production_api_server.py
+COPY --chown=nonroot:nonroot apps/catalytic/*.py /app/apps/catalytic/
+COPY --chown=nonroot:nonroot libs /app/libs/
+
+# Create necessary directories with proper permissions
+USER root
+RUN mkdir -p /app/data /app/logs /app/cache \
+    && chown -R nonroot:nonroot /app \
+    && chmod 755 /app/data /app/logs /app/cache
+
+# Switch to non-root user
+USER nonroot
+
+# Security-focused environment variables
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONPATH=/app
+ENV NUMBA_CACHE_DIR=/app/cache
+ENV OMP_NUM_THREADS=4
+ENV MKL_NUM_THREADS=4
+ENV LATTICE_MEMORY_OPTIMIZATION=enabled
+ENV PARALLEL_CORES=12
+ENV CACHE_SIZE=1024
+ENV MAX_LATTICES=100
+ENV TMPDIR=/tmp
+
+# Security labels
+LABEL maintainer="security@catalytic-computing.com"
+LABEL security.scan="enabled"
+LABEL security.non-root="true"
+LABEL security.distroless="true"
+
+# Expose ports (non-privileged ports only)
+EXPOSE 8080 8082
+
+# Health check with security considerations
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD ["/usr/bin/python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/health', timeout=5)"]
+
+# Run with security-focused configuration
+ENTRYPOINT ["/usr/bin/python3", "-m", "uvicorn", "production_api_server:app", "--host", "0.0.0.0", "--port", "8080", "--workers", "4", "--access-log", "--log-level", "info"]

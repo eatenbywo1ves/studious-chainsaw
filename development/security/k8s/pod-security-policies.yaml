@@ -1,0 +1,258 @@
+# Kubernetes Pod Security Policies and Security Contexts
+# Implements comprehensive pod-level security controls
+
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: catalytic-restricted
+  namespace: catalytic-system
+  labels:
+    app.kubernetes.io/name: catalytic-computing
+    app.kubernetes.io/component: security
+spec:
+  # Privilege and access control
+  privileged: false
+  allowPrivilegeEscalation: false
+  requiredDropCapabilities:
+    - ALL
+  allowedCapabilities:
+    - NET_BIND_SERVICE  # Only for services that need to bind to privileged ports
+  
+  # Host namespace restrictions
+  hostNetwork: false
+  hostIPC: false
+  hostPID: false
+  hostPorts:
+    - min: 0
+      max: 0  # No host ports allowed
+  
+  # Volume restrictions
+  volumes:
+    - 'configMap'
+    - 'emptyDir'
+    - 'projected'
+    - 'secret'
+    - 'downwardAPI'
+    - 'persistentVolumeClaim'
+    # Prohibited: hostPath, nfs, cephfs, etc.
+  
+  # File system restrictions
+  runAsUser:
+    rule: 'MustRunAsNonRoot'
+  runAsGroup:
+    rule: 'MustRunAs'
+    ranges:
+      - min: 1
+        max: 65535
+  supplementalGroups:
+    rule: 'MustRunAs'
+    ranges:
+      - min: 1
+        max: 65535
+  fsGroup:
+    rule: 'RunAsAny'
+  
+  # Security context
+  readOnlyRootFilesystem: true
+  allowedHostPaths: []  # No host paths allowed
+  
+  # SELinux/AppArmor
+  seLinux:
+    rule: 'RunAsAny'
+  appArmor:
+    rule: 'RunAsAny'
+
+---
+# Highly restricted policy for critical workloads
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: catalytic-critical
+  namespace: catalytic-system
+  labels:
+    app.kubernetes.io/name: catalytic-computing
+    app.kubernetes.io/component: security-critical
+spec:
+  privileged: false
+  allowPrivilegeEscalation: false
+  requiredDropCapabilities:
+    - ALL
+  allowedCapabilities: []  # No capabilities allowed
+  
+  hostNetwork: false
+  hostIPC: false
+  hostPID: false
+  hostPorts:
+    - min: 0
+      max: 0
+  
+  volumes:
+    - 'configMap'
+    - 'secret'
+    - 'projected'
+    - 'downwardAPI'
+    # Even more restricted - no persistent volumes
+  
+  runAsUser:
+    rule: 'MustRunAsNonRoot'
+  runAsGroup:
+    rule: 'MustRunAs'
+    ranges:
+      - min: 1000
+        max: 65535
+  supplementalGroups:
+    rule: 'MustRunAs'
+    ranges:
+      - min: 1000
+        max: 65535
+  fsGroup:
+    rule: 'MustRunAs'
+    ranges:
+      - min: 1000
+        max: 65535
+  
+  readOnlyRootFilesystem: true
+  allowedHostPaths: []
+  
+  seLinux:
+    rule: 'RunAsAny'
+
+---
+# RBAC for Pod Security Policies
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: catalytic-psp-restricted
+  labels:
+    app.kubernetes.io/name: catalytic-computing
+    app.kubernetes.io/component: security
+rules:
+- apiGroups: ['policy']
+  resources: ['podsecuritypolicies']
+  verbs: ['use']
+  resourceNames:
+  - catalytic-restricted
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: catalytic-psp-critical
+  labels:
+    app.kubernetes.io/name: catalytic-computing
+    app.kubernetes.io/component: security-critical
+rules:
+- apiGroups: ['policy']
+  resources: ['podsecuritypolicies']
+  verbs: ['use']
+  resourceNames:
+  - catalytic-critical
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: catalytic-psp-restricted
+  labels:
+    app.kubernetes.io/name: catalytic-computing
+    app.kubernetes.io/component: security
+roleRef:
+  kind: ClusterRole
+  name: catalytic-psp-restricted
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+- kind: ServiceAccount
+  name: catalytic-api
+  namespace: catalytic-system
+- kind: ServiceAccount
+  name: catalytic-saas
+  namespace: catalytic-system
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: catalytic-psp-critical
+  labels:
+    app.kubernetes.io/name: catalytic-computing
+    app.kubernetes.io/component: security-critical
+roleRef:
+  kind: ClusterRole
+  name: catalytic-psp-critical
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+- kind: ServiceAccount
+  name: catalytic-webhook
+  namespace: catalytic-system
+
+---
+# Service Accounts with minimal privileges
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: catalytic-api
+  namespace: catalytic-system
+  labels:
+    app.kubernetes.io/name: catalytic-computing
+    app.kubernetes.io/component: api
+automountServiceAccountToken: false
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: catalytic-saas
+  namespace: catalytic-system
+  labels:
+    app.kubernetes.io/name: catalytic-computing
+    app.kubernetes.io/component: saas
+automountServiceAccountToken: false
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: catalytic-webhook
+  namespace: catalytic-system
+  labels:
+    app.kubernetes.io/name: catalytic-computing
+    app.kubernetes.io/component: webhook
+automountServiceAccountToken: false
+
+---
+# Security Context Constraints for OpenShift (if applicable)
+apiVersion: security.openshift.io/v1
+kind: SecurityContextConstraints
+metadata:
+  name: catalytic-restricted-scc
+  labels:
+    app.kubernetes.io/name: catalytic-computing
+    app.kubernetes.io/component: security
+allowHostDirVolumePlugin: false
+allowHostIPC: false
+allowHostNetwork: false
+allowHostPID: false
+allowHostPorts: false
+allowPrivileged: false
+allowPrivilegeEscalation: false
+allowedCapabilities: []
+defaultAddCapabilities: []
+requiredDropCapabilities:
+- ALL
+fsGroup:
+  type: MustRunAs
+  ranges:
+  - min: 1
+    max: 65535
+readOnlyRootFilesystem: true
+runAsUser:
+  type: MustRunAsNonRoot
+seLinuxContext:
+  type: RunAsAny
+volumes:
+- configMap
+- downwardAPI
+- emptyDir
+- persistentVolumeClaim
+- projected
+- secret

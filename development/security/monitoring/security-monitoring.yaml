@@ -1,0 +1,579 @@
+# Security Monitoring and Alerting Configuration
+# Implements comprehensive security event monitoring, alerting, and incident response
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: falco-security-monitor
+  namespace: catalytic-system
+  labels:
+    app.kubernetes.io/name: falco
+    app.kubernetes.io/component: security-monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: falco
+  template:
+    metadata:
+      labels:
+        app: falco
+        security.catalytic.io/monitor: "true"
+    spec:
+      serviceAccountName: catalytic-security-sa
+      securityContext:
+        runAsNonRoot: false  # Falco requires privileged access for kernel monitoring
+        fsGroup: 2000
+      containers:
+      - name: falco
+        image: falcosecurity/falco:0.36.2
+        securityContext:
+          privileged: true  # Required for kernel access
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        env:
+        - name: FALCO_GRPC_ENABLED
+          value: "true"
+        - name: FALCO_GRPC_BIND_ADDRESS
+          value: "0.0.0.0:5060"
+        - name: FALCO_K8S_AUDIT_ENDPOINT
+          value: "http://localhost:8765/k8s-audit"
+        volumeMounts:
+        - name: falco-config
+          mountPath: /etc/falco
+          readOnly: true
+        - name: falco-rules
+          mountPath: /etc/falco/rules.d
+          readOnly: true
+        - name: dev
+          mountPath: /host/dev
+          readOnly: true
+        - name: proc
+          mountPath: /host/proc
+          readOnly: true
+        - name: boot
+          mountPath: /host/boot
+          readOnly: true
+        - name: lib-modules
+          mountPath: /host/lib/modules
+          readOnly: true
+        - name: usr
+          mountPath: /host/usr
+          readOnly: true
+        - name: etc
+          mountPath: /host/etc
+          readOnly: true
+        ports:
+        - containerPort: 8765
+          name: http
+        - containerPort: 5060
+          name: grpc
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8765
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8765
+          initialDelaySeconds: 30
+          periodSeconds: 10
+      volumes:
+      - name: falco-config
+        configMap:
+          name: falco-config
+      - name: falco-rules
+        configMap:
+          name: falco-rules
+      - name: dev
+        hostPath:
+          path: /dev
+      - name: proc
+        hostPath:
+          path: /proc
+      - name: boot
+        hostPath:
+          path: /boot
+      - name: lib-modules
+        hostPath:
+          path: /lib/modules
+      - name: usr
+        hostPath:
+          path: /usr
+      - name: etc
+        hostPath:
+          path: /etc
+      hostNetwork: false
+      hostPID: true
+      hostIPC: false
+
+---
+# Falco Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: falco-config
+  namespace: catalytic-system
+  labels:
+    app.kubernetes.io/name: falco
+    app.kubernetes.io/component: config
+data:
+  falco.yaml: |
+    rules_file:
+      - /etc/falco/falco_rules.yaml
+      - /etc/falco/falco_rules.local.yaml
+      - /etc/falco/rules.d/catalytic_rules.yaml
+    
+    time_format_iso_8601: true
+    json_output: true
+    json_include_output_property: true
+    json_include_tags_property: true
+    
+    priority: debug
+    
+    buffered_outputs: false
+    
+    syscall_event_drops:
+      actions:
+        - log
+        - alert
+      rate: 0.03333
+      max_burst: 10
+    
+    outputs:
+      rate: 1
+      max_burst: 1000
+    
+    syslog_output:
+      enabled: false
+    
+    file_output:
+      enabled: false
+    
+    stdout_output:
+      enabled: true
+    
+    webserver:
+      enabled: true
+      listen_port: 8765
+      k8s_audit_endpoint: /k8s-audit
+      ssl_enabled: false
+      ssl_certificate: /etc/ssl/certs/falco.crt
+    
+    grpc:
+      enabled: true
+      bind_address: "0.0.0.0:5060"
+      threadiness: 8
+    
+    grpc_output:
+      enabled: false
+
+---
+# Custom Falco Rules for Catalytic Computing
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: falco-rules
+  namespace: catalytic-system
+  labels:
+    app.kubernetes.io/name: falco
+    app.kubernetes.io/component: rules
+data:
+  catalytic_rules.yaml: |
+    # Custom security rules for Catalytic Computing platform
+    
+    - rule: Suspicious Database Access
+      desc: Detect unusual database access patterns
+      condition: >
+        spawned_process and
+        proc.name in (psql, mysql, sqlite3) and
+        not container.image.repository contains "postgres" and
+        not container.image.repository contains "mysql"
+      output: >
+        Suspicious database client access detected
+        (user=%user.name container=%container.name image=%container.image.repository 
+         command=%proc.cmdline)
+      priority: WARNING
+      tags: [database, access_control]
+    
+    - rule: Cryptocurrency Mining Activity
+      desc: Detect potential cryptocurrency mining
+      condition: >
+        spawned_process and
+        (proc.name in (xmrig, cpuminer, cgminer, bfgminer, ethminer) or
+         proc.cmdline contains "stratum" or
+         proc.cmdline contains "mining" or
+         proc.cmdline contains "hashrate")
+      output: >
+        Potential cryptocurrency mining detected
+        (user=%user.name container=%container.name command=%proc.cmdline)
+      priority: CRITICAL
+      tags: [cryptocurrency, malware]
+    
+    - rule: Sensitive File Access in Catalytic
+      desc: Monitor access to sensitive configuration files
+      condition: >
+        open_read and
+        fd.name in (/etc/passwd, /etc/shadow, /etc/hosts, /root/.ssh/authorized_keys) and
+        container.name startswith "catalytic"
+      output: >
+        Sensitive file accessed in Catalytic container
+        (user=%user.name container=%container.name file=%fd.name)
+      priority: WARNING
+      tags: [filesystem, sensitive_files]
+    
+    - rule: Unauthorized Network Connection
+      desc: Detect unauthorized outbound connections from API containers
+      condition: >
+        outbound_connection and
+        container.name startswith "catalytic" and
+        not fd.sip in (CLUSTER_IP_RANGES) and
+        not fd.sport in (80, 443, 5432, 6379) and
+        not fd.sip in ("127.0.0.1", "::1")
+      output: >
+        Unauthorized outbound connection from Catalytic container
+        (container=%container.name dest=%fd.sip:%fd.sport)
+      priority: WARNING
+      tags: [network, unauthorized_access]
+    
+    - rule: Privilege Escalation Attempt
+      desc: Detect attempts to escalate privileges
+      condition: >
+        spawned_process and
+        (proc.name in (sudo, su, pkexec) or
+         proc.cmdline contains "chmod +s" or
+         proc.cmdline contains "setuid")
+      output: >
+        Privilege escalation attempt detected
+        (user=%user.name container=%container.name command=%proc.cmdline)
+      priority: HIGH
+      tags: [privilege_escalation, security]
+    
+    - rule: Container Escape Attempt
+      desc: Detect potential container escape attempts
+      condition: >
+        spawned_process and
+        (proc.cmdline contains "/proc/1/root" or
+         proc.cmdline contains "nsenter" or
+         proc.cmdline contains "docker.sock" or
+         proc.cmdline contains "runc")
+      output: >
+        Potential container escape attempt
+        (user=%user.name container=%container.name command=%proc.cmdline)
+      priority: CRITICAL
+      tags: [container_escape, critical_security]
+    
+    - rule: Suspicious API Access Pattern
+      desc: Detect unusual API access patterns
+      condition: >
+        k8s_audit and
+        ka.target.namespace="catalytic-system" and
+        ka.verb in (create, update, delete) and
+        ka.target.resource="secrets" and
+        not ka.user.name in (system:serviceaccount:catalytic-system:catalytic-api-sa,
+                            system:serviceaccount:catalytic-system:catalytic-saas-sa)
+      output: >
+        Unauthorized secret access in Catalytic namespace
+        (user=%ka.user.name verb=%ka.verb resource=%ka.target.resource)
+      priority: HIGH
+      tags: [kubernetes, secrets, unauthorized_access]
+
+---
+# Security Event Exporter for Prometheus
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: security-event-exporter
+  namespace: catalytic-system
+  labels:
+    app.kubernetes.io/name: security-exporter
+    app.kubernetes.io/component: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: security-exporter
+  template:
+    metadata:
+      labels:
+        app: security-exporter
+    spec:
+      serviceAccountName: catalytic-monitoring-sa
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 2000
+      containers:
+      - name: security-exporter
+        image: catalytic-security-exporter:latest
+        ports:
+        - containerPort: 9090
+          name: metrics
+        env:
+        - name: FALCO_GRPC_ENDPOINT
+          value: "falco-security-monitor:5060"
+        - name: METRICS_PORT
+          value: "9090"
+        - name: LOG_LEVEL
+          value: "INFO"
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 9090
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 9090
+          initialDelaySeconds: 5
+          periodSeconds: 10
+
+---
+# Service for Falco
+apiVersion: v1
+kind: Service
+metadata:
+  name: falco-security-monitor
+  namespace: catalytic-system
+  labels:
+    app.kubernetes.io/name: falco
+    app.kubernetes.io/component: security-monitoring
+spec:
+  selector:
+    app: falco
+  ports:
+  - name: http
+    port: 8765
+    targetPort: 8765
+  - name: grpc
+    port: 5060
+    targetPort: 5060
+
+---
+# Service for Security Exporter
+apiVersion: v1
+kind: Service
+metadata:
+  name: security-event-exporter
+  namespace: catalytic-system
+  labels:
+    app.kubernetes.io/name: security-exporter
+    app.kubernetes.io/component: monitoring
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9090"
+    prometheus.io/path: "/metrics"
+spec:
+  selector:
+    app: security-exporter
+  ports:
+  - name: metrics
+    port: 9090
+    targetPort: 9090
+
+---
+# PrometheusRule for Security Alerts
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: catalytic-security-alerts
+  namespace: catalytic-system
+  labels:
+    app.kubernetes.io/name: catalytic-computing
+    app.kubernetes.io/component: security-alerts
+    prometheus: kube-prometheus
+    role: alert-rules
+spec:
+  groups:
+  - name: catalytic-security
+    rules:
+    - alert: CriticalSecurityEvent
+      expr: increase(falco_events{priority="Critical"}[5m]) > 0
+      for: 0m
+      labels:
+        severity: critical
+        component: security
+      annotations:
+        summary: "Critical security event detected"
+        description: "Falco detected a critical security event: {{ $labels.rule }}"
+        runbook_url: "https://docs.catalytic-computing.com/security/runbooks/critical-events"
+    
+    - alert: HighVolumeSecurityEvents
+      expr: rate(falco_events[5m]) > 10
+      for: 2m
+      labels:
+        severity: warning
+        component: security
+      annotations:
+        summary: "High volume of security events"
+        description: "Security event rate is {{ $value }} events/second"
+    
+    - alert: ContainerEscapeAttempt
+      expr: increase(falco_events{rule="Container Escape Attempt"}[1m]) > 0
+      for: 0m
+      labels:
+        severity: critical
+        component: security
+        incident_type: container_escape
+      annotations:
+        summary: "Container escape attempt detected"
+        description: "Potential container escape detected in {{ $labels.container }}"
+        action_required: "immediate_investigation"
+    
+    - alert: UnauthorizedSecretAccess
+      expr: increase(falco_events{rule="Suspicious API Access Pattern"}[1m]) > 0
+      for: 0m
+      labels:
+        severity: high
+        component: security
+        incident_type: unauthorized_access
+      annotations:
+        summary: "Unauthorized secret access"
+        description: "Unauthorized access to secrets detected"
+    
+    - alert: PotentialCryptomining
+      expr: increase(falco_events{rule="Cryptocurrency Mining Activity"}[1m]) > 0
+      for: 0m
+      labels:
+        severity: critical
+        component: security
+        incident_type: malware
+      annotations:
+        summary: "Potential cryptocurrency mining detected"
+        description: "Cryptocurrency mining activity detected in container {{ $labels.container }}"
+    
+    - alert: SecurityMonitoringDown
+      expr: up{job="security-event-exporter"} == 0
+      for: 1m
+      labels:
+        severity: warning
+        component: monitoring
+      annotations:
+        summary: "Security monitoring is down"
+        description: "Security event exporter is not responding"
+    
+    - alert: FalcoDown
+      expr: up{job="falco"} == 0
+      for: 1m
+      labels:
+        severity: critical
+        component: security
+      annotations:
+        summary: "Falco security monitoring is down"
+        description: "Falco security monitoring system is not responding"
+
+---
+# AlertManager Configuration for Security Incidents
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alertmanager-security-config
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: alertmanager
+    app.kubernetes.io/component: security-alerts
+data:
+  security-routes.yml: |
+    route:
+      group_by: ['alertname', 'cluster', 'service']
+      group_wait: 10s
+      group_interval: 10s
+      repeat_interval: 1h
+      receiver: 'security-team'
+      routes:
+      - match:
+          severity: critical
+          component: security
+        receiver: 'security-critical'
+        group_wait: 0s
+        repeat_interval: 5m
+      - match:
+          incident_type: container_escape
+        receiver: 'security-incident-response'
+        group_wait: 0s
+      - match:
+          incident_type: unauthorized_access
+        receiver: 'security-access-team'
+      - match:
+          incident_type: malware
+        receiver: 'security-malware-team'
+    
+    receivers:
+    - name: 'security-team'
+      slack_configs:
+      - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+        channel: '#security-alerts'
+        title: 'Security Alert - {{ .GroupLabels.alertname }}'
+        text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+        color: 'warning'
+    
+    - name: 'security-critical'
+      slack_configs:
+      - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+        channel: '#security-critical'
+        title: 'CRITICAL Security Event'
+        text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+        color: 'danger'
+      pagerduty_configs:
+      - routing_key: 'YOUR_PAGERDUTY_INTEGRATION_KEY'
+        severity: 'critical'
+        description: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+    
+    - name: 'security-incident-response'
+      slack_configs:
+      - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+        channel: '#incident-response'
+        title: 'SECURITY INCIDENT - Immediate Action Required'
+        text: |
+          🚨 SECURITY INCIDENT DETECTED 🚨
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Container: {{ .Labels.container }}
+          Action: {{ .Annotations.action_required }}
+          {{ end }}
+        color: 'danger'
+      webhook_configs:
+      - url: 'https://api.catalytic-computing.com/security/incident'
+        send_resolved: false
+    
+    - name: 'security-access-team'
+      email_configs:
+      - to: 'security-access@catalytic-computing.com'
+        subject: 'Unauthorized Access Alert'
+        body: |
+          Unauthorized access detected:
+          {{ range .Alerts }}
+          {{ .Annotations.description }}
+          {{ end }}
+    
+    - name: 'security-malware-team'
+      email_configs:
+      - to: 'security-malware@catalytic-computing.com'
+        subject: 'Malware Detection Alert'
+        body: |
+          Potential malware activity detected:
+          {{ range .Alerts }}
+          {{ .Annotations.description }}
+          {{ end }}

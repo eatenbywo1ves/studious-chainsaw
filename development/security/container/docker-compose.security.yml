@@ -1,0 +1,251 @@
+# Security-Hardened Docker Compose Configuration
+# Enhanced security features for production deployment
+# Use: docker compose -f docker-compose.yml -f security/container/docker-compose.security.yml --profile secure up
+
+version: '3.8'
+
+services:
+  # ============================================================================
+  # HARDENED CORE SERVICES
+  # ============================================================================
+
+  catalytic-api:
+    build:
+      context: .
+      dockerfile: security/container/Dockerfile.catalytic.hardened
+    security_opt:
+      - no-new-privileges:true
+      - apparmor:docker-default
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=100m
+      - /app/cache:noexec,nosuid,size=500m
+    ulimits:
+      nproc: 1024
+      nofile: 65536
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=0
+    user: "65534:65534"  # nobody:nobody
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - SECURE_SSL_REDIRECT=true
+      - SECURE_HSTS_SECONDS=31536000
+      - SECURE_CONTENT_TYPE_NOSNIFF=true
+      - SECURE_BROWSER_XSS_FILTER=true
+      - SECURE_REFERRER_POLICY=strict-origin-when-cross-origin
+    volumes:
+      - type: tmpfs
+        target: /app/logs
+        tmpfs:
+          size: 100m
+      - type: tmpfs
+        target: /app/data
+        tmpfs:
+          size: 100m
+    profiles: ["secure", "production"]
+
+  saas-api:
+    build:
+      context: .
+      dockerfile: security/container/Dockerfile.saas.hardened
+    security_opt:
+      - no-new-privileges:true
+      - apparmor:docker-default
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=100m
+      - /app/.next/cache:noexec,nosuid,size=200m
+    ulimits:
+      nproc: 512
+      nofile: 32768
+    user: "1001:1001"  # nextjs:nodejs
+    environment:
+      - NODE_ENV=production
+      - NEXT_TELEMETRY_DISABLED=1
+      - SECURE_COOKIES=true
+      - CSRF_PROTECTION=true
+      - RATE_LIMIT_ENABLED=true
+    profiles: ["secure", "production"]
+
+  postgres:
+    image: postgres:15-alpine
+    security_opt:
+      - no-new-privileges:true
+      - apparmor:docker-default
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=100m
+      - /var/run/postgresql:noexec,nosuid,size=10m
+    ulimits:
+      nproc: 512
+      nofile: 16384
+    user: "70:70"  # postgres:postgres
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-catalytic_saas}
+      - POSTGRES_USER=${POSTGRES_USER:-catalytic}
+      - POSTGRES_PASSWORD_FILE=/run/secrets/postgres_password
+      - POSTGRES_INITDB_ARGS="--encoding=UTF8 --locale=en_US.UTF-8 --data-checksums"
+      - POSTGRES_LOG_STATEMENT=ddl
+      - POSTGRES_LOG_MIN_DURATION_STATEMENT=1000
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - type: tmpfs
+        target: /var/lib/postgresql/data/pg_wal
+        tmpfs:
+          size: 100m
+    secrets:
+      - postgres_password
+    profiles: ["secure", "production"]
+
+  redis:
+    image: redis:7-alpine
+    security_opt:
+      - no-new-privileges:true
+      - apparmor:docker-default
+    cap_drop:
+      - ALL
+    cap_add:
+      - SETGID
+      - SETUID
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=50m
+    ulimits:
+      nproc: 256
+      nofile: 8192
+    user: "999:999"  # redis:redis
+    command: >
+      redis-server 
+      --appendonly yes 
+      --maxmemory 256mb 
+      --maxmemory-policy allkeys-lru
+      --requirepass ${REDIS_PASSWORD}
+      --rename-command FLUSHDB ""
+      --rename-command FLUSHALL ""
+      --rename-command DEBUG ""
+      --rename-command CONFIG ""
+      --rename-command SHUTDOWN SHUTDOWN_SECURE
+    volumes:
+      - redis_data:/data
+    profiles: ["secure", "production"]
+
+  # ============================================================================
+  # SECURITY SERVICES
+  # ============================================================================
+
+  # Container security scanner
+  trivy-scanner:
+    image: aquasec/trivy:latest
+    container_name: catalytic-security-scanner
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=500m
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - trivy_cache:/root/.cache/trivy
+      - ./security/reports:/reports
+    command: >
+      sh -c "
+        trivy image --format json --output /reports/catalytic-api-scan.json catalytic-computing:latest &&
+        trivy image --format json --output /reports/saas-api-scan.json catalytic-saas:latest &&
+        trivy image --format json --output /reports/postgres-scan.json postgres:15-alpine &&
+        trivy image --format json --output /reports/redis-scan.json redis:7-alpine
+      "
+    profiles: ["security-scan"]
+
+  # Network security monitoring
+  falco:
+    image: falcosecurity/falco-no-driver:latest
+    container_name: catalytic-falco
+    security_opt:
+      - apparmor:unconfined
+    cap_add:
+      - SYS_ADMIN
+      - SYS_RESOURCE
+      - SYS_PTRACE
+    pid: host
+    volumes:
+      - /var/run/docker.sock:/host/var/run/docker.sock:ro
+      - /dev:/host/dev:ro
+      - /proc:/host/proc:ro:rprivate
+      - /boot:/host/boot:ro
+      - /lib/modules:/host/lib/modules:ro
+      - /usr:/host/usr:ro
+      - /etc:/host/etc:ro
+      - ./security/falco/falco.yaml:/etc/falco/falco.yaml:ro
+      - ./security/falco/rules:/etc/falco/rules:ro
+    profiles: ["security-monitoring"]
+
+# ============================================================================
+# SECURITY SECRETS
+# ============================================================================
+
+secrets:
+  postgres_password:
+    file: ./security/secrets/postgres_password.txt
+  jwt_private_key:
+    file: ./security/secrets/jwt_private_key.pem
+  jwt_public_key:
+    file: ./security/secrets/jwt_public_key.pem
+  redis_password:
+    file: ./security/secrets/redis_password.txt
+
+# ============================================================================
+# SECURITY VOLUMES
+# ============================================================================
+
+volumes:
+  trivy_cache:
+    driver: local
+    driver_opts:
+      type: tmpfs
+      device: tmpfs
+  postgres_data:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: ./security/data/postgres
+  redis_data:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: ./security/data/redis
+
+# ============================================================================
+# SECURITY NETWORKS
+# ============================================================================
+
+networks:
+  catalytic-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+    driver_opts:
+      com.docker.network.bridge.name: catalytic-sec
+      com.docker.network.bridge.enable_icc: "false"
+      com.docker.network.bridge.enable_ip_masquerade: "true"
+      com.docker.network.driver.mtu: 1450

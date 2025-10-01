@@ -1,0 +1,434 @@
+# Kubernetes RBAC Security Policies
+# Implements principle of least privilege for all service accounts
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: catalytic-system
+  labels:
+    app.kubernetes.io/name: catalytic-computing
+    security.catalytic.io/level: "restricted"
+    network-policy: "enabled"
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+  labels:
+    app.kubernetes.io/name: catalytic-monitoring
+    security.catalytic.io/level: "monitoring"
+    network-policy: "enabled"
+
+---
+# Service Account for Catalytic API with minimal permissions
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: catalytic-api-sa
+  namespace: catalytic-system
+  labels:
+    app.kubernetes.io/name: catalytic-computing
+    app.kubernetes.io/component: api
+automountServiceAccountToken: true
+
+---
+# Role for API service - very limited permissions
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: catalytic-api-role
+  namespace: catalytic-system
+  labels:
+    app.kubernetes.io/name: catalytic-computing
+    app.kubernetes.io/component: api
+rules:
+# Only allow reading own pod info for health checks
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get"]
+  resourceNames: []
+# Allow reading config maps for configuration
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list"]
+  resourceNames: ["catalytic-config", "catalytic-api-config"]
+# Allow reading secrets for database credentials
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get"]
+  resourceNames: ["catalytic-db-secret", "catalytic-api-secret"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: catalytic-api-binding
+  namespace: catalytic-system
+  labels:
+    app.kubernetes.io/name: catalytic-computing
+    app.kubernetes.io/component: api
+subjects:
+- kind: ServiceAccount
+  name: catalytic-api-sa
+  namespace: catalytic-system
+roleRef:
+  kind: Role
+  name: catalytic-api-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# Service Account for SaaS API
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: catalytic-saas-sa
+  namespace: catalytic-system
+  labels:
+    app.kubernetes.io/name: catalytic-computing
+    app.kubernetes.io/component: saas
+automountServiceAccountToken: true
+
+---
+# Role for SaaS service
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: catalytic-saas-role
+  namespace: catalytic-system
+  labels:
+    app.kubernetes.io/name: catalytic-computing
+    app.kubernetes.io/component: saas
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get"]
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list"]
+  resourceNames: ["catalytic-config", "catalytic-saas-config"]
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get"]
+  resourceNames: ["catalytic-db-secret", "catalytic-saas-secret", "stripe-secret", "jwt-secret"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: catalytic-saas-binding
+  namespace: catalytic-system
+  labels:
+    app.kubernetes.io/name: catalytic-computing
+    app.kubernetes.io/component: saas
+subjects:
+- kind: ServiceAccount
+  name: catalytic-saas-sa
+  namespace: catalytic-system
+roleRef:
+  kind: Role
+  name: catalytic-saas-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# Service Account for Webhook System
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: catalytic-webhook-sa
+  namespace: catalytic-system
+  labels:
+    app.kubernetes.io/name: catalytic-computing
+    app.kubernetes.io/component: webhook
+automountServiceAccountToken: true
+
+---
+# Role for Webhook system - minimal permissions
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: catalytic-webhook-role
+  namespace: catalytic-system
+  labels:
+    app.kubernetes.io/name: catalytic-computing
+    app.kubernetes.io/component: webhook
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get"]
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list"]
+  resourceNames: ["catalytic-webhook-config"]
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get"]
+  resourceNames: ["webhook-secret", "stripe-webhook-secret"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: catalytic-webhook-binding
+  namespace: catalytic-system
+  labels:
+    app.kubernetes.io/name: catalytic-computing
+    app.kubernetes.io/component: webhook
+subjects:
+- kind: ServiceAccount
+  name: catalytic-webhook-sa
+  namespace: catalytic-system
+roleRef:
+  kind: Role
+  name: catalytic-webhook-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# Service Account for Database
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: catalytic-db-sa
+  namespace: catalytic-system
+  labels:
+    app.kubernetes.io/name: catalytic-computing
+    app.kubernetes.io/component: database
+automountServiceAccountToken: false  # Database doesn't need K8s API access
+
+---
+# Service Account for Redis
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: catalytic-redis-sa
+  namespace: catalytic-system
+  labels:
+    app.kubernetes.io/name: catalytic-computing
+    app.kubernetes.io/component: cache
+automountServiceAccountToken: false  # Redis doesn't need K8s API access
+
+---
+# Service Account for Monitoring
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: catalytic-monitoring-sa
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: catalytic-monitoring
+    app.kubernetes.io/component: monitoring
+automountServiceAccountToken: true
+
+---
+# ClusterRole for monitoring - read access to metrics
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: catalytic-monitoring-role
+  labels:
+    app.kubernetes.io/name: catalytic-monitoring
+    app.kubernetes.io/component: monitoring
+rules:
+# Read access to nodes and pods for monitoring
+- apiGroups: [""]
+  resources: ["nodes", "nodes/metrics", "pods", "endpoints", "services"]
+  verbs: ["get", "list", "watch"]
+# Read access to deployments and replica sets
+- apiGroups: ["apps"]
+  resources: ["deployments", "replicasets"]
+  verbs: ["get", "list", "watch"]
+# Read access to ingresses
+- apiGroups: ["networking.k8s.io"]
+  resources: ["ingresses"]
+  verbs: ["get", "list", "watch"]
+# Non-resource URLs for metrics
+- nonResourceURLs: ["/metrics", "/metrics/*"]
+  verbs: ["get"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: catalytic-monitoring-binding
+  labels:
+    app.kubernetes.io/name: catalytic-monitoring
+    app.kubernetes.io/component: monitoring
+subjects:
+- kind: ServiceAccount
+  name: catalytic-monitoring-sa
+  namespace: monitoring
+roleRef:
+  kind: ClusterRole
+  name: catalytic-monitoring-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# Service Account for Security Scanner
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: catalytic-security-sa
+  namespace: catalytic-system
+  labels:
+    app.kubernetes.io/name: catalytic-computing
+    app.kubernetes.io/component: security
+automountServiceAccountToken: true
+
+---
+# Role for Security Scanner - limited to security functions
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: catalytic-security-role
+  labels:
+    app.kubernetes.io/name: catalytic-computing
+    app.kubernetes.io/component: security
+rules:
+# Read access to pods and containers for security scanning
+- apiGroups: [""]
+  resources: ["pods", "pods/log"]
+  verbs: ["get", "list"]
+# Read access to deployments for image scanning
+- apiGroups: ["apps"]
+  resources: ["deployments", "replicasets", "daemonsets"]
+  verbs: ["get", "list"]
+# Read access to network policies for compliance
+- apiGroups: ["networking.k8s.io"]
+  resources: ["networkpolicies"]
+  verbs: ["get", "list"]
+# Read access to security policies
+- apiGroups: ["policy"]
+  resources: ["podsecuritypolicies"]
+  verbs: ["get", "list"]
+# Read access to RBAC for auditing
+- apiGroups: ["rbac.authorization.k8s.io"]
+  resources: ["roles", "rolebindings", "clusterroles", "clusterrolebindings"]
+  verbs: ["get", "list"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: catalytic-security-binding
+  labels:
+    app.kubernetes.io/name: catalytic-computing
+    app.kubernetes.io/component: security
+subjects:
+- kind: ServiceAccount
+  name: catalytic-security-sa
+  namespace: catalytic-system
+roleRef:
+  kind: ClusterRole
+  name: catalytic-security-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# Deny all default service account access
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: deny-default-sa
+  namespace: catalytic-system
+  labels:
+    app.kubernetes.io/name: catalytic-computing
+    app.kubernetes.io/component: security
+rules: []  # No permissions
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: deny-default-sa-binding
+  namespace: catalytic-system
+  labels:
+    app.kubernetes.io/name: catalytic-computing
+    app.kubernetes.io/component: security
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: catalytic-system
+roleRef:
+  kind: Role
+  name: deny-default-sa
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# Resource Quotas for security
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: catalytic-compute-quota
+  namespace: catalytic-system
+  labels:
+    app.kubernetes.io/name: catalytic-computing
+    app.kubernetes.io/component: security
+spec:
+  hard:
+    requests.cpu: "4000m"      # 4 CPU cores max
+    requests.memory: "8Gi"     # 8GB memory max
+    limits.cpu: "8000m"        # 8 CPU cores max burst
+    limits.memory: "16Gi"      # 16GB memory max burst
+    persistentvolumeclaims: "10"
+    services: "10"
+    secrets: "20"
+    configmaps: "20"
+    count/deployments.apps: "10"
+    count/pods: "50"
+
+---
+# Limit Ranges for pods
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: catalytic-limits
+  namespace: catalytic-system
+  labels:
+    app.kubernetes.io/name: catalytic-computing
+    app.kubernetes.io/component: security
+spec:
+  limits:
+  - default:
+      cpu: "500m"
+      memory: "512Mi"
+    defaultRequest:
+      cpu: "100m"
+      memory: "128Mi"
+    max:
+      cpu: "2000m"
+      memory: "4Gi"
+    min:
+      cpu: "50m"
+      memory: "64Mi"
+    type: Container
+  - default:
+      storage: "10Gi"
+    max:
+      storage: "100Gi"
+    min:
+      storage: "1Gi"
+    type: PersistentVolumeClaim
+
+---
+# Admission Controller Webhook Configuration
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionWebhook
+metadata:
+  name: catalytic-security-validation
+  labels:
+    app.kubernetes.io/name: catalytic-computing
+    app.kubernetes.io/component: security
+webhooks:
+- name: pod-security.catalytic.io
+  clientConfig:
+    service:
+      name: catalytic-admission-controller
+      namespace: catalytic-system
+      path: "/validate-pods"
+  rules:
+  - operations: ["CREATE", "UPDATE"]
+    apiGroups: [""]
+    apiVersions: ["v1"]
+    resources: ["pods"]
+  admissionReviewVersions: ["v1", "v1beta1"]
+  sideEffects: None
+  failurePolicy: Fail

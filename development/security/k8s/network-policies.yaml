@@ -1,0 +1,477 @@
+# Kubernetes Network Security Policies
+# Implements zero-trust network security with micro-segmentation
+
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: catalytic-default-deny-all
+  namespace: catalytic-system
+  labels:
+    app.kubernetes.io/name: catalytic-computing
+    app.kubernetes.io/component: network-security
+spec:
+  podSelector: {}  # Apply to all pods in namespace
+  policyTypes:
+  - Ingress
+  - Egress
+  # Default deny all ingress and egress
+
+---
+# Allow ingress to API services from ingress controller
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: catalytic-api-ingress
+  namespace: catalytic-system
+  labels:
+    app.kubernetes.io/name: catalytic-computing
+    app.kubernetes.io/component: api
+spec:
+  podSelector:
+    matchLabels:
+      app: catalytic-api
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    # Allow from ingress controller
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+    # Allow from monitoring namespace
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    # Allow from same namespace (for service mesh)
+    - namespaceSelector:
+        matchLabels:
+          name: catalytic-system
+    ports:
+    - protocol: TCP
+      port: 8080
+    - protocol: TCP
+      port: 8082  # Metrics port
+
+---
+# Allow egress from API to database and cache
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: catalytic-api-egress
+  namespace: catalytic-system
+  labels:
+    app.kubernetes.io/name: catalytic-computing
+    app.kubernetes.io/component: api
+spec:
+  podSelector:
+    matchLabels:
+      app: catalytic-api
+  policyTypes:
+  - Egress
+  egress:
+  # Allow to database
+  - to:
+    - podSelector:
+        matchLabels:
+          app: postgres
+    ports:
+    - protocol: TCP
+      port: 5432
+  # Allow to Redis
+  - to:
+    - podSelector:
+        matchLabels:
+          app: redis
+    ports:
+    - protocol: TCP
+      port: 6379
+  # Allow to external APIs (with restrictions)
+  - to: []  # Any destination
+    ports:
+    - protocol: TCP
+      port: 443  # HTTPS only
+  # DNS resolution
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+      podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+
+---
+# SaaS API network policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: catalytic-saas-ingress
+  namespace: catalytic-system
+  labels:
+    app.kubernetes.io/name: catalytic-computing
+    app.kubernetes.io/component: saas
+spec:
+  podSelector:
+    matchLabels:
+      app: catalytic-saas
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 8000
+    - protocol: TCP
+      port: 8001  # Metrics
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: catalytic-saas-egress
+  namespace: catalytic-system
+  labels:
+    app.kubernetes.io/name: catalytic-computing
+    app.kubernetes.io/component: saas
+spec:
+  podSelector:
+    matchLabels:
+      app: catalytic-saas
+  policyTypes:
+  - Egress
+  egress:
+  # Database access
+  - to:
+    - podSelector:
+        matchLabels:
+          app: postgres
+    ports:
+    - protocol: TCP
+      port: 5432
+  # Redis access
+  - to:
+    - podSelector:
+        matchLabels:
+          app: redis
+    ports:
+    - protocol: TCP
+      port: 6379
+  # Catalytic API access
+  - to:
+    - podSelector:
+        matchLabels:
+          app: catalytic-api
+    ports:
+    - protocol: TCP
+      port: 8080
+  # External APIs (Stripe, email services)
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+  # DNS
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+      podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    ports:
+    - protocol: UDP
+      port: 53
+
+---
+# Database network policy - very restrictive
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: catalytic-postgres-ingress
+  namespace: catalytic-system
+  labels:
+    app.kubernetes.io/name: catalytic-computing
+    app.kubernetes.io/component: database
+spec:
+  podSelector:
+    matchLabels:
+      app: postgres
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Only allow from application pods
+  - from:
+    - podSelector:
+        matchLabels:
+          app: catalytic-api
+    - podSelector:
+        matchLabels:
+          app: catalytic-saas
+    # Allow monitoring
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 5432
+  egress:
+  # DNS only
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+      podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    ports:
+    - protocol: UDP
+      port: 53
+
+---
+# Redis network policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: catalytic-redis-ingress
+  namespace: catalytic-system
+  labels:
+    app.kubernetes.io/name: catalytic-computing
+    app.kubernetes.io/component: cache
+spec:
+  podSelector:
+    matchLabels:
+      app: redis
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: catalytic-api
+    - podSelector:
+        matchLabels:
+          app: catalytic-saas
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 6379
+  egress:
+  # DNS only
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+      podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    ports:
+    - protocol: UDP
+      port: 53
+
+---
+# Monitoring ingress policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: monitoring-ingress
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: catalytic-computing
+    app.kubernetes.io/component: monitoring
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  ingress:
+  # Allow from ingress controller
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+    ports:
+    - protocol: TCP
+      port: 3000  # Grafana
+    - protocol: TCP
+      port: 9090  # Prometheus
+  # Allow internal monitoring traffic
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 3000
+    - protocol: TCP
+      port: 9090
+
+---
+# Monitoring egress policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: monitoring-egress
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: catalytic-computing
+    app.kubernetes.io/component: monitoring
+spec:
+  podSelector: {}
+  policyTypes:
+  - Egress
+  egress:
+  # Allow scraping metrics from all namespaces
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 8080
+    - protocol: TCP
+      port: 8082
+    - protocol: TCP
+      port: 8001
+    - protocol: TCP
+      port: 9090
+    - protocol: TCP
+      port: 3000
+  # DNS
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+      podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    ports:
+    - protocol: UDP
+      port: 53
+
+---
+# Webhook network policy - external access required
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: catalytic-webhook-ingress
+  namespace: catalytic-system
+  labels:
+    app.kubernetes.io/name: catalytic-computing
+    app.kubernetes.io/component: webhook
+spec:
+  podSelector:
+    matchLabels:
+      app: catalytic-webhook
+  policyTypes:
+  - Ingress
+  ingress:
+  # Allow from external (Stripe webhooks, etc.)
+  - from: []  # Allow from anywhere (webhooks come from external)
+    ports:
+    - protocol: TCP
+      port: 8000
+  # Monitoring
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 9090  # Metrics
+
+---
+# Egress policy for webhook system
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: catalytic-webhook-egress
+  namespace: catalytic-system
+  labels:
+    app.kubernetes.io/name: catalytic-computing
+    app.kubernetes.io/component: webhook
+spec:
+  podSelector:
+    matchLabels:
+      app: catalytic-webhook
+  policyTypes:
+  - Egress
+  egress:
+  # Database access
+  - to:
+    - podSelector:
+        matchLabels:
+          app: postgres
+    ports:
+    - protocol: TCP
+      port: 5432
+  # API access for processing webhooks
+  - to:
+    - podSelector:
+        matchLabels:
+          app: catalytic-saas
+    ports:
+    - protocol: TCP
+      port: 8000
+  # External services (email, notifications)
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+    - protocol: TCP
+      port: 587  # SMTP TLS
+    - protocol: TCP
+      port: 25   # SMTP
+  # DNS
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+      podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    ports:
+    - protocol: UDP
+      port: 53
+
+---
+# Global egress restriction for security scanning
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: security-scanner-egress
+  namespace: catalytic-system
+  labels:
+    app.kubernetes.io/name: catalytic-computing
+    app.kubernetes.io/component: security
+spec:
+  podSelector:
+    matchLabels:
+      app: security-scanner
+  policyTypes:
+  - Egress
+  egress:
+  # Only allow HTTPS to security databases
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+  # DNS
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+      podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    ports:
+    - protocol: UDP
+      port: 53

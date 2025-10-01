@@ -1,0 +1,64 @@
+# Hardened Production Dockerfile for SaaS API
+# Security Features:
+# - Non-root user execution
+# - Minimal base image
+# - Security scanning integration
+# - Secure secrets handling
+
+FROM node:18-alpine as builder
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001
+
+# Set working directory
+WORKDIR /app
+
+# Install dependencies
+COPY saas/frontend/package*.json ./
+RUN npm ci --only=production && npm cache clean --force
+
+# Build application
+COPY saas/frontend ./
+RUN npm run build
+
+# Production stage with Alpine for security
+FROM node:18-alpine as runner
+
+# Security hardening
+RUN apk add --no-cache dumb-init \
+    && addgroup -g 1001 -S nodejs \
+    && adduser -S nextjs -u 1001
+
+# Set working directory
+WORKDIR /app
+
+# Copy built application
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+
+# Security-focused environment variables
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=8000
+ENV HOSTNAME="0.0.0.0"
+
+# Security labels
+LABEL maintainer="security@catalytic-computing.com"
+LABEL security.scan="enabled"
+LABEL security.non-root="true"
+LABEL security.alpine="true"
+
+# Switch to non-root user
+USER nextjs
+
+# Expose non-privileged port
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:8000/api/health || exit 1
+
+# Run with dumb-init for proper signal handling
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["node", "server.js"]

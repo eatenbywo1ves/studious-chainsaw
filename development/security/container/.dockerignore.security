@@ -1,0 +1,106 @@
+# Security-focused .dockerignore
+# Prevents sensitive files from being included in Docker context
+
+# Development and build artifacts
+node_modules/
+.next/
+dist/
+build/
+.cache/
+.pytest_cache/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Environment and configuration files
+.env
+.env.*
+!.env.example
+.envrc
+docker-compose.override.yml
+docker-compose.local.yml
+
+# Security sensitive files
+*.key
+*.pem
+*.crt
+*.p12
+*.pfx
+*.jks
+.ssh/
+id_rsa*
+id_ed25519*
+authorized_keys
+known_hosts
+
+# Secrets and credentials
+secrets/
+keys/
+certs/
+.aws/
+.gcp/
+.azure/
+config.json
+credentials
+.netrc
+.htpasswd
+
+# Version control
+.git/
+.gitignore
+.gitattributes
+.github/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Logs and temporary files
+*.log
+logs/
+tmp/
+temp/
+.tmp/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Documentation (unless needed for runtime)
+README.md
+CHANGELOG.md
+docs/
+*.md
+
+# Test files
+test/
+tests/
+__tests__/
+*.test.js
+*.test.ts
+*.spec.js
+*.spec.ts
+coverage/
+.coverage
+.nyc_output
+
+# Package manager files
+package-lock.json
+yarn.lock
+Pipfile.lock
+poetry.lock
+requirements-dev.txt
+requirements-test.txt
