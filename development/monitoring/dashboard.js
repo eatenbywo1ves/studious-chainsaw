@@ -38,7 +38,7 @@ class MonitoringDashboard {
         this.app.get('/api/status', (req, res) => {
             const metrics = this.performanceMonitor.getMetrics(300000); // 5 minutes
             const latest = metrics.summary?.latest;
-            
+
             const status = {
                 timestamp: Date.now(),
                 overall: this.calculateOverallStatus(latest),
@@ -46,8 +46,19 @@ class MonitoringDashboard {
                 alerts: metrics.alerts.length,
                 uptime: process.uptime()
             };
-            
+
             res.json(status);
+        });
+
+        // Health check endpoint
+        this.app.get('/health', (req, res) => {
+            res.status(200).json({
+                status: 'healthy',
+                service: 'monitoring-dashboard',
+                uptime: process.uptime(),
+                timestamp: Date.now(),
+                version: '1.0.0'
+            });
         });
 
         this.app.get('/api/alerts', (req, res) => {

@@ -10,39 +10,27 @@ module.exports = {
     // Data retention period (24 hours)
     retention: 86400000,
     
-    // Services to monitor
+    // Services to monitor - KA Lattice Production
     services: [
+        {
+            name: 'monitoring-dashboard',
+            type: 'express',
+            healthUrl: 'http://localhost:3002/health',
+            port: 3002,
+            processName: 'node',
+            description: 'Monitoring Dashboard (this service)',
+            enabled: true
+        },
+        // Uncomment services below when they are deployed:
+        /*
         {
             name: 'webhook-audio-tracker',
             type: 'express',
             healthUrl: 'http://localhost:3000/health',
             port: 3000,
             processName: 'node',
-            description: 'Webhook Audio Tracker MCP Server'
-        },
-        {
-            name: 'js-executor',
-            type: 'mcp',
-            processName: 'node',
-            description: 'JavaScript Executor MCP Server'
-        },
-        {
-            name: 'financial-mcp',
-            type: 'mcp',
-            processName: 'node',
-            description: 'Financial MCP Server'
-        },
-        {
-            name: 'desktop-notify',
-            type: 'mcp',
-            processName: 'node',
-            description: 'Desktop Notification MCP Server'
-        },
-        {
-            name: 'utilities-mcp',
-            type: 'mcp',
-            processName: 'node',
-            description: 'Utilities MCP Server'
+            description: 'Webhook Audio Tracker MCP Server',
+            enabled: false
         },
         {
             name: 'saas-api',
@@ -50,7 +38,8 @@ module.exports = {
             healthUrl: 'http://localhost:8000/health',
             port: 8000,
             processName: 'python',
-            description: 'SaaS API Server'
+            description: 'SaaS API Server',
+            enabled: false
         },
         {
             name: 'api-gateway',
@@ -58,8 +47,10 @@ module.exports = {
             healthUrl: 'http://localhost:8080/health',
             port: 8080,
             processName: 'python',
-            description: 'API Gateway'
+            description: 'API Gateway',
+            enabled: false
         }
+        */
     ],
     
     // Alert thresholds
