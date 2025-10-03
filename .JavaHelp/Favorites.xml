@@ -6,4 +6,5 @@
 <favorites version="2.0">
     <favoriteitem text="Welcome to Ghidra Help" target="Misc_Ghidra_Help_Contents"  hstitle="Ghidra Help"/>
     <favoriteitem text="Welcome to Ghidra Help" target="Misc_Ghidra_Help_Contents"  hstitle="Ghidra Help"/>
+    <favoriteitem text="Importer Plugin" target="ImporterPlugin_importer"  hstitle="Ghidra Help"/>
 </favorites>
