@@ -22,6 +22,9 @@ from sqlalchemy.orm import sessionmaker, Session
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '..'))
 
+# Import security headers
+from security.application.security_headers import create_custom_security_headers
+
 # Import auth components
 from auth.jwt_auth import create_token_pair, verify_password
 from auth.middleware import (
@@ -140,6 +143,11 @@ class TenantLatticeManager:
 # Global lattice manager
 lattice_manager = TenantLatticeManager()
 
+# Import and initialize reactive services
+from api.reactive_auth import ReactiveAuthService, ReactiveLatticeService
+auth_service = ReactiveAuthService(max_workers=4)
+lattice_service = ReactiveLatticeService(lattice_manager, max_workers=4)
+
 # ============================================================================
 # LIFESPAN MANAGEMENT
 # ============================================================================
@@ -229,6 +237,22 @@ app = FastAPI(
 # Add CORS middleware
 app.add_middleware(CORSMiddleware, **get_cors_config())
 
+# Add security headers middleware
+environment = os.getenv("ENVIRONMENT", "development")
+security_headers_middleware = create_custom_security_headers(
+    environment=environment,
+    allow_inline_scripts=True,   # For React/Vue frontend
+    allow_websockets=True         # For real-time features
+)
+app.add_middleware(
+    type(security_headers_middleware),
+    hsts_max_age=security_headers_middleware.hsts_max_age,
+    csp_directives=security_headers_middleware.csp_directives,
+    frame_options=security_headers_middleware.frame_options,
+    enable_permissions_policy=security_headers_middleware.enable_permissions_policy,
+    enable_referrer_policy=security_headers_middleware.enable_referrer_policy
+)
+
 # Add custom middleware
 app.add_middleware(LoggingMiddleware)
 app.add_middleware(RateLimitMiddleware, default_limit=1000, window_seconds=60)
@@ -237,6 +261,11 @@ app.add_middleware(TenantIsolationMiddleware)
 
 # Include routers
 app.include_router(tenant_router)
+
+# Add Prometheus metrics endpoint
+from api.metrics_instrumentation import add_metrics_endpoint, MetricsMiddleware
+add_metrics_endpoint(app)
+app.add_middleware(MetricsMiddleware)
 
 # ============================================================================
 # AUTHENTICATION ENDPOINTS
@@ -254,57 +283,25 @@ class RefreshRequest(BaseModel):
 
 @app.post("/auth/login")
 async def login(request: LoginRequest, db: Session = Depends(get_db)):
-    """Authenticate user and return tokens"""
+    """Authenticate user and return tokens (Reactive version)"""
 
-    # Find user by email
-    query = db.query(User).filter_by(email=request.email, is_active=True)
+    # Import RxPY operators for async execution
+    from rx import operators as ops
 
-    # If tenant slug provided, filter by it
-    if request.tenant_slug:
-        tenant = db.query(Tenant).filter_by(slug=request.tenant_slug).first()
-        if tenant:
-            query = query.filter_by(tenant_id=tenant.id)
-
-    user = query.first()
-
-    if not user or not user.verify_password(request.password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid credentials"
-        )
-
-    # Update last login
-    user.last_login = datetime.utcnow()
-    db.commit()
-
-    # Create tokens
-    tokens = create_token_pair(
-        user_id=str(user.id),
-        tenant_id=str(user.tenant_id),
-        email=user.email,
-        role=user.role
+    # Create reactive login stream
+    login_observable = auth_service.login_stream(
+        email=request.email,
+        password=request.password,
+        tenant_slug=request.tenant_slug,
+        db=db
     )
 
-    # Log the login
-    api_log = ApiLog(
-        tenant_id=user.tenant_id,
-        user_id=user.id,
-        endpoint="/auth/login",
-        method="POST",
-        status_code=200
+    # Execute reactive pipeline and await result
+    result = await login_observable.pipe(
+        ops.to_future()
     )
-    db.add(api_log)
-    db.commit()
 
-    return {
-        "tokens": tokens.dict(),
-        "user": {
-            "id": str(user.id),
-            "email": user.email,
-            "role": user.role,
-            "tenant_id": str(user.tenant_id)
-        }
-    }
+    return result
 
 @app.post("/auth/refresh")
 async def refresh_token(request: RefreshRequest):
@@ -348,118 +345,27 @@ async def create_lattice(
     current_user: TokenData = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Create new lattice for tenant"""
+    """Create new lattice for tenant (Reactive version)"""
 
-    # Check subscription limits
-    subscription = db.query(TenantSubscription).filter_by(
-        tenant_id=UUID(current_user.tenant_id),
-        status="active"
-    ).first()
+    # Import RxPY operators for async execution
+    from rx import operators as ops
 
-    if subscription:
-        plan = subscription.plan
-        max_lattices = plan.limits.get("max_lattices", 5)
-        max_dimensions = plan.limits.get("max_dimensions", 3)
-        max_size = plan.limits.get("max_lattice_size", 10)
+    # Create reactive lattice creation stream
+    lattice_observable = lattice_service.create_lattice_stream(
+        tenant_id=current_user.tenant_id,
+        user_id=current_user.sub,
+        dimensions=request.dimensions,
+        size=request.size,
+        name=request.name,
+        db=db
+    )
 
-        # Check limits
-        current_count = db.query(TenantLattice).filter_by(
-            tenant_id=UUID(current_user.tenant_id),
-            is_active=True
-        ).count()
+    # Execute reactive pipeline and await result
+    result = await lattice_observable.pipe(
+        ops.to_future()
+    )
 
-        if max_lattices != -1 and current_count >= max_lattices:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Lattice limit reached ({max_lattices}). Upgrade your plan."
-            )
-
-        if request.dimensions > max_dimensions:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Maximum {max_dimensions} dimensions allowed in your plan"
-            )
-
-        if request.size > max_size:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Maximum size {max_size} allowed in your plan"
-            )
-
-    # Create lattice
-    try:
-        import uuid
-        lattice_id = str(uuid.uuid4())[:8]
-
-        lattice = lattice_manager.create_lattice(
-            tenant_id=current_user.tenant_id,
-            lattice_id=lattice_id,
-            dimensions=request.dimensions,
-            size=request.size,
-            user_id=current_user.sub
-        )
-
-        # Calculate memory reduction
-        n_vertices = lattice.graph.vcount()
-        traditional_memory = n_vertices * n_vertices * 8
-        actual_memory = lattice.aux_memory_size + (lattice.graph.ecount() * 16)
-        memory_reduction = traditional_memory / actual_memory if actual_memory > 0 else 1.0
-
-        # Store in database
-        db_lattice = TenantLattice(
-            id=UUID(lattice_id.ljust(36, '0')),  # Pad to valid UUID
-            tenant_id=UUID(current_user.tenant_id),
-            name=request.name or f"Lattice-{lattice_id}",
-            dimensions=request.dimensions,
-            size=request.size,
-            vertices=lattice.graph.vcount(),
-            edges=lattice.graph.ecount(),
-            memory_kb=actual_memory / 1024,
-            memory_reduction=memory_reduction,
-            created_by_id=UUID(current_user.sub)
-        )
-        db.add(db_lattice)
-
-        # Track usage
-        usage = UsageMetric(
-            tenant_id=UUID(current_user.tenant_id),
-            metric_type="lattice_created",
-            metric_value=1,
-            period_start=datetime.utcnow().replace(day=1, hour=0, minute=0, second=0),
-            period_end=datetime.utcnow()
-        )
-        db.add(usage)
-
-        # Log API call
-        api_log = ApiLog(
-            tenant_id=UUID(current_user.tenant_id),
-            user_id=UUID(current_user.sub),
-            endpoint="/api/lattices",
-            method="POST",
-            status_code=200
-        )
-        db.add(api_log)
-
-        db.commit()
-
-        return LatticeResponse(
-            id=lattice_id,
-            name=db_lattice.name,
-            dimensions=db_lattice.dimensions,
-            size=db_lattice.size,
-            vertices=db_lattice.vertices,
-            edges=db_lattice.edges,
-            memory_kb=db_lattice.memory_kb,
-            memory_reduction=db_lattice.memory_reduction,
-            created_at=db_lattice.created_at
-        )
-
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Lattice creation failed: {str(e)}"
-        )
+    return result
 
 @app.get("/api/lattices")
 async def list_lattices(
