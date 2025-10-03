@@ -145,66 +145,58 @@ generate_k8s_secrets() {
     echo ""
 }
 
-# Create .env template
-create_env_template() {
-    local env_file="${SECURITY_DIR}/.env.${ENV}.template"
+# Generate secrets from template
+generate_secrets_from_template() {
+    local template_file="${SECURITY_DIR}/.env.${ENV}.template"
+    local env_file="${SECURITY_DIR}/.env.${ENV}"
+
+    if [ ! -f "${template_file}" ]; then
+        echo -e "${RED}Error: Template file not found: ${template_file}${NC}"
+        return 1
+    fi
 
     if [ -f "${env_file}" ]; then
-        echo -e "${YELLOW}.env template already exists. Skipping.${NC}"
+        echo -e "${YELLOW}.env.${ENV} already exists. Skipping secret generation.${NC}"
+        echo -e "${YELLOW}To regenerate, delete ${env_file} and run again.${NC}"
         return 0
     fi
 
-    echo -e "${GREEN}Creating .env template...${NC}"
+    echo -e "${GREEN}Generating secrets from template...${NC}"
 
-    cat > "${env_file}" << EOF
-# Security Configuration for ${ENV}
-# Copy this file to .env.${ENV} and fill in the values
+    # Generate random secrets
+    local session_secret=$(openssl rand -hex 32)
+    local csrf_secret=$(openssl rand -hex 32)
 
-# JWT Configuration
-JWT_PRIVATE_KEY_PATH=${KEYS_DIR}/jwt_${ENV}_private.pem
-JWT_PUBLIC_KEY_PATH=${KEYS_DIR}/jwt_${ENV}_public.pem
-JWT_ALGORITHM=RS256
-JWT_ACCESS_TOKEN_EXPIRE_MINUTES=15
-JWT_REFRESH_TOKEN_EXPIRE_DAYS=7
+    # Copy template and replace placeholders
+    cp "${template_file}" "${env_file}"
 
-# API Encryption
-API_ENCRYPTION_KEY_PATH=${KEYS_DIR}/api_encryption_${ENV}.key
+    # Replace placeholders with actual secrets (platform-independent sed)
+    # Note: We replace both occurrences in one pass using a more robust approach
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        # macOS - replace first occurrence (SESSION_SECRET_KEY)
+        sed -i '' "0,/GENERATE_RANDOM_SECRET_HERE/s/GENERATE_RANDOM_SECRET_HERE/${session_secret}/" "${env_file}"
+        # Replace second occurrence (CSRF_SECRET_KEY)
+        sed -i '' "0,/GENERATE_RANDOM_SECRET_HERE/s/GENERATE_RANDOM_SECRET_HERE/${csrf_secret}/" "${env_file}"
+    else
+        # Linux/Git Bash - replace first occurrence (SESSION_SECRET_KEY)
+        sed -i "0,/GENERATE_RANDOM_SECRET_HERE/s/GENERATE_RANDOM_SECRET_HERE/${session_secret}/" "${env_file}"
+        # Replace second occurrence (CSRF_SECRET_KEY)
+        sed -i "0,/GENERATE_RANDOM_SECRET_HERE/s/GENERATE_RANDOM_SECRET_HERE/${csrf_secret}/" "${env_file}"
+    fi
 
-# Database Encryption
-DB_ENCRYPTION_KEY_PATH=${KEYS_DIR}/db_encryption_${ENV}.key
-
-# Security Level (basic, enhanced, strict)
-SECURITY_LEVEL=enhanced
-
-# Rate Limiting
-RATE_LIMIT_ENABLED=true
-RATE_LIMIT_PER_MINUTE=60
-RATE_LIMIT_BURST=10
-
-# DDoS Protection
-DDOS_PROTECTION_ENABLED=true
-DDOS_BLOCK_DURATION_MINUTES=60
-
-# CORS Configuration
-CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001
-CORS_ALLOW_CREDENTIALS=true
-
-# Session Configuration
-SESSION_SECRET_KEY=$(openssl rand -hex 32)
-SESSION_COOKIE_SECURE=true
-SESSION_COOKIE_HTTPONLY=true
-SESSION_COOKIE_SAMESITE=strict
-
-# CSRF Protection
-CSRF_ENABLED=true
-CSRF_SECRET_KEY=$(openssl rand -hex 32)
-EOF
-
+    # Set proper permissions
     chmod 600 "${env_file}"
 
-    echo -e "${GREEN}✓ .env template created${NC}"
-    echo "  Template: ${env_file}"
-    echo -e "${YELLOW}  Copy to .env.${ENV} and customize as needed${NC}"
+    echo -e "${GREEN}✓ Secrets generated and .env file created${NC}"
+    echo "  File: ${env_file}"
+    echo -e "${YELLOW}  Review and customize as needed${NC}"
+    echo ""
+}
+
+# Create .env template (deprecated - templates now maintained manually)
+create_env_template() {
+    echo -e "${YELLOW}NOTE: .env templates are now maintained in git repository${NC}"
+    echo -e "${YELLOW}Templates: ${SECURITY_DIR}/.env.development.template and .env.staging.template${NC}"
     echo ""
 }
 
@@ -258,8 +250,8 @@ main() {
     # Verify keys
     verify_keys
 
-    # Create environment template
-    create_env_template
+    # Generate secrets from template
+    generate_secrets_from_template
 
     # Generate Kubernetes secrets if requested
     if [ "${ENV}" != "development" ]; then
@@ -274,11 +266,12 @@ main() {
     echo ""
     echo "Next steps:"
     echo "  1. Review generated keys in: ${KEYS_DIR}"
-    echo "  2. Copy .env.${ENV}.template to .env.${ENV}"
+    echo "  2. Review generated .env file: ${SECURITY_DIR}/.env.${ENV}"
     echo "  3. Customize .env.${ENV} with your configuration"
     echo "  4. Run container build script: ./02-build-containers.sh ${ENV}"
     echo ""
-    echo -e "${YELLOW}Important: Keep these keys secure and never commit them to version control!${NC}"
+    echo -e "${YELLOW}Important: Keep these keys and secrets secure!${NC}"
+    echo -e "${YELLOW}NEVER commit .env files to version control!${NC}"
 }
 
 # Run main function

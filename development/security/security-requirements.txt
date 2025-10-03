@@ -8,6 +8,7 @@ python-jose[cryptography]==3.3.0
 # Rate Limiting and DDoS Protection
 slowapi==0.1.9
 redis==5.0.1
+hiredis==2.2.3  # C parser for Redis - better performance
 aioredis==2.0.1
 
 # Input Validation
