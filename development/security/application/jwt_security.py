@@ -15,6 +15,13 @@ from cryptography.hazmat.backends import default_backend
 from enum import Enum
 import logging
 
+# Import Redis manager for distributed token blacklist
+try:
+    from .redis_manager import RedisConnectionManager, get_redis
+    REDIS_AVAILABLE = True
+except ImportError:
+    REDIS_AVAILABLE = False
+
 logger = logging.getLogger(__name__)
 
 class TokenType(Enum):
@@ -37,6 +44,7 @@ class JWTSecurityManager:
         self,
         private_key_path: str,
         public_key_path: str,
+        redis_client: Optional['RedisConnectionManager'] = None,
         algorithm: str = "RS256",
         access_token_expire_minutes: int = 15,
         refresh_token_expire_days: int = 7,
@@ -46,17 +54,30 @@ class JWTSecurityManager:
         self.access_token_expire_minutes = access_token_expire_minutes
         self.refresh_token_expire_days = refresh_token_expire_days
         self.security_level = security_level
-        
+
         # Load RSA keys
         self.private_key = self._load_private_key(private_key_path)
         self.public_key = self._load_public_key(public_key_path)
-        
-        # Token blacklist (in production, use Redis)
+
+        # Initialize Redis for distributed token blacklist
+        if REDIS_AVAILABLE:
+            self.redis_client = redis_client or get_redis()
+            self.use_redis = self.redis_client.is_available
+            if self.use_redis:
+                logger.info("Using Redis for distributed token blacklist")
+            else:
+                logger.warning("Redis unavailable, using in-memory blacklist (NOT for production!)")
+        else:
+            self.redis_client = None
+            self.use_redis = False
+            logger.warning("Redis module not available, using in-memory blacklist (NOT for production!)")
+
+        # Fallback: In-memory token blacklist (only used if Redis unavailable)
         self.blacklisted_tokens: set = set()
-        
+
         # Rate limiting storage (in production, use Redis)
         self.failed_attempts: Dict[str, List[float]] = {}
-        
+
         logger.info(f"JWT Security Manager initialized with {security_level.value} security level")
 
     def _load_private_key(self, key_path: str):
@@ -212,14 +233,10 @@ class JWTSecurityManager:
 
     def verify_token(self, token: str, expected_type: TokenType = None) -> Dict[str, Any]:
         """
-        Verify and decode JWT token with comprehensive validation
+        Verify and decode JWT token with comprehensive validation (checks Redis blacklist)
         """
         try:
-            # Check if token is blacklisted
-            if token in self.blacklisted_tokens:
-                raise jwt.InvalidTokenError("Token has been revoked")
-            
-            # Decode and verify token
+            # Decode and verify token first
             payload = jwt.decode(
                 token,
                 self.public_key,
@@ -238,15 +255,25 @@ class JWTSecurityManager:
                     "require_nbf": True,
                 }
             )
-            
+
+            # Check if token is blacklisted (Redis-backed check for distributed revocation)
+            jti = payload.get("jti")
+            if jti:
+                # Check Redis blacklist first (authoritative for distributed systems)
+                if self.use_redis and self.redis_client.exists(f"blacklist:{jti}"):
+                    raise jwt.InvalidTokenError("Token has been revoked")
+                # Fallback: check in-memory blacklist
+                elif token in self.blacklisted_tokens:
+                    raise jwt.InvalidTokenError("Token has been revoked")
+
             # Validate token type if specified
             if expected_type and payload.get("token_type") != expected_type.value:
                 raise jwt.InvalidTokenError(f"Expected {expected_type.value} token")
-            
+
             # Additional security checks for enhanced/strict modes
             if self.security_level in [SecurityLevel.ENHANCED, SecurityLevel.STRICT]:
                 self._perform_enhanced_validation(payload)
-            
+
             logger.debug(f"Token verified successfully for user {payload.get('user_id')}")
             return payload
             
@@ -290,21 +317,47 @@ class JWTSecurityManager:
 
     def revoke_token(self, token: str) -> bool:
         """
-        Revoke a token by adding it to blacklist
+        Revoke a token by adding it to blacklist (Redis-backed for persistence)
         """
         try:
-            # Decode token to get JTI
-            payload = jwt.decode(token, self.public_key, algorithms=[self.algorithm], options={"verify_exp": False})
+            # Decode token to get JTI and expiration (without full verification)
+            # Skip audience/issuer verification since we only need JTI and expiration
+            payload = jwt.decode(
+                token,
+                self.public_key,
+                algorithms=[self.algorithm],
+                options={
+                    "verify_exp": False,
+                    "verify_aud": False,
+                    "verify_iss": False
+                }
+            )
             jti = payload.get("jti")
-            
-            if jti:
-                self.blacklisted_tokens.add(token)
-                logger.info(f"Token revoked with JTI: {jti}")
-                return True
-            else:
+            exp = payload.get("exp")
+
+            if not jti:
                 logger.warning("Token does not contain JTI, cannot revoke properly")
                 return False
-                
+
+            # Use Redis if available (distributed, persistent blacklist)
+            if self.use_redis and exp:
+                # Calculate TTL (time until token expires)
+                ttl = int(exp - time.time())
+                if ttl > 0:
+                    # Store in Redis with TTL matching token expiration
+                    # After token expires naturally, Redis will auto-delete the entry
+                    self.redis_client.setex(f"blacklist:{jti}", ttl, "1")
+                    logger.info(f"Token revoked in Redis with JTI: {jti}, TTL: {ttl}s")
+                    return True
+                else:
+                    logger.info(f"Token already expired, no need to blacklist: {jti}")
+                    return True
+            else:
+                # Fallback to in-memory blacklist (NOT persistent across restarts!)
+                self.blacklisted_tokens.add(token)
+                logger.warning(f"Token revoked in memory (NOT persistent!) with JTI: {jti}")
+                return True
+
         except Exception as e:
             logger.error(f"Failed to revoke token: {e}")
             return False
