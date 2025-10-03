@@ -13,6 +13,9 @@ from .profiler_glyphs import (
     GlyphRenderer,
     GlyphShape,
     IterationMarker,
+    PerformanceColor,
+    SizeCategory,
+    DeviceStyle,
     get_glyph_analyzer
 )
 from .profiler_transformations import (
@@ -67,6 +70,9 @@ __all__ = [
     'GlyphRenderer',
     'GlyphShape',
     'IterationMarker',
+    'PerformanceColor',
+    'SizeCategory',
+    'DeviceStyle',
     'get_glyph_analyzer',
     'TransformationType',
     'TransformationCondition',
