@@ -247,3 +247,26 @@ development/__pycache__/
 # Python Package Cache Directories
 .cupy/
 .odo/
+
+# ===========================================
+# Build Tools and Package Managers (Added 2025-10-03)
+# ===========================================
+.gcm/
+.rustup/
+.cargo/
+
+# ===========================================
+# Cross-Device Sync and Temporary Directories
+# ===========================================
+CrossDevice/
+
+# ===========================================
+# Development Environment Examples
+# ===========================================
+development/.env.gpu.example
+development/.env.*.example
+
+# ===========================================
+# Planning and Implementation Documents (Keep in repo but track explicitly)
+# ===========================================
+# COMMANDS_AND_SHORTCUTS_IMPLEMENTATION_PLAN.md tracked explicitly
