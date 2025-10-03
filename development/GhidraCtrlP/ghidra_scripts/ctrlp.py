@@ -1,40 +1,48 @@
-# coding: utf-8
 # @author msm
 # @category Search
 # @menupath Search.Palette
 # @toolbar
 
 import re
-from ghidra.program.flatapi import FlatProgramAPI
-from ghidra.program.model.symbol import SymbolType, SourceType
-from ghidra.program.model.listing import BookmarkType
-from ghidra.app.services import ConsoleService, CodeViewerService
-from ghidra.util.task import TaskMonitor
+
 from ghidra.app.script import GhidraScriptUtil, GhidraState
+from ghidra.app.services import CodeViewerService, ConsoleService
 from ghidra.app.util.viewer.field import ListingColors
-from javax.swing import JFrame, JTextField, JList, JScrollPane, SwingUtilities, JPanel, DefaultListCellRenderer, SwingWorker, UIManager
-from javax.swing.event import DocumentListener
-from java.lang import Object, System
-from java.awt import BorderLayout, Color, Font, GraphicsEnvironment, Window
-from java.awt.event import KeyAdapter, KeyEvent, ComponentAdapter
-from java.util import Vector
-from java.awt import Toolkit
+from ghidra.program.flatapi import FlatProgramAPI
+from ghidra.program.model.listing import BookmarkType
+from ghidra.program.model.symbol import SourceType, SymbolType
+from java.awt import BorderLayout, Font, GraphicsEnvironment, Toolkit, Window
 from java.awt.datatransfer import StringSelection
+from java.awt.event import ComponentAdapter, KeyAdapter, KeyEvent
+from java.lang import Object, System
+from java.util import Vector
+from javax.swing import (
+    DefaultListCellRenderer,
+    JFrame,
+    JList,
+    JPanel,
+    JScrollPane,
+    JTextField,
+    SwingUtilities,
+    SwingWorker,
+)
+from javax.swing.event import DocumentListener
+
 from __main__ import (
-    getBytes,
     currentAddress,
-    getState,
+    getBytes,
     getCurrentProgram,
-    toAddr,
+    getState,
     goTo,
     monitor,
+    toAddr,
 )
 
 
 def matches(name, query):
     """Baby fuzzy matcher - splits query by whitespace, and matches
     if name contains every resulting element. For example,
-    "aaa bbb ccc" matches "aaa ccc" but not "aaaccc" or "aaa ddd" """ 
+    "aaa bbb ccc" matches "aaa ccc" but not "aaaccc" or "aaa ddd" """
     name = name.lower()
     query = query.lower()
 
@@ -96,7 +104,9 @@ def transientGoto(addr):
 def wrap_goto(addr):
     """This is a wrapper for goTo, returns a function that goToes to the addr
 
-    the point is to capture addr in a closure (something that won't happen in a lambda"""
+    the point is to capture addr in a closure
+    (something that won't happen in a lambda)
+    """
     return lambda: goTo(addr)
 
 
@@ -132,15 +142,19 @@ class SymbolLoader(SwingWorker):
     def doInBackground(self):
         try:
             return self.get_everything()
-        except:
+        except Exception:  # noqa: E722
             # uncomment this for debug info:
             # import traceback
-            # state.getTool().getService(ConsoleService).println(traceback.format_exc())
+            # state.getTool().getService(ConsoleService).println(
+            #     traceback.format_exc()
+            # )
 
             # BUG TODO FIXME
-            # When Ghidra window is closed and then reopened, the references in the window stop making sense.
+            # When Ghidra window is closed and then reopened,
+            # the references in the window stop making sense.
             # and this thread/wtf is in a broken state.
-            # We should probably watch when ghidra window exits and then cleanup, but...
+            # We should probably watch when ghidra window exits
+            # and then cleanup, but...
             # Just kill ourselves and let user try again.
             self.parent.dispose()
             return []  # Just so we don't raise an exception in a second
@@ -165,12 +179,12 @@ def prettyPrintAddress(source):
     if xref_func is None:
         codeunit = getCurrentProgram().getListing().getCodeUnitContaining(source)
         if codeunit is not None:
-            text = "lbl {:x} {}".format(source.getOffset(), str(codeunit))
+            text = f"lbl {source.getOffset():x} {str(codeunit)}"
         else:
-            text = "dat {:x}".format(source.getOffset())
+            text = f"dat {source.getOffset():x}"
     else:
         offset = source.subtract(xref_func.getEntryPoint())
-        text = "fnc {}+{:x}".format(xref_func.getPrototypeString(True, False), offset)
+        text = f"fnc {xref_func.getPrototypeString(True, False)}+{offset:x}"
     return text
 
 
@@ -286,7 +300,11 @@ class SymbolFilterWindow(JFrame):
 
         filtered_symbols = []
         flatapi = FlatProgramAPI(getCurrentProgram())
-        occurs = list(flatapi.findBytes(getCurrentProgram().getMinAddress(), pattern, 100))
+        occurs = list(
+            flatapi.findBytes(
+                getCurrentProgram().getMinAddress(), pattern, 100
+            )
+        )
 
         mem = getCurrentProgram().getMemory()
 
@@ -298,8 +316,11 @@ class SymbolFilterWindow(JFrame):
                 start = rng.getMinAddress()
 
             context = getBytes(start, 130)
+            context_str = "".join(
+                chr(b % 256) if 32 <= b < 127 else '.' for b in context
+            )
             filtered_symbols.append(SearchEntry(
-                "dat " + str(addr) + " " + "".join(chr(b % 256) if 32 <= b < 127 else '.' for b in context),
+                "dat " + str(addr) + " " + context_str,
                 addr,
                 wrap_goto(addr)
             ))
@@ -316,17 +337,25 @@ class SymbolFilterWindow(JFrame):
             string_selection = StringSelection(txt)
             clipboard.setContents(string_selection, None)
 
-        if isinstance(result, int) or isinstance(result, long):  # type: ignore (py2)
+        # Check for both int and long (Python 2 compatibility)
+        try:
+            is_number = isinstance(result, (int, long))  # noqa: F821
+        except NameError:  # Python 3: long doesn't exist
+            is_number = isinstance(result, int)
+
+        if is_number:
             strings = [
-                "hex {:x}".format(result),
-                "dec {}".format(result),
-                "oct {:o}".format(result),
-                "bin {:b}".format(result),
+                f"hex {result:x}",
+                f"dec {result}",
+                f"oct {result:o}",
+                f"bin {result:b}",
             ]
-            func = getCurrentProgram().getFunctionManager().getFunctionContaining(toAddr(result))
+            func_mgr = getCurrentProgram().getFunctionManager()
+            func = func_mgr.getFunctionContaining(toAddr(result))
             if func:
                 off = toAddr(result).subtract(func.getEntryPoint())
-                strings.append("sym " + func.getName() + ("+{:x}".format(off) if off else ""))
+                offset_str = f"+{off:x}" if off else ""
+                strings.append("sym " + func.getName() + offset_str)
         elif isinstance(result, str):
             strings = [
                 "str " + result,
@@ -334,12 +363,14 @@ class SymbolFilterWindow(JFrame):
                 "base64 " + result.encode("base64"),  # type: ignore (py2)
             ]
             try:
-                strings.append("unhex " + result.replace(" ", "").decode("hex"))  # type: ignore (py2)
-            except TypeError:
+                unhex = result.replace(" ", "").decode("hex")  # noqa: F821
+                strings.append("unhex " + unhex)
+            except (TypeError, AttributeError):
                 pass
             try:
-                strings.append("unbase64 " + result.decode("base64"))  # type: ignore (py2)
-            except:  # binascii.error
+                unb64 = result.decode("base64")  # noqa: F821
+                strings.append("unbase64 " + unb64)
+            except Exception:  # binascii.error
                 pass
         elif isinstance(result, list):
             strings = [str(r) for r in result]
@@ -351,7 +382,11 @@ class SymbolFilterWindow(JFrame):
         def set_clipboard_wrap(content):
             return lambda: set_clipboard(content)
 
-        return [SearchEntry("txt " + s, None, set_clipboard_wrap(s[4:])) for s in strings]
+        entries = [
+            SearchEntry("txt " + s, None, set_clipboard_wrap(s[4:]))
+            for s in strings
+        ]
+        return entries
 
     def get_order(self, sym):
         kind = sym.text.split()[0]
@@ -378,8 +413,9 @@ class SymbolFilterWindow(JFrame):
             filtered_symbols = self.quick_exec(filter_text[1:])
         elif filter_text and filter_text[0] == "{":
             try:
-                needle = filter_text[1:].replace(" ", "").decode("hex")
-            except:
+                hex_str = filter_text[1:].replace(" ", "")
+                needle = hex_str.decode("hex")  # noqa: F821
+            except Exception:
                 needle = ""
             filtered_symbols = self.entries_by_search(needle, False)
         else:
@@ -394,11 +430,10 @@ class SymbolFilterWindow(JFrame):
             if len(filtered_symbols) > 1000:
                 overflow = len(filtered_symbols) - 1000
                 filtered_symbols = filtered_symbols[:1000]
-                filtered_symbols.append(SearchEntry(
-                    "txt and " + str(overflow) + " more...",
-                    None,
-                    lambda: None
-                ))
+                overflow_msg = "txt and " + str(overflow) + " more..."
+                filtered_symbols.append(
+                    SearchEntry(overflow_msg, None, lambda: None)
+                )
 
         self.filtered_symbols = filtered_symbols
         self.symbolList.setListData(Vector([sym.text for sym in filtered_symbols]))
@@ -455,14 +490,18 @@ class SymbolFilterWindow(JFrame):
 
             # Flip the bookmarkstate
             if selected_symbol.has_bookmark:
-                for bm in getCurrentProgram().getBookmarkManager().getBookmarks(selected_symbol.address):
-                    getCurrentProgram().getBookmarkManager().removeBookmark(bm)
+                bookmark_mgr = getCurrentProgram().getBookmarkManager()
+                bookmarks = bookmark_mgr.getBookmarks(selected_symbol.address)
+                for bm in bookmarks:
+                    bookmark_mgr.removeBookmark(bm)
             else:
-                getCurrentProgram().getBookmarkManager().setBookmark(
+                bookmark_mgr = getCurrentProgram().getBookmarkManager()
+                query_text = self.inputField.getText()
+                bookmark_mgr.setBookmark(
                     selected_symbol.address,
                     BookmarkType.NOTE,
                     "CtrlP",
-                    "Quick bookmark. Query: " + self.inputField.getText()
+                    "Quick bookmark. Query: " + query_text
                 )
 
             selected_symbol.has_bookmark_cache = not selected_symbol.has_bookmark_cache
@@ -493,8 +532,12 @@ class SymbolFilterWindow(JFrame):
         selected_symbol = self.current_symbol()
         if selected_symbol and selected_symbol.address:
             ref_manager = getCurrentProgram().getReferenceManager()
-            if ref_manager.getReferenceCountTo(selected_symbol.address) > 0:
-                goTo(ref_manager.getReferencesTo(selected_symbol.address).next().getFromAddress())
+            ref_count = ref_manager.getReferenceCountTo(
+                selected_symbol.address
+            )
+            if ref_count > 0:
+                refs = ref_manager.getReferencesTo(selected_symbol.address)
+                goTo(refs.next().getFromAddress())
                 success = True
         return success
 
@@ -573,9 +616,14 @@ class SymbolCellRenderer(DefaultListCellRenderer):
     def __init__(self, parent):
         self.window = parent
 
-    def getListCellRendererComponent(self, list, value, index, isSelected, cellHasFocus):
-        component = super(SymbolCellRenderer, self).getListCellRendererComponent(
-            list, value, index, isSelected, cellHasFocus)
+    def getListCellRendererComponent(
+        self, list, value, index, isSelected, cellHasFocus
+    ):
+        component = super(
+            SymbolCellRenderer, self
+        ).getListCellRendererComponent(
+            list, value, index, isSelected, cellHasFocus
+        )
 
         symbol = self.window.filtered_symbols[index]
         component.setForeground(symbol.color)
@@ -597,13 +645,18 @@ class SearchEntry:
     @property
     def text(self):
         if self.has_bookmark:
-            return self.raw_text + u" [*]"
+            return self.raw_text + " [*]"
         return self.raw_text
 
     @property
     def has_bookmark(self):
         if self.has_bookmark_cache is None:
-            self.has_bookmark_cache = self.address and len(getCurrentProgram().getBookmarkManager().getBookmarks(self.address)) > 0
+            if self.address:
+                bookmark_mgr = getCurrentProgram().getBookmarkManager()
+                bookmarks = bookmark_mgr.getBookmarks(self.address)
+                self.has_bookmark_cache = len(bookmarks) > 0
+            else:
+                self.has_bookmark_cache = False
         return self.has_bookmark_cache
 
 
@@ -617,11 +670,11 @@ def data_symbol_entry(sym):
             textrepr = textrepr[:80]
         if textrepr:
             textrepr = " (" + textrepr + ")"
-        return SearchEntry(
-            "dat " + data.getDataType().displayName + " " + sym.getName() + textrepr,
-            addr,
-            lambda: goTo(addr)
+        entry_text = (
+            "dat " + data.getDataType().displayName + " "
+            + sym.getName() + textrepr
         )
+        return SearchEntry(entry_text, addr, lambda: goTo(addr))
 
     return SearchEntry(
         "lbl " + sym.getName(),
@@ -713,8 +766,7 @@ def get_actions():
         try:
             if not act.isValidContext(context):
                 continue
-        except:
-            # Sometimes this raises an exception - even though it shouldn't
+        except Exception:  # Sometimes this raises unexpectedly
             continue
 
         if not act.isEnabledForContext(context):
@@ -757,7 +809,7 @@ def get_component_providers():
 def get_scripts():
     symbols = []
     for script_dir in GhidraScriptUtil.getScriptSourceDirectories():
-        script_files = script_dir.listFiles()        
+        script_files = script_dir.listFiles()
         for scr_file in script_files:
             symbols.append(script_entry(scr_file))
 
@@ -783,11 +835,12 @@ def run():
 def run_or_restore():
     for window in Window.getWindows():
         if isinstance(window, JFrame):
-            if window.getTitle() == WINDOW_NAME and window.isDisplayable():
+            title_match = window.getTitle() == WINDOW_NAME
+            if title_match and window.isDisplayable():
                 if not window.isShowing():
                     window.setVisible(True)
                 else:
-                    print("Window is alredy visible. Doing nothing")
+                    print("Window is already visible. Doing nothing")
                 return
     run()
 

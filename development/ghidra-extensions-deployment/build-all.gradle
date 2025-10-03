@@ -29,14 +29,20 @@ ext {
             description: 'Fast navigation and command palette for Ghidra'
         ],
         'GhidraLookup': [
-            type: 'gradle', 
+            type: 'gradle',
             buildDir: file("${extensionsBaseDir}/GhidraLookup"),
             hasGradleBuild: true,
             description: 'Win32 API documentation lookup functionality'
         ],
+        'GhidraGraph': [
+            type: 'gradle',
+            buildDir: file("${extensionsBaseDir}/GhidraGraph"),
+            hasGradleBuild: true,
+            description: 'Advanced call graph visualization and export with Mermaid.js support'
+        ],
         'GhidrAssist': [
             type: 'gradle',
-            buildDir: file("${extensionsBaseDir}/GhidrAssist"), 
+            buildDir: file("${extensionsBaseDir}/GhidrAssist"),
             hasGradleBuild: true,
             description: 'AI-assisted reverse engineering features'
         ],
@@ -45,6 +51,12 @@ ext {
             buildDir: file("${extensionsBaseDir}/Ghidrathon"),
             hasGradleBuild: true,
             description: 'Python 3 integration for Ghidra scripting'
+        ],
+        'GhidraGo': [
+            type: 'gradle',
+            buildDir: file("${extensionsBaseDir}/GhidraGo"),
+            hasGradleBuild: true,
+            description: 'Golang binary analyzer with automated symbol recovery and function signature reconstruction'
         ]
     ]
     
@@ -328,8 +340,10 @@ ${extensions.collect { name, config ->
 
 - **GhidraCtrlP**: VS Code-style Ctrl+P navigation with fuzzy search
 - **GhidraLookup**: Comprehensive Win32 API documentation integration
+- **GhidraGraph**: Advanced call graph visualization with Mermaid.js export
 - **GhidrAssist**: Advanced AI-powered code analysis and explanation
 - **Ghidrathon**: Full Python 3 scripting environment with modern libraries
+- **GhidraGo**: Golang binary analyzer with automated symbol recovery from PCLNTAB
 
 ## Quick Start
 

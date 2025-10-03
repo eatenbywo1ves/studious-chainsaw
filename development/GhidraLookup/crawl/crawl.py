@@ -1,8 +1,8 @@
 #/usr/bin/env python3
-import requests
-from bs4 import BeautifulSoup
-from bs4 import element
 import json
+
+import requests
+from bs4 import BeautifulSoup, element
 
 domain = "https://docs.microsoft.com"
 
@@ -11,7 +11,7 @@ paths = {
 	"shellapi" :          "/en-us/windows/win32/api/shellapi/",
 	"winuser"  :          "/en-us/windows/win32/api/winuser/",
 	"heapapi"  :          "/en-us/windows/win32/api/heapapi/",
-	"processthreadsapi" : "/en-us/windows/win32/api/processthreadsapi/" 
+	"processthreadsapi" : "/en-us/windows/win32/api/processthreadsapi/"
 }
 
 data = {
@@ -39,8 +39,8 @@ def sibling_tag(i):
 def request_site(site):
 	req = requests.get(site)
 	if req.status_code != 200:
-		print("failed to fetch {}".format(site))
-	print("[*] requested {}:".format(site))
+		print(f"failed to fetch {site}")
+	print(f"[*] requested {site}:")
 	return BeautifulSoup(req.text, 'html.parser')
 
 # function fetch limit
@@ -64,24 +64,24 @@ def fetch_function(site, f_name):
 		soup = request_site(site)
 		m = soup.find("main", {"id":"main"})
 
-		print("function name: {}".format(f_name))
+		print(f"function name: {f_name}")
 		func_data["name"] = f_name
 
 		# parse syntax
 		i = m.find("h2", {"id":"syntax"}).find_next_sibling("pre")
-		print("function syntax: {}".format(i.text))
+		print(f"function syntax: {i.text}")
 
 		# parse return value
 		i = m.find("h2", {"id":"return-value"}).find_next_sibling("p")
 		if i and i.text.startswith("Type:"): # sometimes the first paragraph is not the type
 			f_ret_type = i.text.replace("Type: ", "").strip()
-			print("function return value: {}".format(f_ret_type))
+			print(f"function return value: {f_ret_type}")
 			func_data["return_type"] = f_ret_type
 
 		# parse function description
 		i = m.find("h1").find_next_sibling("p")
 		f_desc = i.text.strip()
-		print("function description: {}".format(f_desc))
+		print(f"function description: {f_desc}")
 		func_data["description"] = f_desc
 
 		# parse function parameters
@@ -96,10 +96,10 @@ def fetch_function(site, f_name):
 				"name" : "",
 				"type" : "",
 				"description" : "",
-				"possible_constants" : [] 
+				"possible_constants" : []
 			}
 			p_name = i.text.strip()
-			print("  param name: {}".format(p_name))
+			print(f"  param name: {p_name}")
 			param_data["name"] = p_name
 			i = sibling_tag(i)
 			found_param_type = False
@@ -107,7 +107,7 @@ def fetch_function(site, f_name):
 			if i and i.name == "p" and i.text.startswith("Type:"):  # sometimes the 2nd paragraph is the type
 				found_param_type = True
 				p_type = i.text.replace("Type: ", "").strip()
-				print("  param type: {}".format(p_type))
+				print(f"  param type: {p_type}")
 				param_data["type"] = p_type
 				i = sibling_tag(i)
 			# parse parameter description and their possible constants
@@ -138,10 +138,10 @@ def fetch_function(site, f_name):
 						elif len(dt) == 2:
 							c_name = dt[0].text
 							c_value = hex_to_int(dt[1].text) if dt[1].text.startswith("0x") else -1
-						print("    {} : {}".format(c_name, c_value))
+						print(f"    {c_name} : {c_value}")
 						param_data["possible_constants"].append([c_name, c_value])
 				i = sibling_tag(i)
-			print("  param desc: {}\n".format(p_desc.strip()))
+			print(f"  param desc: {p_desc.strip()}\n")
 			param_data["description"] = p_desc.strip()
 			func_data["parameters"].append(param_data)
 		data["functions"].append(func_data)
@@ -159,7 +159,7 @@ def main():
 		headers = m.find_all("h2")
 		tables = m.find_all("table")
 		assert(len(headers) == len(tables))
-		for header, table in zip(headers, tables):
+		for header, table in zip(headers, tables, strict=False):
 			# fetch function attributes
 			if header.text.lower() == "functions":
 				for a in table.find_all("a"):
