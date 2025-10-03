@@ -10,17 +10,15 @@ import json
 import logging
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import timedelta
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple
-from urllib.parse import urlparse
+from typing import Any, Dict, List, Optional
 import aiohttp
 import redis.asyncio as redis
 from prometheus_client import Counter, Histogram, Gauge
 import yaml
 from asyncio import Queue
 from collections import defaultdict
-import jwt
 import backoff
 
 # Metrics

@@ -12,8 +12,6 @@ import numpy as np
 import asyncio
 import uuid
 from datetime import datetime
-import logging
-from functools import lru_cache
 import psutil
 import traceback
 from contextlib import asynccontextmanager
@@ -353,14 +351,13 @@ def _prewarm_jit():
     try:
         # Create small test case
         test_computer = CatalyticLatticeComputer(2, 2, 1)
-        test_points = np.random.randn(10, 2)
-        
+
         # Trigger JIT compilation
         _ = test_computer.reversible_xor_transform(
             np.array([1, 2, 3], dtype=np.uint8),
             np.array([4, 5, 6], dtype=np.uint8)
         )
-        
+
         del test_computer
         logger.info("JIT compilation pre-warming complete")
     except Exception as e:

@@ -6,19 +6,16 @@ Provides real-time monitoring and visualization for webhook system
 import asyncio
 import json
 import time
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
 import redis.asyncio as redis
 from prometheus_client import (
     generate_latest, CONTENT_TYPE_LATEST,
-    Counter, Histogram, Gauge, Summary
+    Counter, Histogram, Gauge
 )
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse, Response
-import aiohttp
-import psutil
 
 app = FastAPI(title="Webhook Monitoring Dashboard", version="1.0.0")
 

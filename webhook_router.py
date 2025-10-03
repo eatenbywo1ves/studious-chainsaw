@@ -3,8 +3,6 @@ Webhook Router for Event Distribution
 Routes events from various sources to the webhook manager
 """
 
-import asyncio
-import json
 import logging
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional
@@ -113,14 +111,6 @@ class WebhookRouter:
 
     async def _handle_github_webhook(self, payload: GitHubWebhookPayload) -> Dict[str, Any]:
         """Handle GitHub webhooks"""
-        event_mapping = {
-            "push": "git.repository.push_to_main",
-            "pull_request": "git.repository.pull_request_opened",
-            "issues": "git.repository.issue_created",
-            "release": "git.repository.release_published",
-            "workflow_run": "git.ci.workflow_completed"
-        }
-
         # Determine event type
         event_type = None
         if payload.ref and "main" in payload.ref:

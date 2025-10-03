@@ -4,13 +4,10 @@ Practical examples for integrating with GitHub, Docker, and Kubernetes
 """
 
 import asyncio
-import json
 import logging
 import os
 import subprocess
 from typing import Any, Dict, List, Optional
-import aiohttp
-import yaml
 from kubernetes import client, config, watch
 from kubernetes.client.rest import ApiException
 from github import Github
