@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='ISO-8859-1' ?>
+<tocroot>
+    <tocdef id="Anchor_GhidraGo">
+        <tocitem target="GhidraGo_Help" text="GhidraGo" sortpreference="500">
+            <tocitem target="GhidraGo_Overview" text="Overview" />
+        </tocitem>
+    </tocdef>
+</tocroot>

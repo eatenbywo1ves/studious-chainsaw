@@ -1,0 +1,138 @@
+/* ###
+ * IP: GHIDRA
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+// GhidraGo Extension Build Script
+// Golang binary analyzer plugin
+
+//----------------------START "DO NOT MODIFY" SECTION------------------------------
+def ghidraInstallDir
+
+if (System.env.GHIDRA_INSTALL_DIR) {
+	ghidraInstallDir = System.env.GHIDRA_INSTALL_DIR
+}
+else if (project.hasProperty("GHIDRA_INSTALL_DIR")) {
+	ghidraInstallDir = project.getProperty("GHIDRA_INSTALL_DIR")
+}
+
+if (ghidraInstallDir) {
+	apply from: new File(ghidraInstallDir).getCanonicalPath() + "/support/buildExtension.gradle"
+}
+else {
+	throw new GradleException("GHIDRA_INSTALL_DIR is not defined!")
+}
+//----------------------END "DO NOT MODIFY" SECTION-------------------------------
+
+// Extension metadata
+version = "1.1.0-Phase3"
+description = "Golang binary analyzer with auto-analyzer, function recovery, and type extraction"
+
+// Java compilation settings for Phase 3 auto-analyzer
+apply plugin: 'java'
+
+sourceCompatibility = '17'
+targetCompatibility = '17'
+
+sourceSets {
+    main {
+        java {
+            srcDirs = ['src/main/java']
+        }
+        resources {
+            srcDirs = ['src/main/resources']
+        }
+    }
+}
+
+// Custom tasks for extension packaging
+task packageExtension(type: Zip) {
+    description = "Package GhidraGo extension with Java analyzer and Python scripts"
+    group = "distribution"
+
+    archiveBaseName = 'GhidraGo'
+    archiveVersion = project.version
+    destinationDirectory = file("${project.buildDir}/distributions")
+
+    // Include compiled Java classes
+    from "${project.buildDir}/classes/java/main"
+    into 'lib'
+
+    // Include Python scripts
+    from projectDir
+    include 'ghidra_scripts/**'
+    exclude 'ghidra_scripts/**/__pycache__/**'
+
+    // Include resources
+    from 'src/main/resources'
+    into 'data'
+
+    // Include documentation
+    include 'README.md'
+    include 'TESTING_GUIDE.md'
+    include 'PHASE1_COMPLETION_SUMMARY.md'
+    include 'PHASE2_COMPLETION_SUMMARY.md'
+
+    // Include extension metadata
+    include 'extension.properties'
+    include 'Module.manifest'
+
+    exclude '**/.git/**'
+    exclude '**/.gradle/**'
+    exclude '**/build/**'
+    exclude '**/tests/**'
+}
+
+// Ensure Java compilation happens before packaging
+packageExtension.dependsOn compileJava
+
+// Override the default build task
+build.dependsOn packageExtension
+build.finalizedBy packageExtension
+
+// Create installation task
+task installToGhidra {
+    description = "Install GhidraGo to local Ghidra installation"
+    group = "installation"
+    dependsOn packageScripts
+
+    doLast {
+        def ghidraDir = System.getenv('GHIDRA_INSTALL_DIR')
+        if (!ghidraDir) {
+            println "GHIDRA_INSTALL_DIR environment variable not set"
+            return
+        }
+
+        def extensionsDir = file("${ghidraDir}/Extensions/Ghidra")
+        if (!extensionsDir.exists()) {
+            println "Ghidra extensions directory not found: ${extensionsDir}"
+            return
+        }
+
+        def packageFile = file("${project.buildDir}/distributions/GhidraGo-${project.version}.zip")
+        if (packageFile.exists()) {
+            copy {
+                from packageFile
+                into extensionsDir
+            }
+            println "GhidraGo installed to: ${extensionsDir}"
+            println "Restart Ghidra and use File -> Install Extensions to enable it."
+        }
+    }
+}
+
+// Clean task enhancement
+clean {
+    delete "${project.buildDir}/distributions"
+}

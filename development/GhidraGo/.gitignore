@@ -1,0 +1,29 @@
+# Gradle
+.gradle/
+build/
+dist/
+*.zip
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.project
+.classpath
+.settings/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build outputs
+bin/
+out/
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~
