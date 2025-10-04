@@ -3,6 +3,9 @@
     <tocdef id="Anchor_GhidraGo">
         <tocitem target="GhidraGo_Help" text="GhidraGo" sortpreference="500">
             <tocitem target="GhidraGo_Overview" text="Overview" />
+            <tocitem target="Function_Recovery" text="Function Recovery" />
+            <tocitem target="Type_Extraction" text="Type Extraction" />
+            <tocitem target="Troubleshooting" text="Troubleshooting" />
         </tocitem>
     </tocdef>
 </tocroot>
