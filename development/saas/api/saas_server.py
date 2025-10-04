@@ -13,6 +13,11 @@ from contextlib import asynccontextmanager
 from typing import Optional, Dict, Any
 from uuid import UUID
 
+# Load environment variables from parent .env file
+from dotenv import load_dotenv
+env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env')
+load_dotenv(env_path)
+
 from fastapi import FastAPI, Depends, HTTPException, status, Request
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import create_engine
@@ -61,9 +66,14 @@ except ImportError:
 # DATABASE SETUP
 # ============================================================================
 
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://localhost/catalytic_saas")
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./catalytic_saas.db")
 
-engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+# SQLite requires check_same_thread=False, PostgreSQL uses pool_pre_ping
+if DATABASE_URL.startswith("sqlite"):
+    engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+else:
+    engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def get_db():

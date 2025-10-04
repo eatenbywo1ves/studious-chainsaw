@@ -28,19 +28,41 @@ API_KEY_PREFIX = "clc_"  # Catalytic Lattice Computing
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# Redis for token blacklisting and session management
-redis_client = None
+# ✅ PRODUCTION: Use Redis Connection Manager with pooling and failover
+# Import production-grade Redis manager
+import sys
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'security', 'application'))
+
 try:
-    redis_client = redis.Redis(
-        host=os.getenv("REDIS_HOST", "localhost"),
-        port=int(os.getenv("REDIS_PORT", "6379")),
-        db=0,
-        decode_responses=True
+    from redis_manager import RedisConnectionManager
+    # Create production Redis connection with pooling
+    redis_manager = RedisConnectionManager(
+        max_connections=100,  # Connection pool size
+        socket_timeout=5,
+        socket_connect_timeout=5,
+        enable_fallback=True  # Fail-safe for development
     )
-    redis_client.ping()
-except:
-    print("Redis not available, using in-memory storage (not recommended for production)")
+    redis_client = redis_manager.client if redis_manager.is_available else None
+
+    if redis_manager.is_available:
+        print(f"[OK] Production Redis connected: {redis_manager.host}:{redis_manager.port}")
+    else:
+        print("[WARNING] Redis fallback mode active (NOT recommended for production)")
+except ImportError:
+    # Fallback to basic Redis if manager not available
     redis_client = None
+    try:
+        redis_client = redis.Redis(
+            host=os.getenv("REDIS_HOST", "localhost"),
+            port=int(os.getenv("REDIS_PORT", "6379")),
+            db=0,
+            decode_responses=True
+        )
+        redis_client.ping()
+        print("Redis connected (basic mode)")
+    except:
+        print("Redis not available, using in-memory storage (not recommended for production)")
+        redis_client = None
 
 # RSA Key Management for production-grade security
 class RSAKeyManager:
