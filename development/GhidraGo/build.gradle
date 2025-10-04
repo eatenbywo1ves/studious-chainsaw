@@ -37,7 +37,7 @@ else {
 
 // Extension metadata
 project.ext.name = "GhidraGo"
-version = "2.0.0"
+version = "2.1.0"
 description = "Golang binary analyzer with auto-analyzer, function recovery, and type extraction"
 
 // Disable help validation (not essential for extension functionality)
