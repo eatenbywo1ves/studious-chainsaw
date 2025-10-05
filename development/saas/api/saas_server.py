@@ -43,6 +43,7 @@ from auth.middleware import (  # noqa: E402
 # Import tenant API
 from api.tenant_api import router as tenant_router  # noqa: E402
 from api.subscription_api import router as subscription_router  # noqa: E402
+from api.auth_api import router as auth_router  # noqa: E402
 
 # Import database models
 from database.models import (  # noqa: E402
@@ -268,6 +269,7 @@ app.add_middleware(AuthenticationMiddleware)
 app.add_middleware(TenantIsolationMiddleware)
 
 # Include routers
+app.include_router(auth_router)
 app.include_router(tenant_router)
 app.include_router(subscription_router)
 

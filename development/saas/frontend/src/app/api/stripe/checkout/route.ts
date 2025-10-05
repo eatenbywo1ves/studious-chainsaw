@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { stripe } from '../config/route'
+import { verifyRequestAuth, unauthorizedResponse } from '@/lib/auth'
 
 // POST /api/stripe/checkout - Create checkout session
 export async function POST(request: NextRequest) {
@@ -15,24 +16,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Verify authorization
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+    // Verify JWT token and get user info
+    const authResult = await verifyRequestAuth(request)
+    if (!authResult.authenticated || !authResult.user) {
+      return unauthorizedResponse(authResult.error)
     }
 
-    // TODO: Verify JWT token and get user info
-    // const token = authHeader.substring(7)
-    // const user = await verifyJWT(token)
-
-    // For now, we'll use mock user data
-    const mockUser = {
-      id: 'user_123',
-      email: customerEmail || 'test@example.com',
-      name: 'Test User',
+    // Extract user data from verified token
+    const user = {
+      id: authResult.user.sub,
+      tenant_id: authResult.user.tenant_id,
+      email: authResult.user.email || customerEmail || 'user@example.com',
+      name: customerEmail || authResult.user.email || 'User',
     }
 
     // Create or retrieve customer
@@ -49,10 +44,11 @@ export async function POST(request: NextRequest) {
       } else {
         // Create new customer
         customer = await stripe.customers.create({
-          email: mockUser.email,
-          name: mockUser.name,
+          email: user.email,
+          name: user.name,
           metadata: {
-            user_id: mockUser.id,
+            user_id: user.id,
+            tenant_id: user.tenant_id,
           },
         })
       }
@@ -78,7 +74,9 @@ export async function POST(request: NextRequest) {
       success_url: successUrl || `${request.nextUrl.origin}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: cancelUrl || `${request.nextUrl.origin}/register?cancelled=true`,
       metadata: {
-        user_id: mockUser.id,
+        user_id: user.id,
+        tenant_id: user.tenant_id,
+        user_email: user.email,
         plan_code: planCode,
         ...metadata,
       },
@@ -91,7 +89,9 @@ export async function POST(request: NextRequest) {
       ...(planCode !== 'free' && {
         subscription_data: {
           metadata: {
-            user_id: mockUser.id,
+            user_id: user.id,
+            tenant_id: user.tenant_id,
+            user_email: user.email,
             plan_code: planCode,
           },
           trial_period_days: planCode === 'starter' ? 14 : planCode === 'professional' ? 7 : undefined,

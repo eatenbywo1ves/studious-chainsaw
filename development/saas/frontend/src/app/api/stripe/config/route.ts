@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
+import { verifyRequestAuth, unauthorizedResponse, forbiddenResponse } from '@/lib/auth'
 
 // Initialize Stripe with secret key
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -74,21 +75,14 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { action, ...data } = body
 
-    // Verify admin authorization
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+    // Verify JWT token and admin role
+    const authResult = await verifyRequestAuth(request, true) // requireAdmin = true
+    if (!authResult.authenticated || !authResult.user) {
+      if (authResult.statusCode === 403) {
+        return forbiddenResponse(authResult.error)
+      }
+      return unauthorizedResponse(authResult.error)
     }
-
-    // TODO: Verify JWT token and admin role
-    // const token = authHeader.substring(7)
-    // const user = await verifyJWT(token)
-    // if (user.role !== 'admin') {
-    //   return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    // }
 
     switch (action) {
       case 'create_product':

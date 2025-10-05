@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { stripe } from '../config/route'
+import { verifyResourceOwnership, unauthorizedResponse, forbiddenResponse } from '@/lib/auth'
 
 // POST /api/stripe/portal - Create billing portal session
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { customerId, returnUrl } = body
+    const { customerId, returnUrl, userId } = body
 
     // Validate required fields
     if (!customerId) {
@@ -15,18 +16,27 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Verify authorization
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    // Verify JWT token and ensure user owns this customer
+    // First, get the customer to extract the user_id from metadata
+    const customer = await stripe.customers.retrieve(customerId)
+    const customerUserId = typeof customer !== 'string' && !customer.deleted
+      ? customer.metadata?.user_id
+      : userId
+
+    if (!customerUserId) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
+        { error: 'Invalid customer or missing user_id' },
+        { status: 400 }
       )
     }
 
-    // TODO: Verify JWT token and ensure user owns this customer
-    // const token = authHeader.substring(7)
-    // const user = await verifyJWT(token)
+    const authResult = await verifyResourceOwnership(request, customerUserId)
+    if (!authResult.authorized || !authResult.user) {
+      if (authResult.statusCode === 403) {
+        return forbiddenResponse(authResult.error)
+      }
+      return unauthorizedResponse(authResult.error)
+    }
 
     // Create billing portal session
     const portalSession = await stripe.billingPortal.sessions.create({
@@ -71,13 +81,11 @@ export async function POST(request: NextRequest) {
 // GET /api/stripe/portal - Get portal configuration
 export async function GET(request: NextRequest) {
   try {
-    // Verify authorization
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+    // Verify JWT token
+    const { verifyRequestAuth } = await import('@/lib/auth')
+    const authResult = await verifyRequestAuth(request)
+    if (!authResult.authenticated || !authResult.user) {
+      return unauthorizedResponse(authResult.error)
     }
 
     // List portal configurations

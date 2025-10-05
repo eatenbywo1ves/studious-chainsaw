@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { stripe } from '../config/route'
+import { verifyRequestAuth, unauthorizedResponse } from '@/lib/auth'
 
 // GET /api/stripe/subscriptions - Get user's subscriptions
 export async function GET(request: NextRequest) {
@@ -8,18 +9,13 @@ export async function GET(request: NextRequest) {
     const customerId = searchParams.get('customer_id')
     const userId = searchParams.get('user_id')
 
-    // Verify authorization
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+    // Verify JWT token and get user info
+    const authResult = await verifyRequestAuth(request)
+    if (!authResult.authenticated || !authResult.user) {
+      return unauthorizedResponse(authResult.error)
     }
 
-    // TODO: Verify JWT token and get user info
-    // const token = authHeader.substring(7)
-    // const user = await verifyJWT(token)
+    const user = authResult.user
 
     let subscriptions
 
@@ -106,13 +102,10 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { action, subscriptionId, customerId, priceId, metadata = {} } = body
 
-    // Verify authorization
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+    // Verify JWT token
+    const authResult = await verifyRequestAuth(request)
+    if (!authResult.authenticated || !authResult.user) {
+      return unauthorizedResponse(authResult.error)
     }
 
     switch (action) {
@@ -233,13 +226,10 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
-    // Verify authorization
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+    // Verify JWT token
+    const authResult = await verifyRequestAuth(request)
+    if (!authResult.authenticated || !authResult.user) {
+      return unauthorizedResponse(authResult.error)
     }
 
     // Cancel subscription immediately

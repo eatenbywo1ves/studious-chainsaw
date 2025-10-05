@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { emailService, EmailHelpers } from '@/lib/email/email-service'
+import { verifyRequestAuth, unauthorizedResponse } from '@/lib/auth'
 
 // POST /api/email/send - Send emails via API
 export async function POST(request: NextRequest) {
@@ -7,18 +8,11 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { type, ...data } = body
 
-    // Verify authorization
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+    // Verify JWT token
+    const authResult = await verifyRequestAuth(request)
+    if (!authResult.authenticated || !authResult.user) {
+      return unauthorizedResponse(authResult.error)
     }
-
-    // TODO: Verify JWT token
-    // const token = authHeader.substring(7)
-    // const user = await verifyJWT(token)
 
     let result
 
@@ -145,13 +139,10 @@ export async function POST(request: NextRequest) {
 // GET /api/email/send - Get email service status
 export async function GET(request: NextRequest) {
   try {
-    // Verify authorization
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+    // Verify JWT token
+    const authResult = await verifyRequestAuth(request)
+    if (!authResult.authenticated || !authResult.user) {
+      return unauthorizedResponse(authResult.error)
     }
 
     const status = await emailService.getServiceStatus()
