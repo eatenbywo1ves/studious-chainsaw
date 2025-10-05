@@ -3,23 +3,21 @@ Integration tests for email service
 """
 import pytest
 import httpx
-import json
 import os
-from unittest.mock import patch, MagicMock
 
 class TestEmailService:
     """Test cases for email service integration"""
-    
+
     @pytest.fixture
     def api_base_url(self):
         """Get API base URL"""
         return os.getenv('API_BASE_URL', 'http://localhost:8000')
-    
+
     @pytest.fixture
     def sendgrid_api_key(self):
         """Get SendGrid API key from environment"""
         return os.getenv('SENDGRID_API_KEY', 'SG.test_key')
-    
+
     @pytest.mark.asyncio
     async def test_send_welcome_email(self, api_base_url):
         """Test sending welcome email"""
@@ -31,19 +29,19 @@ class TestEmailService:
                 "login_url": "https://app.catalytic.dev/login"
             }
         }
-        
+
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 f"{api_base_url}/api/email/send",
                 json=email_data,
                 headers={"Content-Type": "application/json"}
             )
-        
+
         assert response.status_code == 200
         response_data = response.json()
         assert response_data["status"] == "sent"
         assert "message_id" in response_data
-    
+
     @pytest.mark.asyncio
     async def test_send_subscription_confirmation(self, api_base_url):
         """Test sending subscription confirmation email"""
@@ -58,18 +56,18 @@ class TestEmailService:
                 "next_billing_date": "2024-01-15"
             }
         }
-        
+
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 f"{api_base_url}/api/email/send",
                 json=email_data,
                 headers={"Content-Type": "application/json"}
             )
-        
+
         assert response.status_code == 200
         response_data = response.json()
         assert response_data["status"] == "sent"
-    
+
     @pytest.mark.asyncio
     async def test_send_password_reset(self, api_base_url):
         """Test sending password reset email"""
@@ -82,18 +80,18 @@ class TestEmailService:
                 "expiry_time": "1 hour"
             }
         }
-        
+
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 f"{api_base_url}/api/email/send",
                 json=email_data,
                 headers={"Content-Type": "application/json"}
             )
-        
+
         assert response.status_code == 200
         response_data = response.json()
         assert response_data["status"] == "sent"
-    
+
     @pytest.mark.asyncio
     async def test_send_invoice_email(self, api_base_url):
         """Test sending invoice email"""
@@ -108,18 +106,18 @@ class TestEmailService:
                 "download_link": "https://app.catalytic.dev/invoice/download/123"
             }
         }
-        
+
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 f"{api_base_url}/api/email/send",
                 json=email_data,
                 headers={"Content-Type": "application/json"}
             )
-        
+
         assert response.status_code == 200
         response_data = response.json()
         assert response_data["status"] == "sent"
-    
+
     @pytest.mark.asyncio
     async def test_invalid_email_address(self, api_base_url):
         """Test sending email to invalid address"""
@@ -130,18 +128,18 @@ class TestEmailService:
                 "user_name": "Test User"
             }
         }
-        
+
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 f"{api_base_url}/api/email/send",
                 json=email_data,
                 headers={"Content-Type": "application/json"}
             )
-        
+
         assert response.status_code == 400
         response_data = response.json()
         assert "error" in response_data
-    
+
     @pytest.mark.asyncio
     async def test_missing_template(self, api_base_url):
         """Test sending email with missing template"""
@@ -152,19 +150,19 @@ class TestEmailService:
                 "user_name": "Test User"
             }
         }
-        
+
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 f"{api_base_url}/api/email/send",
                 json=email_data,
                 headers={"Content-Type": "application/json"}
             )
-        
+
         assert response.status_code == 404
         response_data = response.json()
         assert "error" in response_data
         assert "template not found" in response_data["error"].lower()
-    
+
     @pytest.mark.asyncio
     async def test_email_rate_limiting(self, api_base_url):
         """Test email rate limiting"""
@@ -175,7 +173,7 @@ class TestEmailService:
                 "user_name": "Rate Limit Test"
             }
         }
-        
+
         # Send multiple emails rapidly
         responses = []
         async with httpx.AsyncClient() as client:
@@ -186,39 +184,39 @@ class TestEmailService:
                     headers={"Content-Type": "application/json"}
                 )
                 responses.append(response)
-        
+
         # At least one should succeed
         success_count = sum(1 for r in responses if r.status_code == 200)
-        rate_limited_count = sum(1 for r in responses if r.status_code == 429)
-        
+        _rate_limited_count = sum(1 for r in responses if r.status_code == 429)
+
         assert success_count > 0
         # May or may not hit rate limit depending on configuration
-    
+
     @pytest.mark.asyncio
     async def test_email_metrics(self, api_base_url):
         """Test email service metrics endpoint"""
         async with httpx.AsyncClient() as client:
             response = await client.get(f"{api_base_url}/api/email/metrics")
-        
+
         assert response.status_code == 200
         metrics = response.json()
         assert "total_emails_sent" in metrics
         assert "successful_deliveries" in metrics
         assert "failed_deliveries" in metrics
         assert "bounce_rate" in metrics
-    
+
     @pytest.mark.asyncio
     async def test_email_health_check(self, api_base_url):
         """Test email service health check"""
         async with httpx.AsyncClient() as client:
             response = await client.get(f"{api_base_url}/api/email/health")
-        
+
         assert response.status_code == 200
         health_data = response.json()
         assert "status" in health_data
         assert "sendgrid_connectivity" in health_data
         assert health_data["status"] in ["healthy", "degraded", "unhealthy"]
-    
+
     @pytest.mark.asyncio
     async def test_bulk_email_send(self, api_base_url):
         """Test bulk email sending"""
@@ -230,7 +228,7 @@ class TestEmailService:
                     "data": {"user_name": "User One"}
                 },
                 {
-                    "to": "user2@example.com", 
+                    "to": "user2@example.com",
                     "data": {"user_name": "User Two"}
                 },
                 {
@@ -243,7 +241,7 @@ class TestEmailService:
                 "unsubscribe_link": "https://app.catalytic.dev/unsubscribe"
             }
         }
-        
+
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 f"{api_base_url}/api/email/bulk-send",
@@ -251,7 +249,7 @@ class TestEmailService:
                 headers={"Content-Type": "application/json"},
                 timeout=30.0  # Bulk operations may take longer
             )
-        
+
         assert response.status_code == 200
         response_data = response.json()
         assert response_data["status"] == "queued"

@@ -7,10 +7,9 @@ Multi-tenant version with authentication, usage tracking, and billing
 import os
 import sys
 import time
-import asyncio
 from datetime import datetime
 from contextlib import asynccontextmanager
-from typing import Optional, Dict, Any
+from typing import Optional, Dict
 from uuid import UUID
 
 # Load environment variables from parent .env file
@@ -18,46 +17,44 @@ from dotenv import load_dotenv
 env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env')
 load_dotenv(env_path)
 
-from fastapi import FastAPI, Depends, HTTPException, status, Request
-from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
+from fastapi import FastAPI, Depends, HTTPException, status  # noqa: E402
+from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
+from sqlalchemy import create_engine  # noqa: E402
+from sqlalchemy.orm import sessionmaker, Session  # noqa: E402
 
 # Add parent directories to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '..'))
 
 # Import security headers
-from security.application.security_headers import create_custom_security_headers
+from security.application.security_headers import create_custom_security_headers  # noqa: E402
 
 # Import auth components
-from auth.jwt_auth import create_token_pair, verify_password
-from auth.middleware import (
+from auth.middleware import (  # noqa: E402
     TenantIsolationMiddleware,
     AuthenticationMiddleware,
     RateLimitMiddleware,
     LoggingMiddleware,
     get_cors_config,
     get_current_user,
-    get_tenant_id,
     TokenData
 )
 
 # Import tenant API
-from api.tenant_api import router as tenant_router
+from api.tenant_api import router as tenant_router  # noqa: E402
 
 # Import database models
-from database.models import (
-    Base, Tenant, User, TenantSubscription, SubscriptionPlan,
-    UsageMetric, ApiLog, TenantLattice, LatticeOperation
+from database.models import (  # noqa: E402
+    Base, Tenant, User, SubscriptionPlan,
+    ApiLog, TenantLattice, LatticeOperation
 )
 
 # Import original Catalytic Computing components
-from apps.catalytic.catalytic_lattice_graph import CatalyticLatticeGraph
+from apps.catalytic.catalytic_lattice_graph import CatalyticLatticeGraph  # noqa: E402
 
 # Try to import GPU modules
 try:
-    from apps.catalytic.catalytic_lattice_gpu import CatalyticLatticeGPU
+    from apps.catalytic.catalytic_lattice_gpu import CatalyticLatticeGPU  # noqa: F401
     GPU_AVAILABLE = True
 except ImportError:
     GPU_AVAILABLE = False
@@ -154,7 +151,7 @@ class TenantLatticeManager:
 lattice_manager = TenantLatticeManager()
 
 # Import and initialize reactive services
-from api.reactive_auth import ReactiveAuthService, ReactiveLatticeService
+from api.reactive_auth import ReactiveAuthService, ReactiveLatticeService  # noqa: E402
 auth_service = ReactiveAuthService(max_workers=4)
 lattice_service = ReactiveLatticeService(lattice_manager, max_workers=4)
 
@@ -273,7 +270,7 @@ app.add_middleware(TenantIsolationMiddleware)
 app.include_router(tenant_router)
 
 # Add Prometheus metrics endpoint
-from api.metrics_instrumentation import add_metrics_endpoint, MetricsMiddleware
+from api.metrics_instrumentation import add_metrics_endpoint, MetricsMiddleware  # noqa: E402
 add_metrics_endpoint(app)
 app.add_middleware(MetricsMiddleware)
 
@@ -281,7 +278,7 @@ app.add_middleware(MetricsMiddleware)
 # AUTHENTICATION ENDPOINTS
 # ============================================================================
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr  # noqa: E402
 
 class LoginRequest(BaseModel):
     email: EmailStr
@@ -331,7 +328,7 @@ async def refresh_token(request: RefreshRequest):
 # LATTICE ENDPOINTS (TENANT-AWARE)
 # ============================================================================
 
-from pydantic import Field
+from pydantic import Field  # noqa: E402
 
 class LatticeCreateRequest(BaseModel):
     name: Optional[str] = None
@@ -555,7 +552,7 @@ async def health_check(db: Session = Depends(get_db)):
         # Check database
         db.execute("SELECT 1")
         db_status = "healthy"
-    except:
+    except Exception:
         db_status = "unhealthy"
 
     # Get system stats
@@ -569,7 +566,7 @@ async def health_check(db: Session = Depends(get_db)):
         "stats": {
             "tenants": tenant_count,
             "users": user_count,
-            "total_lattices": sum(len(l) for l in lattice_manager._lattices.values())
+            "total_lattices": sum(len(lattices) for lattices in lattice_manager._lattices.values())
         },
         "timestamp": datetime.utcnow().isoformat()
     }

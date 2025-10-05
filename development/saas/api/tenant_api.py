@@ -8,7 +8,7 @@ from typing import List, Optional
 from datetime import datetime, timedelta
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from pydantic import BaseModel, EmailStr, Field, validator
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
@@ -18,12 +18,11 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from auth.jwt_auth import (
-    create_token_pair, hash_password, verify_password,
-    TokenResponse, generate_api_key
+    create_token_pair, generate_api_key
 )
 from auth.middleware import (
-    get_current_user, get_current_active_user, require_admin,
-    get_tenant_id, TokenData
+    get_current_active_user, require_admin,
+    TokenData
 )
 
 # Import database models
@@ -252,7 +251,7 @@ async def register_tenant(
             "tokens": tokens.dict()
         }
 
-    except IntegrityError as e:
+    except IntegrityError:
         db.rollback()
         raise HTTPException(
             status_code=400,

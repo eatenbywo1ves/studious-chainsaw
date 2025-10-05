@@ -8,42 +8,41 @@ import os
 import time
 import hashlib
 import hmac
-from unittest.mock import patch
 
 class TestStripeWebhooks:
     """Test cases for Stripe webhook integration"""
-    
+
     @pytest.fixture
     def webhook_secret(self):
         """Get webhook secret from environment"""
         return os.getenv('STRIPE_WEBHOOK_SECRET', 'whsec_test_secret')
-    
+
     @pytest.fixture
     def api_base_url(self):
         """Get API base URL"""
         return os.getenv('API_BASE_URL', 'http://localhost:8000')
-    
+
     @pytest.fixture
     def stripe_signature(self, webhook_secret):
         """Generate Stripe signature for webhook payload"""
         def _generate_signature(payload: str, timestamp: int = None):
             if timestamp is None:
                 timestamp = int(time.time())
-            
+
             # Create the signed payload
             signed_payload = f"{timestamp}.{payload}"
-            
+
             # Generate signature
             signature = hmac.new(
                 webhook_secret.encode('utf-8'),
                 signed_payload.encode('utf-8'),
                 hashlib.sha256
             ).hexdigest()
-            
+
             return f"t={timestamp},v1={signature}"
-        
+
         return _generate_signature
-    
+
     @pytest.mark.asyncio
     async def test_customer_subscription_created(self, api_base_url, stripe_signature):
         """Test customer.subscription.created webhook"""
@@ -73,10 +72,10 @@ class TestStripeWebhooks:
             },
             "type": "customer.subscription.created"
         }
-        
+
         payload_str = json.dumps(payload)
         signature = stripe_signature(payload_str)
-        
+
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 f"{api_base_url}/api/stripe/webhooks",
@@ -86,11 +85,11 @@ class TestStripeWebhooks:
                     "Stripe-Signature": signature
                 }
             )
-        
+
         assert response.status_code == 200
         response_data = response.json()
         assert response_data["status"] == "success"
-    
+
     @pytest.mark.asyncio
     async def test_customer_subscription_updated(self, api_base_url, stripe_signature):
         """Test customer.subscription.updated webhook"""
@@ -120,10 +119,10 @@ class TestStripeWebhooks:
             },
             "type": "customer.subscription.updated"
         }
-        
+
         payload_str = json.dumps(payload)
         signature = stripe_signature(payload_str)
-        
+
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 f"{api_base_url}/api/stripe/webhooks",
@@ -133,11 +132,11 @@ class TestStripeWebhooks:
                     "Stripe-Signature": signature
                 }
             )
-        
+
         assert response.status_code == 200
         response_data = response.json()
         assert response_data["status"] == "success"
-    
+
     @pytest.mark.asyncio
     async def test_invoice_payment_succeeded(self, api_base_url, stripe_signature):
         """Test invoice.payment_succeeded webhook"""
@@ -159,10 +158,10 @@ class TestStripeWebhooks:
             },
             "type": "invoice.payment_succeeded"
         }
-        
+
         payload_str = json.dumps(payload)
         signature = stripe_signature(payload_str)
-        
+
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 f"{api_base_url}/api/stripe/webhooks",
@@ -172,11 +171,11 @@ class TestStripeWebhooks:
                     "Stripe-Signature": signature
                 }
             )
-        
+
         assert response.status_code == 200
         response_data = response.json()
         assert response_data["status"] == "success"
-    
+
     @pytest.mark.asyncio
     async def test_invalid_signature(self, api_base_url):
         """Test webhook with invalid signature"""
@@ -185,9 +184,9 @@ class TestStripeWebhooks:
             "object": "event",
             "type": "customer.subscription.created"
         }
-        
+
         payload_str = json.dumps(payload)
-        
+
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 f"{api_base_url}/api/stripe/webhooks",
@@ -197,9 +196,9 @@ class TestStripeWebhooks:
                     "Stripe-Signature": "invalid_signature"
                 }
             )
-        
+
         assert response.status_code == 400
-    
+
     @pytest.mark.asyncio
     async def test_webhook_idempotency(self, api_base_url, stripe_signature):
         """Test webhook idempotency - same event ID should be processed only once"""
@@ -218,10 +217,10 @@ class TestStripeWebhooks:
             },
             "type": "customer.subscription.created"
         }
-        
+
         payload_str = json.dumps(payload)
         signature = stripe_signature(payload_str)
-        
+
         async with httpx.AsyncClient() as client:
             # First request
             response1 = await client.post(
@@ -232,7 +231,7 @@ class TestStripeWebhooks:
                     "Stripe-Signature": signature
                 }
             )
-            
+
             # Second request with same event ID
             response2 = await client.post(
                 f"{api_base_url}/api/stripe/webhooks",
@@ -242,16 +241,16 @@ class TestStripeWebhooks:
                     "Stripe-Signature": signature
                 }
             )
-        
+
         assert response1.status_code == 200
         assert response2.status_code == 200  # Should still return 200 but not process again
-    
+
     @pytest.mark.asyncio
     async def test_webhook_metrics_endpoint(self, api_base_url):
         """Test webhook metrics endpoint"""
         async with httpx.AsyncClient() as client:
             response = await client.get(f"{api_base_url}/api/stripe/webhooks/metrics")
-        
+
         assert response.status_code == 200
         metrics = response.json()
         assert "total_webhooks_received" in metrics

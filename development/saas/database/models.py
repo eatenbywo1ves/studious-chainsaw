@@ -3,24 +3,27 @@ SQLAlchemy ORM Models for Catalytic Computing SaaS
 Multi-tenant database models with tenant isolation
 """
 
-from datetime import datetime, timedelta
-from typing import Optional, List, Dict, Any
-from uuid import UUID, uuid4
+from datetime import datetime
+from typing import Optional
+from uuid import uuid4
 from enum import Enum
 
 from sqlalchemy import (
-    Column, String, Integer, Float, Boolean, DateTime, Date,
+    Column, String, Integer, Boolean, DateTime, Date,
     ForeignKey, JSON, DECIMAL, Text, CheckConstraint, UniqueConstraint,
-    Index, func, event
+    Index, func
 )
-from sqlalchemy.dialects.postgresql import UUID as PGUUID, INET, JSONB
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship, Session, validates
-from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.orm import relationship
 from passlib.context import CryptContext
 
 Base = declarative_base()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+# Helper function to generate string UUIDs for SQLite compatibility
+def generate_uuid():
+    """Generate UUID as string for SQLite compatibility"""
+    return str(uuid4())
 
 # ============================================================================
 # ENUMS
@@ -57,13 +60,13 @@ class BillingStatus(str, Enum):
 class Tenant(Base):
     __tablename__ = 'tenants'
 
-    id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
+    id = Column(String(36), primary_key=True, default=generate_uuid)
     slug = Column(String(50), unique=True, nullable=False, index=True)
     name = Column(String(255), nullable=False)
     email = Column(String(255), nullable=False)
     domain = Column(String(255))
     status = Column(String(20), default=TenantStatus.ACTIVE)
-    meta_data = Column('metadata', JSONB, default={})
+    meta_data = Column('metadata', JSON, default={})
     created_at = Column(DateTime(timezone=True), default=func.now())
     updated_at = Column(DateTime(timezone=True), default=func.now(), onupdate=func.now())
     deleted_at = Column(DateTime(timezone=True))
@@ -94,14 +97,14 @@ class Tenant(Base):
 class SubscriptionPlan(Base):
     __tablename__ = 'subscription_plans'
 
-    id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
+    id = Column(String(36), primary_key=True, default=generate_uuid)
     name = Column(String(100), nullable=False)
     code = Column(String(50), unique=True, nullable=False)
     description = Column(Text)
     price_monthly = Column(DECIMAL(10, 2), nullable=False)
     price_yearly = Column(DECIMAL(10, 2))
-    features = Column(JSONB, nullable=False, default={})
-    limits = Column(JSONB, nullable=False, default={})
+    features = Column(JSON, nullable=False, default={})
+    limits = Column(JSON, nullable=False, default={})
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), default=func.now())
     updated_at = Column(DateTime(timezone=True), default=func.now(), onupdate=func.now())
@@ -120,9 +123,9 @@ class SubscriptionPlan(Base):
 class TenantSubscription(Base):
     __tablename__ = 'tenant_subscriptions'
 
-    id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
-    tenant_id = Column(PGUUID(as_uuid=True), ForeignKey('tenants.id', ondelete='CASCADE'), nullable=False)
-    plan_id = Column(PGUUID(as_uuid=True), ForeignKey('subscription_plans.id'), nullable=False)
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    tenant_id = Column(String(36), ForeignKey('tenants.id', ondelete='CASCADE'), nullable=False)
+    plan_id = Column(String(36), ForeignKey('subscription_plans.id'), nullable=False)
     status = Column(String(20), default=SubscriptionStatus.ACTIVE)
     trial_ends_at = Column(DateTime(timezone=True))
     current_period_start = Column(DateTime(timezone=True), default=func.now())
@@ -158,8 +161,8 @@ class TenantSubscription(Base):
 class User(Base):
     __tablename__ = 'users'
 
-    id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
-    tenant_id = Column(PGUUID(as_uuid=True), ForeignKey('tenants.id', ondelete='CASCADE'), nullable=False)
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    tenant_id = Column(String(36), ForeignKey('tenants.id', ondelete='CASCADE'), nullable=False)
     email = Column(String(255), nullable=False)
     username = Column(String(100))
     password_hash = Column(String(255), nullable=False)
@@ -169,7 +172,7 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     email_verified = Column(Boolean, default=False)
     last_login = Column(DateTime(timezone=True))
-    meta_data = Column('metadata', JSONB, default={})
+    meta_data = Column('metadata', JSON, default={})
     created_at = Column(DateTime(timezone=True), default=func.now())
     updated_at = Column(DateTime(timezone=True), default=func.now(), onupdate=func.now())
 
@@ -210,16 +213,16 @@ class User(Base):
 class ApiKey(Base):
     __tablename__ = 'api_keys'
 
-    id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
-    tenant_id = Column(PGUUID(as_uuid=True), ForeignKey('tenants.id', ondelete='CASCADE'), nullable=False)
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    tenant_id = Column(String(36), ForeignKey('tenants.id', ondelete='CASCADE'), nullable=False)
     name = Column(String(255), nullable=False)
     key_hash = Column(String(255), nullable=False, unique=True)
     key_prefix = Column(String(10), nullable=False)
-    permissions = Column(JSONB, default=[])
+    permissions = Column(JSON, default=[])
     last_used_at = Column(DateTime(timezone=True))
     expires_at = Column(DateTime(timezone=True))
     is_active = Column(Boolean, default=True)
-    created_by_id = Column(PGUUID(as_uuid=True), ForeignKey('users.id'))
+    created_by_id = Column(String(36), ForeignKey('users.id'))
     created_at = Column(DateTime(timezone=True), default=func.now())
     updated_at = Column(DateTime(timezone=True), default=func.now(), onupdate=func.now())
 
@@ -245,10 +248,10 @@ class ApiKey(Base):
 class Session(Base):
     __tablename__ = 'sessions'
 
-    id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
-    user_id = Column(PGUUID(as_uuid=True), ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    user_id = Column(String(36), ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
     token_hash = Column(String(255), nullable=False, unique=True)
-    ip_address = Column(INET)
+    ip_address = Column(String(45))
     user_agent = Column(Text)
     expires_at = Column(DateTime(timezone=True), nullable=False)
     created_at = Column(DateTime(timezone=True), default=func.now())
@@ -273,11 +276,11 @@ class Session(Base):
 class UsageMetric(Base):
     __tablename__ = 'usage_metrics'
 
-    id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
-    tenant_id = Column(PGUUID(as_uuid=True), ForeignKey('tenants.id', ondelete='CASCADE'), nullable=False)
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    tenant_id = Column(String(36), ForeignKey('tenants.id', ondelete='CASCADE'), nullable=False)
     metric_type = Column(String(50), nullable=False)
     metric_value = Column(Integer, nullable=False, default=0)
-    meta_data = Column('metadata', JSONB, default={})
+    meta_data = Column('metadata', JSON, default={})
     period_start = Column(DateTime(timezone=True), nullable=False)
     period_end = Column(DateTime(timezone=True), nullable=False)
     created_at = Column(DateTime(timezone=True), default=func.now())
@@ -294,17 +297,17 @@ class UsageMetric(Base):
 class ApiLog(Base):
     __tablename__ = 'api_logs'
 
-    id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
-    tenant_id = Column(PGUUID(as_uuid=True), ForeignKey('tenants.id', ondelete='CASCADE'), nullable=False)
-    user_id = Column(PGUUID(as_uuid=True), ForeignKey('users.id'))
-    api_key_id = Column(PGUUID(as_uuid=True), ForeignKey('api_keys.id'))
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    tenant_id = Column(String(36), ForeignKey('tenants.id', ondelete='CASCADE'), nullable=False)
+    user_id = Column(String(36), ForeignKey('users.id'))
+    api_key_id = Column(String(36), ForeignKey('api_keys.id'))
     endpoint = Column(String(255), nullable=False)
     method = Column(String(10), nullable=False)
     status_code = Column(Integer)
     response_time_ms = Column(Integer)
     request_size_bytes = Column(Integer)
     response_size_bytes = Column(Integer)
-    ip_address = Column(INET)
+    ip_address = Column(String(45))
     error_message = Column(Text)
     created_at = Column(DateTime(timezone=True), default=func.now())
 
@@ -321,9 +324,9 @@ class ApiLog(Base):
 class BillingRecord(Base):
     __tablename__ = 'billing_records'
 
-    id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
-    tenant_id = Column(PGUUID(as_uuid=True), ForeignKey('tenants.id', ondelete='CASCADE'), nullable=False)
-    subscription_id = Column(PGUUID(as_uuid=True), ForeignKey('tenant_subscriptions.id'))
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    tenant_id = Column(String(36), ForeignKey('tenants.id', ondelete='CASCADE'), nullable=False)
+    subscription_id = Column(String(36), ForeignKey('tenant_subscriptions.id'))
     amount = Column(DECIMAL(10, 2), nullable=False)
     currency = Column(String(3), default='USD')
     description = Column(Text)
@@ -332,7 +335,7 @@ class BillingRecord(Base):
     invoice_number = Column(String(100), unique=True)
     due_date = Column(Date)
     paid_at = Column(DateTime(timezone=True))
-    meta_data = Column('metadata', JSONB, default={})
+    meta_data = Column('metadata', JSON, default={})
     created_at = Column(DateTime(timezone=True), default=func.now())
     updated_at = Column(DateTime(timezone=True), default=func.now(), onupdate=func.now())
 
@@ -353,8 +356,8 @@ class BillingRecord(Base):
 class TenantLattice(Base):
     __tablename__ = 'tenant_lattices'
 
-    id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
-    tenant_id = Column(PGUUID(as_uuid=True), ForeignKey('tenants.id', ondelete='CASCADE'), nullable=False)
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    tenant_id = Column(String(36), ForeignKey('tenants.id', ondelete='CASCADE'), nullable=False)
     name = Column(String(255))
     dimensions = Column(Integer, nullable=False)
     size = Column(Integer, nullable=False)
@@ -362,9 +365,9 @@ class TenantLattice(Base):
     edges = Column(Integer, nullable=False)
     memory_kb = Column(DECIMAL(10, 2))
     memory_reduction = Column(DECIMAL(10, 2))
-    meta_data = Column('metadata', JSONB, default={})
+    meta_data = Column('metadata', JSON, default={})
     is_active = Column(Boolean, default=True)
-    created_by_id = Column(PGUUID(as_uuid=True), ForeignKey('users.id'))
+    created_by_id = Column(String(36), ForeignKey('users.id'))
     created_at = Column(DateTime(timezone=True), default=func.now())
     updated_at = Column(DateTime(timezone=True), default=func.now(), onupdate=func.now())
     last_accessed_at = Column(DateTime(timezone=True), default=func.now())
@@ -383,16 +386,16 @@ class TenantLattice(Base):
 class LatticeOperation(Base):
     __tablename__ = 'lattice_operations'
 
-    id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
-    tenant_id = Column(PGUUID(as_uuid=True), ForeignKey('tenants.id', ondelete='CASCADE'), nullable=False)
-    lattice_id = Column(PGUUID(as_uuid=True), ForeignKey('tenant_lattices.id', ondelete='CASCADE'))
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    tenant_id = Column(String(36), ForeignKey('tenants.id', ondelete='CASCADE'), nullable=False)
+    lattice_id = Column(String(36), ForeignKey('tenant_lattices.id', ondelete='CASCADE'))
     operation_type = Column(String(50), nullable=False)
-    parameters = Column(JSONB, default={})
-    result = Column(JSONB, default={})
+    parameters = Column(JSON, default={})
+    result = Column(JSON, default={})
     execution_time_ms = Column(Integer)
     status = Column(String(20), default='success')
     error_message = Column(Text)
-    created_by_id = Column(PGUUID(as_uuid=True), ForeignKey('users.id'))
+    created_by_id = Column(String(36), ForeignKey('users.id'))
     created_at = Column(DateTime(timezone=True), default=func.now())
 
     # Relationships

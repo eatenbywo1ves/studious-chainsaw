@@ -7,10 +7,9 @@ import os
 import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any, Tuple
-from uuid import UUID
 
 import jwt
-from jwt.exceptions import PyJWTError, ExpiredSignatureError, InvalidTokenError
+from jwt.exceptions import PyJWTError, ExpiredSignatureError
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.backends import default_backend
@@ -30,7 +29,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # ✅ PRODUCTION: Use Redis Connection Manager with pooling and failover
 # Import production-grade Redis manager
-import sys
+import sys  # noqa: E402
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'security', 'application'))
 
 try:
@@ -60,7 +59,7 @@ except ImportError:
         )
         redis_client.ping()
         print("Redis connected (basic mode)")
-    except:
+    except Exception:
         print("Redis not available, using in-memory storage (not recommended for production)")
         redis_client = None
 
@@ -373,7 +372,7 @@ def revoke_token(token: str):
             if exp:
                 ttl = max(0, exp - datetime.now(timezone.utc).timestamp())
                 redis_client.setex(f"blacklist:{jti}", int(ttl), "revoked")
-    except:
+    except Exception:
         pass
 
 def revoke_all_user_tokens(user_id: str, tenant_id: str):
@@ -381,7 +380,7 @@ def revoke_all_user_tokens(user_id: str, tenant_id: str):
 
     if redis_client:
         # Pattern match all user tokens
-        pattern = f"token:*:*"
+        pattern = "token:*:*"
         for key in redis_client.scan_iter(pattern):
             value = redis_client.get(key)
             if value and value.startswith(f"{user_id}:{tenant_id}"):
