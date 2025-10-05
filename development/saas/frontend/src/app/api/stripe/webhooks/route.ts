@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 import { stripe } from '../config/route'
 import { createWebhookTimer } from '@/lib/webhook-logger'
+import { apiClient } from '@/lib/api-client'
+import { EmailHelpers } from '@/lib/email/email-service'
 import Stripe from 'stripe'
 
 // Disable body parsing for webhooks
@@ -120,13 +122,26 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session, 
       return
     }
 
-    // Update user's plan in database
-    // TODO: Implement database update
-    // await updateUserPlan(userId, planCode)
+    // Update user's plan in database via backend API
+    try {
+      await apiClient.updateCustomerInfo({
+        user_id: userId,
+        tenant_id: session.metadata?.tenant_id || userId,
+        stripe_customer_id: session.customer as string,
+        email: session.customer_details?.email || undefined,
+        name: session.customer_details?.name || undefined
+      })
+    } catch (error) {
+      console.error('Error updating customer info:', error)
+    }
 
     // Send welcome email for paid plans
-    if (planCode && planCode !== 'free') {
-      await sendWelcomeEmail(session.customer_details?.email || '', planCode)
+    if (planCode && planCode !== 'free' && session.customer_details?.email) {
+      await EmailHelpers.sendWelcomeEmail(
+        session.customer_details.email,
+        session.customer_details.name || 'User',
+        planCode
+      )
     }
 
     // Log successful checkout
@@ -165,22 +180,24 @@ async function handleSubscriptionCreated(subscription: Stripe.Subscription, time
       return
     }
 
-    // Update user's subscription in database
-    // TODO: Implement database update
-    // await createUserSubscription({
-    //   user_id: userId,
-    //   subscription_id: subscription.id,
-    //   customer_id: subscription.customer,
-    //   plan_code: planCode,
-    //   status: subscription.status,
-    //   current_period_start: subscription.current_period_start,
-    //   current_period_end: subscription.current_period_end,
-    //   trial_start: subscription.trial_start,
-    //   trial_end: subscription.trial_end,
-    // })
-
-    // Update user's plan limits
-    // await updateUserLimits(userId, planCode)
+    // Create subscription in database via backend API
+    try {
+      await apiClient.createSubscription({
+        user_id: userId,
+        tenant_id: subscription.metadata?.tenant_id || userId,
+        stripe_subscription_id: subscription.id,
+        stripe_customer_id: subscription.customer as string,
+        plan_code: planCode || 'free',
+        status: subscription.status,
+        current_period_start: new Date(subscription.current_period_start * 1000),
+        current_period_end: new Date(subscription.current_period_end * 1000),
+        trial_start: subscription.trial_start ? new Date(subscription.trial_start * 1000) : undefined,
+        trial_end: subscription.trial_end ? new Date(subscription.trial_end * 1000) : undefined,
+      })
+    } catch (error) {
+      console.error('Error creating subscription in database:', error)
+      throw error
+    }
 
     // Log subscription creation
     await logEvent('subscription_created', {
@@ -208,27 +225,29 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
       return
     }
 
-    // Update subscription in database
-    // TODO: Implement database update
-    // await updateUserSubscription(subscription.id, {
-    //   status: subscription.status,
-    //   current_period_start: subscription.current_period_start,
-    //   current_period_end: subscription.current_period_end,
-    //   cancel_at_period_end: subscription.cancel_at_period_end,
-    //   canceled_at: subscription.canceled_at,
-    // })
-
-    // Handle plan changes
-    if (subscription.items.data.length > 0) {
-      const priceId = subscription.items.data[0].price.id
-      // TODO: Map price ID to plan code and update user limits
-      // const planCode = await getPlanCodeFromPriceId(priceId)
-      // await updateUserLimits(userId, planCode)
+    // Update subscription in database via backend API
+    try {
+      await apiClient.updateSubscription({
+        stripe_subscription_id: subscription.id,
+        status: subscription.status,
+        current_period_start: new Date(subscription.current_period_start * 1000),
+        current_period_end: new Date(subscription.current_period_end * 1000),
+        cancel_at_period_end: subscription.cancel_at_period_end,
+        canceled_at: subscription.canceled_at ? new Date(subscription.canceled_at * 1000) : undefined,
+      })
+    } catch (error) {
+      console.error('Error updating subscription in database:', error)
     }
 
-    // Handle cancellation
-    if (subscription.cancel_at_period_end) {
-      await sendCancellationEmail(userId, subscription.current_period_end)
+    // Get user's email for notifications
+    const userEmail = subscription.metadata?.user_email
+
+    // Handle cancellation - send email
+    if (subscription.cancel_at_period_end && userEmail) {
+      const periodEndDate = new Date(subscription.current_period_end * 1000)
+      const daysLeft = Math.ceil((periodEndDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+
+      await EmailHelpers.sendTrialEndingEmail(userEmail, daysLeft)
     }
 
     // Log subscription update
@@ -257,13 +276,18 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
       return
     }
 
-    // Downgrade user to free plan
-    // TODO: Implement database update
-    // await updateUserPlan(userId, 'free')
-    // await updateUserLimits(userId, 'free')
+    // Downgrade user to free plan via backend API
+    try {
+      await apiClient.cancelSubscription(userId, subscription.metadata?.tenant_id || userId)
+    } catch (error) {
+      console.error('Error canceling subscription in database:', error)
+    }
 
     // Send subscription cancellation confirmation
-    await sendSubscriptionCanceledEmail(userId)
+    const userEmail = subscription.metadata?.user_email
+    if (userEmail) {
+      await EmailHelpers.sendAccountSuspendedEmail(userEmail, 'Subscription cancelled')
+    }
 
     // Log subscription deletion
     await logEvent('subscription_deleted', {
@@ -292,7 +316,10 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
 
       if (userId) {
         // Send payment confirmation email
-        await sendPaymentSuccessEmail(userId, invoice.amount_paid, invoice.currency)
+        const userEmail = subscription.metadata?.user_email
+        if (userEmail) {
+          await EmailHelpers.sendPaymentSuccessEmail(userEmail, invoice.amount_paid, invoice.currency)
+        }
 
         // Log successful payment
         await logEvent('payment_succeeded', {
@@ -325,7 +352,10 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
 
       if (userId) {
         // Send payment failure notification
-        await sendPaymentFailedEmail(userId, invoice.amount_due, invoice.currency)
+        const userEmail = subscription.metadata?.user_email
+        if (userEmail) {
+          await EmailHelpers.sendPaymentFailedEmail(userEmail, invoice.amount_due, invoice.currency)
+        }
 
         // Log failed payment
         await logEvent('payment_failed', {
@@ -339,7 +369,9 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
 
         // If this is the final attempt, handle subscription suspension
         if (invoice.attempt_count >= 4) {
-          await handleSubscriptionSuspension(userId, subscriptionId)
+          const userEmail = subscription.metadata?.user_email
+          const tenantId = subscription.metadata?.tenant_id
+          await handleSubscriptionSuspension(userId, subscriptionId, userEmail, tenantId)
         }
       }
     }
@@ -358,9 +390,18 @@ async function handleCustomerCreated(customer: Stripe.Customer) {
     const userId = customer.metadata?.user_id
 
     if (userId) {
-      // Update user record with customer ID
-      // TODO: Implement database update
-      // await updateUserCustomerId(userId, customer.id)
+      // Update user record with customer ID via backend API
+      try {
+        await apiClient.updateCustomerInfo({
+          user_id: userId,
+          tenant_id: customer.metadata?.tenant_id || userId,
+          stripe_customer_id: customer.id,
+          email: customer.email || undefined,
+          name: customer.name || undefined
+        })
+      } catch (error) {
+        console.error('Error updating customer in database:', error)
+      }
 
       // Log customer creation
       await logEvent('customer_created', {
@@ -384,13 +425,18 @@ async function handleCustomerUpdated(customer: Stripe.Customer) {
     const userId = customer.metadata?.user_id
 
     if (userId) {
-      // Update user record with customer changes
-      // TODO: Implement database update
-      // await updateUserCustomerInfo(userId, {
-      //   email: customer.email,
-      //   name: customer.name,
-      //   phone: customer.phone,
-      // })
+      // Update user record with customer changes via backend API
+      try {
+        await apiClient.updateCustomerInfo({
+          user_id: userId,
+          tenant_id: customer.metadata?.tenant_id || userId,
+          stripe_customer_id: customer.id,
+          email: customer.email || undefined,
+          name: customer.name || undefined
+        })
+      } catch (error) {
+        console.error('Error updating customer in database:', error)
+      }
 
       // Log customer update
       await logEvent('customer_updated', {
@@ -415,7 +461,12 @@ async function handleTrialWillEnd(subscription: Stripe.Subscription) {
 
     if (userId && subscription.trial_end) {
       // Send trial ending notification
-      await sendTrialEndingEmail(userId, subscription.trial_end)
+      const userEmail = subscription.metadata?.user_email
+      const daysLeft = Math.ceil((subscription.trial_end * 1000 - Date.now()) / (1000 * 60 * 60 * 24))
+
+      if (userEmail && daysLeft > 0) {
+        await EmailHelpers.sendTrialEndingEmail(userEmail, daysLeft)
+      }
 
       // Log trial ending notification
       await logEvent('trial_ending', {
@@ -432,14 +483,23 @@ async function handleTrialWillEnd(subscription: Stripe.Subscription) {
 }
 
 // Handle subscription suspension due to failed payments
-async function handleSubscriptionSuspension(userId: string, subscriptionId: string) {
+async function handleSubscriptionSuspension(userId: string, subscriptionId: string, userEmail?: string, tenantId?: string) {
   try {
-    // Suspend user access
-    // TODO: Implement database update
-    // await suspendUserAccess(userId)
+    // Suspend user access via backend API
+    try {
+      await apiClient.suspendUserAccess({
+        user_id: userId,
+        tenant_id: tenantId || userId,
+        reason: 'payment_failure'
+      })
+    } catch (error) {
+      console.error('Error suspending user access:', error)
+    }
 
     // Send suspension notification
-    await sendAccountSuspendedEmail(userId)
+    if (userEmail) {
+      await EmailHelpers.sendAccountSuspendedEmail(userEmail, 'Multiple payment failures')
+    }
 
     // Log suspension
     await logEvent('account_suspended', {
@@ -454,48 +514,29 @@ async function handleSubscriptionSuspension(userId: string, subscriptionId: stri
   }
 }
 
-// Email helpers (placeholders for actual email service integration)
-async function sendWelcomeEmail(email: string, planCode: string) {
-  console.log(`Sending welcome email to ${email} for plan: ${planCode}`)
-  // TODO: Implement with SendGrid/SES
-}
-
-async function sendCancellationEmail(userId: string, periodEnd: number) {
-  console.log(`Sending cancellation email to user: ${userId}, period end: ${periodEnd}`)
-  // TODO: Implement with SendGrid/SES
-}
-
-async function sendSubscriptionCanceledEmail(userId: string) {
-  console.log(`Sending subscription canceled email to user: ${userId}`)
-  // TODO: Implement with SendGrid/SES
-}
-
-async function sendPaymentSuccessEmail(userId: string, amount: number, currency: string) {
-  console.log(`Sending payment success email to user: ${userId}, amount: ${amount} ${currency}`)
-  // TODO: Implement with SendGrid/SES
-}
-
-async function sendPaymentFailedEmail(userId: string, amount: number, currency: string) {
-  console.log(`Sending payment failed email to user: ${userId}, amount: ${amount} ${currency}`)
-  // TODO: Implement with SendGrid/SES
-}
-
-async function sendTrialEndingEmail(userId: string, trialEnd: number) {
-  console.log(`Sending trial ending email to user: ${userId}, trial end: ${trialEnd}`)
-  // TODO: Implement with SendGrid/SES
-}
-
-async function sendAccountSuspendedEmail(userId: string) {
-  console.log(`Sending account suspended email to user: ${userId}`)
-  // TODO: Implement with SendGrid/SES
-}
-
-// Event logging helper
+// Event logging helper with structured logging
 async function logEvent(eventType: string, data: Record<string, any>) {
   try {
-    console.log(`Event: ${eventType}`, data)
-    // TODO: Implement with actual logging service (e.g., Grafana Loki, CloudWatch)
-    // await logger.info(eventType, data)
+    const logEntry = {
+      timestamp: new Date().toISOString(),
+      event_type: eventType,
+      service: 'stripe-webhooks',
+      environment: process.env.NODE_ENV || 'development',
+      ...data
+    }
+
+    // Console logging with structured format
+    console.log(JSON.stringify(logEntry))
+
+    // TODO: Future enhancements:
+    // 1. Send to Grafana Loki via HTTP API
+    // 2. Send to CloudWatch Logs
+    // 3. Send to backend API for database logging
+    // 4. Send to external analytics service
+
+    // Example backend API logging:
+    // await apiClient.logEvent(logEntry)
+
   } catch (error) {
     console.error('Error logging event:', error)
   }
