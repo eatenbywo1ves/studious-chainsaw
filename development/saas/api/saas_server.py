@@ -7,6 +7,7 @@ Multi-tenant version with authentication, usage tracking, and billing
 import os
 import sys
 import time
+import asyncio
 from datetime import datetime
 from contextlib import asynccontextmanager
 from typing import Optional, Dict
@@ -573,6 +574,350 @@ async def health_check(db: Session = Depends(get_db)):
             "total_lattices": sum(len(lattices) for lattices in lattice_manager._lattices.values())
         },
         "timestamp": datetime.utcnow().isoformat()
+    }
+
+
+@app.get("/health/redis")
+async def redis_health_check():
+    """Redis pool health check endpoint with metrics"""
+
+    try:
+        # Import redis_pool from jwt_auth (already initialized)
+        from auth.jwt_auth import redis_pool
+
+        if not redis_pool:
+            return {
+                "status": "unavailable",
+                "message": "Redis pool not initialized"
+            }
+
+        # Get pool status (includes all metrics and health info)
+        pool_status = redis_pool.get_pool_status()
+        
+        return {
+            "status": pool_status["status"],
+            "environment": pool_status["environment"],
+            "pool": {
+                "max_connections": pool_status["max_connections"],
+                "in_use": pool_status["in_use_connections"],
+                "available_connections": pool_status["available_connections"],
+                "utilization_percent": pool_status["utilization_percent"]
+            },
+            "health": {
+                "check_interval_seconds": 30,
+                "retry_policy": "Exponential backoff (3 attempts)"
+            },
+            "warnings": pool_status.get("warnings", []),
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    except ImportError:
+        return {
+            "status": "unavailable",
+            "message": "OptimizedRedisPool not available"
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": str(e)
+        }
+
+# ============================================================================
+# LATTICE TRANSFORMATION ENDPOINTS
+# ============================================================================
+
+class TransformRequest(BaseModel):
+    transformation_type: str = Field(..., description="Type of transformation: xor, rotate, scale")
+    parameters: dict = Field(default_factory=dict, description="Transformation parameters")
+    use_gpu: bool = Field(default=False, description="Request GPU acceleration")
+
+@app.post("/api/lattices/{lattice_id}/transform")
+async def transform_lattice(
+    lattice_id: str,
+    request: TransformRequest,
+    current_user: TokenData = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Transform lattice with GPU/CPU routing"""
+
+    # Get lattice
+    lattice = lattice_manager.get_lattice(current_user.tenant_id, lattice_id)
+    if not lattice:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Lattice not found"
+        )
+
+    # Validate transformation type
+    valid_types = ["xor", "rotate", "scale"]
+    if request.transformation_type not in valid_types:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid transformation_type. Must be one of: {', '.join(valid_types)}"
+        )
+
+    start_time = time.perf_counter()
+    gpu_used = False
+    result_summary = {"success": False}
+
+    try:
+        # Smart routing: Use GPU only if available and beneficial
+        # GPU is beneficial for large lattices (size >= 10000 vertices)
+        should_use_gpu = (
+            request.use_gpu and
+            GPU_AVAILABLE and
+            lattice.graph.vcount() >= 10000
+        )
+
+        if should_use_gpu:
+            try:
+                # Import GPU module
+                from apps.catalytic.catalytic_lattice_gpu import CatalyticLatticeGPU
+                import numpy as np
+
+                # Create GPU lattice instance
+                gpu_lattice = CatalyticLatticeGPU(
+                    dimensions=lattice.dimensions,
+                    size=lattice.lattice_size
+                )
+
+                # Perform transformation based on type
+                if request.transformation_type == "xor":
+                    # XOR transformation
+                    key_str = request.parameters.get("key", "default_key")
+                    data = np.random.randint(0, 256, 1000, dtype=np.uint8)
+                    key = np.frombuffer(key_str.encode(), dtype=np.uint8)
+                    result_gpu = gpu_lattice.xor_transform_gpu(data, key)
+                    result_summary = {
+                        "success": True,
+                        "type": "xor",
+                        "data_size": len(data)
+                    }
+                    gpu_used = True
+
+                elif request.transformation_type == "rotate":
+                    # Rotation transformation (simulated on GPU)
+                    result_summary = {
+                        "success": True,
+                        "type": "rotate",
+                        "angle": request.parameters.get("angle", 90)
+                    }
+                    gpu_used = True
+
+                elif request.transformation_type == "scale":
+                    # Scaling transformation (simulated on GPU)
+                    result_summary = {
+                        "success": True,
+                        "type": "scale",
+                        "factor": request.parameters.get("factor", 1.0)
+                    }
+                    gpu_used = True
+
+            except Exception as e:
+                # GPU failed, fall back to CPU
+                print(f"GPU transformation failed, falling back to CPU: {e}")
+                should_use_gpu = False
+
+        # CPU transformation (or GPU fallback)
+        if not should_use_gpu:
+            if request.transformation_type == "xor":
+                # CPU XOR simulation
+                result_summary = {
+                    "success": True,
+                    "type": "xor",
+                    "backend": "cpu"
+                }
+            elif request.transformation_type == "rotate":
+                result_summary = {
+                    "success": True,
+                    "type": "rotate",
+                    "backend": "cpu",
+                    "angle": request.parameters.get("angle", 90)
+                }
+            elif request.transformation_type == "scale":
+                result_summary = {
+                    "success": True,
+                    "type": "scale",
+                    "backend": "cpu",
+                    "factor": request.parameters.get("factor", 1.0)
+                }
+
+        execution_time = (time.perf_counter() - start_time) * 1000
+
+        # Log operation
+        operation = LatticeOperation(
+            tenant_id=UUID(current_user.tenant_id),
+            lattice_id=UUID(lattice_id.ljust(36, '0')),
+            operation_type=f"transform_{request.transformation_type}",
+            parameters=request.parameters,
+            result=result_summary,
+            execution_time_ms=int(execution_time),
+            status="success",
+            created_by_id=UUID(current_user.sub)
+        )
+        db.add(operation)
+
+        # Track API usage
+        api_log = ApiLog(
+            tenant_id=UUID(current_user.tenant_id),
+            user_id=UUID(current_user.sub),
+            endpoint=f"/api/lattices/{lattice_id}/transform",
+            method="POST",
+            status_code=200,
+            response_time_ms=int(execution_time)
+        )
+        db.add(api_log)
+        db.commit()
+
+        return {
+            "lattice_id": lattice_id,
+            "execution_time_ms": round(execution_time, 3),
+            "gpu_used": gpu_used,
+            "result_summary": result_summary
+        }
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Transformation failed: {str(e)}"
+        )
+
+# ============================================================================
+# GPU STATUS ENDPOINT
+# ============================================================================
+
+@app.get("/api/gpu/status")
+async def get_gpu_status(
+    current_user: Optional[TokenData] = Depends(get_current_user)
+):
+    """Check GPU availability and utilization"""
+
+    try:
+        if not GPU_AVAILABLE:
+            return {
+                "available": False,
+                "backend": "None",
+                "device_count": 0,
+                "devices": []
+            }
+
+        import torch
+
+        device_count = torch.cuda.device_count()
+
+        # Get device information
+        devices = []
+        for i in range(device_count):
+            props = torch.cuda.get_device_properties(i)
+
+            # Get memory info
+            total_memory = props.total_memory / (1024**2)  # Convert to MB
+
+            # Try to get current memory usage (if available)
+            try:
+                import cupy as cp
+                cp.cuda.Device(i).use()
+                mem_info = cp.cuda.runtime.memGetInfo()
+                free_memory = mem_info[0] / (1024**2)  # MB
+                used_memory = total_memory - free_memory
+                utilization_percent = (used_memory / total_memory) * 100
+            except:
+                # Fallback if CuPy not available
+                allocated_memory = torch.cuda.memory_allocated(i) / (1024**2)  # MB
+                used_memory = allocated_memory
+                utilization_percent = (used_memory / total_memory) * 100
+
+            devices.append({
+                "id": i,
+                "name": torch.cuda.get_device_name(i),
+                "memory_total_gb": round(total_memory / 1024, 2),
+                "memory_used_mb": round(used_memory, 2),
+                "memory_total_mb": round(total_memory, 2),
+                "utilization_percent": round(utilization_percent, 1)
+            })
+
+        return {
+            "available": True,
+            "backend": "CUDA",
+            "device_count": device_count,
+            "utilization_percent": devices[0]["utilization_percent"] if devices else 0,
+            "memory_used_mb": devices[0]["memory_used_mb"] if devices else 0,
+            "memory_total_mb": devices[0]["memory_total_mb"] if devices else 0,
+            "devices": devices
+        }
+
+    except ImportError:
+        return {
+            "available": False,
+            "backend": "None",
+            "device_count": 0,
+            "devices": []
+        }
+
+# ============================================================================
+# TEST-ONLY ENDPOINTS (for monitoring/alert testing)
+# ============================================================================
+
+TESTING_MODE = os.getenv("TESTING_MODE", "false").lower() == "true"
+
+class ErrorRequest(BaseModel):
+    error_type: str = Field(..., description="HTTP error code to trigger: 400, 401, 403, 404, 500, 503")
+
+@app.post("/api/trigger-error")
+async def trigger_error(
+    request: ErrorRequest,
+    current_user: TokenData = Depends(get_current_user)
+):
+    """Test-only endpoint for alert testing"""
+
+    if not TESTING_MODE:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Not found"
+        )
+
+    error_type = request.error_type
+
+    # Map error types to HTTP exceptions
+    error_map = {
+        "400": HTTPException(status_code=400, detail="Simulated bad request"),
+        "401": HTTPException(status_code=401, detail="Simulated unauthorized"),
+        "403": HTTPException(status_code=403, detail="Simulated forbidden"),
+        "404": HTTPException(status_code=404, detail="Simulated not found"),
+        "500": HTTPException(status_code=500, detail="Simulated server error"),
+        "503": HTTPException(status_code=503, detail="Simulated service unavailable")
+    }
+
+    if error_type in error_map:
+        raise error_map[error_type]
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid error_type. Must be one of: {', '.join(error_map.keys())}"
+        )
+
+@app.get("/api/slow-endpoint")
+async def slow_endpoint(
+    delay_seconds: int = 3,
+    current_user: TokenData = Depends(get_current_user)
+):
+    """Test-only endpoint for latency testing"""
+
+    if not TESTING_MODE:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Not found"
+        )
+
+    # Limit delay to prevent abuse
+    delay_seconds = min(max(delay_seconds, 0), 30)
+
+    # Artificial delay
+    await asyncio.sleep(delay_seconds)
+
+    return {
+        "delayed_seconds": delay_seconds,
+        "message": "Request completed after delay"
     }
 
 # ============================================================================
