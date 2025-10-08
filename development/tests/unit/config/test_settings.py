@@ -3,11 +3,9 @@ Unit tests for configuration management system
 Tests Pydantic settings, validation, and environment variable loading
 """
 
-import pytest
 import os
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from pathlib import Path
-from typing import Dict, Any
 
 from libs.config.settings import (
     CatalyticSettings,
@@ -384,7 +382,7 @@ class TestCatalyticSettings:
     @patch('pathlib.Path.mkdir')
     def test_path_creation(self, mock_mkdir):
         """Test that required paths are created"""
-        settings = CatalyticSettings()
+        CatalyticSettings()
 
         # Paths should be created during validation
         assert mock_mkdir.called

@@ -5,7 +5,6 @@ Tests all major features and improvements
 """
 
 import sys
-import time
 import json
 from pathlib import Path
 
@@ -32,7 +31,7 @@ def test_orchestrator():
 
     # Check current status
     print("\n3. Current Server Status:")
-    status = orch.get_status()
+    orch.get_status()
     for name, server in orch.servers.items():
         print(f"   - {name}: {server.status.value}")
 

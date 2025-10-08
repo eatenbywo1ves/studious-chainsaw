@@ -35,12 +35,12 @@ def test_cupy_gpu():
         B_gpu = cp.random.random((size, size), dtype=cp.float32)
 
         # Warmup
-        C_gpu = cp.dot(A_gpu, B_gpu)
+        cp.dot(A_gpu, B_gpu)
         cp.cuda.Stream.null.synchronize()
 
         # Timed run
         start = time.perf_counter()
-        C_gpu = cp.dot(A_gpu, B_gpu)
+        cp.dot(A_gpu, B_gpu)
         cp.cuda.Stream.null.synchronize()
         gpu_time = (time.perf_counter() - start) * 1000
 
@@ -49,7 +49,7 @@ def test_cupy_gpu():
         B_cpu = cp.asnumpy(B_gpu)
 
         start = time.perf_counter()
-        C_cpu = np.dot(A_cpu, B_cpu)
+        np.dot(A_cpu, B_cpu)
         cpu_time = (time.perf_counter() - start) * 1000
 
         speedup = cpu_time / gpu_time
@@ -66,14 +66,14 @@ def test_cupy_gpu():
     # GPU
     arr_gpu = cp.random.random(size, dtype=cp.float32)
     start = time.perf_counter()
-    result_gpu = cp.sqrt(cp.exp(arr_gpu) + cp.sin(arr_gpu))
+    cp.sqrt(cp.exp(arr_gpu) + cp.sin(arr_gpu))
     cp.cuda.Stream.null.synchronize()
     gpu_time = (time.perf_counter() - start) * 1000
 
     # CPU
     arr_cpu = cp.asnumpy(arr_gpu)
     start = time.perf_counter()
-    result_cpu = np.sqrt(np.exp(arr_cpu) + np.sin(arr_cpu))
+    np.sqrt(np.exp(arr_cpu) + np.sin(arr_cpu))
     cpu_time = (time.perf_counter() - start) * 1000
 
     speedup = cpu_time / gpu_time
@@ -89,14 +89,14 @@ def test_cupy_gpu():
     # GPU
     data_gpu = cp.random.random((1024, 1024), dtype=cp.complex64)
     start = time.perf_counter()
-    fft_gpu = cp.fft.fft2(data_gpu)
+    cp.fft.fft2(data_gpu)
     cp.cuda.Stream.null.synchronize()
     gpu_time = (time.perf_counter() - start) * 1000
 
     # CPU
     data_cpu = cp.asnumpy(data_gpu)
     start = time.perf_counter()
-    fft_cpu = np.fft.fft2(data_cpu)
+    np.fft.fft2(data_cpu)
     cpu_time = (time.perf_counter() - start) * 1000
 
     speedup = cpu_time / gpu_time

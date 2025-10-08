@@ -13,7 +13,7 @@ from pydantic import BaseModel
 # Add parent directories to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from auth.jwt_auth import verify_token, TokenData
+from auth.jwt_auth import verify_token
 
 router = APIRouter(prefix="/api/auth", tags=["authentication"])
 

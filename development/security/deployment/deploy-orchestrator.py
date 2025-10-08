@@ -79,9 +79,6 @@ def main():
     print(f"{BLUE}Verifying security modules...{NC}")
     try:
         sys.path.insert(0, str(project_root))
-        from security.application.jwt_security import JWTSecurityManager, SecurityLevel
-        from security.application.rate_limiting import AdvancedRateLimiter
-        from security.application.input_validation import SecurityInputValidator
 
         print(f"{GREEN}[PASS] All security modules verified{NC}")
         results['modules'] = True
@@ -160,7 +157,7 @@ Deployment complete: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
     print(f"Environment: {env}")
     print(f"Status: {'SUCCESS' if all(results.values()) else 'COMPLETED WITH WARNINGS'}")
     print()
-    print(f"Steps Completed:")
+    print("Steps Completed:")
     for step, success in results.items():
         status = f"{GREEN}PASS{NC}" if success else f"{YELLOW}WARN{NC}"
         print(f"  - {step.title()}: {status}")

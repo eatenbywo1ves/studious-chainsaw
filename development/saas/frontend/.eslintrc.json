@@ -1,0 +1,18 @@
+{
+  "extends": "next/core-web-vitals",
+  "globals": {
+    "React": "readonly",
+    "RequestInit": "readonly",
+    "Response": "readonly"
+  },
+  "rules": {
+    "indent": "off",
+    "no-console": "warn",
+    "no-case-declarations": "off",
+    "no-unused-vars": ["warn", {
+      "argsIgnorePattern": "^_",
+      "varsIgnorePattern": "^_"
+    }],
+    "react-hooks/exhaustive-deps": "warn"
+  }
+}

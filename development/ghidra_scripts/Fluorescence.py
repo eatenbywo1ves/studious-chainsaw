@@ -5,7 +5,6 @@
 
 
 from java.awt import Color
-from ghidra.program.model.symbol import RefType
 
 answer = askChoice('Highlight?',
                    'Highlight or un-highlight function calls?',

@@ -23,11 +23,11 @@ def update_imports(file_path):
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
             content = f.read()
-        
+
         original_content = content
         for old_import, new_import in IMPORT_MAPPINGS.items():
             content = re.sub(old_import, new_import, content)
-        
+
         if content != original_content:
             with open(file_path, 'w', encoding='utf-8') as f:
                 f.write(content)
@@ -52,18 +52,18 @@ def find_python_files(root_dir):
 def main():
     """Main function to update all imports."""
     root_dir = Path(__file__).parent
-    
+
     print("Scanning for Python files...")
     python_files = find_python_files(root_dir)
-    
+
     print(f"Found {len(python_files)} Python files")
-    
+
     updated_count = 0
     for file_path in python_files:
         if update_imports(file_path):
             updated_count += 1
-    
-    print(f"\nImport update complete!")
+
+    print("\nImport update complete!")
     print(f"Updated {updated_count} files")
 
 if __name__ == "__main__":

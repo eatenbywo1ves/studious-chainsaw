@@ -7,19 +7,17 @@ import os
 import sys
 from datetime import datetime, timezone
 from typing import Optional, Dict, Any
-from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
-from pydantic import BaseModel, EmailStr, Field
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
 # Add parent directories to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from auth.middleware import get_current_active_user, TokenData
 from database.models import (
-    Base, Tenant, User, TenantSubscription, SubscriptionPlan,
+    Tenant, User, TenantSubscription, SubscriptionPlan,
     SubscriptionStatus, TenantStatus
 )
 
@@ -80,7 +78,6 @@ class SubscriptionSuspendRequest(BaseModel):
 
 def get_db():
     """Get database session"""
-    from database.models import Base
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
 

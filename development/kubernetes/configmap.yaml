@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: catalytic-saas
+  labels:
+    app: catalytic-saas-api
+data:
+  # Application environment
+  ENVIRONMENT: "production"
+  DEBUG: "false"
+  LOG_LEVEL: "INFO"
+
+  # CORS configuration
+  ALLOWED_ORIGINS: "https://app.your-domain.com,https://www.your-domain.com"
+
+  # Rate limiting
+  RATE_LIMIT_PER_MINUTE: "100"
+  RATE_LIMIT_STORAGE: "redis"
+
+  # Application limits
+  MAX_LATTICES_PER_TENANT: "100"
+
+  # Feature flags
+  ENABLE_API_DOCS: "false"  # Disable in production
+  ENABLE_WEBHOOKS: "true"
+  ENABLE_GPU_ACCELERATION: "false"  # Enable if GPU nodes available
+
+  # Performance settings
+  LATTICE_MEMORY_OPTIMIZATION: "true"
+  PARALLEL_CORES: "16"
+  CACHE_SIZE: "4096"
+  CACHE_TTL_SECONDS: "300"
+  WORKER_PROCESSES: "9"
+
+  # Monitoring
+  METRICS_PORT: "8082"
+  PROMETHEUS_ENABLED: "true"
+
+  # JWT settings
+  JWT_ALGORITHM: "HS256"
+  ACCESS_TOKEN_EXPIRE_MINUTES: "30"
+  REDIS_TOKEN_BLACKLIST_TTL: "3600"

@@ -6,10 +6,8 @@ Provides multiple visualization techniques for N-dimensional lattice structures
 
 import numpy as np
 import plotly.graph_objects as go
-import plotly.express as px
 from plotly.subplots import make_subplots
-import time
-from typing import Tuple, Optional, List, Dict, Any
+from typing import Optional
 from dataclasses import dataclass
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
@@ -549,7 +547,6 @@ class HighDimensionalLatticeVisualizer:
                 'len': 0.9,
                 'x': 0.1,
                 'xanchor': 'left',
-                'y': 0,
                 'yanchor': 'top'
             }],
             width=1000,

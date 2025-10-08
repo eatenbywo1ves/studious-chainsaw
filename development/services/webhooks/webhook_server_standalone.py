@@ -3,20 +3,19 @@ Standalone Webhook Server with embedded webhook system
 No relative imports - everything self-contained for Docker deployment
 """
 
-from fastapi import FastAPI, HTTPException, Request, BackgroundTasks
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 import uvicorn
-import asyncio
 import httpx
 from datetime import datetime
 import json
 import sqlite3
 import logging
 from enum import Enum
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

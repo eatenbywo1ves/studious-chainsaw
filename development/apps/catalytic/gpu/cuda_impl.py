@@ -2,10 +2,7 @@
 Pure CUDA implementation using PyCUDA for lattice operations
 """
 
-import time
 import logging
-from typing import Tuple, List, Optional, Any
-import numpy as np
 
 from .cupy_impl import CuPyLatticeGPU
 from libs.utils.exceptions import GPUNotAvailableError

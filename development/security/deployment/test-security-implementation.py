@@ -53,7 +53,7 @@ def test_key_generation():
                 stat_info = os.stat(key_path)
                 # Check if only owner has read/write (0600)
                 if stat_info.st_mode & 0o777 == 0o600:
-                    print_success(f"  Permissions correct (600)")
+                    print_success("  Permissions correct (600)")
                 else:
                     print_warning(f"  Permissions: {oct(stat_info.st_mode & 0o777)} (should be 600)")
         else:
@@ -142,7 +142,7 @@ def test_jwt_functionality():
         project_root = Path(__file__).parent.parent.parent
         sys.path.insert(0, str(project_root))
 
-        from security.application.jwt_security import JWTSecurityManager, SecurityLevel, TokenType
+        from security.application.jwt_security import JWTSecurityManager, SecurityLevel
 
         # Initialize JWT manager
         keys_dir = project_root / "security" / "keys"

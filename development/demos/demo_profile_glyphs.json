@@ -1,0 +1,169 @@
+{
+  "entries": [
+    {
+      "operation": "matrix_multiply",
+      "duration_ms": 10.25580000714399,
+      "device": "gpu",
+      "backend": "cupy",
+      "gpu_time_ms": 8.71743000607239,
+      "cpu_time_ms": 0.0,
+      "transfer_time_ms": 1.025580000714399,
+      "overhead_ms": 0.5127900003571995,
+      "memory_allocated_mb": 0.0,
+      "memory_peak_mb": 0.0,
+      "gpu_utilization": 85.0,
+      "metadata": {}
+    },
+    {
+      "operation": "xor_transform",
+      "duration_ms": 1.4702000189572573,
+      "device": "cpu",
+      "backend": "cupy",
+      "gpu_time_ms": 0.0,
+      "cpu_time_ms": 1.4702000189572573,
+      "transfer_time_ms": 0.0,
+      "overhead_ms": 0.0,
+      "memory_allocated_mb": 0.0,
+      "memory_peak_mb": 0.0,
+      "gpu_utilization": 0.0,
+      "metadata": {
+        "smart_routed": true,
+        "speedup": 180
+      }
+    },
+    {
+      "operation": "batch_process",
+      "duration_ms": 50.16390001401305,
+      "device": "gpu",
+      "backend": "cupy",
+      "gpu_time_ms": 42.639315011911094,
+      "cpu_time_ms": 0.0,
+      "transfer_time_ms": 5.016390001401305,
+      "overhead_ms": 2.5081950007006526,
+      "memory_allocated_mb": 0.0,
+      "memory_peak_mb": 0.0,
+      "gpu_utilization": 85.0,
+      "metadata": {
+        "batched": true
+      }
+    },
+    {
+      "operation": "graph_search",
+      "duration_ms": 20.30530001502484,
+      "device": "cpu",
+      "backend": "cupy",
+      "gpu_time_ms": 0.0,
+      "cpu_time_ms": 20.30530001502484,
+      "transfer_time_ms": 0.0,
+      "overhead_ms": 0.0,
+      "memory_allocated_mb": 0.0,
+      "memory_peak_mb": 0.0,
+      "gpu_utilization": 0.0,
+      "metadata": {
+        "smart_routed": true,
+        "batched": true
+      }
+    }
+  ],
+  "summary": {
+    "matrix_multiply": {
+      "call_count": 1,
+      "total_time_ms": 10.25580000714399,
+      "avg_time_ms": 10.25580000714399,
+      "min_time_ms": 10.25580000714399,
+      "max_time_ms": 10.25580000714399,
+      "total_gpu_time_ms": 8.71743000607239,
+      "avg_memory_mb": 0.0,
+      "avg_gpu_utilization": 85.0
+    },
+    "xor_transform": {
+      "call_count": 1,
+      "total_time_ms": 1.4702000189572573,
+      "avg_time_ms": 1.4702000189572573,
+      "min_time_ms": 1.4702000189572573,
+      "max_time_ms": 1.4702000189572573,
+      "total_gpu_time_ms": 0.0,
+      "avg_memory_mb": 0.0,
+      "avg_gpu_utilization": 0.0
+    },
+    "batch_process": {
+      "call_count": 1,
+      "total_time_ms": 50.16390001401305,
+      "avg_time_ms": 50.16390001401305,
+      "min_time_ms": 50.16390001401305,
+      "max_time_ms": 50.16390001401305,
+      "total_gpu_time_ms": 42.639315011911094,
+      "avg_memory_mb": 0.0,
+      "avg_gpu_utilization": 85.0
+    },
+    "graph_search": {
+      "call_count": 1,
+      "total_time_ms": 20.30530001502484,
+      "avg_time_ms": 20.30530001502484,
+      "min_time_ms": 20.30530001502484,
+      "max_time_ms": 20.30530001502484,
+      "total_gpu_time_ms": 0.0,
+      "avg_memory_mb": 0.0,
+      "avg_gpu_utilization": 0.0
+    }
+  },
+  "glyphs": [
+    {
+      "operation": "matrix_multiply",
+      "shape": "circle",
+      "iteration": "base",
+      "color": "#ffff00",
+      "size": "tiny",
+      "border": "dashed",
+      "duration_ms": 10.25580000714399,
+      "memory_mb": 0.0,
+      "device": "gpu",
+      "optimization_level": 0,
+      "speedup": null,
+      "glyph_notation": "O+"
+    },
+    {
+      "operation": "xor_transform",
+      "shape": "diamond",
+      "iteration": "routed",
+      "color": "#7fff00",
+      "size": "tiny",
+      "border": "solid",
+      "duration_ms": 1.4702000189572573,
+      "memory_mb": 0.0,
+      "device": "cpu",
+      "optimization_level": 1,
+      "speedup": 180,
+      "glyph_notation": "<>/"
+    },
+    {
+      "operation": "batch_process",
+      "shape": "circle",
+      "iteration": "batched",
+      "color": "#ffa500",
+      "size": "tiny",
+      "border": "dashed",
+      "duration_ms": 50.16390001401305,
+      "memory_mb": 0.0,
+      "device": "gpu",
+      "optimization_level": 2,
+      "speedup": null,
+      "glyph_notation": "Ox"
+    },
+    {
+      "operation": "graph_search",
+      "shape": "hexagon",
+      "iteration": "optimized",
+      "color": "#ffff00",
+      "size": "tiny",
+      "border": "solid",
+      "duration_ms": 20.30530001502484,
+      "memory_mb": 0.0,
+      "device": "cpu",
+      "optimization_level": 3,
+      "speedup": null,
+      "glyph_notation": "#o"
+    }
+  ],
+  "glyph_count": 4
+}

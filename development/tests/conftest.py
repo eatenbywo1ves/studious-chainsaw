@@ -4,7 +4,6 @@ Pytest configuration and fixtures for the development environment test suite.
 
 import pytest
 import tempfile
-import os
 import sys
 from pathlib import Path
 
@@ -106,7 +105,7 @@ def pytest_collection_modifyitems(config, items):
         gpu_available = torch.cuda.is_available()
     except ImportError:
         gpu_available = False
-    
+
     if not gpu_available:
         skip_gpu = pytest.mark.skip(reason="GPU not available")
         for item in items:

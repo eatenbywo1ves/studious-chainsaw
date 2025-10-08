@@ -9,8 +9,8 @@ import secrets
 import hashlib
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any, List
-from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import rsa, padding
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.backends import default_backend
 from enum import Enum
 import logging
@@ -39,7 +39,7 @@ class JWTSecurityManager:
     """
     Enhanced JWT Security Manager with RSA encryption and comprehensive validation
     """
-    
+
     def __init__(
         self,
         private_key_path: str,
@@ -120,10 +120,10 @@ class JWTSecurityManager:
         """
         now = datetime.now(timezone.utc)
         expire = now + timedelta(minutes=self.access_token_expire_minutes)
-        
+
         # Generate unique token ID
         jti = secrets.token_urlsafe(32)
-        
+
         # Base claims
         claims = {
             "sub": subject,
@@ -138,7 +138,7 @@ class JWTSecurityManager:
             "iss": "catalytic-computing-api",  # Issuer
             "aud": ["catalytic-api", "saas-api"],  # Audience
         }
-        
+
         # Add security metadata based on level
         if self.security_level in [SecurityLevel.ENHANCED, SecurityLevel.STRICT]:
             claims.update({
@@ -146,11 +146,11 @@ class JWTSecurityManager:
                 "token_version": "2.0",
                 "created_at": now.isoformat(),
             })
-        
+
         # Add additional claims if provided
         if additional_claims:
             claims.update(additional_claims)
-        
+
         try:
             token = jwt.encode(claims, self.private_key, algorithm=self.algorithm)
             logger.info(f"Access token created for user {user_id} with JTI {jti}")
@@ -165,11 +165,11 @@ class JWTSecurityManager:
         """
         now = datetime.now(timezone.utc)
         expire = now + timedelta(days=self.refresh_token_expire_days)
-        
+
         # Generate unique token ID and hash the fingerprint
         jti = secrets.token_urlsafe(32)
         fingerprint_hash = hashlib.sha256(fingerprint.encode()).hexdigest()
-        
+
         claims = {
             "user_id": user_id,
             "token_type": TokenType.REFRESH.value,
@@ -181,7 +181,7 @@ class JWTSecurityManager:
             "iss": "catalytic-computing-api",
             "aud": ["catalytic-api"],
         }
-        
+
         try:
             token = jwt.encode(claims, self.private_key, algorithm=self.algorithm)
             logger.info(f"Refresh token created for user {user_id} with JTI {jti}")
@@ -201,15 +201,15 @@ class JWTSecurityManager:
         Create a long-lived API key token
         """
         now = datetime.now(timezone.utc)
-        
+
         # API keys can be long-lived or never expire
         if expire_days:
             expire = now + timedelta(days=expire_days)
         else:
             expire = now + timedelta(days=365 * 10)  # 10 years if no expiry
-        
+
         jti = secrets.token_urlsafe(32)
-        
+
         claims = {
             "user_id": user_id,
             "api_key_name": api_key_name,
@@ -222,7 +222,7 @@ class JWTSecurityManager:
             "iss": "catalytic-computing-api",
             "aud": ["catalytic-api", "saas-api"],
         }
-        
+
         try:
             token = jwt.encode(claims, self.private_key, algorithm=self.algorithm)
             logger.info(f"API key token created for user {user_id}: {api_key_name}")
@@ -276,7 +276,7 @@ class JWTSecurityManager:
 
             logger.debug(f"Token verified successfully for user {payload.get('user_id')}")
             return payload
-            
+
         except jwt.ExpiredSignatureError:
             logger.warning("Token has expired")
             raise
@@ -296,16 +296,16 @@ class JWTSecurityManager:
         for claim in required_claims:
             if claim not in payload:
                 raise jwt.InvalidTokenError(f"Missing required claim: {claim}")
-        
+
         # Validate issuer
         if payload["iss"] != "catalytic-computing-api":
             raise jwt.InvalidTokenError("Invalid issuer")
-        
+
         # Validate audience
         expected_audiences = ["catalytic-api", "saas-api"]
         if not any(aud in payload.get("aud", []) for aud in expected_audiences):
             raise jwt.InvalidTokenError("Invalid audience")
-        
+
         # Check token age (additional security for strict mode)
         if self.security_level == SecurityLevel.STRICT:
             iat = payload.get("iat")
@@ -375,12 +375,12 @@ class JWTSecurityManager:
         try:
             # Verify refresh token
             payload = self.verify_token(refresh_token, TokenType.REFRESH)
-            
+
             # Verify fingerprint
             fingerprint_hash = hashlib.sha256(fingerprint.encode()).hexdigest()
             if payload.get("fingerprint") != fingerprint_hash:
                 raise jwt.InvalidTokenError("Invalid fingerprint")
-            
+
             # Create new access token
             user_id = payload["user_id"]
             return self.create_access_token(
@@ -389,7 +389,7 @@ class JWTSecurityManager:
                 roles=user_roles,
                 permissions=user_permissions
             )
-            
+
         except Exception as e:
             logger.error(f"Failed to refresh access token: {e}")
             return None
@@ -400,21 +400,21 @@ class JWTSecurityManager:
         """
         now = time.time()
         window_start = now - (window_minutes * 60)
-        
+
         # Clean old attempts
         if identifier in self.failed_attempts:
             self.failed_attempts[identifier] = [
                 timestamp for timestamp in self.failed_attempts[identifier]
                 if timestamp > window_start
             ]
-        
+
         # Check current attempts
         attempts = len(self.failed_attempts.get(identifier, []))
-        
+
         if attempts >= max_attempts:
             logger.warning(f"Rate limit exceeded for {identifier}: {attempts} attempts")
             return False
-        
+
         return True
 
     def record_failed_attempt(self, identifier: str) -> None:
@@ -423,7 +423,7 @@ class JWTSecurityManager:
         """
         if identifier not in self.failed_attempts:
             self.failed_attempts[identifier] = []
-        
+
         self.failed_attempts[identifier].append(time.time())
         logger.warning(f"Failed attempt recorded for {identifier}")
 
@@ -436,21 +436,21 @@ class JWTSecurityManager:
             key_size=key_size,
             backend=default_backend()
         )
-        
+
         public_key = private_key.public_key()
-        
+
         # Serialize keys
         private_pem = private_key.private_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PrivateFormat.PKCS8,
             encryption_algorithm=serialization.NoEncryption()
         )
-        
+
         public_pem = public_key.public_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PublicFormat.SubjectPublicKeyInfo
         )
-        
+
         return private_pem, public_pem
 
 # Example usage and testing
@@ -461,7 +461,7 @@ if __name__ == "__main__":
         public_key_path="./security/secrets/jwt_public_key.pem",
         security_level=SecurityLevel.ENHANCED
     )
-    
+
     # Example token creation
     access_token = jwt_manager.create_access_token(
         subject="user123",
@@ -470,9 +470,9 @@ if __name__ == "__main__":
         permissions=["read", "write", "api_access"],
         additional_claims={"plan": "premium", "region": "us-east-1"}
     )
-    
+
     print(f"Generated access token: {access_token[:50]}...")
-    
+
     # Verify token
     try:
         payload = jwt_manager.verify_token(access_token, TokenType.ACCESS)

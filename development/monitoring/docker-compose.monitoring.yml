@@ -1,0 +1,221 @@
+version: '3.8'
+
+# ============================================================================
+# PROMETHEUS + GRAFANA MONITORING STACK
+# Phase 2 Security Deployment - Monitoring Infrastructure
+# ============================================================================
+
+networks:
+  monitoring:
+    driver: bridge
+  application:
+    external: true  # Connect to existing app network
+
+volumes:
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+services:
+  # ==========================================================================
+  # PROMETHEUS - Metrics Collection
+  # ==========================================================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: catalytic-prometheus
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus-rules.yml:/etc/prometheus/rules/security-alerts.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - monitoring
+      - application
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    labels:
+      - "com.catalytic.service=prometheus"
+      - "com.catalytic.environment=development"
+
+  # ==========================================================================
+  # GRAFANA - Visualization & Dashboards
+  # ==========================================================================
+  grafana:
+    image: grafana/grafana:latest
+    container_name: catalytic-grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      # Security
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-changeme123!}
+      - GF_SECURITY_DISABLE_GRAVATAR=true
+      - GF_SECURITY_COOKIE_SECURE=true
+      - GF_SECURITY_COOKIE_SAMESITE=strict
+      - GF_SECURITY_STRICT_TRANSPORT_SECURITY=true
+
+      # Server
+      - GF_SERVER_ROOT_URL=http://localhost:3000
+      - GF_SERVER_DOMAIN=localhost
+
+      # Database (persistent)
+      - GF_DATABASE_TYPE=sqlite3
+      - GF_DATABASE_PATH=/var/lib/grafana/grafana.db
+
+      # Authentication
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+      - GF_AUTH_BASIC_ENABLED=true
+      - GF_AUTH_DISABLE_LOGIN_FORM=false
+
+      # Users
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_USERS_ALLOW_ORG_CREATE=false
+
+      # Logging
+      - GF_LOG_MODE=console
+      - GF_LOG_LEVEL=info
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    networks:
+      - monitoring
+    depends_on:
+      - prometheus
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    labels:
+      - "com.catalytic.service=grafana"
+      - "com.catalytic.environment=development"
+
+  # ==========================================================================
+  # NODE EXPORTER - System Metrics
+  # ==========================================================================
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: catalytic-node-exporter
+    restart: unless-stopped
+    command:
+      - '--path.rootfs=/host'
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    networks:
+      - monitoring
+    labels:
+      - "com.catalytic.service=node-exporter"
+      - "com.catalytic.environment=development"
+
+  # ==========================================================================
+  # REDIS EXPORTER - Cache Metrics
+  # ==========================================================================
+  redis-exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: catalytic-redis-exporter
+    restart: unless-stopped
+    environment:
+      - REDIS_ADDR=redis:6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+    ports:
+      - "9121:9121"
+    networks:
+      - monitoring
+      - application
+    depends_on:
+      - prometheus
+    labels:
+      - "com.catalytic.service=redis-exporter"
+      - "com.catalytic.environment=development"
+
+  # ==========================================================================
+  # POSTGRES EXPORTER - Database Metrics
+  # ==========================================================================
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: catalytic-postgres-exporter
+    restart: unless-stopped
+    environment:
+      - DATA_SOURCE_NAME=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-catalytic_db}?sslmode=disable
+    ports:
+      - "9187:9187"
+    networks:
+      - monitoring
+      - application
+    depends_on:
+      - prometheus
+    labels:
+      - "com.catalytic.service=postgres-exporter"
+      - "com.catalytic.environment=development"
+
+  # ==========================================================================
+  # ALERTMANAGER - Alert Routing (Optional)
+  # ==========================================================================
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: catalytic-alertmanager
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    networks:
+      - monitoring
+    depends_on:
+      - prometheus
+    labels:
+      - "com.catalytic.service=alertmanager"
+      - "com.catalytic.environment=development"
+
+# ============================================================================
+# USAGE INSTRUCTIONS
+# ============================================================================
+#
+# Start monitoring stack:
+#   docker-compose -f docker-compose.monitoring.yml up -d
+#
+# Stop monitoring stack:
+#   docker-compose -f docker-compose.monitoring.yml down
+#
+# View logs:
+#   docker-compose -f docker-compose.monitoring.yml logs -f
+#
+# Access services:
+#   - Prometheus: http://localhost:9090
+#   - Grafana: http://localhost:3000 (admin/changeme123!)
+#   - Alertmanager: http://localhost:9093
+#
+# Security notes:
+#   - Change GRAFANA_ADMIN_PASSWORD before production
+#   - Configure REDIS_PASSWORD if Redis has auth
+#   - Update DB_USER, DB_PASSWORD, DB_NAME for PostgreSQL
+#
+# ============================================================================

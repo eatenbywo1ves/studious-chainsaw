@@ -27,35 +27,37 @@ API_KEY_PREFIX = "clc_"  # Catalytic Lattice Computing
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# ✅ PRODUCTION: Use Optimized Redis Connection Pool (validated @ 100% success, 1K users)
-# Import production-grade Optimized Redis Pool
+# ✅ PRODUCTION: Use Refactored Redis Connection Manager (clean architecture)
+# Import production-grade Redis Connection Manager with dependency injection
 import sys  # noqa: E402
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'security', 'application'))
 
 try:
-    from redis_connection_pool_optimized import get_optimized_redis_pool
-    # Create production Redis connection with optimized pooling
+    from redis_connection_manager import get_default_redis_manager
+    # Create production Redis connection with dependency injection support
     # Pool automatically configures based on DEPLOYMENT_ENV:
     # - development: 20 connections (1 worker)
     # - staging: 60 connections (2 workers)
     # - production: 160 connections (4 workers)
-    redis_pool = get_optimized_redis_pool()
+    redis_manager = get_default_redis_manager()
+    redis_pool = redis_manager.get_pool()
     redis_client = redis_pool.client if redis_pool.is_available else None
 
     if redis_pool.is_available:
         pool_status = redis_pool.get_pool_status()
-        print(f"[OK] Optimized Redis Pool connected: {redis_pool.host}:{redis_pool.port}")
+        print(f"[OK] Redis Connection Manager initialized: {redis_manager.connection_config.host}:{redis_manager.connection_config.port}")
         print(f"[OK] Pool size: {pool_status['max_connections']} connections")
         print(f"[OK] Environment: {pool_status['environment']}")
         print(f"[OK] Utilization: {pool_status['utilization_percent']}%")
-        print(f"[OK] Retry policy: Exponential backoff (3 attempts)")
+        print("[OK] Retry policy: Exponential backoff (3 attempts)")
     else:
         print("[WARNING] Redis pool initialization failed (NOT recommended for production)")
         redis_client = None
 except ImportError as e:
-    # Fallback to basic Redis if optimized pool not available
-    print(f"[WARNING] OptimizedRedisPool not found ({e}), falling back to basic Redis")
+    # Fallback to basic Redis if new architecture not available
+    print(f"[WARNING] RedisConnectionManager not found ({e}), falling back to basic Redis")
     redis_client = None
+    redis_manager = None
     try:
         redis_client = redis.Redis(
             host=os.getenv("REDIS_HOST", "localhost"),
@@ -65,7 +67,7 @@ except ImportError as e:
             password=os.getenv("REDIS_PASSWORD")
         )
         redis_client.ping()
-        print("[OK] Redis connected (basic mode - upgrade to OptimizedRedisPool recommended)")
+        print("[OK] Redis connected (basic mode - upgrade to RedisConnectionManager recommended)")
     except Exception as fallback_error:
         print(f"[ERROR] Redis not available: {fallback_error}")
         print("[WARNING] Using in-memory storage (NOT recommended for production)")

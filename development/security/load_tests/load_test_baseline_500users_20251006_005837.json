@@ -1,0 +1,80 @@
+{
+  "test_name": "baseline",
+  "concurrent_users": 500,
+  "duration": 30,
+  "timestamp": "2025-10-06T00:58:37.717104",
+  "initial_pool_metrics": {
+    "healthy": true,
+    "pool": {
+      "status": "healthy",
+      "environment": "production",
+      "max_connections": 160,
+      "created_connections": 29,
+      "available_connections": 29,
+      "in_use_connections": 0,
+      "utilization_percent": 0.0,
+      "metrics": {
+        "connections_created": 0,
+        "connections_reused": 0,
+        "connection_errors": 0,
+        "retry_attempts": 0,
+        "pool_exhausted_count": 0,
+        "health_check_failures": 0,
+        "max_connections": 160,
+        "created_connections": 29,
+        "available_connections": 29,
+        "in_use_connections": 0
+      }
+    },
+    "recommendations": [
+      "Pool operating optimally."
+    ],
+    "timestamp": "2025-10-06T05:57:34.038201+00:00"
+  },
+  "final_pool_metrics": {
+    "healthy": true,
+    "pool": {
+      "status": "healthy",
+      "environment": "production",
+      "max_connections": 160,
+      "created_connections": 29,
+      "available_connections": 29,
+      "in_use_connections": 0,
+      "utilization_percent": 0.0,
+      "metrics": {
+        "connections_created": 0,
+        "connections_reused": 0,
+        "connection_errors": 0,
+        "retry_attempts": 0,
+        "pool_exhausted_count": 0,
+        "health_check_failures": 0,
+        "max_connections": 160,
+        "created_connections": 29,
+        "available_connections": 29,
+        "in_use_connections": 0
+      }
+    },
+    "recommendations": [
+      "Pool operating optimally."
+    ],
+    "timestamp": "2025-10-06T05:58:37.711387+00:00"
+  },
+  "results": {
+    "total_requests": 6833,
+    "successful_requests": 6333,
+    "failed_requests": 500,
+    "success_rate": "92.68%",
+    "failure_rate": "7.32%",
+    "throughput_rps": "131.61",
+    "duration_seconds": "51.92",
+    "latency_ms": {
+      "min": "180.64",
+      "avg": "1065.92",
+      "p50": "983.71",
+      "p95": "1729.98",
+      "p99": "1983.89",
+      "max": "2124.47"
+    },
+    "errors": []
+  }
+}

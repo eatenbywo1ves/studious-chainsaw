@@ -6,8 +6,6 @@ Provides REST API endpoints for lattice operations with Prometheus metrics
 
 import os
 import time
-import json
-import asyncio
 import numpy as np
 from typing import Optional, List, Dict, Any
 from datetime import datetime
@@ -113,7 +111,7 @@ async def lifespan(app: FastAPI):
     """Lifecycle manager for the FastAPI app"""
     # Startup
     print("Starting Catalytic Computing API Server...")
-    print(f"Configuration:")
+    print("Configuration:")
     print(f"  - Max Lattices: {MAX_LATTICES}")
     print(f"  - Cache Size: {CACHE_SIZE}")
     print(f"  - Parallel Cores: {PARALLEL_CORES}")
@@ -443,7 +441,7 @@ async def run_benchmark(background_tasks: BackgroundTasks):
                 lattice.find_shortest_path(0, lattice.graph.vcount() - 1)
             else:
                 # Fallback
-                paths = lattice.graph.get_shortest_paths(0, to=lattice.graph.vcount() - 1)
+                lattice.graph.get_shortest_paths(0, to=lattice.graph.vcount() - 1)
             path_time = time.perf_counter() - path_start
 
             build_time = time.perf_counter() - start

@@ -1,0 +1,42 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+README.md
+*.md
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Build artifacts
+*.exe
+go-deployment-demo
+
+# Test files
+*_test.go
+coverage.*
+
+# Environment files
+.env
+.env.*
+
+# Docker
+Dockerfile*
+docker-compose.yml
+
+# Kubernetes
+k8s/
+*.yaml
+*.yml
+
+# CI/CD
+.github
+.gitlab-ci.yml
+
+# OS
+.DS_Store
+Thumbs.db

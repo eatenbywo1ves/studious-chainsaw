@@ -139,8 +139,10 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             response.headers["Permissions-Policy"] = permissions_policy
 
         # Remove information disclosure headers
-        response.headers.pop("Server", None)  # Hide server version
-        response.headers.pop("X-Powered-By", None)  # Hide framework version
+        if "Server" in response.headers:
+            del response.headers["Server"]  # Hide server version
+        if "X-Powered-By" in response.headers:
+            del response.headers["X-Powered-By"]  # Hide framework version
 
         # Cross-Origin headers (CORS-related security)
         # These prevent cross-origin attacks while allowing legitimate CORS

@@ -2,7 +2,6 @@
 # @author BitsOfBinary
 # @category Analysis
 
-import ghidra.app.script.GhidraScript
 from ghidra.app.services import DataTypeManagerService
 from ghidra.program.model.util import CodeUnitInsertionException
 from ghidra.program.model.symbol import SourceType
@@ -140,7 +139,7 @@ class StackStringFunctionHandler:
         for local_variable in self.current_func.getLocalVariables():
             if local_variable.getMinAddress() == addr:
                 return local_variable
-                
+
     def init_building_stack_str(self):
         """
         Initialise a building stack string
@@ -163,18 +162,18 @@ class StackStringFunctionHandler:
         """
         # Check the scalar is in a "nice" ASCII range
         if stack_char >= 0x2E and stack_char <= 0x7A:
-                
+
             # If we're building a StackString, make sure we've only incremented one byte on the stack
             if self.previous_stack_offset and (stack_offset - self.previous_stack_offset) == 1:
-            
+
                 self.building_stack_str.val += chr(stack_char)
                 self.previous_stack_offset = stack_offset
-                
+
             # Otherwise, start building a new StackString, and save off the stack offset
             else:
                 self.building_stack_str = StackString()
                 self.init_building_stack_str()
-                
+
                 self.building_stack_str.val += chr(stack_char)
                 self.previous_stack_offset = stack_offset
 
@@ -299,7 +298,7 @@ class StackStringFunctionHandler:
                         stack_char = op2[0].getUnsignedValue()
                         stack_offset = op1[1].getSignedValue()
                         self.stack_char_handler(stack_char, stack_offset)
-                        
+
                 # TODO: case where a register value is being moved onto the stack
                 # This could be if a single character is stored in a register, and moved onto the stack that way instead of as a literal
 

@@ -1,0 +1,23 @@
+# E2E Test Dependencies
+
+# Core testing
+pytest==8.0.0
+pytest-asyncio==0.23.3
+pytest-timeout==2.2.0
+pytest-xdist==3.5.0
+
+# HTTP client
+httpx==0.26.0
+
+# Async utilities
+asyncio==3.4.3
+
+# Test reporting
+pytest-html==4.1.1
+pytest-json-report==1.5.0
+
+# Screenshot/visual testing (optional)
+# playwright==1.40.0
+
+# Performance timing
+python-dateutil==2.8.2

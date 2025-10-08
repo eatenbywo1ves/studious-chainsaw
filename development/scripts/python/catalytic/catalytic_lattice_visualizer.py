@@ -7,7 +7,6 @@ Integrates catalytic computing with advanced visualization
 import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-import time
 from lattice_visualization import HighDimensionalLatticeVisualizer, LatticeConfig
 
 class CatalyticLatticeVisualizer:

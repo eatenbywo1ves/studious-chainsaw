@@ -5,12 +5,11 @@ Tests CuPy, PyTorch, CUDA, and CPU implementations
 
 import pytest
 import numpy as np
-from unittest.mock import Mock, MagicMock, patch
-from typing import List, Tuple
+from unittest.mock import MagicMock, patch
 
-from apps.catalytic.gpu.base import BaseLatticeGPU, GPUCapabilities
+from apps.catalytic.gpu.base import GPUCapabilities
 from apps.catalytic.gpu.cpu_impl import CPULattice
-from libs.utils.exceptions import GPUNotAvailableError, GPUMemoryError
+from libs.utils.exceptions import GPUNotAvailableError
 
 
 class TestCPULatticeImplementation:

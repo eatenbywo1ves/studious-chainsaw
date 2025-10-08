@@ -17,7 +17,7 @@ torch_base = os.path.join(torch_site, "torch")
 torch_lib = os.path.join(torch_base, "lib")
 torch_bin = os.path.join(torch_base, "bin")
 
-print(f"[FOUND] PyTorch installation:")
+print("[FOUND] PyTorch installation:")
 print(f"  Base: {torch_base}")
 print(f"  Lib:  {torch_lib}")
 print(f"  Bin:  {torch_bin}")
@@ -31,81 +31,81 @@ if hasattr(os, 'add_dll_directory'):
     try:
         os.add_dll_directory(torch_lib)
         os.add_dll_directory(torch_bin)
-        print(f"\n[CONFIGURED] Added DLL directories")
+        print("\n[CONFIGURED] Added DLL directories")
     except:
         pass
 
-print(f"\n[TESTING] Importing CuPy...")
+print("\n[TESTING] Importing CuPy...")
 
 try:
     import cupy as cp
     import numpy as np
     import time
-    
+
     print(f"[OK] CuPy version: {cp.__version__}")
     print(f"[OK] CUDA available: {cp.cuda.is_available()}")
-    
+
     if not cp.cuda.is_available():
         print("[ERROR] CUDA not available in CuPy")
         sys.exit(1)
-    
+
     # Get device info
     device = cp.cuda.Device(0)
     print(f"[OK] GPU Device: {device.id}")
     mem_info = device.mem_info
     print(f"[OK] GPU Memory: {mem_info[1] / (1024**3):.1f} GB total, {mem_info[0] / (1024**3):.1f} GB free")
-    
-    print(f"\n[BENCHMARK] Running CuPy operations...")
+
+    print("\n[BENCHMARK] Running CuPy operations...")
     print("-" * 40)
-    
+
     # Test 1: Basic array operations
     print("1. Array operations...")
     x = cp.arange(1000000)
     y = cp.ones(1000000)
     z = x + y
     print(f"   [OK] Basic arithmetic: sum = {z[0]}")
-    
+
     # Test 2: Matrix multiplication
     print("2. Matrix multiplication...")
     size = 3000
     A = cp.random.random((size, size), dtype=cp.float32)
     B = cp.random.random((size, size), dtype=cp.float32)
-    
+
     # Warmup
     C = cp.dot(A, B)
     cp.cuda.Stream.null.synchronize()
-    
+
     # Benchmark
     start = time.perf_counter()
     C = cp.dot(A, B)
     cp.cuda.Stream.null.synchronize()
     elapsed = time.perf_counter() - start
-    
+
     gflops = (2 * size**3) / (elapsed * 1e9)
     print(f"   [OK] {size}x{size} matmul: {elapsed*1000:.1f}ms ({gflops:.1f} GFLOPS)")
-    
+
     # Test 3: FFT
     print("3. Fast Fourier Transform...")
     data = cp.random.random((1024, 1024), dtype=cp.complex64)
     fft_result = cp.fft.fft2(data)
     print(f"   [OK] 2D FFT shape: {fft_result.shape}")
-    
+
     # Test 4: Reductions
     print("4. Reduction operations...")
     big_array = cp.random.random(10000000, dtype=cp.float32)
     mean_val = cp.mean(big_array)
     std_val = cp.std(big_array)
     print(f"   [OK] Mean: {mean_val:.4f}, Std: {std_val:.4f}")
-    
+
     # Memory cleanup
     mempool = cp.get_default_memory_pool()
     used_mb = mempool.used_bytes() / (1024**2)
     mempool.free_all_blocks()
-    
-    print(f"\n[SUCCESS] CuPy is working with PyTorch's CUDA runtime!")
+
+    print("\n[SUCCESS] CuPy is working with PyTorch's CUDA runtime!")
     print(f"  Peak memory used: {used_mb:.1f} MB")
-    print(f"  All tests passed! Arrr!")
-    
+    print("  All tests passed! Arrr!")
+
 except ImportError as e:
     print(f"\n[ERROR] Failed to import CuPy: {e}")
 except Exception as e:

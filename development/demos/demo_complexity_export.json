@@ -1,0 +1,179 @@
+{
+  "entries": [
+    {
+      "operation": "hash_lookup",
+      "duration_ms": 1.3475000159814954,
+      "device": "cpu",
+      "backend": "cupy",
+      "memory_allocated_mb": 0.0,
+      "memory_peak_mb": 0.0,
+      "algorithmic_complexity": {
+        "time_complexity": "O(1)",
+        "space_complexity": "O(1)",
+        "tier": 0,
+        "tier_name": "TRIVIAL",
+        "complexity_class": "P",
+        "is_parallelizable": true,
+        "parallelism_degree": 1000,
+        "deterministic": true,
+        "has_recursion": false,
+        "recursion_depth": 0
+      },
+      "operational_complexity": {
+        "data_size_mb": 0.0,
+        "flop_count": 6737500,
+        "memory_ops": 0,
+        "branching_factor": 1,
+        "loop_depth": 1,
+        "dependency_graph_size": 10,
+        "flop_per_byte": 6737500.0,
+        "memory_bandwidth_utilization": 0.0
+      },
+      "complexity_score": {
+        "algorithmic_score": 0.1,
+        "operational_score": 0.0067375,
+        "memory_score": 0.0,
+        "parallelism_score": 0.1,
+        "total_score": 0.05202125000000001,
+        "normalized_score": 0.005506128078130864,
+        "complexity_grade": "A",
+        "tier": 0,
+        "tier_name": "TRIVIAL",
+        "bottleneck": "compute"
+      }
+    },
+    {
+      "operation": "matrix_multiply",
+      "duration_ms": 15.066799998749048,
+      "device": "gpu",
+      "backend": "cupy",
+      "memory_allocated_mb": 0.0,
+      "memory_peak_mb": 0.0,
+      "algorithmic_complexity": {
+        "time_complexity": "O(n\u00b3)",
+        "space_complexity": "O(n\u00b2)",
+        "tier": 2,
+        "tier_name": "POLYNOMIAL",
+        "complexity_class": "P",
+        "is_parallelizable": true,
+        "parallelism_degree": 10000,
+        "deterministic": true,
+        "has_recursion": false,
+        "recursion_depth": 0
+      },
+      "operational_complexity": {
+        "data_size_mb": 0.0,
+        "flop_count": 7533399999,
+        "memory_ops": 0,
+        "branching_factor": 1,
+        "loop_depth": 1,
+        "dependency_graph_size": 10,
+        "flop_per_byte": 7533399999.0,
+        "memory_bandwidth_utilization": 0.0
+      },
+      "complexity_score": {
+        "algorithmic_score": 10.0,
+        "operational_score": 7.533399999,
+        "memory_score": 0.0,
+        "parallelism_score": 10.0,
+        "total_score": 7.2600199997,
+        "normalized_score": 0.22924527471595615,
+        "complexity_grade": "B",
+        "tier": 2,
+        "tier_name": "POLYNOMIAL",
+        "bottleneck": "compute"
+      }
+    },
+    {
+      "operation": "graph_search",
+      "duration_ms": 25.429200031794608,
+      "device": "cpu",
+      "backend": "cupy",
+      "memory_allocated_mb": 0.0,
+      "memory_peak_mb": 0.0,
+      "algorithmic_complexity": {
+        "time_complexity": "O(2\u207f)",
+        "space_complexity": "O(n)",
+        "tier": 3,
+        "tier_name": "EXPONENTIAL",
+        "complexity_class": "NP",
+        "is_parallelizable": true,
+        "parallelism_degree": 1000,
+        "deterministic": true,
+        "has_recursion": true,
+        "recursion_depth": 20
+      },
+      "operational_complexity": {
+        "data_size_mb": 0.0,
+        "flop_count": 127146000,
+        "memory_ops": 0,
+        "branching_factor": 1,
+        "loop_depth": 1,
+        "dependency_graph_size": 10,
+        "flop_per_byte": 127146000.0,
+        "memory_bandwidth_utilization": 0.0
+      },
+      "complexity_score": {
+        "algorithmic_score": 100.0,
+        "operational_score": 0.127146,
+        "memory_score": 0.0,
+        "parallelism_score": 100.0,
+        "total_score": 50.0381438,
+        "normalized_score": 0.42697371779937615,
+        "complexity_grade": "C",
+        "tier": 3,
+        "tier_name": "EXPONENTIAL",
+        "bottleneck": "compute"
+      }
+    }
+  ],
+  "summary": {
+    "hash_lookup": {
+      "call_count": 1,
+      "total_time_ms": 1.3475000159814954,
+      "avg_time_ms": 1.3475000159814954
+    },
+    "matrix_multiply": {
+      "call_count": 1,
+      "total_time_ms": 15.066799998749048,
+      "avg_time_ms": 15.066799998749048
+    },
+    "graph_search": {
+      "call_count": 1,
+      "total_time_ms": 25.429200031794608,
+      "avg_time_ms": 25.429200031794608
+    }
+  },
+  "complexity_hierarchy": {
+    "tiers": {
+      "0": [
+        {
+          "operation": "hash_lookup",
+          "score": 0.05202125000000001,
+          "grade": "A",
+          "bottleneck": "compute"
+        }
+      ],
+      "1": [],
+      "2": [
+        {
+          "operation": "matrix_multiply",
+          "score": 7.2600199997,
+          "grade": "B",
+          "bottleneck": "compute"
+        }
+      ],
+      "3": [
+        {
+          "operation": "graph_search",
+          "score": 50.0381438,
+          "grade": "C",
+          "bottleneck": "compute"
+        }
+      ]
+    },
+    "total_operations": 3,
+    "total_complexity_score": 57.3501850497,
+    "average_complexity_score": 19.1167283499
+  }
+}

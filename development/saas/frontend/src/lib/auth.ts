@@ -1,8 +1,8 @@
 // Authentication utilities for Next.js API routes
 // Verifies JWT tokens by calling the Python FastAPI backend
 
-import { NextRequest } from 'next/server'
-import { apiClient } from './api-client'
+import { NextRequest } from 'next/server';
+import { apiClient } from './api-client';
 
 export interface TokenData {
   sub: string // User ID
@@ -25,13 +25,13 @@ export interface VerifyTokenResult {
  * Extract Bearer token from Authorization header
  */
 export function extractBearerToken(request: NextRequest): string | null {
-  const authHeader = request.headers.get('authorization')
+  const authHeader = request.headers.get('authorization');
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return null
+    return null;
   }
 
-  return authHeader.substring(7)
+  return authHeader.substring(7);
 }
 
 /**
@@ -43,23 +43,23 @@ export async function verifyToken(token: string, tokenType: string = 'access'): 
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/auth/verify`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         token,
         token_type: tokenType
-      }),
-    })
+      })
+    });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }))
+      const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }));
       return {
         success: false,
         error: errorData.detail || 'Token verification failed'
-      }
+      };
     }
 
-    const data = await response.json()
+    const data = await response.json();
 
     return {
       success: true,
@@ -73,12 +73,12 @@ export async function verifyToken(token: string, tokenType: string = 'access'): 
         iat: data.iat,
         exp: data.exp
       }
-    }
+    };
   } catch (error) {
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Token verification failed'
-    }
+    };
   }
 }
 
@@ -93,25 +93,25 @@ export async function verifyRequestAuth(request: NextRequest, requireAdmin: bool
   statusCode?: number
 }> {
   // Extract token
-  const token = extractBearerToken(request)
+  const token = extractBearerToken(request);
 
   if (!token) {
     return {
       authenticated: false,
       error: 'No authorization token provided',
       statusCode: 401
-    }
+    };
   }
 
   // Verify token
-  const verifyResult = await verifyToken(token, 'access')
+  const verifyResult = await verifyToken(token, 'access');
 
   if (!verifyResult.success || !verifyResult.data) {
     return {
       authenticated: false,
       error: verifyResult.error || 'Invalid token',
       statusCode: 401
-    }
+    };
   }
 
   // Check admin role if required
@@ -120,13 +120,13 @@ export async function verifyRequestAuth(request: NextRequest, requireAdmin: bool
       authenticated: false,
       error: 'Admin access required',
       statusCode: 403
-    }
+    };
   }
 
   return {
     authenticated: true,
     user: verifyResult.data
-  }
+  };
 }
 
 /**
@@ -142,17 +142,17 @@ export async function verifyResourceOwnership(
   error?: string
   statusCode?: number
 }> {
-  const authResult = await verifyRequestAuth(request)
+  const authResult = await verifyRequestAuth(request);
 
   if (!authResult.authenticated || !authResult.user) {
     return {
       authorized: false,
       error: authResult.error,
       statusCode: authResult.statusCode
-    }
+    };
   }
 
-  const user = authResult.user
+  const user = authResult.user;
 
   // Check if user ID matches
   if (user.sub !== resourceUserId) {
@@ -160,7 +160,7 @@ export async function verifyResourceOwnership(
       authorized: false,
       error: 'You do not have permission to access this resource',
       statusCode: 403
-    }
+    };
   }
 
   // Check tenant isolation if tenant ID provided
@@ -169,13 +169,13 @@ export async function verifyResourceOwnership(
       authorized: false,
       error: 'Tenant mismatch',
       statusCode: 403
-    }
+    };
   }
 
   return {
     authorized: true,
     user
-  }
+  };
 }
 
 /**
@@ -186,15 +186,15 @@ export function extractUserIdFromToken(token: string): string | null {
   try {
     // Simple base64 decode of JWT payload (without verification)
     // This is ONLY for extracting metadata, not for authentication
-    const parts = token.split('.')
+    const parts = token.split('.');
     if (parts.length !== 3) {
-      return null
+      return null;
     }
 
-    const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString())
-    return payload.sub || null
+    const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
+    return payload.sub || null;
   } catch {
-    return null
+    return null;
   }
 }
 
@@ -208,7 +208,7 @@ export function unauthorizedResponse(message: string = 'Unauthorized') {
       status: 401,
       headers: { 'Content-Type': 'application/json' }
     }
-  )
+  );
 }
 
 /**
@@ -221,5 +221,5 @@ export function forbiddenResponse(message: string = 'Forbidden') {
       status: 403,
       headers: { 'Content-Type': 'application/json' }
     }
-  )
+  );
 }

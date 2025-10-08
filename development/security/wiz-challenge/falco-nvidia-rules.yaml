@@ -1,0 +1,184 @@
+# Falco Detection Rules for NVIDIA Container Toolkit Security Research
+# Wiz Zero Day Cloud 2025 Competition
+# Created: October 6, 2025
+# Purpose: Detect container escape attempts targeting NVIDIA Container Toolkit
+
+- rule: NVIDIA Container Escape - Suspicious Library Loading
+  desc: Detects LD_PRELOAD or similar injection during NVIDIA container startup (CVE-2025-23266 pattern)
+  condition: >
+    container.image.repository startswith "nvidia/"
+    and spawned_process
+    and proc.env contains "LD_PRELOAD"
+    and not proc.env contains "LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libnvidia"
+  output: >
+    CRITICAL: Suspicious library injection detected in NVIDIA container (CVE-2025-23266 pattern)
+    (container_id=%container.id container_name=%container.name image=%container.image.repository
+    process=%proc.name cmdline=%proc.cmdline env=%proc.env user=%user.name uid=%user.uid)
+  priority: CRITICAL
+  tags: [container_escape, nvidia, ld_preload, cve-2025-23266, T1611]
+  source: syscall
+
+- rule: NVIDIA Container Escape - Host Filesystem Access
+  desc: Detects attempts to access host filesystem from GPU container
+  condition: >
+    container.image.repository startswith "nvidia/"
+    and open_read
+    and (fd.name startswith "/proc/1/" or
+         fd.name startswith "/host/" or
+         fd.name startswith "/../" or
+         fd.name = "/flag" or
+         fd.name = "/flag.sh")
+    and not proc.name in (ps, top, htop)
+  output: >
+    CRITICAL: Host filesystem access attempt from NVIDIA container detected
+    (container_id=%container.id container_name=%container.name image=%container.image.repository
+    file=%fd.name process=%proc.name cmdline=%proc.cmdline user=%user.name uid=%user.uid)
+  priority: CRITICAL
+  tags: [container_escape, nvidia, filesystem_breakout, T1611]
+  source: syscall
+
+- rule: NVIDIA Container Toolkit TOCTOU Exploitation
+  desc: Detects TOCTOU race condition exploitation during NVIDIA hook execution (CVE-2024-0132, CVE-2025-23359)
+  condition: >
+    (proc.name = "nvidia-container-cli" or proc.pname = "nvidia-container-runtime-hook")
+    and (open_write or open_read)
+    and fd.name startswith "/proc/"
+    and not fd.name in ("/proc/self/mountinfo", "/proc/self/cgroup", "/proc/self/status", "/proc/self/cmdline")
+  output: >
+    CRITICAL: Potential TOCTOU exploitation in NVIDIA Container Toolkit detected (CVE-2024-0132 pattern)
+    (process=%proc.name parent=%proc.pname file=%fd.name ppid=%proc.ppid user=%user.name uid=%user.uid
+    container_id=%container.id)
+  priority: CRITICAL
+  tags: [container_escape, nvidia, toctou, race_condition, cve-2024-0132, cve-2025-23359]
+  source: syscall
+
+- rule: NVIDIA Container Escape - Symlink Traversal
+  desc: Detects symbolic link manipulation for path traversal (CVE-2025-23267 pattern)
+  condition: >
+    container.image.repository startswith "nvidia/"
+    and (evt.type = symlink or evt.type = symlinkat)
+    and (fd.name contains ".." or fd.name startswith "/host" or fd.name startswith "/proc/1")
+  output: >
+    WARNING: Suspicious symlink creation in NVIDIA container (CVE-2025-23267 pattern)
+    (container_id=%container.id container_name=%container.name image=%container.image.repository
+    symlink_target=%fd.name process=%proc.name cmdline=%proc.cmdline user=%user.name uid=%user.uid)
+  priority: WARNING
+  tags: [container_escape, nvidia, symlink, path_traversal, cve-2025-23267]
+  source: syscall
+
+- rule: NVIDIA Container Escape - Privileged Operations
+  desc: Detects unexpected privileged operations in GPU containers
+  condition: >
+    container.image.repository startswith "nvidia/"
+    and (proc.name in (mount, umount, chroot, pivot_root, unshare, nsenter) or
+         (spawned_process and proc.name in (modprobe, insmod, rmmod, kexec)))
+    and not proc.pname in (dockerd, containerd, systemd)
+  output: >
+    CRITICAL: Privileged operation detected in NVIDIA container
+    (container_id=%container.id container_name=%container.name image=%container.image.repository
+    process=%proc.name cmdline=%proc.cmdline parent=%proc.pname user=%user.name uid=%user.uid)
+  priority: CRITICAL
+  tags: [container_escape, nvidia, privileged_operation, T1611]
+  source: syscall
+
+- rule: NVIDIA Container Escape - Device Access Anomaly
+  desc: Detects unusual device file access patterns beyond expected GPU devices
+  condition: >
+    container.image.repository startswith "nvidia/"
+    and open_read
+    and fd.name startswith "/dev/"
+    and not fd.name in ("/dev/nvidia0", "/dev/nvidia1", "/dev/nvidia2", "/dev/nvidia3",
+                         "/dev/nvidiactl", "/dev/nvidia-uvm", "/dev/nvidia-uvm-tools",
+                         "/dev/nvidia-modeset", "/dev/dri/card0", "/dev/dri/card1",
+                         "/dev/dri/renderD128", "/dev/dri/renderD129",
+                         "/dev/null", "/dev/zero", "/dev/random", "/dev/urandom",
+                         "/dev/pts/0", "/dev/pts/1", "/dev/pts/2", "/dev/pts/3",
+                         "/dev/tty", "/dev/console", "/dev/stdin", "/dev/stdout", "/dev/stderr")
+    and not proc.name in (bash, sh, nvidia-smi, python, python3)
+  output: >
+    WARNING: Unexpected device access in NVIDIA container
+    (container_id=%container.id container_name=%container.name image=%container.image.repository
+    device=%fd.name process=%proc.name cmdline=%proc.cmdline user=%user.name uid=%user.uid)
+  priority: WARNING
+  tags: [container_escape, nvidia, device_access]
+  source: syscall
+
+- rule: NVIDIA Container Runtime Configuration Manipulation
+  desc: Detects attempts to manipulate container runtime or OCI hooks
+  condition: >
+    open_write
+    and (fd.name startswith "/etc/nvidia-container-runtime/" or
+         fd.name = "/etc/docker/daemon.json" or
+         fd.name startswith "/var/run/nvidia-container-devices/" or
+         fd.name startswith "/run/nvidia/" or
+         fd.name = "/etc/nvidia-container-runtime/config.toml")
+    and not proc.name in (dockerd, containerd, nvidia-container-toolkit, apt, dpkg, yum, rpm)
+    and not container.id = host
+  output: >
+    CRITICAL: NVIDIA container runtime configuration manipulation detected
+    (file=%fd.name process=%proc.name cmdline=%proc.cmdline parent=%proc.pname
+    container_id=%container.id user=%user.name uid=%user.uid)
+  priority: CRITICAL
+  tags: [container_escape, nvidia, runtime_manipulation, persistence]
+  source: syscall
+
+- rule: NVIDIA Container Escape - GPU Memory Access Pattern
+  desc: Detects unusual GPU memory access that may indicate DMA attacks
+  condition: >
+    container.image.repository startswith "nvidia/"
+    and (fd.name startswith "/sys/kernel/debug/" or
+         fd.name startswith "/sys/bus/pci/devices/" or
+         fd.name startswith "/sys/class/nvidia/")
+    and not proc.name in (nvidia-smi, nvidia-ctk)
+  output: >
+    HIGH: Suspicious GPU/PCI device access in NVIDIA container (potential DMA attack)
+    (container_id=%container.id container_name=%container.name image=%container.image.repository
+    file=%fd.name process=%proc.name cmdline=%proc.cmdline user=%user.name uid=%user.uid)
+  priority: HIGH
+  tags: [container_escape, nvidia, gpu_memory, dma, T1611]
+  source: syscall
+
+- rule: NVIDIA Container Escape - Capability Abuse
+  desc: Detects capability-based exploitation attempts in GPU containers
+  condition: >
+    container.image.repository startswith "nvidia/"
+    and spawned_process
+    and (proc.name in (capsh, setcap, getcap) or
+         (proc.cmdline contains "CAP_" and proc.cmdline contains "SYS_ADMIN"))
+  output: >
+    WARNING: Capability manipulation detected in NVIDIA container
+    (container_id=%container.id container_name=%container.name image=%container.image.repository
+    process=%proc.name cmdline=%proc.cmdline user=%user.name uid=%user.uid)
+  priority: WARNING
+  tags: [container_escape, nvidia, capability_abuse]
+  source: syscall
+
+- rule: NVIDIA Container Toolkit Hook Timing Anomaly
+  desc: Detects abnormally long hook execution times indicating potential TOCTOU attacks
+  condition: >
+    proc.name = "nvidia-container-runtime-hook"
+    and proc.duration > 5000000000
+  output: >
+    WARNING: NVIDIA Container Toolkit hook execution taking abnormally long (potential TOCTOU)
+    (duration=%proc.duration process=%proc.name cmdline=%proc.cmdline user=%user.name container_id=%container.id)
+  priority: WARNING
+  tags: [container_escape, nvidia, toctou, timing_attack]
+  source: syscall
+
+# List for safe GPU device paths (used by other rules)
+- list: nvidia_safe_devices
+  items: [/dev/nvidia0, /dev/nvidia1, /dev/nvidia2, /dev/nvidia3,
+          /dev/nvidiactl, /dev/nvidia-uvm, /dev/nvidia-uvm-tools,
+          /dev/nvidia-modeset, /dev/dri/card0, /dev/dri/card1,
+          /dev/dri/renderD128, /dev/dri/renderD129]
+
+# List for safe proc paths
+- list: nvidia_safe_proc_paths
+  items: [/proc/self/mountinfo, /proc/self/cgroup, /proc/self/status,
+          /proc/self/cmdline, /proc/self/environ, /proc/self/exe]
+
+# Macro for NVIDIA container processes
+- macro: nvidia_toolkit_process
+  condition: >
+    proc.name in (nvidia-container-cli, nvidia-container-runtime,
+                  nvidia-container-runtime-hook, nvidia-ctk, nvidia-smi)

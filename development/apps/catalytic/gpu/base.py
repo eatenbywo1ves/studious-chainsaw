@@ -4,12 +4,10 @@ Defines the interface that all GPU implementations must follow
 """
 
 from abc import ABC, abstractmethod
-from typing import Tuple, List, Optional, Dict, Any, Union
+from typing import Tuple, List, Optional, Dict, Any
 from dataclasses import dataclass
 import numpy as np
-from pathlib import Path
 
-from libs.utils.exceptions import GPUException, GPUMemoryError
 from libs.config import get_settings
 
 

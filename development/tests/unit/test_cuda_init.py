@@ -6,7 +6,7 @@ Tests initialization logic, error handling, and state management
 import pytest
 import sys
 from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 import os
 
 # Add development directory to path
@@ -41,7 +41,7 @@ class TestCudaInitialization:
             mock_torch.__file__ = str(Path(__file__).parent / "torch" / "__init__.py")
 
             # Create mock lib directory with CUDA DLLs
-            mock_lib_path = Path(__file__).parent / "torch" / "lib"
+            Path(__file__).parent / "torch" / "lib"
             with patch('pathlib.Path.exists', return_value=True), \
                  patch('pathlib.Path.glob', return_value=[Path("cuda_runtime.dll")]):
 
@@ -135,7 +135,7 @@ class TestCudaInitialization:
         with patch('libs.gpu.cuda_init.initialize_cuda_environment') as mock_init:
             mock_init.return_value = True
 
-            result = is_cuda_available()
+            is_cuda_available()
 
             mock_init.assert_called_once_with(verbose=False)
 
@@ -166,7 +166,7 @@ class TestCudaInitialization:
             mock_torch.cuda.get_device_name.return_value = "NVIDIA GTX 1080"
             mock_torch.__file__ = str(Path(__file__).parent / "torch" / "__init__.py")
 
-            mock_lib_path = Path(__file__).parent / "torch" / "lib"
+            Path(__file__).parent / "torch" / "lib"
             with patch('pathlib.Path.exists', return_value=True), \
                  patch('pathlib.Path.glob', return_value=[Path(f"cuda_{i}.dll") for i in range(37)]):
 
@@ -236,7 +236,7 @@ class TestEnvironmentVariables:
     def test_auto_init_cuda_env_var(self):
         """Test AUTO_INIT_CUDA environment variable"""
         with patch.dict(os.environ, {'AUTO_INIT_CUDA': '1'}), \
-             patch('libs.gpu.cuda_init.initialize_cuda_environment') as mock_init:
+             patch('libs.gpu.cuda_init.initialize_cuda_environment'):
 
             # Reload module to trigger auto-init
             import importlib
@@ -245,7 +245,7 @@ class TestEnvironmentVariables:
 
     def test_path_environment_prepending(self):
         """Test that torch lib is prepended to PATH"""
-        original_path = os.environ.get('PATH', '')
+        os.environ.get('PATH', '')
 
         with patch('libs.gpu.cuda_init.torch') as mock_torch:
             mock_torch.cuda.is_available.return_value = True

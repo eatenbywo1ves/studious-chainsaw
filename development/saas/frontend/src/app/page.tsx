@@ -1,7 +1,7 @@
-import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import {
   Zap,
   Shield,
@@ -11,7 +11,7 @@ import {
   Database,
   ArrowRight,
   Check
-} from 'lucide-react'
+} from 'lucide-react';
 
 export default function HomePage() {
   return (
@@ -192,7 +192,7 @@ export default function HomePage() {
         </div>
       </footer>
     </div>
-  )
+  );
 }
 
 const features = [
@@ -226,7 +226,7 @@ const features = [
       'Audit logging'
     ]
   }
-]
+];
 
 const pricingPlans = [
   {
@@ -267,4 +267,4 @@ const pricingPlans = [
       'Training included'
     ]
   }
-]
+];

@@ -1,0 +1,27 @@
+webhooks:
+  global:
+    timeout_seconds: 30
+
+  events:
+    test:
+      - name: example
+        webhooks:
+          - url: http://localhost:9999/test
+            method: POST
+
+  delivery:
+    queue:
+      processing_workers: 2
+    circuit_breaker:
+      failure_threshold: 5
+      timeout_seconds: 60
+      half_open_requests: 2
+    dead_letter:
+      retention_days: 7
+
+  security:
+    signing:
+      enabled: false
+    default_secret: test-secret
+
+  transformers: {}

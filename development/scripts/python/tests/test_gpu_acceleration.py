@@ -89,7 +89,7 @@ try:
         gpu_time = time.time() - start
 
         print(f"  Kernel execution time: {gpu_time*1000:.3f} ms")
-        print(f"  Speedup vs CPU: N/A (different operation)")
+        print("  Speedup vs CPU: N/A (different operation)")
     else:
         print("[X] Numba CUDA not available - CPU only")
         print("  To enable: pip install cudatoolkit")
@@ -105,7 +105,7 @@ try:
     print(f"[OK] PyTorch Version: {torch.__version__}")
 
     if torch.cuda.is_available():
-        print(f"[OK] CUDA Available: True")
+        print("[OK] CUDA Available: True")
         print(f"  CUDA Version: {torch.version.cuda}")
         print(f"  GPU Count: {torch.cuda.device_count()}")
         print(f"  Current GPU: {torch.cuda.get_device_name(0)}")
@@ -229,7 +229,6 @@ except:
     pass
 
 try:
-    import cupy
     has_cupy = True
 except:
     pass

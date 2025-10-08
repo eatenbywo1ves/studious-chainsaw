@@ -7,7 +7,7 @@ Achieves additional speedup using CUDA for parallel processing
 import numpy as np
 import cupy as cp
 import time
-from numba import cuda, jit
+from numba import cuda
 from typing import Tuple, List, Optional
 import torch
 
@@ -211,7 +211,7 @@ class CatalyticLatticeGPU:
 
         # Matrix multiplication on GPU
         start = time.perf_counter()
-        C_gpu = cp.dot(A_gpu, B_gpu)
+        cp.dot(A_gpu, B_gpu)
         cp.cuda.Stream.null.synchronize()
         gpu_time = (time.perf_counter() - start) * 1000
         results['gpu_matmul_ms'] = gpu_time
@@ -221,7 +221,7 @@ class CatalyticLatticeGPU:
         B_cpu = cp.asnumpy(B_gpu)
 
         start = time.perf_counter()
-        C_cpu = np.dot(A_cpu, B_cpu)
+        np.dot(A_cpu, B_cpu)
         cpu_time = (time.perf_counter() - start) * 1000
         results['cpu_matmul_ms'] = cpu_time
 
@@ -292,11 +292,11 @@ def benchmark_gpu_acceleration():
         data = np.random.randint(0, 256, 10000, dtype=np.uint8)
 
         start = time.perf_counter()
-        result = lattice.xor_transform_gpu(data)
+        lattice.xor_transform_gpu(data)
         gpu_xor_time = (time.perf_counter() - start) * 1000
 
         start = time.perf_counter()
-        cpu_result = data ^ np.random.randint(0, 256, 10000, dtype=np.uint8)
+        data ^ np.random.randint(0, 256, 10000, dtype=np.uint8)
         cpu_xor_time = (time.perf_counter() - start) * 1000
 
         results[f'{dim}D_xor_speedup'] = round(cpu_xor_time / gpu_xor_time, 2)

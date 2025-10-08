@@ -5,19 +5,18 @@ Provides structured error handling with proper error codes and messages
 
 from typing import Optional, Dict, Any
 from enum import Enum
-import traceback
 import json
 
 
 class ErrorCode(Enum):
     """Standardized error codes for the system"""
-    
+
     # General errors (1000-1099)
     UNKNOWN_ERROR = 1000
     VALIDATION_ERROR = 1001
     CONFIGURATION_ERROR = 1002
     INITIALIZATION_ERROR = 1003
-    
+
     # Lattice computing errors (2000-2099)
     LATTICE_CREATION_ERROR = 2000
     LATTICE_NOT_FOUND = 2001
@@ -25,14 +24,14 @@ class ErrorCode(Enum):
     INVALID_DIMENSIONS = 2003
     INVALID_COORDINATES = 2004
     PATH_NOT_FOUND = 2005
-    
+
     # GPU/Computing errors (3000-3099)
     GPU_NOT_AVAILABLE = 3000
     GPU_MEMORY_ERROR = 3001
     CUDA_ERROR = 3002
     COMPUTATION_TIMEOUT = 3003
     PARALLEL_EXECUTION_ERROR = 3004
-    
+
     # API errors (4000-4099)
     INVALID_REQUEST = 4000
     AUTHENTICATION_FAILED = 4001
@@ -40,20 +39,20 @@ class ErrorCode(Enum):
     RATE_LIMIT_EXCEEDED = 4003
     RESOURCE_NOT_FOUND = 4004
     METHOD_NOT_ALLOWED = 4005
-    
+
     # Webhook errors (5000-5099)
     WEBHOOK_REGISTRATION_FAILED = 5000
     WEBHOOK_DELIVERY_FAILED = 5001
     WEBHOOK_TIMEOUT = 5002
     WEBHOOK_SIGNATURE_INVALID = 5003
     WEBHOOK_NOT_FOUND = 5004
-    
+
     # Database errors (6000-6099)
     DATABASE_CONNECTION_ERROR = 6000
     DATABASE_QUERY_ERROR = 6001
     DATABASE_INTEGRITY_ERROR = 6002
     DATABASE_TIMEOUT = 6003
-    
+
     # Memory/Performance errors (7000-7099)
     MEMORY_ALLOCATION_ERROR = 7000
     MEMORY_LIMIT_EXCEEDED = 7001
@@ -63,7 +62,7 @@ class ErrorCode(Enum):
 
 class CatalyticException(Exception):
     """Base exception class for all catalytic computing errors"""
-    
+
     def __init__(
         self,
         message: str,
@@ -73,7 +72,7 @@ class CatalyticException(Exception):
     ):
         """
         Initialize exception with structured error information
-        
+
         Args:
             message: Human-readable error message
             error_code: Standardized error code
@@ -85,12 +84,12 @@ class CatalyticException(Exception):
         self.error_code = error_code
         self.details = details or {}
         self.cause = cause
-        
+
         # Add traceback if cause is provided
         if cause:
             self.details['cause'] = str(cause)
             self.details['cause_type'] = type(cause).__name__
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert exception to dictionary for API responses"""
         return {
@@ -101,15 +100,15 @@ class CatalyticException(Exception):
                 'details': self.details
             }
         }
-    
+
     def to_json(self) -> str:
         """Convert exception to JSON string"""
         return json.dumps(self.to_dict(), indent=2)
-    
+
     def __str__(self) -> str:
         """String representation of the exception"""
         return f"[{self.error_code.name}] {self.message}"
-    
+
     def __repr__(self) -> str:
         """Detailed representation for debugging"""
         return f"{self.__class__.__name__}(code={self.error_code.value}, message='{self.message}', details={self.details})"
@@ -124,7 +123,7 @@ class LatticeException(CatalyticException):
 
 class LatticeCreationError(LatticeException):
     """Raised when lattice creation fails"""
-    
+
     def __init__(self, message: str, dimensions: int = None, size: int = None, **kwargs):
         details = kwargs.get('details', {})
         if dimensions:
@@ -137,7 +136,7 @@ class LatticeCreationError(LatticeException):
 
 class LatticeNotFoundError(LatticeException):
     """Raised when a lattice ID is not found"""
-    
+
     def __init__(self, lattice_id: str, **kwargs):
         message = f"Lattice with ID '{lattice_id}' not found"
         details = kwargs.get('details', {})
@@ -148,7 +147,7 @@ class LatticeNotFoundError(LatticeException):
 
 class LatticeLimitExceededError(LatticeException):
     """Raised when maximum lattice limit is exceeded"""
-    
+
     def __init__(self, current: int, maximum: int, **kwargs):
         message = f"Maximum lattice limit exceeded: {current}/{maximum}"
         details = kwargs.get('details', {})
@@ -160,7 +159,7 @@ class LatticeLimitExceededError(LatticeException):
 
 class InvalidDimensionsError(LatticeException):
     """Raised when invalid dimensions are provided"""
-    
+
     def __init__(self, dimensions: int, min_dims: int = 1, max_dims: int = 10, **kwargs):
         message = f"Invalid dimensions: {dimensions}. Must be between {min_dims} and {max_dims}"
         details = kwargs.get('details', {})
@@ -173,7 +172,7 @@ class InvalidDimensionsError(LatticeException):
 
 class PathNotFoundException(LatticeException):
     """Raised when no path exists between two points"""
-    
+
     def __init__(self, start: Any, end: Any, **kwargs):
         message = f"No path found from {start} to {end}"
         details = kwargs.get('details', {})
@@ -192,14 +191,14 @@ class GPUException(CatalyticException):
 
 class GPUNotAvailableError(GPUException):
     """Raised when GPU is required but not available"""
-    
+
     def __init__(self, reason: str = "No CUDA-capable GPU detected", **kwargs):
         super().__init__(reason, ErrorCode.GPU_NOT_AVAILABLE, **kwargs)
 
 
 class GPUMemoryError(GPUException):
     """Raised when GPU memory is insufficient"""
-    
+
     def __init__(self, required_mb: float, available_mb: float, **kwargs):
         message = f"Insufficient GPU memory: {required_mb:.2f}MB required, {available_mb:.2f}MB available"
         details = kwargs.get('details', {})
@@ -211,7 +210,7 @@ class GPUMemoryError(GPUException):
 
 class ComputationTimeoutError(CatalyticException):
     """Raised when computation exceeds timeout"""
-    
+
     def __init__(self, operation: str, timeout_seconds: float, **kwargs):
         message = f"Operation '{operation}' timed out after {timeout_seconds} seconds"
         details = kwargs.get('details', {})
@@ -225,7 +224,7 @@ class ComputationTimeoutError(CatalyticException):
 
 class APIException(CatalyticException):
     """Base exception for API-related errors"""
-    
+
     @property
     def status_code(self) -> int:
         """Map error codes to HTTP status codes"""
@@ -243,7 +242,7 @@ class APIException(CatalyticException):
 
 class ValidationError(APIException):
     """Raised when request validation fails"""
-    
+
     def __init__(self, field: str, value: Any, reason: str, **kwargs):
         message = f"Validation failed for field '{field}': {reason}"
         details = kwargs.get('details', {})
@@ -256,7 +255,7 @@ class ValidationError(APIException):
 
 class AuthenticationError(APIException):
     """Raised when authentication fails"""
-    
+
     def __init__(self, method: str = "API key", **kwargs):
         message = f"Authentication failed: Invalid {method}"
         details = kwargs.get('details', {})
@@ -267,7 +266,7 @@ class AuthenticationError(APIException):
 
 class RateLimitExceededError(APIException):
     """Raised when rate limit is exceeded"""
-    
+
     def __init__(self, limit: int, window: str = "minute", retry_after: int = None, **kwargs):
         message = f"Rate limit exceeded: {limit} requests per {window}"
         details = kwargs.get('details', {})
@@ -288,7 +287,7 @@ class WebhookException(CatalyticException):
 
 class WebhookRegistrationError(WebhookException):
     """Raised when webhook registration fails"""
-    
+
     def __init__(self, url: str, reason: str, **kwargs):
         message = f"Failed to register webhook for {url}: {reason}"
         details = kwargs.get('details', {})
@@ -300,7 +299,7 @@ class WebhookRegistrationError(WebhookException):
 
 class WebhookDeliveryError(WebhookException):
     """Raised when webhook delivery fails"""
-    
+
     def __init__(self, url: str, status_code: int = None, **kwargs):
         message = f"Failed to deliver webhook to {url}"
         if status_code:
@@ -315,7 +314,7 @@ class WebhookDeliveryError(WebhookException):
 
 class WebhookSignatureError(WebhookException):
     """Raised when webhook signature validation fails"""
-    
+
     def __init__(self, **kwargs):
         message = "Webhook signature validation failed"
         super().__init__(message, ErrorCode.WEBHOOK_SIGNATURE_INVALID, **kwargs)
@@ -330,7 +329,7 @@ class DatabaseException(CatalyticException):
 
 class DatabaseConnectionError(DatabaseException):
     """Raised when database connection fails"""
-    
+
     def __init__(self, database_url: str = None, **kwargs):
         message = "Failed to connect to database"
         if database_url:
@@ -344,7 +343,7 @@ class DatabaseConnectionError(DatabaseException):
 
 class DatabaseQueryError(DatabaseException):
     """Raised when database query fails"""
-    
+
     def __init__(self, query: str = None, **kwargs):
         message = "Database query failed"
         details = kwargs.get('details', {})
@@ -363,7 +362,7 @@ class MemoryException(CatalyticException):
 
 class MemoryAllocationError(MemoryException):
     """Raised when memory allocation fails"""
-    
+
     def __init__(self, size_mb: float, **kwargs):
         message = f"Failed to allocate {size_mb:.2f}MB of memory"
         details = kwargs.get('details', {})
@@ -374,7 +373,7 @@ class MemoryAllocationError(MemoryException):
 
 class MemoryLimitExceededError(MemoryException):
     """Raised when memory limit is exceeded"""
-    
+
     def __init__(self, used_mb: float, limit_mb: float, **kwargs):
         message = f"Memory limit exceeded: {used_mb:.2f}MB used, {limit_mb:.2f}MB limit"
         details = kwargs.get('details', {})
@@ -389,16 +388,16 @@ class MemoryLimitExceededError(MemoryException):
 def handle_exception(exc: Exception) -> CatalyticException:
     """
     Convert any exception to a CatalyticException
-    
+
     Args:
         exc: The exception to convert
-        
+
     Returns:
         CatalyticException instance
     """
     if isinstance(exc, CatalyticException):
         return exc
-    
+
     # Map common exceptions to our custom exceptions
     exception_map = {
         ValueError: ValidationError,
@@ -406,14 +405,14 @@ def handle_exception(exc: Exception) -> CatalyticException:
         TimeoutError: ComputationTimeoutError,
         ConnectionError: DatabaseConnectionError,
     }
-    
+
     exc_type = type(exc)
     if exc_type in exception_map:
         return exception_map[exc_type](
             str(exc),
             cause=exc
         )
-    
+
     # Default to unknown error
     return CatalyticException(
         message=str(exc),

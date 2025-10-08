@@ -10,6 +10,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 import time
 import logging
+import os
 
 from .jwt_auth import (
     verify_token, verify_api_key, extract_tenant_from_request,
@@ -175,12 +176,32 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
                 request.state.user_role = token_data.role
 
         elif api_key:
-            key_data = verify_api_key(api_key)
-            if key_data:
-                authenticated = True
-                auth_type = "api_key"
-                request.state.api_key_name = key_data.get("name")
-                request.state.api_key_permissions = key_data.get("permissions", [])
+            # Get database session for API key verification
+            from sqlalchemy import create_engine
+            from sqlalchemy.orm import sessionmaker
+
+            # Import DB URL
+            DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./catalytic_saas.db")
+
+            # Create session (reuse engine pattern)
+            if DATABASE_URL.startswith("sqlite"):
+                engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+            else:
+                engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+
+            SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+            db = SessionLocal()
+
+            try:
+                key_data = verify_api_key(api_key, db_session=db)
+                if key_data:
+                    authenticated = True
+                    auth_type = "api_key"
+                    request.state.api_key_id = key_data.get("id")
+                    request.state.api_key_name = key_data.get("name")
+                    request.state.api_key_permissions = key_data.get("permissions", [])
+            finally:
+                db.close()
 
         if not authenticated:
             # Return 401 for API routes
@@ -341,10 +362,16 @@ class PermissionChecker:
 
 def get_cors_config():
     """Get CORS configuration for FastAPI"""
+    # Read allowed origins from environment - NO WILDCARD for security
+    allowed_origins = os.getenv(
+        "CORS_ALLOWED_ORIGINS",
+        "http://localhost:3000,http://localhost:3001"
+    ).split(",")
+
     return {
-        "allow_origins": ["*"],  # Configure based on environment
+        "allow_origins": allowed_origins,  # Explicit whitelist from .env
         "allow_credentials": True,
-        "allow_methods": ["*"],
+        "allow_methods": ["GET", "POST", "PUT", "DELETE", "PATCH"],  # Explicit methods
         "allow_headers": [
             "Authorization",
             "Content-Type",

@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: go-deployment-demo
+    env: docker
+    image:
+      url: your-dockerhub-username/go-deployment-demo:latest
+    region: oregon
+    plan: free
+    envVars:
+      - key: PORT
+        value: 8080
+      - key: ENVIRONMENT
+        value: production
+      - key: VERSION
+        value: 1.0.0
+    healthCheckPath: /health
+    autoDeploy: true

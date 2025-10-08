@@ -5,7 +5,6 @@ Enhanced with PyTorch CUDA 12.1 compatibility
 """
 
 import os
-import sys
 import numpy as np
 import time
 
@@ -81,7 +80,7 @@ try:
             # Verify correctness
             expected = a + b
             if np.allclose(result, expected):
-                print(f"   [PASS] Kernel execution: SUCCESS!")
+                print("   [PASS] Kernel execution: SUCCESS!")
                 print(f"   [TIME] GPU execution time: {gpu_time*1000:.2f} ms")
                 print(f"   [PERF] Throughput: {(n*1e-6/gpu_time):.2f} million ops/sec")
                 print(f"   [DATA] Sample result: {result[:5]} (expected: {expected[:5]})")

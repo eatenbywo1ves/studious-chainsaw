@@ -10,7 +10,6 @@ from typing import Dict, Optional, List, Tuple, Callable
 from dataclasses import dataclass
 from enum import Enum
 from threading import Lock
-import warnings
 
 logger = logging.getLogger(__name__)
 

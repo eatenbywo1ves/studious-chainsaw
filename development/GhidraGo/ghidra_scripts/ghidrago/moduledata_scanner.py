@@ -21,7 +21,7 @@ Phase 4 Track 4 Enhancement:
 import struct
 import hashlib
 from typing import Optional, Dict, Any
-from .exceptions import MemoryAccessError, InvalidBinaryError
+from .exceptions import MemoryAccessError
 
 
 class ModuledataCache:
@@ -90,7 +90,7 @@ class ModuledataCache:
         if program_hash in cls._cache:
             cached_entry = cls._cache[program_hash]
             print(f"[+] Moduledata cache HIT for program hash {program_hash[:16]}...")
-            print(f"    Skipping expensive binary scan (40-60% faster)")
+            print("    Skipping expensive binary scan (40-60% faster)")
             return cached_entry['moduledata']
 
         print(f"[*] Moduledata cache MISS for program hash {program_hash[:16]}...")
@@ -112,7 +112,7 @@ class ModuledataCache:
             'program_name': program.getName(),
         }
 
-        print(f"[+] Cached moduledata for future analyses")
+        print("[+] Cached moduledata for future analyses")
         print(f"    Program hash: {program_hash[:16]}...")
         print(f"    Cache size: {len(cls._cache)} entries")
 

@@ -3,16 +3,13 @@ FastAPI Webhook Server with Dashboard
 Production-ready webhook server with monitoring and management UI
 """
 
-from fastapi import FastAPI, HTTPException, Request, BackgroundTasks, Depends
-from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.staticfiles import StaticFiles
+from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, HttpUrl
 from typing import List, Optional, Dict, Any
 import uvicorn
-import asyncio
 import httpx
-from datetime import datetime
 import json
 import hashlib
 import hmac
@@ -26,10 +23,8 @@ logger = logging.getLogger(__name__)
 
 # Import webhook system
 from .webhook_system import (
-    WebhookManager, 
-    WebhookConfig,
-    WebhookEvent,
-    DeliveryStatus
+    WebhookManager,
+    WebhookEvent
 )
 
 # Global webhook manager
@@ -156,10 +151,10 @@ async def get_webhook(webhook_id: str):
     """Get details of a specific webhook"""
     if webhook_id not in webhook_manager.registry.webhooks:
         raise HTTPException(status_code=404, detail="Webhook not found")
-    
+
     webhook = webhook_manager.registry.webhooks[webhook_id]
     stats = webhook_manager.get_webhook_stats(webhook_id)
-    
+
     return {
         "webhook": {
             "id": webhook.id,
@@ -184,10 +179,10 @@ async def update_webhook(webhook_id: str, updates: WebhookUpdate):
     """Update a webhook configuration"""
     if webhook_id not in webhook_manager.registry.webhooks:
         raise HTTPException(status_code=404, detail="Webhook not found")
-    
+
     update_dict = updates.dict(exclude_unset=True)
     webhook_manager.registry.update_webhook(webhook_id, update_dict)
-    
+
     return {"status": "updated", "webhook_id": webhook_id}
 
 
@@ -196,7 +191,7 @@ async def delete_webhook(webhook_id: str):
     """Delete a webhook"""
     if webhook_id not in webhook_manager.registry.webhooks:
         raise HTTPException(status_code=404, detail="Webhook not found")
-    
+
     webhook_manager.registry.unregister(webhook_id)
     return {"status": "deleted", "webhook_id": webhook_id}
 
@@ -210,10 +205,10 @@ async def trigger_event(event: EventTrigger, background_tasks: BackgroundTasks):
         event.data,
         event.metadata
     )
-    
+
     # Get count of webhooks that will receive this event
     webhooks = webhook_manager.registry.get_webhooks_for_event(event.event)
-    
+
     return {
         "status": "triggered",
         "event": event.event,
@@ -230,7 +225,7 @@ async def test_webhook(test: WebhookTest):
             headers['Content-Type'] = 'application/json'
             headers['X-Webhook-Event'] = test.event
             headers['X-Webhook-Test'] = 'true'
-            
+
             # Add signature if secret provided
             if test.secret:
                 payload_json = json.dumps(test.data, sort_keys=True)
@@ -240,20 +235,20 @@ async def test_webhook(test: WebhookTest):
                     hashlib.sha256
                 ).hexdigest()
                 headers['X-Webhook-Signature'] = f"sha256={signature}"
-            
+
             response = await client.post(
                 str(test.url),
                 json=test.data,
                 headers=headers,
                 timeout=30
             )
-            
+
             return {
                 "status": "success",
                 "response_code": response.status_code,
                 "response_body": response.text[:500]  # Limit response size
             }
-            
+
     except httpx.TimeoutException:
         return {"status": "timeout", "error": "Request timed out"}
     except Exception as e:
@@ -278,9 +273,9 @@ async def get_recent_deliveries(limit: int = 50):
     """Get recent webhook deliveries"""
     conn = sqlite3.connect("webhooks.db")
     cursor = conn.cursor()
-    
+
     cursor.execute("""
-        SELECT 
+        SELECT
             da.id,
             da.webhook_id,
             w.url,
@@ -295,10 +290,10 @@ async def get_recent_deliveries(limit: int = 50):
         ORDER BY da.timestamp DESC
         LIMIT ?
     """, (limit,))
-    
+
     rows = cursor.fetchall()
     conn.close()
-    
+
     deliveries = []
     for row in rows:
         deliveries.append({
@@ -312,7 +307,7 @@ async def get_recent_deliveries(limit: int = 50):
             "timestamp": row[7],
             "duration_ms": row[8]
         })
-    
+
     return {"deliveries": deliveries, "total": len(deliveries)}
 
 
@@ -321,17 +316,17 @@ async def get_system_stats():
     """Get overall system statistics"""
     conn = sqlite3.connect("webhooks.db")
     cursor = conn.cursor()
-    
+
     # Get webhook counts
     cursor.execute("SELECT COUNT(*) FROM webhooks WHERE active = 1")
     active_webhooks = cursor.fetchone()[0]
-    
+
     cursor.execute("SELECT COUNT(*) FROM webhooks")
     total_webhooks = cursor.fetchone()[0]
-    
+
     # Get delivery stats
     cursor.execute("""
-        SELECT 
+        SELECT
             COUNT(*) as total,
             SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END) as successful,
             SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed,
@@ -339,10 +334,10 @@ async def get_system_stats():
         FROM delivery_attempts
         WHERE datetime(timestamp) >= datetime('now', '-24 hours')
     """)
-    
+
     row = cursor.fetchone()
     conn.close()
-    
+
     return {
         "webhooks": {
             "active": active_webhooks,
@@ -577,12 +572,12 @@ DASHBOARD_HTML = """
             const stats = await fetch('/api/stats').then(r => r.json());
             document.getElementById('active-webhooks').textContent = stats.webhooks.active;
             document.getElementById('total-deliveries').textContent = stats.deliveries_24h.total;
-            
-            const successRate = stats.deliveries_24h.total > 0 
-                ? Math.round((stats.deliveries_24h.successful / stats.deliveries_24h.total) * 100) 
+
+            const successRate = stats.deliveries_24h.total > 0
+                ? Math.round((stats.deliveries_24h.successful / stats.deliveries_24h.total) * 100)
                 : 0;
             document.getElementById('success-rate').textContent = successRate + '%';
-            document.getElementById('avg-duration').textContent = 
+            document.getElementById('avg-duration').textContent =
                 Math.round(stats.deliveries_24h.avg_duration_ms) + 'ms';
 
             // Load webhooks
@@ -674,10 +669,10 @@ DASHBOARD_HTML = """
         async function triggerTestEvent() {
             const event = document.getElementById('test-event').value;
             const dataStr = document.getElementById('test-data').value || '{}';
-            
+
             try {
                 const data = JSON.parse(dataStr);
-                
+
                 const response = await fetch('/api/events/trigger', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
@@ -719,7 +714,7 @@ def run_server(host: str = "0.0.0.0", port: int = 8000):
 
 
 if __name__ == "__main__":
-    print(f"Starting Webhook Server on http://localhost:8000")
-    print(f"Dashboard available at http://localhost:8000/")
-    print(f"API docs available at http://localhost:8000/docs")
+    print("Starting Webhook Server on http://localhost:8000")
+    print("Dashboard available at http://localhost:8000/")
+    print("API docs available at http://localhost:8000/docs")
     run_server()

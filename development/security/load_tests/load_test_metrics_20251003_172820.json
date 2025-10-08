@@ -1,0 +1,26 @@
+{
+  "logins": {
+    "total": 24835,
+    "successful": 24833,
+    "failed": 2,
+    "success_rate": 0.9999194684920475
+  },
+  "verifications": {
+    "total": 39697,
+    "successful": 39115,
+    "failed": 582,
+    "success_rate": 0.9853389424893568
+  },
+  "logouts": {
+    "total": 3943,
+    "successful": 3943
+  },
+  "rate_limiting": {
+    "blocks": 0
+  },
+  "errors": {
+    "verify_401": 582,
+    "logout_401": 70,
+    "login_0": 2
+  }
+}

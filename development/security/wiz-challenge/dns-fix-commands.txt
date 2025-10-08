@@ -1,0 +1,14 @@
+sudo bash -c 'cat > /etc/wsl.conf << WSLCONF
+[boot]
+systemd=true
+
+[network]
+generateResolvConf = false
+WSLCONF'
+sudo rm -f /etc/resolv.conf
+sudo bash -c 'cat > /etc/resolv.conf << RESOLVCONF
+nameserver 8.8.8.8
+nameserver 8.8.4.4
+RESOLVCONF'
+cat /etc/resolv.conf
+ping -c 3 google.com

@@ -44,10 +44,7 @@ from ghidrago.struct_field_parser import StructFieldParser
 from ghidrago.interface_method_parser import InterfaceMethodParser
 from ghidrago.type_resolver import TypeResolver
 from ghidrago.exceptions import (
-    MemoryAccessError,
-    InvalidBinaryError,
-    ParseError,
-    StructureNotFoundError
+    MemoryAccessError
 )
 
 # Import v1.0 classes (from RecoverGoFunctions.py)

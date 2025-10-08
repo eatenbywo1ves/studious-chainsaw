@@ -6,7 +6,6 @@ Deploys and manages the catalytic computing production cycle on local system
 
 import asyncio
 import sys
-import os
 import argparse
 import signal
 import logging
@@ -26,7 +25,6 @@ from apps.catalytic.ka_lattice import (
     KnowledgeStore,
     PatternLibrary
 )
-from libs.config import get_settings, reload_settings
 
 # Setup logging
 logging.basicConfig(
@@ -333,7 +331,7 @@ class LocalProductionDeployment:
 
         # Get orchestrator status
         status = self.orchestrator.get_status()
-        logger.info(f"\nOrchestrator Status:")
+        logger.info("\nOrchestrator Status:")
         logger.info(f"  Instances: {len(status['instances'])}")
         logger.info(f"  Total Requests: {status['metrics']['total_requests']}")
         logger.info(f"  Success Rate: {status['metrics']['successful_requests'] / max(status['metrics']['total_requests'], 1) * 100:.2f}%")
@@ -342,7 +340,7 @@ class LocalProductionDeployment:
         # Knowledge store statistics
         if self.knowledge_store:
             kb_stats = self.knowledge_store.get_statistics()
-            logger.info(f"\nKnowledge Store:")
+            logger.info("\nKnowledge Store:")
             logger.info(f"  Patterns: {kb_stats['total_patterns']}")
             logger.info(f"  Avg Confidence: {kb_stats['average_confidence']:.3f}")
 

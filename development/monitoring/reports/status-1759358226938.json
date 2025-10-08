@@ -1,0 +1,284 @@
+{
+  "generated": "2025-10-01T22:37:06.938Z",
+  "system": {
+    "uptime": 10.2083325,
+    "monitoring": {
+      "running": true,
+      "metricsCollected": 2,
+      "activeAlerts": 14
+    }
+  },
+  "services": {
+    "webhook-audio-tracker": {
+      "status": "error",
+      "available": false,
+      "responseTime": 1
+    },
+    "js-executor": {
+      "status": "down",
+      "available": false
+    },
+    "financial-mcp": {
+      "status": "down",
+      "available": false
+    },
+    "desktop-notify": {
+      "status": "down",
+      "available": false
+    },
+    "utilities-mcp": {
+      "status": "down",
+      "available": false
+    },
+    "saas-api": {
+      "status": "error",
+      "available": false,
+      "responseTime": 1
+    },
+    "api-gateway": {
+      "status": "error",
+      "available": false,
+      "responseTime": 1
+    }
+  },
+  "summary": {
+    "latest": {
+      "timestamp": 1759358221775,
+      "system": {
+        "cpu": {
+          "user": 203000,
+          "system": 93000,
+          "usage": {
+            "user": 0,
+            "system": 0,
+            "total": 0
+          }
+        },
+        "memory": {
+          "total": 68631064576,
+          "free": 43500109824,
+          "used": 25130954752,
+          "process": {
+            "heapUsed": 10729184,
+            "heapTotal": 20668416,
+            "external": 3572212,
+            "rss": 60198912
+          }
+        },
+        "disk": {
+          "raw": " Volume in drive C is Windows\r\n Volume Serial Number is 5651-1769\r\n\r\n Directory of C:\\Users\\Corbin\\development\\monitoring\r\n\r\n10/01/2025  05:36 PM    <DIR>          .\r\n10/01/2025  05:33 PM    <DIR>          ..\r\n09/22/2025  10:04 PM             16979 alerting-system.js\r\n09/22/2025  10:05 PM             14212 build-monitor.js\r\n09/22/2025  10:03 PM             34251 dashboard.js\r\n10/01/2025  05:36 PM    <DIR>          exports\r\n09/29/2025  08:41 AM    <DIR>          grafana\r\n09/22/2025  02:18 AM    <DIR>          grafana-dashboards.json\r\n09/22/2025  02:18 AM    <DIR>          grafana-datasources.yml\r\n09/22/2025  10:04 PM              6254 health-checker.js\r\n09/23/2025  10:34 PM             10178 log-monitor-integration.js\r\n10/01/2025  05:36 PM    <DIR>          logs\r\n09/22/2025  10:00 PM              2796 monitor-config.js\r\n10/01/2025  05:36 PM               899 monitoring.log\r\n10/01/2025  05:36 PM    <DIR>          node_modules\r\n10/01/2025  05:36 PM             30219 package-lock.json\r\n09/22/2025  10:05 PM               747 package.json\r\n09/22/2025  10:00 PM             18188 performance-monitor.js\r\n09/22/2025  12:27 AM              2236 prometheus.yml\r\n10/01/2025  05:36 PM    <DIR>          public\r\n09/29/2025  08:48 AM              8144 README.md\r\n10/01/2025  05:36 PM    <DIR>          reports\r\n09/22/2025  10:01 PM             12265 start-monitor.js\r\n09/22/2025  10:06 PM               561 start-monitoring.bat\r\n09/23/2025  09:07 AM    <DIR>          visual-aids\r\n              14 File(s)         157929 bytes\r\n              11 Dir(s)    549542424576 bytes free\r\n",
+          "usage": []
+        },
+        "network": {
+          "Tailscale": [
+            {
+              "address": "fd7a:115c:a1e0::2101:da11",
+              "netmask": "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
+              "family": "IPv6",
+              "mac": "00:00:00:00:00:00",
+              "internal": false,
+              "cidr": "fd7a:115c:a1e0::2101:da11/128",
+              "scopeid": 0
+            },
+            {
+              "address": "fe80::4156:9abe:d941:5984",
+              "netmask": "ffff:ffff:ffff:ffff::",
+              "family": "IPv6",
+              "mac": "00:00:00:00:00:00",
+              "internal": false,
+              "cidr": "fe80::4156:9abe:d941:5984/64",
+              "scopeid": 43
+            },
+            {
+              "address": "100.108.218.15",
+              "netmask": "255.255.255.255",
+              "family": "IPv4",
+              "mac": "00:00:00:00:00:00",
+              "internal": false,
+              "cidr": "100.108.218.15/32"
+            }
+          ],
+          "Ethernet": [
+            {
+              "address": "2600:1700:2be0:c10::47",
+              "netmask": "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
+              "family": "IPv6",
+              "mac": "30:9c:23:90:76:15",
+              "internal": false,
+              "cidr": "2600:1700:2be0:c10::47/128",
+              "scopeid": 0
+            },
+            {
+              "address": "2600:1700:2be0:c10:b256:ec82:dd1f:1a68",
+              "netmask": "ffff:ffff:ffff:ffff::",
+              "family": "IPv6",
+              "mac": "30:9c:23:90:76:15",
+              "internal": false,
+              "cidr": "2600:1700:2be0:c10:b256:ec82:dd1f:1a68/64",
+              "scopeid": 0
+            },
+            {
+              "address": "2600:1700:2be0:c10:b090:c408:357:1d35",
+              "netmask": "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
+              "family": "IPv6",
+              "mac": "30:9c:23:90:76:15",
+              "internal": false,
+              "cidr": "2600:1700:2be0:c10:b090:c408:357:1d35/128",
+              "scopeid": 0
+            },
+            {
+              "address": "fe80::e24e:fc19:bbc7:6b4d",
+              "netmask": "ffff:ffff:ffff:ffff::",
+              "family": "IPv6",
+              "mac": "30:9c:23:90:76:15",
+              "internal": false,
+              "cidr": "fe80::e24e:fc19:bbc7:6b4d/64",
+              "scopeid": 16
+            },
+            {
+              "address": "192.168.1.67",
+              "netmask": "255.255.255.0",
+              "family": "IPv4",
+              "mac": "30:9c:23:90:76:15",
+              "internal": false,
+              "cidr": "192.168.1.67/24"
+            }
+          ],
+          "Loopback Pseudo-Interface 1": [
+            {
+              "address": "::1",
+              "netmask": "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
+              "family": "IPv6",
+              "mac": "00:00:00:00:00:00",
+              "internal": true,
+              "cidr": "::1/128",
+              "scopeid": 0
+            },
+            {
+              "address": "127.0.0.1",
+              "netmask": "255.0.0.0",
+              "family": "IPv4",
+              "mac": "00:00:00:00:00:00",
+              "internal": true,
+              "cidr": "127.0.0.1/8"
+            }
+          ],
+          "vEthernet (Default Switch)": [
+            {
+              "address": "fe80::7974:f9ca:b681:d00f",
+              "netmask": "ffff:ffff:ffff:ffff::",
+              "family": "IPv6",
+              "mac": "00:15:5d:6b:9d:d0",
+              "internal": false,
+              "cidr": "fe80::7974:f9ca:b681:d00f/64",
+              "scopeid": 23
+            },
+            {
+              "address": "172.27.32.1",
+              "netmask": "255.255.240.0",
+              "family": "IPv4",
+              "mac": "00:15:5d:6b:9d:d0",
+              "internal": false,
+              "cidr": "172.27.32.1/20"
+            }
+          ]
+        },
+        "loadAverage": [
+          0,
+          0,
+          0
+        ],
+        "uptime": 193239.14
+      },
+      "services": {
+        "webhook-audio-tracker": {
+          "status": "error",
+          "error": "fetch failed",
+          "available": false,
+          "responseTime": 1
+        },
+        "js-executor": {
+          "status": "down",
+          "available": false,
+          "processRunning": false
+        },
+        "financial-mcp": {
+          "status": "down",
+          "available": false,
+          "processRunning": false
+        },
+        "desktop-notify": {
+          "status": "down",
+          "available": false,
+          "processRunning": false
+        },
+        "utilities-mcp": {
+          "status": "down",
+          "available": false,
+          "processRunning": false
+        },
+        "saas-api": {
+          "status": "error",
+          "error": "fetch failed",
+          "available": false,
+          "responseTime": 1
+        },
+        "api-gateway": {
+          "status": "error",
+          "error": "fetch failed",
+          "available": false,
+          "responseTime": 1
+        }
+      },
+      "build": {
+        "total": 0,
+        "last24h": 0,
+        "averageDuration": 0,
+        "successRate": 100,
+        "recent": []
+      },
+      "test": {
+        "total": 0,
+        "last24h": 0,
+        "averageDuration": 0,
+        "successRate": 100,
+        "totalPassed": 0,
+        "totalFailed": 0,
+        "recent": []
+      }
+    },
+    "averages": {
+      "cpu": 15.6,
+      "memory": 36.48
+    },
+    "trends": {
+      "cpu": "decreasing",
+      "memory": "increasing"
+    },
+    "availability": {
+      "webhook-audio-tracker": 0,
+      "js-executor": 0,
+      "financial-mcp": 0,
+      "desktop-notify": 0,
+      "utilities-mcp": 0,
+      "saas-api": 0,
+      "api-gateway": 0
+    }
+  },
+  "build": {
+    "total": 0,
+    "last24h": 0,
+    "averageDuration": 0,
+    "successRate": 100,
+    "recent": []
+  },
+  "test": {
+    "total": 0,
+    "last24h": 0,
+    "averageDuration": 0,
+    "successRate": 100,
+    "totalPassed": 0,
+    "totalFailed": 0,
+    "recent": []
+  }
+}

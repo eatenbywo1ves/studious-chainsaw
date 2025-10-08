@@ -4,8 +4,7 @@ Tests factory pattern implementation and backend selection
 """
 
 import pytest
-from unittest.mock import Mock, MagicMock, patch
-from typing import Type
+from unittest.mock import MagicMock, patch
 
 from apps.catalytic.gpu.factory import GPUFactory
 from apps.catalytic.gpu.base import BaseLatticeGPU, GPUCapabilities

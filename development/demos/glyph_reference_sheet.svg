@@ -1,0 +1,239 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="2050">
+<defs>
+  <style>
+    .title { font-family: Arial, sans-serif; font-size: 24px; font-weight: bold; fill: #333; }
+    .subtitle { font-family: Arial, sans-serif; font-size: 14px; fill: #666; }
+    .glyph-label { font-family: monospace; font-size: 16px; font-weight: bold; fill: #333; }
+    .glyph-info { font-family: Arial, sans-serif; font-size: 12px; fill: #666; }
+  </style>
+</defs>
+
+<!-- Header -->
+<rect x="0" y="0" width="1200" height="2050" fill="#f5f5f5"/>
+<text x="600" y="40" class="title" text-anchor="middle">Mernithian Glyph Reference Sheet</text>
+<text x="600" y="65" class="subtitle" text-anchor="middle">Complete Visual Language for GPU Performance Profiling</text>
+<line x1="50" y1="80" x2="1150" y2="80" stroke="#ccc" stroke-width="2"/>
+
+<!-- Legend -->
+<text x="70" y="110" class="glyph-label">Notation</text>
+<text x="200" y="110" class="glyph-label">Glyph</text>
+<text x="350" y="110" class="glyph-label">Operation</text>
+<text x="650" y="110" class="glyph-label">Performance</text>
+<text x="850" y="110" class="glyph-label">Memory</text>
+<text x="1000" y="110" class="glyph-label">Device</text>
+<line x1="50" y1="120" x2="1150" y2="120" stroke="#ccc" stroke-width="1"/>
+
+<text x="70" y="175" class="glyph-label">O+</text>
+<g transform="translate(200, 150)">
+<circle cx="40" cy="40" r="16.0" fill="#ffff00" stroke="#333" stroke-width="2" stroke-dasharray="5,3"/>
+<text x="100.0" y="52.0" font-size="12.0" fill="#333" font-weight="bold">+</text>
+</g>
+<text x="350" y="175" class="glyph-info">matrix_multiply</text>
+<text x="350" y="192" class="glyph-info" style="font-size: 10px; fill: #999;">Base compute operation</text>
+<text x="650" y="175" class="glyph-info">45.20ms</text>
+<text x="850" y="175" class="glyph-info">16.00MB (medium)</text>
+<text x="1000" y="175" class="glyph-info">gpu (dashed)</text>
+<line x1="50" y1="210" x2="1150" y2="210" stroke="#e0e0e0" stroke-width="1"/>
+<text x="70" y="275" class="glyph-label">O/</text>
+<g transform="translate(200, 250)">
+<circle cx="40" cy="40" r="16.0" fill="#ffff00" stroke="#333" stroke-width="2" />
+<text x="100.0" y="52.0" font-size="12.0" fill="#333" font-weight="bold">/</text>
+</g>
+<text x="350" y="275" class="glyph-info">matrix_multiply_routed</text>
+<text x="350" y="292" class="glyph-info" style="font-size: 10px; fill: #999;">Routed compute</text>
+<text x="650" y="275" class="glyph-info">22.60ms</text>
+<text x="850" y="275" class="glyph-info">16.00MB (medium)</text>
+<text x="1000" y="275" class="glyph-info">cpu (solid)</text>
+<line x1="50" y1="310" x2="1150" y2="310" stroke="#e0e0e0" stroke-width="1"/>
+<text x="70" y="375" class="glyph-label">Ox</text>
+<g transform="translate(200, 350)">
+<circle cx="40" cy="40" r="16.0" fill="#ffff00" stroke="#333" stroke-width="2" stroke-dasharray="5,3"/>
+<text x="100.0" y="52.0" font-size="12.0" fill="#333" font-weight="bold">x</text>
+</g>
+<text x="350" y="375" class="glyph-info">matrix_multiply_batched</text>
+<text x="350" y="392" class="glyph-info" style="font-size: 10px; fill: #999;">Batched compute</text>
+<text x="650" y="375" class="glyph-info">15.00ms</text>
+<text x="850" y="375" class="glyph-info">64.00MB (medium)</text>
+<text x="1000" y="375" class="glyph-info">gpu (dashed)</text>
+<line x1="50" y1="410" x2="1150" y2="410" stroke="#e0e0e0" stroke-width="1"/>
+<text x="70" y="475" class="glyph-label">Oo</text>
+<g transform="translate(200, 450)">
+<circle cx="40" cy="40" r="16.0" fill="#7fff00" stroke="#333" stroke-width="2" stroke-dasharray="5,3"/>
+<text x="100.0" y="52.0" font-size="12.0" fill="#333" font-weight="bold">o</text>
+</g>
+<text x="350" y="475" class="glyph-info">matrix_multiply_optimized</text>
+<text x="350" y="492" class="glyph-info" style="font-size: 10px; fill: #999;">Fully optimized compute</text>
+<text x="650" y="475" class="glyph-info">8.00ms</text>
+<text x="850" y="475" class="glyph-info">32.00MB (medium)</text>
+<text x="1000" y="475" class="glyph-info">gpu (dashed)</text>
+<line x1="50" y1="510" x2="1150" y2="510" stroke="#e0e0e0" stroke-width="1"/>
+<text x="70" y="575" class="glyph-label"><>/</text>
+<g transform="translate(200, 550)">
+<polygon points="40,24.0 56.0,40 40,56.0 24.0,40" fill="#00ff00" stroke="#333" stroke-width="2" />
+<text x="100.0" y="52.0" font-size="12.0" fill="#333" font-weight="bold">/</text>
+</g>
+<text x="350" y="575" class="glyph-info">xor_transform</text>
+<text x="350" y="592" class="glyph-info" style="font-size: 10px; fill: #999;">Fast XOR transform</text>
+<text x="650" y="575" class="glyph-info">0.25ms (180x)</text>
+<text x="850" y="575" class="glyph-info">0.10MB (tiny)</text>
+<text x="1000" y="575" class="glyph-info">cpu (solid)</text>
+<line x1="50" y1="610" x2="1150" y2="610" stroke="#e0e0e0" stroke-width="1"/>
+<text x="70" y="675" class="glyph-label"><>+</text>
+<g transform="translate(200, 650)">
+<polygon points="40,24.0 56.0,40 40,56.0 24.0,40" fill="#7fff00" stroke="#333" stroke-width="2" stroke-dasharray="5,3"/>
+<text x="100.0" y="52.0" font-size="12.0" fill="#333" font-weight="bold">+</text>
+</g>
+<text x="350" y="675" class="glyph-info">transform_base</text>
+<text x="350" y="692" class="glyph-info" style="font-size: 10px; fill: #999;">Base transform</text>
+<text x="650" y="675" class="glyph-info">5.00ms</text>
+<text x="850" y="675" class="glyph-info">0.50MB (tiny)</text>
+<text x="1000" y="675" class="glyph-info">gpu (dashed)</text>
+<line x1="50" y1="710" x2="1150" y2="710" stroke="#e0e0e0" stroke-width="1"/>
+<text x="70" y="775" class="glyph-label"><>o</text>
+<g transform="translate(200, 750)">
+<polygon points="40,24.0 56.0,40 40,56.0 24.0,40" fill="#7fff00" stroke="#333" stroke-width="2" />
+<text x="100.0" y="52.0" font-size="12.0" fill="#333" font-weight="bold">o</text>
+</g>
+<text x="350" y="775" class="glyph-info">transform_optimized</text>
+<text x="350" y="792" class="glyph-info" style="font-size: 10px; fill: #999;">Optimized transform</text>
+<text x="650" y="775" class="glyph-info">1.20ms</text>
+<text x="850" y="775" class="glyph-info">0.30MB (tiny)</text>
+<text x="1000" y="775" class="glyph-info">cpu (solid)</text>
+<line x1="50" y1="810" x2="1150" y2="810" stroke="#e0e0e0" stroke-width="1"/>
+<text x="70" y="875" class="glyph-label">#/</text>
+<g transform="translate(200, 850)">
+<polygon points="56.0,40.0 48.0,53.856406460551014 32.0,53.85640646055102 24.0,40.0 31.999999999999993,26.143593539448986 48.0,26.143593539448982" fill="#ffa500" stroke="#333" stroke-width="2" />
+<text x="100.0" y="52.0" font-size="12.0" fill="#333" font-weight="bold">/</text>
+</g>
+<text x="350" y="875" class="glyph-info">graph_search</text>
+<text x="350" y="892" class="glyph-info" style="font-size: 10px; fill: #999;">Routed graph search</text>
+<text x="650" y="875" class="glyph-info">75.30ms</text>
+<text x="850" y="875" class="glyph-info">8.00MB (small)</text>
+<text x="1000" y="875" class="glyph-info">cpu (solid)</text>
+<line x1="50" y1="910" x2="1150" y2="910" stroke="#e0e0e0" stroke-width="1"/>
+<text x="70" y="975" class="glyph-label">#+</text>
+<g transform="translate(200, 950)">
+<polygon points="56.0,40.0 48.0,53.856406460551014 32.0,53.85640646055102 24.0,40.0 31.999999999999993,26.143593539448986 48.0,26.143593539448982" fill="#ff0000" stroke="#333" stroke-width="2" stroke-dasharray="5,3"/>
+<text x="100.0" y="52.0" font-size="12.0" fill="#333" font-weight="bold">+</text>
+</g>
+<text x="350" y="975" class="glyph-info">path_finding</text>
+<text x="350" y="992" class="glyph-info" style="font-size: 10px; fill: #999;">Base pathfinding</text>
+<text x="650" y="975" class="glyph-info">120.00ms</text>
+<text x="850" y="975" class="glyph-info">12.00MB (medium)</text>
+<text x="1000" y="975" class="glyph-info">gpu (dashed)</text>
+<line x1="50" y1="1010" x2="1150" y2="1010" stroke="#e0e0e0" stroke-width="1"/>
+<text x="70" y="1075" class="glyph-label">#x</text>
+<g transform="translate(200, 1050)">
+<polygon points="56.0,40.0 48.0,53.856406460551014 32.0,53.85640646055102 24.0,40.0 31.999999999999993,26.143593539448986 48.0,26.143593539448982" fill="#ffff00" stroke="#333" stroke-width="2" stroke-dasharray="2,2"/>
+<text x="100.0" y="52.0" font-size="12.0" fill="#333" font-weight="bold">x</text>
+</g>
+<text x="350" y="1075" class="glyph-info">graph_algorithm_optimized</text>
+<text x="350" y="1092" class="glyph-info" style="font-size: 10px; fill: #999;">Batched graph algorithm</text>
+<text x="650" y="1075" class="glyph-info">25.00ms</text>
+<text x="850" y="1075" class="glyph-info">6.00MB (small)</text>
+<text x="1000" y="1075" class="glyph-info">hybrid (dotted)</text>
+<line x1="50" y1="1110" x2="1150" y2="1110" stroke="#e0e0e0" stroke-width="1"/>
+<text x="70" y="1175" class="glyph-label">*+</text>
+<g transform="translate(200, 1150)">
+<polygon points="40.000021228718346,24.000000000014083 44.70228717065647,33.527867788380746 55.21690557272887,35.0557321279432 47.60845278636444,42.4721339360284 49.40457434131294,52.944264423238515 40.00001061435918,47.99999999999296 30.595460007488136,52.94428937907543 32.39155377369173,42.47215412573235 24.783081307265945,35.055772507385925 35.2976956549761,33.52788026634477" fill="#ffff00" stroke="#333" stroke-width="2" stroke-dasharray="5,3"/>
+<text x="100.0" y="52.0" font-size="12.0" fill="#333" font-weight="bold">+</text>
+</g>
+<text x="350" y="1175" class="glyph-info">random_generation</text>
+<text x="350" y="1192" class="glyph-info" style="font-size: 10px; fill: #999;">Base random generation</text>
+<text x="650" y="1175" class="glyph-info">12.50ms</text>
+<text x="850" y="1175" class="glyph-info">2.00MB (small)</text>
+<text x="1000" y="1175" class="glyph-info">gpu (dashed)</text>
+<line x1="50" y1="1210" x2="1150" y2="1210" stroke="#e0e0e0" stroke-width="1"/>
+<text x="70" y="1275" class="glyph-label">*/</text>
+<g transform="translate(200, 1250)">
+<polygon points="40.000021228718346,24.000000000014083 44.70228717065647,33.527867788380746 55.21690557272887,35.0557321279432 47.60845278636444,42.4721339360284 49.40457434131294,52.944264423238515 40.00001061435918,47.99999999999296 30.595460007488136,52.94428937907543 32.39155377369173,42.47215412573235 24.783081307265945,35.055772507385925 35.2976956549761,33.52788026634477" fill="#00ff00" stroke="#333" stroke-width="2" />
+<text x="100.0" y="52.0" font-size="12.0" fill="#333" font-weight="bold">/</text>
+</g>
+<text x="350" y="1275" class="glyph-info">random_generation_fast</text>
+<text x="350" y="1292" class="glyph-info" style="font-size: 10px; fill: #999;">Fast random generation</text>
+<text x="650" y="1275" class="glyph-info">0.80ms</text>
+<text x="850" y="1275" class="glyph-info">1.00MB (small)</text>
+<text x="1000" y="1275" class="glyph-info">cpu (solid)</text>
+<line x1="50" y1="1310" x2="1150" y2="1310" stroke="#e0e0e0" stroke-width="1"/>
+<text x="70" y="1375" class="glyph-label">^+</text>
+<g transform="translate(200, 1350)">
+<polygon points="40,24.0 26.0,52.0 54.0,52.0" fill="#ffff00" stroke="#333" stroke-width="2" stroke-dasharray="5,3"/>
+<text x="100.0" y="52.0" font-size="12.0" fill="#333" font-weight="bold">+</text>
+</g>
+<text x="350" y="1375" class="glyph-info">memory_allocation</text>
+<text x="350" y="1392" class="glyph-info" style="font-size: 10px; fill: #999;">GPU memory allocation</text>
+<text x="650" y="1375" class="glyph-info">35.00ms</text>
+<text x="850" y="1375" class="glyph-info">128.00MB (large)</text>
+<text x="1000" y="1375" class="glyph-info">gpu (dashed)</text>
+<line x1="50" y1="1410" x2="1150" y2="1410" stroke="#e0e0e0" stroke-width="1"/>
+<text x="70" y="1475" class="glyph-label">^/</text>
+<g transform="translate(200, 1450)">
+<polygon points="40,24.0 26.0,52.0 54.0,52.0" fill="#ffff00" stroke="#333" stroke-width="2" stroke-dasharray="2,2"/>
+<text x="100.0" y="52.0" font-size="12.0" fill="#333" font-weight="bold">/</text>
+</g>
+<text x="350" y="1475" class="glyph-info">memory_transfer</text>
+<text x="350" y="1492" class="glyph-info" style="font-size: 10px; fill: #999;">Optimized memory transfer</text>
+<text x="650" y="1475" class="glyph-info">18.00ms</text>
+<text x="850" y="1475" class="glyph-info">64.00MB (medium)</text>
+<text x="1000" y="1475" class="glyph-info">hybrid (dotted)</text>
+<line x1="50" y1="1510" x2="1150" y2="1510" stroke="#e0e0e0" stroke-width="1"/>
+<text x="70" y="1575" class="glyph-label">Ox</text>
+<g transform="translate(200, 1550)">
+<circle cx="40" cy="40" r="16.0" fill="#7fff00" stroke="#333" stroke-width="2" stroke-dasharray="5,3"/>
+<text x="100.0" y="52.0" font-size="12.0" fill="#333" font-weight="bold">x</text>
+</g>
+<text x="350" y="1575" class="glyph-info">memory_pooling</text>
+<text x="350" y="1592" class="glyph-info" style="font-size: 10px; fill: #999;">Memory pooling</text>
+<text x="650" y="1575" class="glyph-info">8.00ms</text>
+<text x="850" y="1575" class="glyph-info">256.00MB (large)</text>
+<text x="1000" y="1575" class="glyph-info">gpu (dashed)</text>
+<line x1="50" y1="1610" x2="1150" y2="1610" stroke="#e0e0e0" stroke-width="1"/>
+<text x="70" y="1675" class="glyph-label">[]+</text>
+<g transform="translate(200, 1650)">
+<rect x="26.0" y="26.0" width="28.0" height="28.0" fill="#00ff00" stroke="#333" stroke-width="2" />
+<text x="100.0" y="52.0" font-size="12.0" fill="#333" font-weight="bold">+</text>
+</g>
+<text x="350" y="1675" class="glyph-info">routing_decision</text>
+<text x="350" y="1692" class="glyph-info" style="font-size: 10px; fill: #999;">Base routing</text>
+<text x="650" y="1675" class="glyph-info">0.50ms</text>
+<text x="850" y="1675" class="glyph-info">0.10MB (tiny)</text>
+<text x="1000" y="1675" class="glyph-info">cpu (solid)</text>
+<line x1="50" y1="1710" x2="1150" y2="1710" stroke="#e0e0e0" stroke-width="1"/>
+<text x="70" y="1775" class="glyph-label">O/</text>
+<g transform="translate(200, 1750)">
+<circle cx="40" cy="40" r="16.0" fill="#00ff00" stroke="#333" stroke-width="2" />
+<text x="100.0" y="52.0" font-size="12.0" fill="#333" font-weight="bold">/</text>
+</g>
+<text x="350" y="1775" class="glyph-info">smart_scheduling</text>
+<text x="350" y="1792" class="glyph-info" style="font-size: 10px; fill: #999;">Smart scheduling</text>
+<text x="650" y="1775" class="glyph-info">0.30ms</text>
+<text x="850" y="1775" class="glyph-info">0.10MB (tiny)</text>
+<text x="1000" y="1775" class="glyph-info">cpu (solid)</text>
+<line x1="50" y1="1810" x2="1150" y2="1810" stroke="#e0e0e0" stroke-width="1"/>
+<text x="70" y="1875" class="glyph-label">Oo</text>
+<g transform="translate(200, 1850)">
+<circle cx="40" cy="40" r="16.0" fill="#00ff00" stroke="#333" stroke-width="2" />
+<text x="100.0" y="52.0" font-size="12.0" fill="#333" font-weight="bold">o</text>
+</g>
+<text x="350" y="1875" class="glyph-info">ultra_fast</text>
+<text x="350" y="1892" class="glyph-info" style="font-size: 10px; fill: #999;">Excellent performance</text>
+<text x="650" y="1875" class="glyph-info">0.10ms</text>
+<text x="850" y="1875" class="glyph-info">0.05MB (tiny)</text>
+<text x="1000" y="1875" class="glyph-info">cpu (solid)</text>
+<line x1="50" y1="1910" x2="1150" y2="1910" stroke="#e0e0e0" stroke-width="1"/>
+<text x="70" y="1975" class="glyph-label">O+</text>
+<g transform="translate(200, 1950)">
+<circle cx="40" cy="40" r="16.0" fill="#ff0000" stroke="#333" stroke-width="2" stroke-dasharray="5,3"/>
+<text x="100.0" y="52.0" font-size="12.0" fill="#333" font-weight="bold">+</text>
+</g>
+<text x="350" y="1975" class="glyph-info">critical_slow</text>
+<text x="350" y="1992" class="glyph-info" style="font-size: 10px; fill: #999;">Critical performance</text>
+<text x="650" y="1975" class="glyph-info">150.00ms</text>
+<text x="850" y="1975" class="glyph-info">512.00MB (large)</text>
+<text x="1000" y="1975" class="glyph-info">gpu (dashed)</text>
+<line x1="50" y1="2010" x2="1150" y2="2010" stroke="#e0e0e0" stroke-width="1"/>
+
+<!-- Footer -->
+<text x="600" y="2020" class="subtitle" text-anchor="middle">Generated by Mernithian GPU Profiler - Phase 1 Visual Symbols</text>
+
+</svg>

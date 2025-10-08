@@ -43,7 +43,7 @@ try:
     for c, function in enumerate(functionIterator):
         try:
             range = function.getBody().getFirstRange()
-            if range != None:
+            if range is not None:
                 length = int(range.getMaxAddress().subtract(
                     range.getMinAddress())) + 1
                 size = hex(length).strip("L")

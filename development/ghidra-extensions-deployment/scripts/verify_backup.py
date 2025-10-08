@@ -105,7 +105,7 @@ def get_ghidra_version(ghidra_dir: str) -> str:
     props_file = Path(ghidra_dir) / 'Ghidra' / 'application.properties'
     if not props_file.exists():
         return 'unknown'
-    
+
     try:
         with open(props_file, 'r') as f:
             for line in f:
@@ -113,7 +113,7 @@ def get_ghidra_version(ghidra_dir: str) -> str:
                     return line.split('=')[1].strip()
     except Exception:
         pass
-    
+
     return 'unknown'
 
 def get_extensions_directory(ghidra_version: str) -> Path:
@@ -136,15 +136,15 @@ def verify_extension(ext_dir: Path, ext_name: str, required_files: List[str]) ->
     """Verify that an extension is properly installed."""
     ext_path = ext_dir / ext_name
     missing_files = []
-    
+
     if not ext_path.exists():
         return False, [f"Extension directory not found: {ext_path}"]
-    
+
     for required_file in required_files:
         file_path = ext_path / required_file
         if not file_path.exists():
             missing_files.append(required_file)
-    
+
     return len(missing_files) == 0, missing_files
 
 def calculate_checksum(file_path: Path) -> str:
@@ -159,34 +159,34 @@ def verify_installation(verbose: bool = False) -> bool:
     """Main verification function."""
     print(f"{Colors.BOLD}Ghidra Extensions Installation Verification{Colors.ENDC}")
     print("=" * 50)
-    
+
     all_good = True
-    
+
     # Step 1: Find Ghidra installation
     print("\n1. Checking Ghidra Installation")
     ghidra_dir = find_ghidra_installation()
-    
+
     if not ghidra_dir:
         print_error("Ghidra installation not found")
         print_info("Please set GHIDRA_INSTALL_DIR environment variable")
         return False
-    
+
     print_success(f"Found Ghidra at: {ghidra_dir}")
-    
+
     # Step 2: Get Ghidra version
     ghidra_version = get_ghidra_version(ghidra_dir)
     print_success(f"Ghidra version: {ghidra_version}")
-    
+
     # Step 3: Check extensions directory
     print("\n2. Checking Extensions Directory")
     ext_dir = get_extensions_directory(ghidra_version)
-    
+
     if not ext_dir.exists():
         print_error(f"Extensions directory not found: {ext_dir}")
         return False
-    
+
     print_success(f"Extensions directory: {ext_dir}")
-    
+
     # Step 4: Verify CryptoDetect extension
     print("\n3. Verifying CryptoDetect Extension")
     crypto_required_files = [
@@ -195,15 +195,15 @@ def verify_installation(verbose: bool = False) -> bool:
         'LICENSE',
         'README.md'
     ]
-    
+
     crypto_ok, crypto_missing = verify_extension(ext_dir, 'crypto_detect', crypto_required_files)
-    
+
     if crypto_ok:
         print_success("CryptoDetect extension installed correctly")
         if verbose:
             crypto_path = ext_dir / 'crypto_detect'
             print_info(f"  Location: {crypto_path}")
-            
+
             # Check for source files
             src_dir = crypto_path / 'src'
             if src_dir.exists():
@@ -214,7 +214,7 @@ def verify_installation(verbose: bool = False) -> bool:
         for missing in crypto_missing:
             print(f"    - {missing}")
         all_good = False
-    
+
     # Step 5: Verify RetSync extension
     print("\n4. Verifying RetSync Extension")
     retsync_required_files = [
@@ -222,15 +222,15 @@ def verify_installation(verbose: bool = False) -> bool:
         'Module.manifest',
         'LICENCE'
     ]
-    
+
     retsync_ok, retsync_missing = verify_extension(ext_dir, 'retsync', retsync_required_files)
-    
+
     if retsync_ok:
         print_success("RetSync extension installed correctly")
         if verbose:
             retsync_path = ext_dir / 'retsync'
             print_info(f"  Location: {retsync_path}")
-            
+
             # Check for lib files
             lib_dir = retsync_path / 'lib'
             if lib_dir.exists():
@@ -241,7 +241,7 @@ def verify_installation(verbose: bool = False) -> bool:
         for missing in retsync_missing:
             print(f"    - {missing}")
         all_good = False
-    
+
     # Step 6: Check Java version
     print("\n5. Checking Java Environment")
     try:
@@ -265,7 +265,7 @@ def verify_installation(verbose: bool = False) -> bool:
     except FileNotFoundError:
         print_error("Java not found in PATH")
         all_good = False
-    
+
     # Step 7: Summary
     print("\n" + "=" * 50)
     if all_good:
@@ -284,7 +284,7 @@ def verify_installation(verbose: bool = False) -> bool:
         except UnicodeEncodeError:
             print(f"{Colors.RED}{Colors.BOLD}[ERROR] Some checks failed{Colors.ENDC}")
         print("\nPlease run the installation script again or check the errors above")
-    
+
     return all_good
 
 def generate_report(output_file: str = None) -> None:
@@ -295,16 +295,16 @@ def generate_report(output_file: str = None) -> None:
         'python_version': sys.version,
         'checks': {}
     }
-    
+
     ghidra_dir = find_ghidra_installation()
     if ghidra_dir:
         report['ghidra_installation'] = ghidra_dir
         report['ghidra_version'] = get_ghidra_version(ghidra_dir)
-        
+
         ext_dir = get_extensions_directory(report['ghidra_version'])
         if ext_dir.exists():
             report['extensions_directory'] = str(ext_dir)
-            
+
             # Check each extension
             for ext_name in ['crypto_detect', 'retsync']:
                 ext_path = ext_dir / ext_name
@@ -316,7 +316,7 @@ def generate_report(output_file: str = None) -> None:
                     }
                 else:
                     report['checks'][ext_name] = {'installed': False}
-    
+
     if output_file:
         with open(output_file, 'w') as f:
             json.dump(report, f, indent=2)
@@ -327,13 +327,13 @@ def generate_report(output_file: str = None) -> None:
 def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(description='Verify Ghidra extensions installation')
-    parser.add_argument('-v', '--verbose', action='store_true', 
+    parser.add_argument('-v', '--verbose', action='store_true',
                        help='Show verbose output')
     parser.add_argument('-r', '--report', metavar='FILE',
                        help='Generate installation report to FILE')
-    
+
     args = parser.parse_args()
-    
+
     if args.report:
         generate_report(args.report)
     else:

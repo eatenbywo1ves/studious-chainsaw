@@ -1,0 +1,32 @@
+{
+  "device": {
+    "name": "Samsung Fold 7",
+    "tailscale_hostname": "samsung-sm-f966u",
+    "ssh_port": 8022,
+    "ssh_user": "u0_a123",
+    "notes": "Updated with actual Tailscale hostname. Update ssh_user after running 'whoami' in Termux."
+  },
+  "monitoring": {
+    "check_interval_seconds": 30,
+    "connection_timeout_seconds": 10,
+    "max_retry_attempts": 5,
+    "exponential_backoff": true,
+    "backoff_multiplier": 2,
+    "max_backoff_seconds": 300,
+    "notes": "Check every 30s. After 5 failures, try to restart SSH. Backoff increases delay on repeated failures."
+  },
+  "reconnection": {
+    "enabled": true,
+    "restart_sshd_command": "pkill sshd && sshd",
+    "restart_tailscale_command": null,
+    "notes": "Restart command kills and restarts SSH daemon. Tailscale restart requires root (usually null)."
+  },
+  "notifications": {
+    "log_to_file": true,
+    "log_file": "fold7_ssh_monitor.log",
+    "console_output": true,
+    "notify_on_failure": true,
+    "notify_on_recovery": true,
+    "notes": "Logs to both file and console. Notifies on connection state changes."
+  }
+}

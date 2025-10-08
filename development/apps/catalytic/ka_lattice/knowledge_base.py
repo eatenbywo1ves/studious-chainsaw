@@ -5,10 +5,9 @@ Manages persistent knowledge storage and pattern recognition
 
 import json
 import sqlite3
-import hashlib
 from typing import Dict, List, Optional, Tuple, Any
 from datetime import datetime, timedelta
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 from pathlib import Path
 import numpy as np
 import pickle

@@ -1,0 +1,21 @@
+# Locust Load Testing Dependencies
+# Install with: pip install -r requirements.txt
+
+# Core load testing framework
+locust>=2.15.0
+
+# HTTP client (already included with locust, but explicitly listed)
+requests>=2.31.0
+
+# Data generation and manipulation
+faker>=19.0.0
+
+# Performance profiling
+psutil>=5.9.0
+
+# Metrics export
+pandas>=2.0.0
+
+# Optional: Real-time monitoring
+# prometheus-client>=0.17.0
+# grafana-client>=3.5.0

@@ -5,14 +5,13 @@ Provides compatibility when no GPU is available
 
 import time
 import logging
-from typing import Tuple, List, Optional, Any
+from typing import Tuple, List, Optional
 import numpy as np
 from scipy.sparse import csr_matrix
 from scipy.sparse.csgraph import shortest_path
 import multiprocessing as mp
 
 from .base import BaseLatticeGPU, GPUCapabilities
-from libs.utils.exceptions import ComputationTimeoutError
 
 logger = logging.getLogger(__name__)
 

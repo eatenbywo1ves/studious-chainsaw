@@ -5,7 +5,7 @@ Provides memory pooling for frequently used allocation sizes
 
 import logging
 import time
-from typing import Dict, Optional, List, Tuple, Any
+from typing import Dict, Optional, List, Any
 from dataclasses import dataclass
 from collections import defaultdict
 from threading import Lock
@@ -235,7 +235,7 @@ class GPUMemoryPool:
                         logger.debug(f"Released {size_mb}MB allocation back to pool")
                         return
 
-            logger.warning(f"Attempted to release allocation not in pool")
+            logger.warning("Attempted to release allocation not in pool")
 
     def _cleanup_unused(self):
         """Clean up unused allocations that haven't been used recently"""

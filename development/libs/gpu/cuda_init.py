@@ -19,7 +19,6 @@ Requirements:
 """
 
 import os
-import sys
 import logging
 from pathlib import Path
 from typing import Optional, Tuple
@@ -106,7 +105,7 @@ def initialize_cuda_environment(force: bool = False, verbose: bool = True) -> bo
         _cuda_available = True
 
         if verbose:
-            logger.info(f"[OK] CUDA environment initialized")
+            logger.info("[OK] CUDA environment initialized")
             logger.info(f"  PyTorch version: {torch.__version__}")
             logger.info(f"  CUDA version: {torch.version.cuda}")
             logger.info(f"  CUDA lib path: {torch_lib}")

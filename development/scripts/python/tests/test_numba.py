@@ -55,7 +55,7 @@ t1 = time()
 distances = compute_lattice_distances(points)
 t2 = time()
 
-print(f"\nParallel processing test:")
+print("\nParallel processing test:")
 print(f"  Computed {lattice_size}x{lattice_size} distance matrix")
 print(f"  in {dims}D space: {(t2-t1)*1000:.2f}ms")
 print(f"  Using {numba.config.NUMBA_NUM_THREADS} CPU threads")
