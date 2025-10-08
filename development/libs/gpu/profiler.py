@@ -722,7 +722,7 @@ class GPUProfiler:
         # Show bottlenecks
         bottlenecks = hierarchy_mgr.find_complexity_bottlenecks(hierarchy, threshold=100.0)
         if bottlenecks:
-            print(f"Complexity Bottlenecks (Score > 100):")
+            print("Complexity Bottlenecks (Score > 100):")
             for i, bottleneck in enumerate(bottlenecks[:5], 1):
                 print(f"  {i}. {bottleneck['operation']} (Score: {bottleneck['score']:.2f}, "
                       f"Grade: {bottleneck['grade']})")
@@ -733,7 +733,7 @@ class GPUProfiler:
                     None  # We don't have the full ComplexityScore object here
                 )
                 if suggestions:
-                    print(f"     Suggestions:")
+                    print("     Suggestions:")
                     for suggestion in suggestions[:2]:  # Show first 2
                         print(f"     - {suggestion}")
             print()

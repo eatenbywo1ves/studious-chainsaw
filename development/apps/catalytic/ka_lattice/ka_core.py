@@ -6,7 +6,7 @@ Extends catalytic computing with knowledge integration and learning
 import numpy as np
 import time
 import json
-from typing import Dict, List, Optional, Tuple, Any, Union
+from typing import Dict, List, Optional, Tuple, Any
 from enum import Enum
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -14,8 +14,6 @@ import hashlib
 import logging
 
 from apps.catalytic.core.unified_lattice import UnifiedCatalyticLattice
-from apps.catalytic.gpu.factory import GPUFactory
-from libs.config import get_settings
 from libs.utils.exceptions import LatticeException
 
 logger = logging.getLogger(__name__)

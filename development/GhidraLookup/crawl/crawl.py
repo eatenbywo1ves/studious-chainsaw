@@ -112,7 +112,6 @@ def fetch_function(site, f_name):
 				i = sibling_tag(i)
 			# parse parameter description and their possible constants
 			p_desc = ""
-			p_constants = ""
 			if found_param_type: # then the following paragraph must be its description
 				p_desc += "\n" + i.text.strip()
 				i = sibling_tag(i)

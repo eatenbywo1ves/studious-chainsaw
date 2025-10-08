@@ -20,11 +20,11 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Import models
-from database.models import (
+from database.models import (  # noqa: E402
     Base, Tenant, User, SubscriptionPlan, TenantSubscription,
     TenantStatus, UserRole, SubscriptionStatus
 )
-from auth.jwt_auth import hash_password
+from auth.jwt_auth import hash_password  # noqa: E402
 
 
 def get_database_url():
@@ -210,7 +210,7 @@ def create_demo_tenant(session):
     session.commit()
     print(f"  [OK] Created demo tenant: {tenant.slug}")
     print(f"  [OK] Created admin user: {admin_user.email}")
-    print(f"       Password: DemoPassword123!")
+    print("       Password: DemoPassword123!")
 
 
 def show_database_stats(session):

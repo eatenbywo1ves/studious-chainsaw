@@ -1,0 +1,225 @@
+Unknown operation 'memory_allocation', assuming O(n)
+Unknown operation 'memory_transfer', assuming O(n)
+Unknown operation 'random_generation', assuming O(n)
+Unknown operation 'random_generation', assuming O(n)
+Unknown operation 'batch_process', assuming O(n)
+Unknown operation 'batch_process', assuming O(n)
+Unknown operation 'routing_decision', assuming O(n)
+Unknown operation 'routing_decision', assuming O(n)
+
+********************************************************************************
+*                                                                              *
+*                   MERNITHIAN COMPLETE PIPELINE DEMONSTRATION                 *
+*                    Profile -> Glyphs -> JSON -> SVG -> HTML                  *
+*                                                                              *
+********************************************************************************
+
+================================================================================
+GLYPH INTERPRETATION GUIDE
+================================================================================
+
+[Shape Encoding - Operation Category]
+  O  (Circle)   -> Compute-intensive operations (matrix ops, batch processing)
+  ^  (Triangle) -> Memory operations (allocation, transfer)
+  [] (Square)   -> Control flow (routing, scheduling)
+  <> (Diamond)  -> Transform operations (XOR, conversions)
+  #  (Hexagon)  -> Graph algorithms (search, pathfinding)
+  *  (Star)     -> Random generation
+
+[Iteration Marker - Optimization Level]
+  +  (Base)      -> No optimization applied
+  /  (Routed)    -> Smart device routing (CPU/GPU selection)
+  x  (Batched)   -> Batch processing optimization
+  o  (Optimized) -> Full optimization (routing + batching)
+
+[Color Encoding - Performance]
+  Green        (<1ms)     -> Excellent performance
+  Yellow-Green (1-10ms)   -> Good performance
+  Yellow       (10-50ms)  -> Moderate performance
+  Orange       (50-100ms) -> Slow performance
+  Red          (>100ms)   -> Critical - needs optimization
+
+[Border Style - Execution Device]
+  Solid line   -> CPU execution
+  Dashed line  -> GPU execution
+  Dotted line  -> Hybrid (CPU+GPU)
+
+[Size - Memory Usage]
+  Smaller glyphs -> Less memory (<10MB)
+  Larger glyphs  -> More memory (>100MB)
+
+[Example Interpretations]
+  O+     -> Base compute operation (no optimization)
+  Ox     -> Batched compute (e.g., batched matrix multiply)
+  Oo     -> Fully optimized compute (fastest)
+  <>/    -> Routed transform (e.g., XOR moved to CPU)
+  #/     -> Routed graph search (CPU better than GPU)
+  ^x     -> Batched memory operation
+  *+     -> Base random generation
+  []o    -> Optimized control flow
+
+================================================================================
+STEP 1: Profiling Realistic GPU Workload
+================================================================================
+
+Executing mixed GPU/CPU workload...
+  [Phase 1] Data preparation...
+  [Phase 2] Compute operations...
+  [Phase 3] Transform operations...
+  [Phase 4] Graph algorithms...
+  [Phase 5] Random generation...
+  [Phase 6] Batch processing...
+  [Phase 7] Routing and scheduling...
+
+Workload complete!
+
+================================================================================
+STEP 2: Exporting Profiling Data with Glyphs
+================================================================================
+
+--------------------------------------------------------------------------------
+
+================================================================================
+GPU PROFILING SUMMARY
+================================================================================
+Total Operations: 16
+Unique Operations: 9
+Total Time: 528.14ms
+
+Operation                      Calls    Total (ms)   Avg (ms)     % Time  
+--------------------------------------------------------------------------------
+graph_search                   2            196.25       98.12    37.2%
+batch_process                  2            160.77       80.38    30.4%
+matrix_multiply                3             69.19       23.06    13.1%
+memory_allocation              1             35.61       35.61     6.7%
+path_finding                   1             25.49       25.49     4.8%
+memory_transfer                1             18.15       18.15     3.4%
+random_generation              2             15.21        7.61     2.9%
+xor_transform                  2              6.18        3.09     1.2%
+routing_decision               2              1.29        0.65     0.2%
+================================================================================
+
+--------------------------------------------------------------------------------
+
+================================================================================
+GLYPH SUMMARY
+================================================================================
+Total Operations: 16
+
+Base (no optimization): 7 operations
+  ^+         memory_allocation                 35.61ms
+  O+         matrix_multiply                   45.57ms
+  <>+        xor_transform                      5.39ms
+  #+         graph_search                     120.58ms
+  *+         random_generation                 13.34ms
+  ... and 2 more
+
+Routed (smart routing): 5 operations
+  ^/         memory_transfer                   18.15ms
+  <>/        xor_transform                      0.79ms (180x faster)
+  #/         graph_search                      75.67ms
+  */         random_generation                  1.87ms
+  []/        routing_decision                   0.44ms
+
+Batched (batch processing): 3 operations
+  Ox         matrix_multiply                   15.09ms
+  #x         path_finding                      25.49ms
+  Ox         batch_process                     40.39ms
+
+Optimized (fully optimized): 1 operations
+  Oo         matrix_multiply                    8.53ms
+================================================================================
+
+
+Exported profiling data with glyphs to: pipeline_profile.json
+
+================================================================================
+STEP 3: Generating SVG Visualizations
+================================================================================
+
+================================================================================
+Exporting SVG visualizations from: pipeline_profile.json
+================================================================================
+
+Found pre-generated glyphs: 16
+Generating glyphs from 16 profiling entries...
+Loaded 16 glyphs
+
+Timeline SVG generated: pipeline_timeline.svg
+Heatmap SVG generated: pipeline_heatmap.svg
+
+================================================================================
+Export complete!
+================================================================================
+
+Generated files:
+  - pipeline_timeline.svg
+  - pipeline_heatmap.svg
+
+
+================================================================================
+STEP 4: Generating Reference Documentation
+================================================================================
+
+Running demo_svg_glyphs.py to generate comprehensive reference...
+
+Reference sheet generated: glyph_reference_sheet.svg
+  Dimensions: 1200x2050px
+  Glyphs: 19
+
+Shape showcase generated: glyph_shape_showcase.svg
+  Matrix: 6 shapes × 4 markers = 24 core glyph variants
+
+Reference documentation generated:
+  - glyph_reference_sheet.svg
+  - glyph_shape_showcase.svg
+
+================================================================================
+PIPELINE COMPLETE!
+================================================================================
+
+================================================================================
+Generated Files:
+================================================================================
+
+[Profiling Data]
+  pipeline_profile.json - Profiling data with glyph annotations
+
+[SVG Visualizations]
+  pipeline_timeline.svg
+  pipeline_heatmap.svg
+
+[Reference Documentation]
+  glyph_reference_sheet.svg - Comprehensive glyph catalog
+  glyph_shape_showcase.svg - Shape × iteration matrix
+
+================================================================================
+Next Steps:
+================================================================================
+
+1. View SVG Visualizations:
+   - Open SVG files in browser (Chrome, Firefox, Edge)
+   - Or use image viewer that supports SVG
+
+2. Interactive HTML Visualization:
+   - Open profiler_visualization_v2.html
+   - Load pipeline_profile.json
+   - Explore different views (Glyph, Timeline, Traditional)
+
+3. Formal Verification:
+   - Open mernithian_proof_visualization.html
+   - See transformation proofs with glyph representations
+
+4. Compare with Original:
+   - Open C:/Users/Corbin/Downloads/profiling_glyphs.svg
+   - Compare with generated glyph_shape_showcase.svg
+   - Notice the full multi-shape rendering vs original mockup
+
+5. Export Custom Visualizations:
+   python glyph_svg_exporter.py pipeline_profile.json --output my_viz
+
+
+================================================================================
+DEMO COMPLETE - Mernithian GPU Profiling System Fully Deployed!
+================================================================================
+

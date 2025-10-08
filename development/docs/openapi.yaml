@@ -1,0 +1,862 @@
+openapi: 3.0.3
+info:
+  title: Catalytic Computing SaaS API
+  description: |
+    Multi-tenant SaaS platform for Catalytic Computing with GPU acceleration.
+
+    ## Features
+    - JWT authentication with RS256
+    - Multi-tenant lattice management
+    - GPU-accelerated operations
+    - Real-time metrics and monitoring
+    - Rate limiting and security hardening
+
+    ## Authentication
+    All endpoints (except /auth/*) require Bearer token authentication.
+    Obtain a token by registering and logging in.
+
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: api-support@catalytic.io
+    url: https://docs.catalytic.io
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Local development server
+  - url: https://api-dev.catalytic.io/api/v1
+    description: Development environment
+  - url: https://api-staging.catalytic.io/api/v1
+    description: Staging environment
+  - url: https://api.catalytic.io/api/v1
+    description: Production environment
+
+tags:
+  - name: Authentication
+    description: User registration and authentication endpoints
+  - name: Users
+    description: User management endpoints
+  - name: Lattices
+    description: Lattice creation and management
+  - name: Operations
+    description: Lattice operations (transforms, pathfinding)
+  - name: Health
+    description: Health checks and monitoring
+
+paths:
+  /auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new user
+      description: Create a new user account with a dedicated tenant
+      operationId: registerUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRegistrationRequest'
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: Email already registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Login user
+      description: Authenticate user and receive JWT tokens
+      operationId: loginUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+
+  /auth/refresh:
+    post:
+      tags:
+        - Authentication
+      summary: Refresh access token
+      description: Obtain a new access token using a refresh token
+      operationId: refreshToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /users/me:
+    get:
+      tags:
+        - Users
+      summary: Get current user
+      description: Retrieve information about the authenticated user
+      operationId: getCurrentUser
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: User information retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /lattices:
+    get:
+      tags:
+        - Lattices
+      summary: List lattices
+      description: Retrieve a list of lattices owned by the authenticated user
+      operationId: listLattices
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of results
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: offset
+          in: query
+          description: Pagination offset
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: sort_by
+          in: query
+          description: Field to sort by
+          schema:
+            type: string
+            enum: [created_at, name, size]
+            default: created_at
+        - name: order
+          in: query
+          description: Sort order
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+      responses:
+        '200':
+          description: Lattices retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LatticeListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags:
+        - Lattices
+      summary: Create lattice
+      description: Create a new lattice with specified parameters
+      operationId: createLattice
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateLatticeRequest'
+      responses:
+        '201':
+          description: Lattice created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LatticeResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '507':
+          description: Insufficient storage (quota exceeded)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /lattices/{latticeId}:
+    get:
+      tags:
+        - Lattices
+      summary: Get lattice
+      description: Retrieve details of a specific lattice
+      operationId: getLattice
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/LatticeId'
+      responses:
+        '200':
+          description: Lattice retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LatticeResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags:
+        - Lattices
+      summary: Delete lattice
+      description: Delete a specific lattice
+      operationId: deleteLattice
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/LatticeId'
+      responses:
+        '204':
+          description: Lattice deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /lattices/{latticeId}/transform:
+    post:
+      tags:
+        - Operations
+      summary: Transform lattice
+      description: Perform a transformation operation on the lattice (e.g., XOR)
+      operationId: transformLattice
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/LatticeId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransformRequest'
+      responses:
+        '200':
+          description: Transform completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /lattices/{latticeId}/shortest-path:
+    post:
+      tags:
+        - Operations
+      summary: Calculate shortest path
+      description: Calculate the shortest path between two nodes in the lattice
+      operationId: shortestPath
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/LatticeId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShortestPathRequest'
+      responses:
+        '200':
+          description: Shortest path calculated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShortestPathResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health check
+      description: Simple health check endpoint
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /health/detailed:
+    get:
+      tags:
+        - Health
+      summary: Detailed health check
+      description: Detailed health check including all service components
+      operationId: detailedHealthCheck
+      responses:
+        '200':
+          description: Detailed health information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetailedHealthResponse'
+
+  /metrics:
+    get:
+      tags:
+        - Health
+      summary: Prometheus metrics
+      description: Expose Prometheus-compatible metrics
+      operationId: getMetrics
+      responses:
+        '200':
+          description: Metrics in Prometheus format
+          content:
+            text/plain:
+              schema:
+                type: string
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from /auth/login
+
+  parameters:
+    LatticeId:
+      name: latticeId
+      in: path
+      required: true
+      description: Unique identifier of the lattice
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+    UserRegistrationRequest:
+      type: object
+      required:
+        - email
+        - password
+        - name
+      properties:
+        email:
+          type: string
+          format: email
+          description: User email address
+          example: user@example.com
+        password:
+          type: string
+          format: password
+          minLength: 8
+          description: User password (min 8 characters)
+          example: SecurePassword123!
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: User's full name
+          example: John Doe
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: user@example.com
+        password:
+          type: string
+          format: password
+          example: SecurePassword123!
+
+    RefreshTokenRequest:
+      type: object
+      required:
+        - refresh_token
+      properties:
+        refresh_token:
+          type: string
+          description: Refresh token obtained from login
+          example: eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...
+
+    UserResponse:
+      type: object
+      properties:
+        user_id:
+          type: string
+          format: uuid
+          example: 550e8400-e29b-41d4-a716-446655440000
+        email:
+          type: string
+          format: email
+          example: user@example.com
+        name:
+          type: string
+          example: John Doe
+        tenant_id:
+          type: string
+          format: uuid
+          example: 660e8400-e29b-41d4-a716-446655440000
+        created_at:
+          type: string
+          format: date-time
+          example: 2025-10-03T12:00:00Z
+        is_active:
+          type: boolean
+          example: true
+
+    TokenResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+          description: JWT access token
+          example: eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...
+        refresh_token:
+          type: string
+          description: JWT refresh token
+          example: eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...
+        token_type:
+          type: string
+          example: Bearer
+        expires_in:
+          type: integer
+          description: Token expiration in seconds
+          example: 3600
+
+    CreateLatticeRequest:
+      type: object
+      required:
+        - name
+        - size
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: Lattice name
+          example: my_lattice
+        description:
+          type: string
+          maxLength: 1000
+          description: Optional description
+          example: Test lattice for GPU acceleration
+        size:
+          type: integer
+          minimum: 1
+          maximum: 2048
+          description: Number of nodes in the lattice
+          example: 512
+        metadata:
+          type: object
+          description: Optional metadata
+          properties:
+            gpu_enabled:
+              type: boolean
+              example: true
+            preferred_backend:
+              type: string
+              enum: [cuda, cupy, pytorch, cpu]
+              example: cuda
+          additionalProperties: true
+
+    LatticeResponse:
+      type: object
+      properties:
+        lattice_id:
+          type: string
+          format: uuid
+          example: 770e8400-e29b-41d4-a716-446655440000
+        name:
+          type: string
+          example: my_lattice
+        description:
+          type: string
+          example: Test lattice for GPU acceleration
+        size:
+          type: integer
+          example: 512
+        created_at:
+          type: string
+          format: date-time
+          example: 2025-10-03T12:00:00Z
+        tenant_id:
+          type: string
+          format: uuid
+          example: 660e8400-e29b-41d4-a716-446655440000
+        user_id:
+          type: string
+          format: uuid
+          example: 550e8400-e29b-41d4-a716-446655440000
+        operations_count:
+          type: integer
+          example: 5
+        last_operation_at:
+          type: string
+          format: date-time
+          nullable: true
+          example: 2025-10-03T12:30:00Z
+        metadata:
+          type: object
+          additionalProperties: true
+
+    LatticeListResponse:
+      type: object
+      properties:
+        lattices:
+          type: array
+          items:
+            $ref: '#/components/schemas/LatticeResponse'
+        total:
+          type: integer
+          description: Total number of lattices
+          example: 2
+        limit:
+          type: integer
+          example: 50
+        offset:
+          type: integer
+          example: 0
+
+    TransformRequest:
+      type: object
+      required:
+        - operation
+        - params
+      properties:
+        operation:
+          type: string
+          enum: [xor, transform]
+          description: Type of transformation
+          example: xor
+        params:
+          type: object
+          description: Operation-specific parameters
+          properties:
+            value:
+              type: integer
+              description: XOR value for xor operation
+              example: 42
+            type:
+              type: string
+              description: Transform type
+              example: matrix_multiply
+            factor:
+              type: number
+              description: Multiplication factor
+              example: 2.0
+          additionalProperties: true
+
+    ShortestPathRequest:
+      type: object
+      required:
+        - start
+        - end
+      properties:
+        start:
+          type: integer
+          minimum: 0
+          description: Starting node index
+          example: 0
+        end:
+          type: integer
+          minimum: 0
+          description: Ending node index
+          example: 511
+
+    OperationResponse:
+      type: object
+      properties:
+        lattice_id:
+          type: string
+          format: uuid
+          example: 770e8400-e29b-41d4-a716-446655440000
+        operation:
+          type: string
+          example: xor
+        status:
+          type: string
+          enum: [completed, failed, pending]
+          example: completed
+        result:
+          type: object
+          properties:
+            nodes_affected:
+              type: integer
+              example: 512
+            execution_time_ms:
+              type: number
+              format: float
+              example: 15.3
+          additionalProperties: true
+        metadata:
+          type: object
+          properties:
+            device_used:
+              type: string
+              enum: [cpu, gpu, hybrid]
+              example: gpu
+            backend:
+              type: string
+              example: cuda
+            gpu_time_ms:
+              type: number
+              format: float
+              example: 12.1
+          additionalProperties: true
+
+    ShortestPathResponse:
+      type: object
+      properties:
+        lattice_id:
+          type: string
+          format: uuid
+          example: 770e8400-e29b-41d4-a716-446655440000
+        operation:
+          type: string
+          example: shortest_path
+        status:
+          type: string
+          example: completed
+        path:
+          type: array
+          items:
+            type: integer
+          description: Sequence of node indices in the shortest path
+          example: [0, 1, 5, 23, 128, 256, 511]
+        distance:
+          type: number
+          format: float
+          description: Total distance of the path
+          example: 45.7
+        metadata:
+          type: object
+          properties:
+            execution_time_ms:
+              type: number
+              format: float
+              example: 28.5
+            device_used:
+              type: string
+              example: cpu
+            algorithm:
+              type: string
+              example: dijkstra
+          additionalProperties: true
+
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, unhealthy, degraded]
+          example: healthy
+        timestamp:
+          type: string
+          format: date-time
+          example: 2025-10-03T12:00:00Z
+        version:
+          type: string
+          example: 1.0.0
+
+    DetailedHealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, unhealthy, degraded]
+          example: healthy
+        components:
+          type: object
+          properties:
+            database:
+              $ref: '#/components/schemas/ComponentHealth'
+            redis:
+              $ref: '#/components/schemas/ComponentHealth'
+            catalytic_api:
+              $ref: '#/components/schemas/ComponentHealth'
+        timestamp:
+          type: string
+          format: date-time
+          example: 2025-10-03T12:00:00Z
+
+    ComponentHealth:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [up, down, degraded]
+          example: up
+        response_time_ms:
+          type: number
+          format: float
+          example: 5.2
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              description: Machine-readable error code
+              example: VALIDATION_ERROR
+            message:
+              type: string
+              description: Human-readable error message
+              example: Invalid input parameters
+            details:
+              type: object
+              description: Additional error details
+              additionalProperties: true
+        request_id:
+          type: string
+          description: Unique request identifier
+          example: req_abc123
+
+  responses:
+    BadRequest:
+      description: Bad request - Invalid parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    Unauthorized:
+      description: Unauthorized - Invalid or missing authentication
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    Forbidden:
+      description: Forbidden - Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    NotFound:
+      description: Not found - Resource does not exist
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    ValidationError:
+      description: Validation error - Request validation failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    RateLimitExceeded:
+      description: Too many requests - Rate limit exceeded
+      headers:
+        X-RateLimit-Limit:
+          schema:
+            type: integer
+          description: Request limit per window
+        X-RateLimit-Remaining:
+          schema:
+            type: integer
+          description: Remaining requests in current window
+        X-RateLimit-Reset:
+          schema:
+            type: integer
+          description: Unix timestamp when the limit resets
+        Retry-After:
+          schema:
+            type: integer
+          description: Seconds to wait before retrying
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+security:
+  - BearerAuth: []

@@ -4,12 +4,10 @@ Security Integration Script
 Integrates security components into the SaaS application codebase
 """
 
-import os
 import sys
 import shutil
 import re
 from pathlib import Path
-from typing import List, Tuple
 
 # Color codes
 GREEN = '\033[0;32m'

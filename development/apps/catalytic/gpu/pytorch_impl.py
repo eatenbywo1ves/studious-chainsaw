@@ -4,7 +4,7 @@ PyTorch implementation of GPU-accelerated lattice operations
 
 import time
 import logging
-from typing import Tuple, List, Optional, Any
+from typing import Tuple, List, Optional
 import numpy as np
 
 try:

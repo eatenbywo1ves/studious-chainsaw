@@ -1,0 +1,68 @@
+{
+  "name": "Call Graph: main",
+  "description": "Function call relationships",
+  "vertices": [
+    {
+      "id": "001400",
+      "name": "main",
+      "type": "Entry Function"
+    },
+    {
+      "id": "001450",
+      "name": "authenticate",
+      "type": "Called Function"
+    },
+    {
+      "id": "001460",
+      "name": "validateCredentials",
+      "type": "Called Function"
+    },
+    {
+      "id": "001500",
+      "name": "processRequest",
+      "type": "Called Function"
+    },
+    {
+      "id": "001550",
+      "name": "handleData",
+      "type": "Called Function"
+    },
+    {
+      "id": "001600",
+      "name": "logActivity",
+      "type": "Called Function"
+    }
+  ],
+  "edges": [
+    {
+      "source": "001400",
+      "target": "001450",
+      "type": "Calls"
+    },
+    {
+      "source": "001400",
+      "target": "001500",
+      "type": "Calls"
+    },
+    {
+      "source": "001450",
+      "target": "001460",
+      "type": "Calls"
+    },
+    {
+      "source": "001450",
+      "target": "001600",
+      "type": "Calls"
+    },
+    {
+      "source": "001500",
+      "target": "001550",
+      "type": "Calls"
+    },
+    {
+      "source": "001500",
+      "target": "001600",
+      "type": "Calls"
+    }
+  ]
+}

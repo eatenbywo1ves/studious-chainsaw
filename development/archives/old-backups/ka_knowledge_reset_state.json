@@ -1,0 +1,1 @@
+{"version": "1.0", "dimensions": 4, "size": 10, "knowledge_base": {}, "performance_stats": {"total_computations": 968, "successful_computations": 968, "average_execution_ms": 0.2500322314006568, "knowledge_hits": 49, "knowledge_misses": 919, "learning_cycles": 0}, "export_time": "2025-09-29T23:38:25.448072"}

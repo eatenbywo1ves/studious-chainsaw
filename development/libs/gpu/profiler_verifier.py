@@ -146,10 +146,10 @@ class PerformanceGuarantee:
     def verify_against_runtime(self, metrics: Dict) -> bool:
         """
         Check if runtime satisfies guarantee
-        
+
         Args:
             metrics: Dict with 'original_time_ms' and 'optimized_time_ms'
-        
+
         Returns:
             True if guarantee satisfied
         """
@@ -168,7 +168,7 @@ class PerformanceGuarantee:
                 actual_value = float(metrics)
             else:
                 return False
-        
+
         # Check bound
         if self.bound_type == "minimum":
             return actual_value >= self.bound
@@ -212,8 +212,8 @@ class ProofGenerator:
             Formal proof of semantic equivalence
         """
         theorem_statement = (
-            f"forall operation op satisfying preconditions: "
-            f"output(original_op) = output(transformed_op)"
+            "forall operation op satisfying preconditions: "
+            "output(original_op) = output(transformed_op)"
         )
 
         steps = []
@@ -362,7 +362,7 @@ class ProofGenerator:
             Formal proof of complexity preservation
         """
         theorem_statement = (
-            f"Complexity(transformed_op) <= Complexity(original_op)"
+            "Complexity(transformed_op) <= Complexity(original_op)"
         )
 
         if assumptions is None:

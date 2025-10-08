@@ -71,13 +71,13 @@ def test_basic_cuda():
         B_gpu = cp.asarray(B_cpu)
 
         start = time.perf_counter()
-        C_gpu = cp.dot(A_gpu, B_gpu)
+        cp.dot(A_gpu, B_gpu)
         cp.cuda.Stream.null.synchronize()
         gpu_time = (time.perf_counter() - start) * 1000
 
         # CPU multiplication
         start = time.perf_counter()
-        C_cpu = np.dot(A_cpu, B_cpu)
+        np.dot(A_cpu, B_cpu)
         cpu_time = (time.perf_counter() - start) * 1000
 
         print(f"   {n}x{n} matrix multiplication:")
@@ -101,7 +101,7 @@ def test_basic_cuda():
 
             # Device to Host
             start = time.perf_counter()
-            cpu_data = cp.asnumpy(gpu_data)
+            cp.asnumpy(gpu_data)
             d2h_time = (time.perf_counter() - start) * 1000
 
             h2d_bandwidth = mb / (h2d_time / 1000)
@@ -129,7 +129,7 @@ def test_basic_cuda():
 
         # CPU XOR
         start = time.perf_counter()
-        result_cpu = np.bitwise_xor(data, key)
+        np.bitwise_xor(data, key)
         cpu_time = (time.perf_counter() - start) * 1000
 
         # Verify reversibility

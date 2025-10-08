@@ -4,9 +4,8 @@ Tests device detection, selection, and resource management
 """
 
 import pytest
-from unittest.mock import Mock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 import threading
-from typing import Dict
 
 from apps.catalytic.gpu.manager import GPUManager, GPUStatus, get_gpu_manager
 from apps.catalytic.gpu.base import GPUCapabilities

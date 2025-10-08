@@ -6,8 +6,6 @@ Provides REST API endpoints for lattice operations with Prometheus metrics
 
 import os
 import time
-import json
-import asyncio
 import numpy as np
 from typing import Optional, List, Dict, Any
 from datetime import datetime
@@ -23,9 +21,7 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from apps.catalytic.catalytic_lattice_gpu import CatalyticLatticeGPU
 from apps.catalytic.catalytic_lattice_graph import CatalyticLatticeGraph
-from apps.catalytic.memory_optimization_analyzer import MemoryOptimizationAnalyzer
 
 # Prometheus metrics
 lattice_operations_total = Counter('lattice_operations_total', 'Total lattice operations', ['operation'])
@@ -52,7 +48,7 @@ class LatticeCreateRequest(BaseModel):
     dimensions: int = Field(ge=1, le=10, description="Number of dimensions")
     size: int = Field(ge=2, le=100, description="Size in each dimension")
     auxiliary_memory: Optional[int] = Field(default=1000, description="Auxiliary memory size")
-    
+
 class LatticeResponse(BaseModel):
     id: str
     dimensions: int
@@ -100,17 +96,17 @@ async def lifespan(app: FastAPI):
     """Lifecycle manager for the FastAPI app"""
     # Startup
     print("Starting Catalytic Computing API Server...")
-    print(f"Configuration:")
+    print("Configuration:")
     print(f"  - Max Lattices: {MAX_LATTICES}")
     print(f"  - Cache Size: {CACHE_SIZE}")
     print(f"  - Parallel Cores: {PARALLEL_CORES}")
-    
+
     # Initialize metrics
     active_lattices.set(0)
     memory_efficiency_ratio.set(200.0)  # Target efficiency
-    
+
     yield
-    
+
     # Shutdown
     print("Shutting down Catalytic Computing API Server...")
     lattice_store.clear()
@@ -167,7 +163,7 @@ async def health_check():
     import psutil
     process = psutil.Process()
     memory_mb = process.memory_info().rss / 1024 / 1024
-    
+
     return HealthResponse(
         status="healthy",
         active_lattices=len(lattice_store),
@@ -188,7 +184,7 @@ async def metrics():
     """Prometheus metrics endpoint"""
     memory_usage_bytes.set(sum(l.aux_memory_size for l in lattice_store.values()))
     active_lattices.set(len(lattice_store))
-    
+
     return Response(
         generate_latest(),
         media_type=CONTENT_TYPE_LATEST
@@ -199,9 +195,9 @@ async def create_lattice(request: LatticeCreateRequest):
     """Create a new lattice"""
     if len(lattice_store) >= MAX_LATTICES:
         raise HTTPException(status_code=503, detail=f"Maximum {MAX_LATTICES} lattices reached")
-    
+
     lattice_operations_total.labels(operation="create").inc()
-    
+
     with lattice_creation_time.time():
         try:
             # Create lattice
@@ -211,15 +207,15 @@ async def create_lattice(request: LatticeCreateRequest):
                 aux_memory_size=request.auxiliary_memory
             )
             lattice.build_lattice()
-            
+
             # Generate ID and store
             lattice_id = generate_lattice_id()
             lattice_store[lattice_id] = lattice
-            
+
             # Calculate metrics
             memory_reduction = calculate_memory_reduction(lattice)
             memory_efficiency_ratio.set(memory_reduction)
-            
+
             return LatticeResponse(
                 id=lattice_id,
                 dimensions=request.dimensions,
@@ -238,53 +234,53 @@ async def find_path(request: PathFindRequest):
     """Find shortest path in lattice"""
     if request.lattice_id not in lattice_store:
         raise HTTPException(status_code=404, detail="Lattice not found")
-    
+
     lattice_operations_total.labels(operation="pathfind").inc()
-    
+
     # Check cache
     cache_key = f"{request.lattice_id}:{request.start}:{request.end}"
     if cache_key in cache_store:
         cache_hits.inc()
         return cache_store[cache_key]
-    
+
     cache_misses.inc()
-    
+
     lattice = lattice_store[request.lattice_id]
-    
+
     start_time = time.perf_counter()
     with path_finding_time.time():
         try:
             # Convert coordinates to vertex indices
             start_idx = lattice._coords_to_index(request.start)
             end_idx = lattice._coords_to_index(request.end)
-            
+
             # Find path
             if request.algorithm == "catalytic":
                 path, distance = lattice.catalytic_path_finding(start_idx, end_idx)
             else:
                 paths = lattice.graph.get_shortest_paths(
-                    start_idx, 
+                    start_idx,
                     to=end_idx,
                     mode='all'
                 )
                 path = paths[0] if paths else []
                 distance = len(path) - 1 if path else float('inf')
-            
+
             execution_time = (time.perf_counter() - start_time) * 1000
-            
+
             response = PathResponse(
                 path=path,
                 length=len(path),
                 distance=float(distance),
                 execution_time_ms=round(execution_time, 3)
             )
-            
+
             # Cache result
             if len(cache_store) < CACHE_SIZE:
                 cache_store[cache_key] = response
-            
+
             return response
-            
+
         except Exception as e:
             raise HTTPException(status_code=400, detail=str(e))
 
@@ -293,24 +289,24 @@ async def analyze_lattice(lattice_id: str):
     """Analyze lattice structure"""
     if lattice_id not in lattice_store:
         raise HTTPException(status_code=404, detail="Lattice not found")
-    
+
     lattice_operations_total.labels(operation="analyze").inc()
-    
+
     lattice = lattice_store[lattice_id]
-    
+
     try:
         # Community detection
         communities = lattice.graph.community_multilevel()
-        
+
         # Graph metrics
         is_connected = lattice.graph.is_connected()
         diameter = lattice.graph.diameter() if is_connected else -1
         clustering = lattice.graph.transitivity_avglocal_undirected()
-        
+
         # Centrality
         centrality = lattice.graph.betweenness()
         max_centrality = max(centrality) if centrality else 0
-        
+
         return AnalysisResponse(
             communities=len(set(communities.membership)),
             connectivity=is_connected,
@@ -326,30 +322,30 @@ async def transform_data(request: TransformRequest):
     """Apply catalytic transformation to data"""
     if request.lattice_id not in lattice_store:
         raise HTTPException(status_code=404, detail="Lattice not found")
-    
+
     lattice_operations_total.labels(operation="transform").inc()
-    
+
     lattice = lattice_store[request.lattice_id]
-    
+
     start_time = time.perf_counter()
     try:
         data_array = np.array(request.data, dtype=np.float32)
-        
+
         if request.operation == "xor":
             # Generate key if not provided
             if request.key is None:
                 key = np.random.randint(0, 256, size=len(data_array), dtype=np.uint8)
             else:
                 key = np.array(request.key, dtype=np.uint8)
-            
+
             # Apply XOR transform
             data_uint = data_array.astype(np.uint8)
             result = lattice.xor_transform(data_uint, key)
-            
+
             # Record time
             transform_time = (time.perf_counter() - start_time) * 1000
             xor_transform_time.observe(transform_time)
-            
+
             return {
                 "result": result.tolist(),
                 "operation": request.operation,
@@ -358,7 +354,7 @@ async def transform_data(request: TransformRequest):
             }
         else:
             raise HTTPException(status_code=400, detail=f"Unknown operation: {request.operation}")
-            
+
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -367,14 +363,14 @@ async def delete_lattice(lattice_id: str):
     """Delete a lattice from memory"""
     if lattice_id not in lattice_store:
         raise HTTPException(status_code=404, detail="Lattice not found")
-    
+
     del lattice_store[lattice_id]
-    
+
     # Clear related cache entries
     keys_to_remove = [k for k in cache_store.keys() if k.startswith(lattice_id)]
     for key in keys_to_remove:
         del cache_store[key]
-    
+
     return {"message": f"Lattice {lattice_id} deleted"}
 
 @app.get("/api/lattice/list")
@@ -390,7 +386,7 @@ async def list_lattices():
             "edges": lattice.graph.ecount(),
             "memory_kb": round(lattice.aux_memory_size / 1024, 2)
         })
-    
+
     return {
         "count": len(lattices),
         "max_capacity": MAX_LATTICES,
@@ -400,41 +396,41 @@ async def list_lattices():
 @app.post("/api/benchmark")
 async def run_benchmark(background_tasks: BackgroundTasks):
     """Run performance benchmark"""
-    
+
     async def benchmark_task():
         results = {}
-        
+
         # Test different dimensions
         for dim in [2, 3, 4, 5]:
             start = time.perf_counter()
-            
+
             lattice = CatalyticLatticeGraph(
                 dimensions=dim,
                 size=min(10, 100 // dim),  # Adjust size for memory
                 aux_memory_size=1000
             )
             lattice.build_lattice()
-            
+
             # Test path finding
             path_start = time.perf_counter()
             lattice.catalytic_path_finding(0, lattice.graph.vcount() - 1)
             path_time = time.perf_counter() - path_start
-            
+
             build_time = time.perf_counter() - start
             memory_reduction = calculate_memory_reduction(lattice)
-            
+
             results[f"{dim}D"] = {
                 "build_time_ms": round(build_time * 1000, 2),
                 "path_time_ms": round(path_time * 1000, 2),
                 "memory_reduction": round(memory_reduction, 2),
                 "vertices": lattice.graph.vcount()
             }
-        
+
         # Store results
         cache_store["benchmark_results"] = results
-    
+
     background_tasks.add_task(benchmark_task)
-    
+
     return {
         "message": "Benchmark started",
         "check_results_at": "/api/benchmark/results"
@@ -445,7 +441,7 @@ async def get_benchmark_results():
     """Get benchmark results"""
     if "benchmark_results" not in cache_store:
         return {"message": "No benchmark results available. Run /api/benchmark first."}
-    
+
     return cache_store["benchmark_results"]
 
 if __name__ == "__main__":

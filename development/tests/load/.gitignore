@@ -1,0 +1,31 @@
+# Load Testing Results
+results/*.html
+results/*.csv
+results/*.json
+results/*.log
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# Locust
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Keep directory structure
+!results/.gitkeep

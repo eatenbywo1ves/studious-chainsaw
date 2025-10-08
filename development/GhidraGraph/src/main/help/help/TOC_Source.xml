@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='ISO-8859-1' ?>
+
+<tocroot>
+	<tocref id="Ghidra Functionality">
+		<tocdef id="GhidraGraph" text="GhidraGraph Plugin"
+			target="help/topics/ghidragraph/help.html" />
+	</tocref>
+</tocroot>

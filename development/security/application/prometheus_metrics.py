@@ -14,12 +14,11 @@ from prometheus_client import (
     Gauge,
     Summary,
     generate_latest,
-    CONTENT_TYPE_LATEST,
-    CollectorRegistry
+    CONTENT_TYPE_LATEST
 )
 from functools import wraps
 import time
-from typing import Callable, Any
+from typing import Callable
 import logging
 
 logger = logging.getLogger(__name__)

@@ -36,7 +36,7 @@ def benchmark_operation(name, cpu_func, gpu_func, size, iterations=10):
     cpu_times = []
     for _ in range(iterations):
         start = time.time()
-        cpu_result = cpu_func()
+        cpu_func()
         cpu_times.append(time.time() - start)
     cpu_avg = np.mean(cpu_times)
 
@@ -47,7 +47,7 @@ def benchmark_operation(name, cpu_func, gpu_func, size, iterations=10):
     gpu_times = []
     for _ in range(iterations):
         start = time.time()
-        gpu_result = gpu_func()
+        gpu_func()
         cp.cuda.Stream.null.synchronize()
         gpu_times.append(time.time() - start)
     gpu_avg = np.mean(gpu_times)
@@ -68,7 +68,7 @@ for size in [1000, 2000, 4000]:
     B_gpu = cp.asarray(B_cpu)
 
     benchmark_operation(
-        f"Matrix Multiply",
+        "Matrix Multiply",
         lambda: np.dot(A_cpu, B_cpu),
         lambda: cp.dot(A_gpu, B_gpu),
         f"{size}x{size}"

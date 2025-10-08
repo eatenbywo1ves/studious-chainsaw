@@ -1,0 +1,5 @@
+/*
+ * Catalytic Computing - Ghidra Extensions Master Build Settings
+ */
+
+rootProject.name = 'catalytic-ghidra-extensions'

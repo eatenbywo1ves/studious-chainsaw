@@ -22,7 +22,7 @@ except ImportError:
 
 # Import models
 sys.path.insert(0, os.path.dirname(__file__))
-from database.models import Base
+from database.models import Base  # noqa: E402
 
 
 def get_sqlite_url():
@@ -70,7 +70,7 @@ def test_postgresql_connection(pg_url):
         with engine.connect() as conn:
             result = conn.execute("SELECT version();")
             version = result.fetchone()[0]
-            print(f"[OK] Connected to PostgreSQL")
+            print("[OK] Connected to PostgreSQL")
             print(f"  Version: {version}")
             return engine
     except Exception as e:
@@ -301,7 +301,7 @@ def main():
         sys.exit(1)
 
     # Analyze SQLite data
-    table_info = analyze_sqlite_data(sqlite_engine)
+    analyze_sqlite_data(sqlite_engine)
 
     # Confirm migration
     print("\n" + "="*70)

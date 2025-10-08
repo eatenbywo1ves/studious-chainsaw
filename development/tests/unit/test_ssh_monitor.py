@@ -6,7 +6,7 @@ Tests connection monitoring, retry logic, and error handling
 import pytest
 import json
 from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock, call
+from unittest.mock import Mock, patch
 import subprocess
 import socket
 import sys

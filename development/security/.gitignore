@@ -1,0 +1,40 @@
+# Environment files with actual secrets
+.env
+.env.development
+.env.staging
+.env.production
+*.env
+
+# Cryptographic keys
+keys/*.pem
+keys/*.key
+keys/*.pub
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Test coverage
+htmlcov/
+.coverage
+.coverage.*
+.pytest_cache/
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db

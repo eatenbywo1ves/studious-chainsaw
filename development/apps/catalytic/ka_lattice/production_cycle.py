@@ -8,13 +8,13 @@ import time
 import threading
 from typing import Dict, List, Optional, Callable, Any
 from enum import Enum
-from datetime import datetime, timedelta
-from dataclasses import dataclass, field
+from datetime import datetime
+from dataclasses import dataclass
 import logging
 import json
 import numpy as np
 
-from .ka_core import KALatticeCore, LatticeState, ComputationResult
+from .ka_core import KALatticeCore, LatticeState
 from libs.utils.exceptions import CatalyticException
 
 logger = logging.getLogger(__name__)
@@ -205,7 +205,7 @@ class ProductionCycleManager:
                 break
 
             try:
-                result = self.lattice.compute_with_knowledge(
+                self.lattice.compute_with_knowledge(
                     operation="transform",
                     input_data=warmup_data,
                     parameters={'type': 'normalize'}

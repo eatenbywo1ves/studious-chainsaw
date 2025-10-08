@@ -5,7 +5,6 @@ Tests SendGrid, AWS SES, and SMTP email delivery
 """
 
 import os
-import sys
 from datetime import datetime
 from dotenv import load_dotenv
 
@@ -84,7 +83,7 @@ def test_sendgrid():
         response = sg.send(message)
 
         if response.status_code in [200, 202]:
-            print(f"[OK] Email sent successfully via SendGrid")
+            print("[OK] Email sent successfully via SendGrid")
             print(f"  Status Code: {response.status_code}")
             print(f"  Message ID: {response.headers.get('X-Message-Id', 'N/A')}")
             return True
@@ -184,7 +183,7 @@ def test_aws_ses():
             }
         )
 
-        print(f"[OK] Email sent successfully via AWS SES")
+        print("[OK] Email sent successfully via AWS SES")
         print(f"  Message ID: {response['MessageId']}")
         return True
 
@@ -274,7 +273,7 @@ def test_smtp():
             server.login(smtp_username, smtp_password)
             server.send_message(msg)
 
-        print(f"[OK] Email sent successfully via SMTP")
+        print("[OK] Email sent successfully via SMTP")
         print(f"  Host: {smtp_host}:{smtp_port}")
         return True
 

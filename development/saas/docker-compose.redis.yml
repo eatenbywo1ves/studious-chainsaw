@@ -1,0 +1,43 @@
+version: '3.8'
+
+# Redis service for distributed caching, rate limiting, and session storage
+# This file should be included with: docker-compose -f docker-compose.yml -f docker-compose.redis.yml up
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: catalytic-redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+      --save 60 1000
+      --protected-mode no
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - catalytic-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+networks:
+  catalytic-network:
+    driver: bridge
+
+volumes:
+  redis_data:
+    driver: local

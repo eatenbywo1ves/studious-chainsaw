@@ -5,14 +5,13 @@ Implements multiple rate limiting strategies and DDoS protection mechanisms
 
 import time
 import hashlib
-import asyncio
-from typing import Dict, Optional, Tuple, List
+from typing import Dict, Optional, List
 from dataclasses import dataclass, field
 from enum import Enum
 from collections import defaultdict, deque
 import logging
 import ipaddress
-from datetime import datetime, timedelta
+from datetime import datetime
 
 # Import Redis manager for distributed rate limiting
 try:
@@ -67,7 +66,7 @@ class AdvancedRateLimiter:
     """
     Advanced rate limiting with multiple strategies and DDoS protection
     """
-    
+
     def __init__(
         self,
         redis_client: Optional['RedisConnectionManager'] = None,
@@ -98,7 +97,7 @@ class AdvancedRateLimiter:
         self.fixed_windows: Dict[str, Dict[int, int]] = defaultdict(dict)
         self.blocked_ips: Dict[str, float] = {}
         self.suspicious_ips: Dict[str, List[float]] = defaultdict(list)
-        
+
         # Rate limit configurations
         self.rate_limits: Dict[str, Dict[LimitType, RateLimit]] = {
             # API endpoints
@@ -157,12 +156,12 @@ class AdvancedRateLimiter:
                 retry_after=int(self.blocked_ips[ip_address] - time.time()),
                 limit_type=limit_type
             )
-        
+
         # Get rate limit configuration
         rate_limit = self._get_rate_limit(endpoint, limit_type)
         if not rate_limit:
             return RateLimitResult(allowed=True, remaining=1000, reset_time=time.time() + 3600)
-        
+
         # Apply rate limiting based on strategy
         if rate_limit.strategy == RateLimitStrategy.TOKEN_BUCKET:
             return await self._check_token_bucket(identifier, rate_limit)
@@ -358,13 +357,13 @@ class AdvancedRateLimiter:
         """
         now = time.time()
         window_start = int(now // rate_limit.window_seconds) * rate_limit.window_seconds
-        
+
         # Get current count for this window
         if identifier not in self.fixed_windows:
             self.fixed_windows[identifier] = {}
-        
+
         current_count = self.fixed_windows[identifier].get(window_start, 0)
-        
+
         if current_count < rate_limit.requests:
             self.fixed_windows[identifier][window_start] = current_count + 1
             remaining = rate_limit.requests - current_count - 1
@@ -470,7 +469,7 @@ class AdvancedRateLimiter:
             "192.168.0.0/16",   # Private network
             # Add your trusted networks here
         ]
-        
+
         try:
             ip = ipaddress.ip_address(ip_address)
             for network in trusted_networks:
@@ -478,7 +477,7 @@ class AdvancedRateLimiter:
                     return True
         except ValueError:
             pass
-        
+
         return False
 
     async def record_request(self, ip_address: str, endpoint: str, user_id: Optional[str] = None):
@@ -498,10 +497,10 @@ class AdvancedRateLimiter:
             "X-RateLimit-Reset": str(int(result.reset_time)),
             "X-RateLimit-Window": str(rate_limit.window_seconds),
         }
-        
+
         if result.retry_after:
             headers["Retry-After"] = str(result.retry_after)
-        
+
         return headers
 
     async def cleanup_old_data(self):
@@ -509,17 +508,17 @@ class AdvancedRateLimiter:
         Cleanup old rate limiting data to prevent memory leaks
         """
         now = time.time()
-        
+
         # Clean up old sliding windows
         for identifier, window in list(self.sliding_windows.items()):
             window_start = now - window.window_seconds
             while window.requests and window.requests[0] < window_start:
                 window.requests.popleft()
-            
+
             # Remove empty windows
             if not window.requests:
                 del self.sliding_windows[identifier]
-        
+
         # Clean up old fixed windows
         for identifier, windows in list(self.fixed_windows.items()):
             self.fixed_windows[identifier] = {
@@ -527,17 +526,17 @@ class AdvancedRateLimiter:
                 for window_start, count in windows.items()
                 if now - window_start < 3600  # Keep last hour
             }
-            
+
             if not self.fixed_windows[identifier]:
                 del self.fixed_windows[identifier]
-        
+
         # Clean up expired blocks
         self.blocked_ips = {
             ip: block_time
             for ip, block_time in self.blocked_ips.items()
             if now < block_time
         }
-        
+
         logger.debug("Rate limiter cleanup completed")
 
 # FastAPI middleware integration
@@ -545,7 +544,7 @@ class RateLimitMiddleware:
     """
     FastAPI middleware for rate limiting
     """
-    
+
     def __init__(self, rate_limiter: AdvancedRateLimiter):
         self.rate_limiter = rate_limiter
 
@@ -554,12 +553,12 @@ class RateLimitMiddleware:
         ip_address = self._get_client_ip(request)
         endpoint = request.url.path
         user_id = self._get_user_id(request)
-        
+
         # Check DDoS protection first
         if not self.rate_limiter.is_trusted_ip(ip_address):
             if not await self.rate_limiter.check_ddos_protection(ip_address):
                 return self._create_error_response(429, "Rate limit exceeded - IP blocked")
-        
+
         # Check rate limits
         limits_to_check = [
             (ip_address, LimitType.PER_IP),
@@ -567,21 +566,21 @@ class RateLimitMiddleware:
             (endpoint, LimitType.PER_ENDPOINT),
             ("global", LimitType.GLOBAL)
         ]
-        
+
         for identifier, limit_type in limits_to_check:
             if identifier:
                 result = await self.rate_limiter.check_rate_limit(
                     identifier, endpoint, limit_type, ip_address
                 )
-                
+
                 if not result.allowed:
                     rate_limit = self.rate_limiter._get_rate_limit(endpoint, limit_type)
                     headers = self.rate_limiter.get_rate_limit_headers(result, rate_limit)
                     return self._create_error_response(429, "Rate limit exceeded", headers)
-        
+
         # Record request
         await self.rate_limiter.record_request(ip_address, endpoint, user_id)
-        
+
         # Process request
         response = await call_next(request)
         return response
@@ -591,11 +590,11 @@ class RateLimitMiddleware:
         forwarded_for = request.headers.get("X-Forwarded-For")
         if forwarded_for:
             return forwarded_for.split(",")[0].strip()
-        
+
         real_ip = request.headers.get("X-Real-IP")
         if real_ip:
             return real_ip
-        
+
         return request.client.host if request.client else "unknown"
 
     def _get_user_id(self, request) -> Optional[str]:
@@ -606,16 +605,15 @@ class RateLimitMiddleware:
 
     def _create_error_response(self, status_code: int, message: str, headers: Dict[str, str] = None):
         """Create error response"""
-        from fastapi import HTTPException
         from fastapi.responses import JSONResponse
-        
+
         response = JSONResponse(
             status_code=status_code,
             content={"error": message, "timestamp": datetime.utcnow().isoformat()}
         )
-        
+
         if headers:
             for key, value in headers.items():
                 response.headers[key] = value
-        
+
         return response

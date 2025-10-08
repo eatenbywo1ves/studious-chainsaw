@@ -1,0 +1,82 @@
+{
+  "test_name": "ultimate",
+  "concurrent_users": 2000,
+  "duration": 30,
+  "timestamp": "2025-10-06T01:00:04.058830",
+  "initial_pool_metrics": {
+    "healthy": true,
+    "pool": {
+      "status": "healthy",
+      "environment": "production",
+      "max_connections": 160,
+      "created_connections": 29,
+      "available_connections": 29,
+      "in_use_connections": 0,
+      "utilization_percent": 0.0,
+      "metrics": {
+        "connections_created": 0,
+        "connections_reused": 0,
+        "connection_errors": 0,
+        "retry_attempts": 0,
+        "pool_exhausted_count": 0,
+        "health_check_failures": 0,
+        "max_connections": 160,
+        "created_connections": 29,
+        "available_connections": 29,
+        "in_use_connections": 0
+      }
+    },
+    "recommendations": [
+      "Pool operating optimally."
+    ],
+    "timestamp": "2025-10-06T05:59:29.791355+00:00"
+  },
+  "final_pool_metrics": {
+    "healthy": true,
+    "pool": {
+      "status": "healthy",
+      "environment": "production",
+      "max_connections": 160,
+      "created_connections": 29,
+      "available_connections": 29,
+      "in_use_connections": 0,
+      "utilization_percent": 0.0,
+      "metrics": {
+        "connections_created": 0,
+        "connections_reused": 0,
+        "connection_errors": 0,
+        "retry_attempts": 0,
+        "pool_exhausted_count": 0,
+        "health_check_failures": 0,
+        "max_connections": 160,
+        "created_connections": 29,
+        "available_connections": 29,
+        "in_use_connections": 0
+      }
+    },
+    "recommendations": [
+      "Pool operating optimally."
+    ],
+    "timestamp": "2025-10-06T06:00:04.040909+00:00"
+  },
+  "results": {
+    "total_requests": 11066,
+    "successful_requests": 11065,
+    "failed_requests": 1,
+    "success_rate": "99.99%",
+    "failure_rate": "0.01%",
+    "throughput_rps": "325.61",
+    "duration_seconds": "33.99",
+    "latency_ms": {
+      "min": "1084.44",
+      "avg": "4540.20",
+      "p50": "3979.07",
+      "p95": "9108.46",
+      "p99": "9338.73",
+      "max": "10002.23"
+    },
+    "errors": [
+      "Server disconnected"
+    ]
+  }
+}

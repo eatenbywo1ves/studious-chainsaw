@@ -7,22 +7,22 @@ interface ApiClientConfig {
 }
 
 export class ApiClient {
-  private baseUrl: string
-  private timeout: number
+  private baseUrl: string;
+  private timeout: number;
 
   constructor(config?: Partial<ApiClientConfig>) {
-    this.baseUrl = config?.baseUrl || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
-    this.timeout = config?.timeout || 10000 // 10 second default timeout
+    this.baseUrl = config?.baseUrl || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    this.timeout = config?.timeout || 10000; // 10 second default timeout
   }
 
   private async request<T>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
-    const url = `${this.baseUrl}${endpoint}`
+    const url = `${this.baseUrl}${endpoint}`;
 
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), this.timeout)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
     try {
       const response = await fetch(url, {
@@ -30,27 +30,27 @@ export class ApiClient {
         signal: controller.signal,
         headers: {
           'Content-Type': 'application/json',
-          ...options.headers,
-        },
-      })
+          ...options.headers
+        }
+      });
 
-      clearTimeout(timeoutId)
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ detail: 'Unknown error' }))
-        throw new Error(error.detail || `HTTP ${response.status}: ${response.statusText}`)
+        const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
+        throw new Error(error.detail || `HTTP ${response.status}: ${response.statusText}`);
       }
 
-      return response.json()
+      return response.json();
     } catch (error) {
-      clearTimeout(timeoutId)
+      clearTimeout(timeoutId);
       if (error instanceof Error) {
         if (error.name === 'AbortError') {
-          throw new Error(`Request timeout after ${this.timeout}ms`)
+          throw new Error(`Request timeout after ${this.timeout}ms`);
         }
-        throw error
+        throw error;
       }
-      throw new Error('Unknown error occurred')
+      throw new Error('Unknown error occurred');
     }
   }
 
@@ -75,9 +75,9 @@ export class ApiClient {
         current_period_start: data.current_period_start.toISOString(),
         current_period_end: data.current_period_end.toISOString(),
         trial_start: data.trial_start?.toISOString(),
-        trial_end: data.trial_end?.toISOString(),
-      }),
-    })
+        trial_end: data.trial_end?.toISOString()
+      })
+    });
   }
 
   async updateSubscription(data: {
@@ -95,15 +95,15 @@ export class ApiClient {
         ...data,
         current_period_start: data.current_period_start?.toISOString(),
         current_period_end: data.current_period_end?.toISOString(),
-        canceled_at: data.canceled_at?.toISOString(),
-      }),
-    })
+        canceled_at: data.canceled_at?.toISOString()
+      })
+    });
   }
 
   async cancelSubscription(userId: string, tenantId: string) {
     return this.request(`/api/subscriptions/cancel?user_id=${userId}&tenant_id=${tenantId}`, {
-      method: 'DELETE',
-    })
+      method: 'DELETE'
+    });
   }
 
   async updateCustomerInfo(data: {
@@ -115,8 +115,8 @@ export class ApiClient {
   }) {
     return this.request('/api/subscriptions/update-customer', {
       method: 'PUT',
-      body: JSON.stringify(data),
-    })
+      body: JSON.stringify(data)
+    });
   }
 
   async suspendUserAccess(data: {
@@ -126,16 +126,16 @@ export class ApiClient {
   }) {
     return this.request('/api/subscriptions/suspend', {
       method: 'POST',
-      body: JSON.stringify(data),
-    })
+      body: JSON.stringify(data)
+    });
   }
 
   async getSubscriptionStatus(tenantId: string) {
     return this.request(`/api/subscriptions/status/${tenantId}`, {
-      method: 'GET',
-    })
+      method: 'GET'
+    });
   }
 }
 
 // Singleton instance
-export const apiClient = new ApiClient()
+export const apiClient = new ApiClient();

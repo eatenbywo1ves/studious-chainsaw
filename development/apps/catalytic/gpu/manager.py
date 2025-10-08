@@ -2,9 +2,8 @@
 GPU Manager - Singleton for managing GPU resources and device selection
 """
 
-import os
 import threading
-from typing import Optional, List, Dict, Any
+from typing import Optional, Dict
 from enum import Enum
 import logging
 

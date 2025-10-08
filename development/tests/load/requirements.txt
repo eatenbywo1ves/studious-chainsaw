@@ -1,0 +1,39 @@
+# ============================================================================
+# Load Testing Dependencies
+# Catalytic Computing SaaS Platform
+# ============================================================================
+
+# Core load testing framework
+locust>=2.15.0
+
+# HTTP client
+requests>=2.31.0
+
+# Data analysis and reporting
+pandas>=2.0.0
+matplotlib>=3.7.0
+seaborn>=0.12.0
+
+# Performance profiling
+psutil>=5.9.0
+
+# Test data generation
+faker>=19.0.0
+
+# JSON/YAML processing
+pyyaml>=6.0.1
+
+# CLI utilities
+click>=8.1.0
+colorama>=0.4.6
+
+# Metrics export
+prometheus-client>=0.17.0
+
+# Optional: Advanced metrics visualization
+# numpy>=1.24.0
+# scipy>=1.10.0
+
+# Development dependencies
+# pytest>=7.4.0
+# pytest-cov>=4.1.0

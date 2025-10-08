@@ -29,12 +29,10 @@ import os
 import sys
 import json
 import random
-import string
 from datetime import datetime
 from typing import Optional
 
 from locust import HttpUser, task, between, events, tag
-from locust.runners import MasterRunner
 
 # Add parent directories to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

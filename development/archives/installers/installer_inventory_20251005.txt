@@ -1,0 +1,4 @@
+total 526M
+-rw-r--r-- 1 Corbin 197121 436M Sep 25 20:32 ghidra_11.4.2_PUBLIC_complete.zip
+-rw-r--r-- 1 Corbin 197121    0 Oct  5 18:12 installer_inventory_20251005.txt
+-rwxr-xr-x 1 Corbin 197121  90M Sep 28 23:59 Miniconda3-latest-Windows-x86_64.exe*

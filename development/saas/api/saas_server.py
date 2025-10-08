@@ -293,6 +293,81 @@ class LoginRequest(BaseModel):
 class RefreshRequest(BaseModel):
     refresh_token: str
 
+class RegisterRequest(BaseModel):
+    email: EmailStr
+    password: str
+    name: str
+    tenant_slug: Optional[str] = None
+
+@app.post("/auth/register", status_code=status.HTTP_201_CREATED)
+async def register_user(request: RegisterRequest, db: Session = Depends(get_db)):
+    """
+    Register a new user and create tenant if first user.
+
+    For testing: Creates new tenant for each registration.
+    For production: Would check if tenant exists or create one.
+    """
+    from database.models import User, Tenant, UserRole
+    from uuid import uuid4
+
+    # Generate tenant slug from email if not provided
+    tenant_slug = request.tenant_slug or request.email.split('@')[0]
+
+    # Check if user already exists with this email
+    existing_user = db.query(User).join(Tenant).filter(
+        User.email == request.email,
+        Tenant.slug == tenant_slug
+    ).first()
+
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User with this email already exists"
+        )
+
+    # Create new tenant (for testing - each user gets own tenant)
+    tenant = db.query(Tenant).filter(Tenant.slug == tenant_slug).first()
+    if not tenant:
+        tenant = Tenant(
+            id=str(uuid4()),
+            slug=tenant_slug,
+            name=f"{request.name}'s Organization",
+            email=request.email,
+            status="active",
+            meta_data={}
+        )
+        db.add(tenant)
+        db.flush()  # Get tenant ID
+
+    # Create user
+    user = User(
+        id=str(uuid4()),
+        tenant_id=tenant.id,
+        email=request.email,
+        password_hash="",  # Will be set by set_password
+        first_name=request.name.split()[0] if ' ' in request.name else request.name,
+        last_name=request.name.split()[1] if ' ' in request.name else "",
+        role=UserRole.OWNER if not tenant.users else UserRole.MEMBER,
+        is_active=True,
+        email_verified=False,
+        meta_data={}
+    )
+    user.set_password(request.password)
+
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    return {
+        "id": user.id,
+        "email": user.email,
+        "name": request.name,
+        "tenant_id": tenant.id,
+        "tenant_slug": tenant.slug,
+        "role": user.role,
+        "created_at": user.created_at.isoformat()
+    }
+
 @app.post("/auth/login")
 async def login(request: LoginRequest, db: Session = Depends(get_db)):
     """Authenticate user and return tokens (Reactive version)"""
@@ -593,7 +668,7 @@ async def redis_health_check():
 
         # Get pool status (includes all metrics and health info)
         pool_status = redis_pool.get_pool_status()
-        
+
         return {
             "status": pool_status["status"],
             "environment": pool_status["environment"],
@@ -686,7 +761,7 @@ async def transform_lattice(
                     key_str = request.parameters.get("key", "default_key")
                     data = np.random.randint(0, 256, 1000, dtype=np.uint8)
                     key = np.frombuffer(key_str.encode(), dtype=np.uint8)
-                    result_gpu = gpu_lattice.xor_transform_gpu(data, key)
+                    gpu_lattice.xor_transform_gpu(data, key)
                     result_summary = {
                         "success": True,
                         "type": "xor",
@@ -821,8 +896,8 @@ async def get_gpu_status(
                 free_memory = mem_info[0] / (1024**2)  # MB
                 used_memory = total_memory - free_memory
                 utilization_percent = (used_memory / total_memory) * 100
-            except:
-                # Fallback if CuPy not available
+            except (AttributeError, RuntimeError, ImportError):
+                # Fallback if CuPy not available or CUDA error
                 allocated_memory = torch.cuda.memory_allocated(i) / (1024**2)  # MB
                 used_memory = allocated_memory
                 utilization_percent = (used_memory / total_memory) * 100

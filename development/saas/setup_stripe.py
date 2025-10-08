@@ -243,7 +243,7 @@ def test_stripe_connection():
 
     try:
         account = stripe.Account.retrieve()
-        print(f"[OK] Connected to Stripe")
+        print("[OK] Connected to Stripe")
         print(f"  Account ID: {account.id}")
         print(f"  Account Type: {account.type}")
         print(f"  Country: {account.country}")

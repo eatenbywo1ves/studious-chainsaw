@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server'
-import Stripe from 'stripe'
-import { verifyRequestAuth, unauthorizedResponse, forbiddenResponse } from '@/lib/auth'
+import { NextRequest, NextResponse } from 'next/server';
+import Stripe from 'stripe';
+import { verifyRequestAuth, unauthorizedResponse, forbiddenResponse } from '@/lib/auth';
 
 // Initialize Stripe with secret key
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-06-20',
-})
+  apiVersion: '2025-08-27.basil'
+});
 
 // Stripe configuration
 export const stripeConfig = {
@@ -17,20 +17,20 @@ export const stripeConfig = {
   products: {
     free: {
       priceId: process.env.STRIPE_FREE_PRICE_ID || 'price_free',
-      features: ['100 API calls/month', 'Basic support', 'Standard compute lattices'],
+      features: ['100 API calls/month', 'Basic support', 'Standard compute lattices']
     },
     starter: {
       priceId: process.env.STRIPE_STARTER_PRICE_ID || 'price_starter',
-      features: ['1,000 API calls/month', 'Email support', 'Enhanced lattice management'],
+      features: ['1,000 API calls/month', 'Email support', 'Enhanced lattice management']
     },
     professional: {
       priceId: process.env.STRIPE_PROFESSIONAL_PRICE_ID || 'price_professional',
-      features: ['10,000 API calls/month', 'Priority support', 'Advanced analytics', 'Custom lattice configurations'],
+      features: ['10,000 API calls/month', 'Priority support', 'Advanced analytics', 'Custom lattice configurations']
     },
     enterprise: {
       priceId: process.env.STRIPE_ENTERPRISE_PRICE_ID || 'price_enterprise',
-      features: ['Unlimited API calls', 'Dedicated support', 'White-label options', 'SLA guarantees'],
-    },
+      features: ['Unlimited API calls', 'Dedicated support', 'White-label options', 'SLA guarantees']
+    }
   },
 
   // Webhook events we handle
@@ -42,9 +42,9 @@ export const stripeConfig = {
     'invoice.payment_succeeded',
     'invoice.payment_failed',
     'customer.created',
-    'customer.updated',
-  ],
-}
+    'customer.updated'
+  ]
+};
 
 // GET /api/stripe/config - Get Stripe public configuration
 export async function GET(request: NextRequest) {
@@ -55,33 +55,33 @@ export async function GET(request: NextRequest) {
       products: Object.entries(stripeConfig.products).map(([key, value]) => ({
         planCode: key,
         priceId: value.priceId,
-        features: value.features,
-      })),
-    }
+        features: value.features
+      }))
+    };
 
-    return NextResponse.json(publicConfig)
+    return NextResponse.json(publicConfig);
   } catch (error) {
-    console.error('Error getting Stripe config:', error)
+    console.error('Error getting Stripe config:', error);
     return NextResponse.json(
       { error: 'Failed to get Stripe configuration' },
       { status: 500 }
-    )
+    );
   }
 }
 
 // POST /api/stripe/config - Update Stripe configuration (admin only)
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    const { action, ...data } = body
+    const body = await request.json();
+    const { action, ...data } = body;
 
     // Verify JWT token and admin role
-    const authResult = await verifyRequestAuth(request, true) // requireAdmin = true
+    const authResult = await verifyRequestAuth(request, true); // requireAdmin = true
     if (!authResult.authenticated || !authResult.user) {
       if (authResult.statusCode === 403) {
-        return forbiddenResponse(authResult.error)
+        return forbiddenResponse(authResult.error);
       }
-      return unauthorizedResponse(authResult.error)
+      return unauthorizedResponse(authResult.error);
     }
 
     switch (action) {
@@ -91,9 +91,9 @@ export async function POST(request: NextRequest) {
           name: data.name,
           description: data.description,
           metadata: {
-            plan_code: data.planCode,
-          },
-        })
+            plan_code: data.planCode
+          }
+        });
 
         // Create corresponding price
         const price = await stripe.prices.create({
@@ -101,28 +101,28 @@ export async function POST(request: NextRequest) {
           unit_amount: data.amount, // Amount in cents
           currency: data.currency || 'usd',
           recurring: data.recurring ? {
-            interval: data.interval || 'month',
-          } : undefined,
-        })
+            interval: data.interval || 'month'
+          } : undefined
+        });
 
         return NextResponse.json({
           product,
           price,
-          message: 'Product and price created successfully',
-        })
+          message: 'Product and price created successfully'
+        });
 
       case 'update_product':
         // Update existing product
         const updatedProduct = await stripe.products.update(data.productId, {
           name: data.name,
           description: data.description,
-          metadata: data.metadata,
-        })
+          metadata: data.metadata
+        });
 
         return NextResponse.json({
           product: updatedProduct,
-          message: 'Product updated successfully',
-        })
+          message: 'Product updated successfully'
+        });
 
       case 'create_coupon':
         // Create a coupon
@@ -131,27 +131,27 @@ export async function POST(request: NextRequest) {
           duration: data.duration,
           duration_in_months: data.durationInMonths,
           max_redemptions: data.maxRedemptions,
-          metadata: data.metadata,
-        })
+          metadata: data.metadata
+        });
 
         return NextResponse.json({
           coupon,
-          message: 'Coupon created successfully',
-        })
+          message: 'Coupon created successfully'
+        });
 
       default:
         return NextResponse.json(
           { error: 'Invalid action' },
           { status: 400 }
-        )
+        );
     }
   } catch (error) {
-    console.error('Error updating Stripe config:', error)
+    console.error('Error updating Stripe config:', error);
     return NextResponse.json(
       { error: 'Failed to update Stripe configuration' },
       { status: 500 }
-    )
+    );
   }
 }
 
-export { stripe }
+export { stripe };

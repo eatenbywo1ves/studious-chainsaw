@@ -1,0 +1,566 @@
+openapi: 3.0.3
+info:
+  title: Catalytic Computing SaaS API
+  description: "\n# Catalytic Computing SaaS Platform API\n\nA multi-tenant SaaS platform\
+    \ for advanced computational lattice operations with GPU acceleration.\n\n## Features\n\
+    \n- **Multi-tenant Architecture**: Complete tenant isolation with Row-Level Security\
+    \ (RLS)\n- **JWT Authentication**: Secure token-based authentication with refresh\
+    \ tokens\n- **Rate Limiting**: Configurable rate limits per tenant and plan\n\
+    - **GPU Acceleration**: Automatic GPU utilization for large lattice operations\n\
+    - **Real-time Monitoring**: Prometheus metrics and health checks\n- **Subscription\
+    \ Management**: Flexible subscription plans with usage tracking\n\n## Authentication\n\
+    \nAll API endpoints (except `/auth/register` and `/auth/login`) require a valid\
+    \ JWT access token.\n\nInclude the token in the `Authorization` header:\n\n```\n\
+    Authorization: Bearer <access_token>\n```\n\n## Rate Limiting\n\nRate limits are\
+    \ enforced based on your subscription plan:\n\n- **Free Tier**: 1,000 requests/month\n\
+    - **Pro Tier**: 100,000 requests/month  \n- **Enterprise**: Custom limits\n\n\
+    Rate limit headers are included in all responses:\n\n- `X-RateLimit-Limit`: Total\
+    \ requests allowed\n- `X-RateLimit-Remaining`: Requests remaining\n- `X-RateLimit-Reset`:\
+    \ Unix timestamp when limit resets\n\n## Error Handling\n\nAll errors follow a\
+    \ consistent format:\n\n```json\n{\n  \"detail\": \"Error message describing what\
+    \ went wrong\",\n  \"status_code\": 400,\n  \"type\": \"validation_error\"\n}\n\
+    ```\n\nCommon HTTP status codes:\n\n- `200 OK`: Request successful\n- `201 Created`:\
+    \ Resource created successfully\n- `400 Bad Request`: Invalid request data\n-\
+    \ `401 Unauthorized`: Missing or invalid authentication\n- `403 Forbidden`: Insufficient\
+    \ permissions\n- `404 Not Found`: Resource not found\n- `429 Too Many Requests`:\
+    \ Rate limit exceeded\n- `500 Internal Server Error`: Server error\n         \
+    \   "
+  version: 1.0.0
+  contact:
+    name: Catalytic Computing Support
+    email: support@catalyticcomputing.example.com
+  license:
+    name: Proprietary
+    url: https://catalyticcomputing.example.com/license
+servers:
+- url: http://localhost:8000
+  description: Development server
+- url: https://api.catalyticcomputing.example.com
+  description: Production server
+tags:
+- name: authentication
+  description: Authentication and authorization operations
+- name: tenants
+  description: Tenant management and registration
+- name: users
+  description: User management within tenants
+- name: lattices
+  description: KA Lattice creation and operations
+- name: subscriptions
+  description: Subscription and billing management
+- name: monitoring
+  description: Health checks and metrics
+paths:
+  /api/auth/register:
+    post:
+      tags:
+      - authentication
+      summary: Register new tenant
+      description: Register a new tenant account with admin user
+      operationId: registerTenant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TenantRegistration'
+            example:
+              company_name: Acme Corporation
+              email: admin@acme.com
+              password: SecurePassword123!
+              first_name: John
+              last_name: Doe
+              domain: acme.com
+              plan_code: free
+      responses:
+        '201':
+          description: Tenant registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistrationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: Tenant already exists
+  /api/auth/login:
+    post:
+      tags:
+      - authentication
+      summary: Login and get JWT tokens
+      description: Authenticate user and receive access + refresh tokens
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              email: admin@acme.com
+              password: SecurePassword123!
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Invalid credentials
+  /api/auth/verify:
+    post:
+      tags:
+      - authentication
+      summary: Verify JWT token
+      description: Verify a JWT token and return decoded payload
+      operationId: verifyToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenVerifyRequest'
+      responses:
+        '200':
+          description: Token is valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenVerifyResponse'
+        '401':
+          description: Token is invalid or expired
+  /api/auth/refresh:
+    post:
+      tags:
+      - authentication
+      summary: Refresh access token
+      description: Get new access token using refresh token
+      operationId: refreshToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refresh_token:
+                  type: string
+              required:
+              - refresh_token
+      responses:
+        '200':
+          description: Token refreshed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                  token_type:
+                    type: string
+                    example: bearer
+        '401':
+          description: Invalid refresh token
+  /api/auth/logout:
+    post:
+      tags:
+      - authentication
+      summary: Logout and blacklist token
+      description: Logout user and add token to blacklist
+      operationId: logout
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: Logged out successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/lattices:
+    post:
+      tags:
+      - lattices
+      summary: Create new KA lattice
+      description: Create a new Knowledge Algebra lattice with specified dimensions
+      operationId: createLattice
+      security:
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LatticeCreate'
+            example:
+              name: My Lattice
+              dimensions: 3
+              size: 1000
+              field_type: complex
+              geometry: euclidean
+              enable_gpu: true
+      responses:
+        '201':
+          description: Lattice created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LatticeResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+    get:
+      tags:
+      - lattices
+      summary: List tenant lattices
+      description: Get all lattices for current tenant
+      operationId: listLattices
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: skip
+        in: query
+        schema:
+          type: integer
+          default: 0
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          default: 100
+      responses:
+        '200':
+          description: List of lattices
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LatticeResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/lattices/{lattice_id}:
+    get:
+      tags:
+      - lattices
+      summary: Get lattice details
+      description: Get detailed information about a specific lattice
+      operationId: getLattice
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: lattice_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Lattice details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LatticeResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags:
+      - lattices
+      summary: Delete lattice
+      description: Delete a lattice and free resources
+      operationId: deleteLattice
+      security:
+      - bearerAuth: []
+      parameters:
+      - name: lattice_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '204':
+          description: Lattice deleted
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /health:
+    get:
+      tags:
+      - monitoring
+      summary: Health check
+      description: Check API health and component status
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+  /metrics:
+    get:
+      tags:
+      - monitoring
+      summary: Prometheus metrics
+      description: Get Prometheus-compatible metrics
+      operationId: getMetrics
+      responses:
+        '200':
+          description: Metrics in Prometheus format
+          content:
+            text/plain:
+              schema:
+                type: string
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT access token from /api/auth/login
+  schemas:
+    TenantRegistration:
+      type: object
+      required:
+      - company_name
+      - email
+      - password
+      - first_name
+      - last_name
+      properties:
+        company_name:
+          type: string
+          minLength: 2
+          maxLength: 255
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+          description: Must contain uppercase, lowercase, and digit
+        first_name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        last_name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        domain:
+          type: string
+          nullable: true
+        plan_code:
+          type: string
+          default: free
+          enum:
+          - free
+          - pro
+          - enterprise
+    RegistrationResponse:
+      type: object
+      properties:
+        tenant_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+        token_type:
+          type: string
+          example: bearer
+    LoginRequest:
+      type: object
+      required:
+      - email
+      - password
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+    LoginResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+        token_type:
+          type: string
+          example: bearer
+        expires_in:
+          type: integer
+          description: Seconds until expiration
+    TokenVerifyRequest:
+      type: object
+      required:
+      - token
+      properties:
+        token:
+          type: string
+        token_type:
+          type: string
+          default: access
+    TokenVerifyResponse:
+      type: object
+      properties:
+        sub:
+          type: string
+        tenant_id:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+        type:
+          type: string
+        jti:
+          type: string
+          nullable: true
+        iat:
+          type: integer
+          nullable: true
+        exp:
+          type: integer
+          nullable: true
+    LatticeCreate:
+      type: object
+      required:
+      - name
+      - dimensions
+      - size
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        dimensions:
+          type: integer
+          minimum: 2
+          maximum: 10
+        size:
+          type: integer
+          minimum: 1
+          maximum: 10000
+        field_type:
+          type: string
+          enum:
+          - real
+          - complex
+          default: complex
+        geometry:
+          type: string
+          enum:
+          - euclidean
+          - hyperbolic
+          - spherical
+          default: euclidean
+        enable_gpu:
+          type: boolean
+          default: false
+    LatticeResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        dimensions:
+          type: integer
+        size:
+          type: integer
+        field_type:
+          type: string
+        geometry:
+          type: string
+        owner_id:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        processing_info:
+          type: object
+          nullable: true
+          properties:
+            gpu_used:
+              type: boolean
+            processing_time_ms:
+              type: number
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+          - healthy
+          - degraded
+          - unhealthy
+        timestamp:
+          type: string
+          format: date-time
+        components:
+          type: object
+          properties:
+            database:
+              type: object
+              properties:
+                status:
+                  type: string
+                latency_ms:
+                  type: number
+            redis:
+              type: object
+              properties:
+                status:
+                  type: string
+                latency_ms:
+                  type: number
+    Error:
+      type: object
+      properties:
+        detail:
+          type: string
+        status_code:
+          type: integer
+        type:
+          type: string
+  responses:
+    BadRequest:
+      description: Bad request - invalid input
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: Unauthorized - missing or invalid authentication
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    RateLimitExceeded:
+      description: Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'

@@ -74,7 +74,6 @@ VALID_DEST = ['esp', 'eax', 'ecx', 'edx', 'rsp']
 
 # TODO : Extract patterns
 def is_string_load(addr):
-    patterns = []
     # Check for first parts instruction and what it is loading -- also ignore function pointers we may have renamed
     if (idc.print_insn_mnem(addr) != 'mov' and idc.print_insn_mnem(addr) != 'lea') and (idc.get_operand_type(addr, 1) != 2 or idc.get_operand_type(addr, 1) != 5) or idc.print_operand(addr, 1)[-4:] == '_ptr':
         return False
@@ -334,7 +333,7 @@ def runtime_init():
 #
 
 def create_pointer(addr, force_size=None):
-    if force_size is not 4 and (idaapi.get_inf_structure().is_64bit() or force_size is 8):
+    if force_size != 4 and (idaapi.get_inf_structure().is_64bit() or force_size == 8):
         ida_bytes.create_data(addr, FF_QWORD, 8, ida_idaapi.BADADDR)
         return idc.get_qword(addr), 8
     else:
@@ -384,7 +383,7 @@ def renamer_init():
             func_name_addr = idc.get_wide_dword(name_offset + start_ea + addr_size) + start_ea
             func_name = ida_bytes.get_strlit_contents(func_name_addr, -1, STRTYPE_C)
             ida_bytes.create_strlit(func_name_addr, len(func_name), STRTYPE_C)
-            appended = clean_func_name = clean_function_name(func_name)
+            clean_func_name = clean_function_name(func_name)
             debug('Going to remap function at 0x%x with %s - cleaned up as %s' % (func_offset, func_name, clean_func_name))
 
             if idaapi.get_func_name(func_offset) is not None:

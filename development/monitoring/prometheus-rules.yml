@@ -1,0 +1,282 @@
+groups:
+  # ==========================================================================
+  # SECURITY MONITORING ALERTS
+  # Phase 2 - PCI DSS Requirement 10, SOC 2 CC7.2
+  # ==========================================================================
+
+  - name: security_alerts
+    interval: 30s
+    rules:
+      # ======================================================================
+      # Authentication & Authorization Alerts
+      # ======================================================================
+
+      - alert: HighFailedLoginRate
+        expr: rate(http_requests_total{endpoint="/auth/login",status="401"}[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          category: security
+          compliance: pci_dss_10.2.4
+        annotations:
+          summary: "High rate of failed login attempts"
+          description: "More than 10 failed login attempts per minute detected ({{ $value }} attempts/min)"
+          remediation: "Review authentication logs for potential brute force attack"
+
+      - alert: CriticalFailedLoginRate
+        expr: rate(http_requests_total{endpoint="/auth/login",status="401"}[1m]) > 50
+        for: 1m
+        labels:
+          severity: critical
+          category: security
+          compliance: pci_dss_10.2.4
+        annotations:
+          summary: "CRITICAL: Potential brute force attack"
+          description: "Extremely high failed login rate: {{ $value }} attempts/min"
+          remediation: "IMMEDIATE ACTION: Enable emergency rate limiting, review IP sources"
+
+      - alert: JWTTokenBlacklistHigh
+        expr: redis_key_size{key="jwt:blacklist"} > 10000
+        for: 10m
+        labels:
+          severity: warning
+          category: security
+        annotations:
+          summary: "High number of blacklisted JWT tokens"
+          description: "JWT blacklist size: {{ $value }} tokens"
+          remediation: "Review token revocation patterns, check for mass logout events"
+
+      # ======================================================================
+      # Rate Limiting Alerts
+      # ======================================================================
+
+      - alert: RateLimitExceeded
+        expr: rate(http_requests_total{status="429"}[5m]) > 5
+        for: 5m
+        labels:
+          severity: warning
+          category: security
+          compliance: owasp_dos
+        annotations:
+          summary: "High rate of rate-limited requests"
+          description: "{{ $value }} requests/min are being rate-limited"
+          remediation: "Check for DDoS attack or legitimate traffic spike"
+
+      - alert: RateLimitCritical
+        expr: rate(http_requests_total{status="429"}[1m]) > 100
+        for: 1m
+        labels:
+          severity: critical
+          category: security
+          compliance: owasp_dos
+        annotations:
+          summary: "CRITICAL: Potential DDoS attack"
+          description: "Extremely high rate limiting: {{ $value }} requests/min"
+          remediation: "IMMEDIATE ACTION: Review traffic sources, enable DDoS mitigation"
+
+      # ======================================================================
+      # Input Validation Alerts
+      # ======================================================================
+
+      - alert: HighInputValidationFailures
+        expr: rate(http_requests_total{status="422"}[5m]) > 20
+        for: 5m
+        labels:
+          severity: warning
+          category: security
+          compliance: pci_dss_6.5.1
+        annotations:
+          summary: "High rate of input validation failures"
+          description: "{{ $value }} validation failures per minute"
+          remediation: "Review request patterns for potential injection attacks"
+
+      - alert: SQLInjectionAttempt
+        expr: rate(input_validation_failures_total{type="sql_injection"}[5m]) > 1
+        for: 1m
+        labels:
+          severity: critical
+          category: security
+          compliance: owasp_injection
+        annotations:
+          summary: "SQL injection attempt detected"
+          description: "{{ $value }} SQL injection patterns detected per minute"
+          remediation: "IMMEDIATE: Review logs, block source IP, verify WAF rules"
+
+      # ======================================================================
+      # Encryption & Data Protection Alerts
+      # ======================================================================
+
+      - alert: EncryptionFailureRate
+        expr: rate(encryption_errors_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+          category: security
+          compliance: pci_dss_3
+        annotations:
+          summary: "Encryption operations failing"
+          description: "{{ $value }} encryption errors per minute"
+          remediation: "CRITICAL: Check encryption key availability and validity"
+
+      - alert: DecryptionFailureRate
+        expr: rate(decryption_errors_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+          category: security
+          compliance: pci_dss_3
+        annotations:
+          summary: "Decryption operations failing"
+          description: "{{ $value }} decryption errors per minute"
+          remediation: "CRITICAL: Verify encryption keys, check for key rotation issues"
+
+      # ======================================================================
+      # API Security Alerts
+      # ======================================================================
+
+      - alert: UnauthorizedAPIAccess
+        expr: rate(http_requests_total{status="403"}[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          category: security
+          compliance: pci_dss_10.2.2
+        annotations:
+          summary: "High rate of unauthorized API access attempts"
+          description: "{{ $value }} 403 Forbidden responses per minute"
+          remediation: "Review access patterns, check for privilege escalation attempts"
+
+      - alert: AnomalousAPIUsage
+        expr: rate(http_requests_total[5m]) > avg_over_time(rate(http_requests_total[5m])[1h:5m]) * 5
+        for: 10m
+        labels:
+          severity: warning
+          category: security
+        annotations:
+          summary: "API traffic anomaly detected"
+          description: "Current traffic is {{ $value }}x higher than baseline"
+          remediation: "Investigate traffic source, check for bot activity or DDoS"
+
+      # ======================================================================
+      # Database Security Alerts
+      # ======================================================================
+
+      - alert: HighDatabaseQueryLatency
+        expr: rate(database_query_duration_seconds_sum[5m]) / rate(database_query_duration_seconds_count[5m]) > 1
+        for: 10m
+        labels:
+          severity: warning
+          category: performance
+        annotations:
+          summary: "Database queries are slow"
+          description: "Average query time: {{ $value }}s"
+          remediation: "Check for slow queries, potential SQL injection causing table scans"
+
+      - alert: DatabaseConnectionPoolExhaustion
+        expr: database_connections_active / database_connections_max > 0.9
+        for: 5m
+        labels:
+          severity: critical
+          category: security
+        annotations:
+          summary: "Database connection pool near exhaustion"
+          description: "{{ $value }}% of connection pool in use"
+          remediation: "Check for connection leaks or DDoS attack"
+
+      # ======================================================================
+      # Redis Cache Security Alerts
+      # ======================================================================
+
+      - alert: RedisMemoryHigh
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          category: performance
+        annotations:
+          summary: "Redis memory usage high"
+          description: "Redis using {{ $value }}% of max memory"
+          remediation: "Review key expiration, check for memory leak or cache poisoning"
+
+      - alert: RedisCacheMissRateHigh
+        expr: rate(cache_misses_total[5m]) / rate(cache_requests_total[5m]) > 0.5
+        for: 10m
+        labels:
+          severity: warning
+          category: performance
+        annotations:
+          summary: "High cache miss rate"
+          description: "Cache miss rate: {{ $value }}%"
+          remediation: "Review cache invalidation patterns, potential cache poisoning"
+
+      # ======================================================================
+      # System Resource Alerts
+      # ======================================================================
+
+      - alert: HighCPUUsage
+        expr: 100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 10m
+        labels:
+          severity: warning
+          category: performance
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: "CPU usage: {{ $value }}%"
+          remediation: "Check for crypto mining, infinite loops, or DDoS attack"
+
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 90
+        for: 5m
+        labels:
+          severity: critical
+          category: performance
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "Memory usage: {{ $value }}%"
+          remediation: "Check for memory leaks, investigate high memory processes"
+
+      - alert: DiskSpaceLow
+        expr: (1 - (node_filesystem_avail_bytes / node_filesystem_size_bytes)) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          category: operations
+        annotations:
+          summary: "Low disk space on {{ $labels.instance }}"
+          description: "Disk usage: {{ $value }}%"
+          remediation: "Clean up logs, check for log flooding attacks"
+
+  # ==========================================================================
+  # COMPLIANCE RECORDING RULES
+  # Pre-compute aggregations for compliance reporting
+  # ==========================================================================
+
+  - name: compliance_metrics
+    interval: 1m
+    rules:
+      # PCI DSS 10.2 - Track security events
+      - record: security:failed_logins:rate5m
+        expr: rate(http_requests_total{endpoint="/auth/login",status="401"}[5m])
+
+      - record: security:unauthorized_access:rate5m
+        expr: rate(http_requests_total{status="403"}[5m])
+
+      - record: security:rate_limited:rate5m
+        expr: rate(http_requests_total{status="429"}[5m])
+
+      # Data protection metrics
+      - record: security:encryption_errors:rate5m
+        expr: rate(encryption_errors_total[5m])
+
+      - record: security:decryption_errors:rate5m
+        expr: rate(decryption_errors_total[5m])
+
+      # Performance baselines
+      - record: api:request_rate:avg1h
+        expr: avg_over_time(rate(http_requests_total[5m])[1h:5m])
+
+      - record: api:latency:p95
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))
+
+      - record: api:latency:p99
+        expr: histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[5m]))

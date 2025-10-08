@@ -1,0 +1,185 @@
+global:
+  resolve_timeout: 5m
+  # SMTP configuration (configure for production)
+  smtp_smarthost: 'localhost:587'
+  smtp_from: 'alertmanager@catalytic.local'
+  smtp_auth_username: ''
+  smtp_auth_password: ''
+  smtp_require_tls: true
+
+# Alert routing configuration
+route:
+  # Default receiver for all alerts
+  receiver: 'default'
+
+  # Group alerts by these labels
+  group_by: ['alertname', 'severity', 'category']
+
+  # Wait before sending initial notification
+  group_wait: 30s
+
+  # Wait before sending update on existing group
+  group_interval: 5m
+
+  # Wait before resending alert
+  repeat_interval: 4h
+
+  # Route specific alerts to specific receivers
+  routes:
+    # Critical security alerts - immediate notification
+    - match:
+        severity: critical
+        category: security
+      receiver: security-critical
+      group_wait: 10s
+      group_interval: 1m
+      repeat_interval: 30m
+
+    # Warning security alerts - grouped notifications
+    - match:
+        severity: warning
+        category: security
+      receiver: security-warning
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 2h
+
+    # Performance alerts - lower priority
+    - match:
+        category: performance
+      receiver: performance-alerts
+      group_wait: 5m
+      group_interval: 10m
+      repeat_interval: 12h
+
+    # Operational alerts
+    - match:
+        category: operations
+      receiver: ops-alerts
+      group_wait: 5m
+      group_interval: 10m
+      repeat_interval: 12h
+
+# Alert receivers/integrations
+receivers:
+  # Default receiver (console logging for development)
+  - name: 'default'
+    webhook_configs:
+      - url: 'http://localhost:9099/webhook'
+        send_resolved: true
+
+  # Critical security alerts (multiple channels)
+  - name: 'security-critical'
+    # Email notifications
+    email_configs:
+      - to: 'security-team@catalytic.local'
+        headers:
+          Subject: '[CRITICAL SECURITY ALERT] {{ .GroupLabels.alertname }}'
+        html: |
+          <h2>Critical Security Alert</h2>
+          <p><strong>Alert:</strong> {{ .GroupLabels.alertname }}</p>
+          <p><strong>Severity:</strong> {{ .CommonLabels.severity }}</p>
+          <p><strong>Compliance:</strong> {{ .CommonLabels.compliance }}</p>
+          <p><strong>Description:</strong> {{ .CommonAnnotations.description }}</p>
+          <p><strong>Remediation:</strong> {{ .CommonAnnotations.remediation }}</p>
+          <p><strong>Time:</strong> {{ .StartsAt }}</p>
+
+    # Slack notifications (configure webhook URL)
+    # slack_configs:
+    #   - api_url: 'https://hooks.slack.com/services/YOUR/WEBHOOK/URL'
+    #     channel: '#security-alerts'
+    #     title: '[CRITICAL] {{ .GroupLabels.alertname }}'
+    #     text: |
+    #       *Description:* {{ .CommonAnnotations.description }}
+    #       *Remediation:* {{ .CommonAnnotations.remediation }}
+
+    # PagerDuty integration (configure for production)
+    # pagerduty_configs:
+    #   - service_key: 'YOUR_PAGERDUTY_SERVICE_KEY'
+    #     description: '{{ .GroupLabels.alertname }}: {{ .CommonAnnotations.description }}'
+
+    # Webhook for custom integrations
+    webhook_configs:
+      - url: 'http://localhost:9099/security-critical'
+        send_resolved: true
+
+  # Warning security alerts
+  - name: 'security-warning'
+    email_configs:
+      - to: 'security-team@catalytic.local'
+        headers:
+          Subject: '[SECURITY WARNING] {{ .GroupLabels.alertname }}'
+        html: |
+          <h2>Security Warning</h2>
+          <p><strong>Alert:</strong> {{ .GroupLabels.alertname }}</p>
+          <p><strong>Severity:</strong> {{ .CommonLabels.severity }}</p>
+          <p><strong>Description:</strong> {{ .CommonAnnotations.description }}</p>
+          <p><strong>Remediation:</strong> {{ .CommonAnnotations.remediation }}</p>
+
+    webhook_configs:
+      - url: 'http://localhost:9099/security-warning'
+        send_resolved: true
+
+  # Performance alerts
+  - name: 'performance-alerts'
+    email_configs:
+      - to: 'ops-team@catalytic.local'
+        headers:
+          Subject: '[PERFORMANCE] {{ .GroupLabels.alertname }}'
+
+    webhook_configs:
+      - url: 'http://localhost:9099/performance'
+        send_resolved: true
+
+  # Operational alerts
+  - name: 'ops-alerts'
+    email_configs:
+      - to: 'ops-team@catalytic.local'
+        headers:
+          Subject: '[OPERATIONS] {{ .GroupLabels.alertname }}'
+
+    webhook_configs:
+      - url: 'http://localhost:9099/operations'
+        send_resolved: true
+
+# Inhibition rules - suppress alerts when related alerts are firing
+inhibit_rules:
+  # Suppress warning alerts when critical alert is active
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'category']
+
+  # Suppress performance alerts during security incidents
+  - source_match:
+      category: 'security'
+      severity: 'critical'
+    target_match:
+      category: 'performance'
+    equal: ['instance']
+
+# Template files (optional)
+# templates:
+#   - '/etc/alertmanager/templates/*.tmpl'
+
+# ============================================================================
+# CONFIGURATION NOTES
+# ============================================================================
+#
+# Development Mode:
+# - Alerts logged to console via webhook
+# - Email notifications to local addresses
+#
+# Production Configuration Required:
+# 1. SMTP server credentials
+# 2. Slack webhook URL (optional)
+# 3. PagerDuty service key (for critical alerts)
+# 4. Actual email addresses for teams
+#
+# Compliance:
+# - PCI DSS 10.6 - Review logs and security events daily
+# - SOC 2 CC7.2 - Monitor system performance
+# - ISO 27001 A.12.4 - Logging and monitoring
+#
+# ============================================================================

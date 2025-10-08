@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="800">
+<defs>
+  <style>
+    .title { font-family: Arial, sans-serif; font-size: 24px; font-weight: bold; fill: #333; }
+    .level-title { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: #333; }
+    .glyph-label { font-family: monospace; font-size: 11px; fill: #666; }
+  </style>
+</defs>
+
+<rect x="0" y="0" width="1400" height="800" fill="white"/>
+<text x="700" y="40" class="title" text-anchor="middle">Performance Optimization Heatmap</text>
+
+<rect x="50" y="100" width="640" height="320" fill="#ffebee" stroke="#999" stroke-width="2" rx="10"/>
+<text x="370" y="130" class="level-title" text-anchor="middle">Base (+)</text>
+<g transform="translate(100, 160)">
+<polygon points="25,15.0 16.25,32.5 33.75,32.5" fill="#ffff00" stroke="#333" stroke-width="2" stroke-dasharray="5,3"/>
+<text x="62.5" y="32.5" font-size="7.5" fill="#333" font-weight="bold">+</text>
+</g>
+<text x="125" y="235" class="glyph-label" text-anchor="middle">35.6ms</text>
+<g transform="translate(220, 160)">
+<circle cx="25" cy="25" r="10.0" fill="#ffff00" stroke="#333" stroke-width="2" stroke-dasharray="5,3"/>
+<text x="62.5" y="32.5" font-size="7.5" fill="#333" font-weight="bold">+</text>
+</g>
+<text x="245" y="235" class="glyph-label" text-anchor="middle">45.6ms</text>
+<g transform="translate(340, 160)">
+<polygon points="25,15.0 35.0,25 25,35.0 15.0,25" fill="#7fff00" stroke="#333" stroke-width="2" stroke-dasharray="5,3"/>
+<text x="62.5" y="32.5" font-size="7.5" fill="#333" font-weight="bold">+</text>
+</g>
+<text x="365" y="235" class="glyph-label" text-anchor="middle">5.4ms</text>
+<g transform="translate(460, 160)">
+<polygon points="35.0,25.0 30.0,33.66025403784438 20.0,33.66025403784439 15.0,25.0 19.999999999999996,16.339745962155614 30.0,16.339745962155614" fill="#ff0000" stroke="#333" stroke-width="2" stroke-dasharray="5,3"/>
+<text x="62.5" y="32.5" font-size="7.5" fill="#333" font-weight="bold">+</text>
+</g>
+<text x="485" y="235" class="glyph-label" text-anchor="middle">120.6ms</text>
+<g transform="translate(580, 160)">
+<polygon points="25.000013267948965,15.000000000008802 27.938929481660292,20.954917367737963 34.51056598295554,21.9098325799645 29.75528299147777,26.54508371001775 30.877858963320584,33.090165264524074 25.000006633974483,29.999999999995598 19.122162504680084,33.09018086192214 20.244721108557336,26.545096328582723 15.489425817041214,21.909857817116205 22.061059784360065,20.954925166465483" fill="#ffff00" stroke="#333" stroke-width="2" stroke-dasharray="5,3"/>
+<text x="62.5" y="32.5" font-size="7.5" fill="#333" font-weight="bold">+</text>
+</g>
+<text x="605" y="235" class="glyph-label" text-anchor="middle">13.3ms</text>
+<g transform="translate(100, 240)">
+<circle cx="25" cy="25" r="10.0" fill="#ff0000" stroke="#333" stroke-width="2" stroke-dasharray="5,3"/>
+<text x="62.5" y="32.5" font-size="7.5" fill="#333" font-weight="bold">+</text>
+</g>
+<text x="125" y="315" class="glyph-label" text-anchor="middle">120.4ms</text>
+<g transform="translate(220, 240)">
+<rect x="16.25" y="16.25" width="17.5" height="17.5" fill="#00ff00" stroke="#333" stroke-width="2" />
+<text x="62.5" y="32.5" font-size="7.5" fill="#333" font-weight="bold">+</text>
+</g>
+<text x="245" y="315" class="glyph-label" text-anchor="middle">0.9ms</text>
+<rect x="730" y="100" width="640" height="320" fill="#fff3e0" stroke="#999" stroke-width="2" rx="10"/>
+<text x="1050" y="130" class="level-title" text-anchor="middle">Routed (/)</text>
+<g transform="translate(780, 160)">
+<polygon points="25,15.0 16.25,32.5 33.75,32.5" fill="#ffff00" stroke="#333" stroke-width="2" stroke-dasharray="5,3"/>
+<text x="62.5" y="32.5" font-size="7.5" fill="#333" font-weight="bold">/</text>
+</g>
+<text x="805" y="235" class="glyph-label" text-anchor="middle">18.2ms</text>
+<g transform="translate(900, 160)">
+<polygon points="25,15.0 35.0,25 25,35.0 15.0,25" fill="#00ff00" stroke="#333" stroke-width="2" />
+<text x="62.5" y="32.5" font-size="7.5" fill="#333" font-weight="bold">/</text>
+</g>
+<text x="925" y="235" class="glyph-label" text-anchor="middle">0.8ms</text>
+<g transform="translate(1020, 160)">
+<polygon points="35.0,25.0 30.0,33.66025403784438 20.0,33.66025403784439 15.0,25.0 19.999999999999996,16.339745962155614 30.0,16.339745962155614" fill="#ffa500" stroke="#333" stroke-width="2" />
+<text x="62.5" y="32.5" font-size="7.5" fill="#333" font-weight="bold">/</text>
+</g>
+<text x="1045" y="235" class="glyph-label" text-anchor="middle">75.7ms</text>
+<g transform="translate(1140, 160)">
+<polygon points="25.000013267948965,15.000000000008802 27.938929481660292,20.954917367737963 34.51056598295554,21.9098325799645 29.75528299147777,26.54508371001775 30.877858963320584,33.090165264524074 25.000006633974483,29.999999999995598 19.122162504680084,33.09018086192214 20.244721108557336,26.545096328582723 15.489425817041214,21.909857817116205 22.061059784360065,20.954925166465483" fill="#7fff00" stroke="#333" stroke-width="2" />
+<text x="62.5" y="32.5" font-size="7.5" fill="#333" font-weight="bold">/</text>
+</g>
+<text x="1165" y="235" class="glyph-label" text-anchor="middle">1.9ms</text>
+<g transform="translate(1260, 160)">
+<rect x="16.25" y="16.25" width="17.5" height="17.5" fill="#00ff00" stroke="#333" stroke-width="2" />
+<text x="62.5" y="32.5" font-size="7.5" fill="#333" font-weight="bold">/</text>
+</g>
+<text x="1285" y="235" class="glyph-label" text-anchor="middle">0.4ms</text>
+<rect x="50" y="450" width="640" height="320" fill="#e8f5e9" stroke="#999" stroke-width="2" rx="10"/>
+<text x="370" y="480" class="level-title" text-anchor="middle">Batched (x)</text>
+<g transform="translate(100, 510)">
+<circle cx="25" cy="25" r="10.0" fill="#ffff00" stroke="#333" stroke-width="2" stroke-dasharray="5,3"/>
+<text x="62.5" y="32.5" font-size="7.5" fill="#333" font-weight="bold">x</text>
+</g>
+<text x="125" y="585" class="glyph-label" text-anchor="middle">15.1ms</text>
+<g transform="translate(220, 510)">
+<polygon points="35.0,25.0 30.0,33.66025403784438 20.0,33.66025403784439 15.0,25.0 19.999999999999996,16.339745962155614 30.0,16.339745962155614" fill="#ffff00" stroke="#333" stroke-width="2" stroke-dasharray="2,2"/>
+<text x="62.5" y="32.5" font-size="7.5" fill="#333" font-weight="bold">x</text>
+</g>
+<text x="245" y="585" class="glyph-label" text-anchor="middle">25.5ms</text>
+<g transform="translate(340, 510)">
+<circle cx="25" cy="25" r="10.0" fill="#ffff00" stroke="#333" stroke-width="2" stroke-dasharray="5,3"/>
+<text x="62.5" y="32.5" font-size="7.5" fill="#333" font-weight="bold">x</text>
+</g>
+<text x="365" y="585" class="glyph-label" text-anchor="middle">40.4ms</text>
+<rect x="730" y="450" width="640" height="320" fill="#c8e6c9" stroke="#999" stroke-width="2" rx="10"/>
+<text x="1050" y="480" class="level-title" text-anchor="middle">Optimized (o)</text>
+<g transform="translate(780, 510)">
+<circle cx="25" cy="25" r="10.0" fill="#7fff00" stroke="#333" stroke-width="2" stroke-dasharray="5,3"/>
+<text x="62.5" y="32.5" font-size="7.5" fill="#333" font-weight="bold">o</text>
+</g>
+<text x="805" y="585" class="glyph-label" text-anchor="middle">8.5ms</text>
+</svg>

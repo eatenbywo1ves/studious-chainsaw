@@ -6,7 +6,7 @@ Tests memory limits, allocation failures, and resource cleanup
 import pytest
 import sys
 from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import patch
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -59,7 +59,7 @@ class TestGPUMemoryLimits:
             # Try to allocate more memory than available
             with pytest.raises((RuntimeError, torch.cuda.OutOfMemoryError)):
                 # Attempt to allocate 100GB (should fail on most GPUs)
-                huge_tensor = torch.randn(50000, 50000, device=device)
+                torch.randn(50000, 50000, device=device)
 
         except ImportError:
             pytest.skip("PyTorch not available")

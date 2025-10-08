@@ -120,7 +120,7 @@ class TransformationRule:
     def _check_condition(self, condition: TransformationCondition, context: Dict[str, Any]) -> bool:
         """Check if a specific condition is met"""
         data_size_mb = context.get('data_size_mb', 0)
-        operation_type = context.get('operation_type', '')
+        context.get('operation_type', '')
         flop_per_byte = context.get('flop_per_byte', 0)
         transfer_ratio = context.get('transfer_time_ratio', 0)
         precision_tolerance = context.get('precision_tolerance', 'strict')
@@ -147,7 +147,7 @@ class TransformationRule:
         elif condition == TransformationCondition.MULTIPLE_SIMILAR_OPS:
             return context.get('similar_ops_count', 0) > 1
         elif condition == TransformationCondition.INDEPENDENT_OPS:
-            return context.get('has_dependencies', True) == False
+            return not context.get('has_dependencies', True)
         elif condition == TransformationCondition.PERSISTENT_DATA:
             return context.get('data_reuse_count', 0) > 2
 
@@ -572,7 +572,7 @@ class TransformationCatalog:
             report.append(f"   Memory impact: {rule.memory_impact}")
             report.append("")
             report.append(f"   Theorem: {rule.proof.theorem}")
-            report.append(f"   Assumptions:")
+            report.append("   Assumptions:")
             for assumption in rule.proof.assumptions:
                 report.append(f"     - {assumption}")
             report.append("")
@@ -681,7 +681,7 @@ class TransformationCatalog:
             lines.append("")
 
         lines.append("-"*80)
-        lines.append(f"Summary:")
+        lines.append("Summary:")
         lines.append(f"  Verified: {verified_count}")
         lines.append(f"  Failed/Unverified: {unverified_count}")
         lines.append(f"  Total: {len(self.rules)}")

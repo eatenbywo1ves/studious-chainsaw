@@ -240,12 +240,12 @@ class StatusCode(IntEnum):
     CREATED = 201
     ACCEPTED = 202
     NO_CONTENT = 204
-    
+
     # Redirection
     MOVED_PERMANENTLY = 301
     FOUND = 302
     NOT_MODIFIED = 304
-    
+
     # Client errors
     BAD_REQUEST = 400
     UNAUTHORIZED = 401
@@ -255,7 +255,7 @@ class StatusCode(IntEnum):
     CONFLICT = 409
     UNPROCESSABLE_ENTITY = 422
     TOO_MANY_REQUESTS = 429
-    
+
     # Server errors
     INTERNAL_SERVER_ERROR = 500
     NOT_IMPLEMENTED = 501
@@ -268,7 +268,7 @@ class StatusCode(IntEnum):
 
 class ValidationRange:
     """Validation ranges for input parameters"""
-    
+
     DIMENSIONS = range(MIN_DIMENSIONS, MAX_DIMENSIONS + 1)
     LATTICE_SIZE = range(MIN_LATTICE_SIZE, MAX_LATTICE_SIZE + 1)
     PORT = range(MIN_PORT, MAX_PORT + 1)
@@ -292,30 +292,30 @@ __all__ = [
     'MIN_DIMENSIONS', 'MAX_DIMENSIONS', 'DEFAULT_DIMENSIONS',
     'MIN_LATTICE_SIZE', 'MAX_LATTICE_SIZE', 'DEFAULT_LATTICE_SIZE',
     'MIN_AUX_MEMORY_MB', 'MAX_AUX_MEMORY_MB', 'DEFAULT_AUX_MEMORY_MB',
-    
+
     # GPU constants
     'CUDA_CORES_PER_SM', 'MAX_THREADS_PER_BLOCK', 'DEFAULT_BLOCK_SIZE',
     'MIN_GPU_MEMORY_MB', 'DEFAULT_GPU_MEMORY_LIMIT_MB',
-    
+
     # API constants
     'DEFAULT_API_PORT', 'DEFAULT_WEBHOOK_PORT', 'DEFAULT_METRICS_PORT',
     'DEFAULT_RATE_LIMIT_PER_MINUTE', 'MAX_REQUEST_SIZE_MB',
-    
+
     # Webhook constants
     'DEFAULT_WEBHOOK_RETRIES', 'DEFAULT_RETRY_DELAY_SEC',
     'WEBHOOK_DELIVERY_SUCCESS_CODES', 'WEBHOOK_DELIVERY_RETRY_CODES',
-    
+
     # Database constants
     'DEFAULT_DB_POOL_SIZE', 'DEFAULT_DB_TIMEOUT_SEC',
-    
+
     # Memory constants
     'DEFAULT_MEMORY_POOL_SIZE', 'MEMORY_ALIGNMENT_BYTES',
     'DEFAULT_CACHE_SIZE_MB', 'TARGET_MEMORY_REDUCTION_FACTOR',
-    
+
     # Enums
     'LogLevel', 'Environment', 'LatticeAlgorithm', 'WebhookEvent',
     'HttpMethod', 'ContentType', 'StatusCode',
-    
+
     # Validation ranges
     'ValidationRange',
 ]

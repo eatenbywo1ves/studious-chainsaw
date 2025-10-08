@@ -5,7 +5,6 @@ Pirate mode: Borrowing PyTorch's treasure to make CuPy sail!
 """
 
 import os
-import sys
 import site
 
 print("[PIRATE] Fixing CuPy with PyTorch's CUDA 12.x Runtime!")
@@ -15,7 +14,7 @@ print("=" * 60)
 torch_site = site.getsitepackages()[0]
 torch_lib_path = os.path.join(torch_site, "torch", "lib")
 
-print(f"[FOUND] PyTorch CUDA libraries at:")
+print("[FOUND] PyTorch CUDA libraries at:")
 print(f"  {torch_lib_path}")
 
 # Add PyTorch's lib directory to PATH for CUDA DLLs
@@ -27,7 +26,7 @@ os.environ['CUDA_PATH'] = torch_lib_path
 os.environ['CUDNN_PATH'] = torch_lib_path
 
 print("\n[CONFIGURED] Environment variables:")
-print(f"  PATH updated with PyTorch lib directory")
+print("  PATH updated with PyTorch lib directory")
 print(f"  CUDA_PATH = {torch_lib_path}")
 print(f"  CUDNN_PATH = {torch_lib_path}")
 
@@ -38,56 +37,56 @@ print("-" * 40)
 try:
     import cupy as cp
     import time
-    
+
     print(f"  CuPy version: {cp.__version__}")
     print(f"  CUDA available: {cp.cuda.is_available()}")
-    
+
     # Get device info
     device = cp.cuda.Device(0)
-    print(f"  GPU: GTX 1080")
+    print("  GPU: GTX 1080")
     print(f"  Device ID: {device.id}")
     print(f"  Memory: {device.mem_info[1] / (1024**3):.1f} GB total")
-    
+
     # Test basic operations
     print("\n[TEST 1] Array creation and transfer...")
     x_cpu = cp.arange(1000000)
     print("  ✓ Created array on GPU")
-    
+
     print("\n[TEST 2] Random number generation...")
     # Create a random state first
     rs = cp.random.RandomState(seed=42)
     random_array = rs.randn(1000, 1000, dtype=cp.float32)
     print(f"  ✓ Generated random array: shape {random_array.shape}")
-    
+
     print("\n[TEST 3] Matrix multiplication...")
     A = cp.random.randn(3000, 3000, dtype=cp.float32)
     B = cp.random.randn(3000, 3000, dtype=cp.float32)
-    
+
     # Warmup
     C = cp.matmul(A, B)
     cp.cuda.Stream.null.synchronize()
-    
+
     # Benchmark
     start = time.perf_counter()
     C = cp.matmul(A, B)
     cp.cuda.Stream.null.synchronize()
     elapsed = time.perf_counter() - start
-    
+
     gflops = (2 * 3000**3) / (elapsed * 1e9)
     print(f"  ✓ 3000x3000 matmul: {elapsed*1000:.1f}ms ({gflops:.1f} GFLOPS)")
-    
+
     print("\n[TEST 4] FFT operations...")
     fft_data = cp.random.randn(1024, 1024, dtype=cp.complex64)
     fft_result = cp.fft.fft2(fft_data)
     print(f"  ✓ 2D FFT completed: shape {fft_result.shape}")
-    
+
     print("\n[SUCCESS] CuPy is now working with PyTorch's CUDA runtime!")
     print("  All tests passed! Arrr!")
-    
+
     # Memory info
     mempool = cp.get_default_memory_pool()
     print(f"\n[MEMORY] GPU memory used: {mempool.used_bytes() / (1024**2):.1f} MB")
-    
+
 except ImportError as e:
     print(f"[ERROR] CuPy not installed: {e}")
 except Exception as e:

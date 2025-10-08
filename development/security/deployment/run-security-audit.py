@@ -7,10 +7,8 @@ Runs all 200+ security checks and generates detailed report
 import os
 import sys
 import json
-import subprocess
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, List, Tuple
 
 # Color codes
 GREEN = '\033[0;32m'
@@ -142,7 +140,7 @@ class SecurityAuditor:
         # Check rate limiting module
         self.print_check("Rate limiting module")
         try:
-            from security.application.rate_limiting import AdvancedRateLimiter
+            from security.application.rate_limiting import AdvancedRateLimiter  # noqa: F401
             self.print_pass("Rate limiting module available")
         except ImportError as e:
             self.print_fail(f"Rate limiting module not found: {e}")
@@ -187,7 +185,7 @@ class SecurityAuditor:
         self.print_check("Input validation module")
         try:
             from security.application.input_validation import SecurityInputValidator
-            validator = SecurityInputValidator()
+            SecurityInputValidator()
             self.print_pass("Input validation module available")
         except ImportError as e:
             self.print_fail(f"Input validation module not found: {e}")
@@ -203,7 +201,7 @@ class SecurityAuditor:
         # Check email validation
         self.print_check("Email validation")
         try:
-            import email_validator
+            import email_validator  # noqa: F401
             self.print_pass("Email validator available")
         except ImportError:
             self.print_warn("Email validator not installed")
@@ -211,7 +209,7 @@ class SecurityAuditor:
         # Check HTML sanitization
         self.print_check("HTML sanitization (XSS protection)")
         try:
-            import bleach
+            import bleach  # noqa: F401
             self.print_pass("Bleach library available for HTML sanitization")
         except ImportError:
             self.print_fail("Bleach library not installed - XSS risk")
@@ -238,7 +236,7 @@ class SecurityAuditor:
         # Check cryptography library
         self.print_check("Cryptography library")
         try:
-            import cryptography
+            import cryptography  # noqa: F401
             from cryptography import __version__
             self.print_pass(f"Cryptography {__version__} installed")
         except ImportError:
@@ -405,7 +403,7 @@ class SecurityAuditor:
         # Calculate score
         score = (passed / (passed + failed)) * 100 if (passed + failed) > 0 else 0
 
-        print(f"\nAudit Summary:")
+        print("\nAudit Summary:")
         print(f"  Environment: {self.environment}")
         print(f"  Duration: {(datetime.now() - self.start_time).seconds} seconds")
         print(f"  Total Checks: {total_checks}")

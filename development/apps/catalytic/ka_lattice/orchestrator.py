@@ -5,20 +5,17 @@ Manages multiple lattice instances and coordinates production workloads
 
 import asyncio
 import threading
-import time
-from typing import Dict, List, Optional, Any, Tuple
+from typing import Dict, Optional, Any
 from dataclasses import dataclass, field
 from datetime import datetime
 import json
-import yaml
 import logging
 from pathlib import Path
 import numpy as np
 
 from .ka_core import KALatticeCore, ComputationResult
-from .production_cycle import ProductionCycleManager, ProductionConfig, CyclePhase
-from apps.catalytic.gpu.factory import GPUFactory
-from libs.config import get_settings, GPUBackend
+from .production_cycle import ProductionCycleManager, ProductionConfig
+from libs.config import get_settings
 
 logger = logging.getLogger(__name__)
 

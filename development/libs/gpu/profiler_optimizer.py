@@ -343,11 +343,11 @@ class ProfilerOptimizer:
                 if show_proofs and sugg.formal_theorem:
                     print(f"  Theorem: {sugg.formal_theorem}")
                     if sugg.assumptions:
-                        print(f"  Assumptions:")
+                        print("  Assumptions:")
                         for assumption in sugg.assumptions:
                             print(f"    - {assumption}")
                     if sugg.invariants:
-                        print(f"  Guarantees:")
+                        print("  Guarantees:")
                         for invariant in sugg.invariants:
                             print(f"    ✓ {invariant}")
 
@@ -356,7 +356,7 @@ class ProfilerOptimizer:
         print(f"\n{'='*80}")
         print(f"Total potential time savings: {total_potential_improvement:.2f}ms")
         if any(s.transformation_rule for s in suggestions):
-            print(f"Note: Use show_proofs=True to see formal transformation proofs")
+            print("Note: Use show_proofs=True to see formal transformation proofs")
         print(f"{'='*80}\n")
 
     def print_critical_suggestions(self):

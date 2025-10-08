@@ -1,31 +1,31 @@
-'use client'
+'use client';
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Progress } from '@/components/ui/progress'
-import { Badge } from '@/components/ui/badge'
-import { Alert, AlertDescription } from '@/components/ui/alert'
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   PieChart, Pie, Cell, AreaChart, Area
-} from 'recharts'
+} from 'recharts';
 import {
   Cpu, Activity, Database, Users, DollarSign, TrendingUp, Clock,
   Server, AlertCircle, CheckCircle, XCircle, LogOut, Settings, Bell
-} from 'lucide-react'
+} from 'lucide-react';
 
 export default function DashboardPage() {
-  const router = useRouter()
-  const [isLoading, setIsLoading] = useState(false)
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
   const [userInfo, setUserInfo] = useState({
     name: 'John Doe',
     company: 'Acme Corp',
     plan: 'Professional',
     email: 'john@acme.com'
-  })
+  });
 
   // Mock data for charts
   const apiUsageData = [
@@ -34,8 +34,8 @@ export default function DashboardPage() {
     { month: 'Mar', calls: 9800, limit: 10000 },
     { month: 'Apr', calls: 3908, limit: 10000 },
     { month: 'May', calls: 4800, limit: 10000 },
-    { month: 'Jun', calls: 6832, limit: 10000 },
-  ]
+    { month: 'Jun', calls: 6832, limit: 10000 }
+  ];
 
   const performanceData = [
     { time: '00:00', latency: 120, throughput: 850 },
@@ -43,15 +43,15 @@ export default function DashboardPage() {
     { time: '08:00', latency: 145, throughput: 780 },
     { time: '12:00', latency: 189, throughput: 650 },
     { time: '16:00', latency: 134, throughput: 820 },
-    { time: '20:00', latency: 102, throughput: 890 },
-  ]
+    { time: '20:00', latency: 102, throughput: 890 }
+  ];
 
   const planUsageData = [
     { name: 'Free Users', value: 1247, color: '#8884d8' },
     { name: 'Starter Users', value: 423, color: '#82ca9d' },
     { name: 'Professional Users', value: 156, color: '#ffc658' },
-    { name: 'Enterprise Users', value: 67, color: '#ff7300' },
-  ]
+    { name: 'Enterprise Users', value: 67, color: '#ff7300' }
+  ];
 
   const revenueData = [
     { month: 'Jan', revenue: 12450, growth: 8.2 },
@@ -59,34 +59,34 @@ export default function DashboardPage() {
     { month: 'Mar', revenue: 15670, growth: 18.4 },
     { month: 'Apr', revenue: 16890, growth: 7.8 },
     { month: 'May', revenue: 18450, growth: 9.2 },
-    { month: 'Jun', revenue: 19780, growth: 7.2 },
-  ]
+    { month: 'Jun', revenue: 19780, growth: 7.2 }
+  ];
 
   const currentUsage = {
     apiCalls: 6832,
     limit: 10000,
     percentage: 68.32
-  }
+  };
 
   const systemStatus = {
     api: 'operational',
     database: 'operational',
     cache: 'degraded',
     cdn: 'operational'
-  }
+  };
 
   const handleLogout = () => {
-    localStorage.removeItem('token')
-    router.push('/login')
-  }
+    localStorage.removeItem('token');
+    router.push('/login');
+  };
 
   useEffect(() => {
     // Check if user is authenticated
-    const token = localStorage.getItem('token')
+    const token = localStorage.getItem('token');
     if (!token) {
-      router.push('/login')
+      router.push('/login');
     }
-  }, [router])
+  }, [router]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
@@ -422,5 +422,5 @@ export default function DashboardPage() {
         </main>
       </div>
     </div>
-  )
+  );
 }

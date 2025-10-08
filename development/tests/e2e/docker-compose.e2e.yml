@@ -1,0 +1,108 @@
+version: '3.8'
+
+services:
+  # PostgreSQL database for E2E tests
+  postgres-e2e:
+    image: postgres:16-alpine
+    container_name: e2e-postgres
+    environment:
+      POSTGRES_DB: e2e_saas
+      POSTGRES_USER: e2e_user
+      POSTGRES_PASSWORD: e2e_password
+      POSTGRES_INITDB_ARGS: "-E UTF8"
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres-e2e-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U e2e_user"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - e2e-network
+
+  # Redis for E2E tests
+  redis-e2e:
+    image: redis:7-alpine
+    container_name: e2e-redis
+    command: redis-server --requirepass e2e_redis_pass
+    ports:
+      - "6381:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "e2e_redis_pass", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - e2e-network
+
+  # SaaS API server for E2E tests
+  saas-api-e2e:
+    build:
+      context: ../../saas
+      dockerfile: Dockerfile
+    container_name: e2e-saas-api
+    environment:
+      # Database
+      DATABASE_URL: postgresql://e2e_user:e2e_password@postgres-e2e:5432/e2e_saas
+      
+      # Redis
+      REDIS_HOST: redis-e2e
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: e2e_redis_pass
+      
+      # JWT
+      JWT_SECRET_KEY: e2e_test_secret_key_do_not_use_in_production
+      JWT_ALGORITHM: HS256
+      JWT_ACCESS_TOKEN_EXPIRE_MINUTES: 30
+      
+      # API
+      API_HOST: 0.0.0.0
+      API_PORT: 8000
+      WORKERS: 2
+      
+      # Security
+      RATE_LIMIT_PER_MINUTE: 1000  # High limit for E2E tests
+      CORS_ORIGINS: "*"
+      
+      # Features
+      ENABLE_GPU: "false"  # CPU-only for E2E (GPU tested separately)
+      ENABLE_MONITORING: "true"
+      
+      # Testing
+      TESTING_MODE: "true"
+    ports:
+      - "8002:8000"
+    depends_on:
+      postgres-e2e:
+        condition: service_healthy
+      redis-e2e:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - e2e-network
+
+  # Mock webhook receiver for testing
+  webhook-mock:
+    image: mockserver/mockserver:latest
+    container_name: e2e-webhook-mock
+    ports:
+      - "1080:1080"
+    environment:
+      MOCKSERVER_LOGLEVEL: INFO
+    networks:
+      - e2e-network
+
+volumes:
+  postgres-e2e-data:
+    driver: local
+
+networks:
+  e2e-network:
+    driver: bridge

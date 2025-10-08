@@ -5,10 +5,8 @@ Tests security vulnerabilities before production deployment
 """
 
 import requests
-import json
 import time
 import sys
-from typing import Dict, List, Tuple
 from urllib.parse import urljoin
 
 # Color codes
@@ -96,7 +94,6 @@ class PenetrationTester:
 
         # Test 3: Weak password acceptance
         self.print_test("Testing weak password acceptance")
-        weak_passwords = ['123', '123456', 'password', 'admin']
         # This test would require creating test accounts
         self.print_info("Manual verification needed for password strength policy")
 
@@ -180,21 +177,10 @@ class PenetrationTester:
 
         # Test 2: Command Injection
         self.print_test("Testing command injection")
-        cmd_payloads = [
-            '; ls -la',
-            '| cat /etc/passwd',
-            '`whoami`',
-            '$(ls -la)'
-        ]
         self.print_info("Command injection test requires manual verification of input processing")
 
         # Test 3: NoSQL Injection
         self.print_test("Testing NoSQL injection")
-        nosql_payloads = [
-            {"$gt": ""},
-            {"$ne": None},
-            {"$regex": ".*"}
-        ]
         self.print_info("NoSQL injection test requires database interaction testing")
 
     # ========================================================================

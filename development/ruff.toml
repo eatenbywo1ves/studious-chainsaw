@@ -1,0 +1,30 @@
+# Ruff configuration for Ghidra scripts
+
+# Increase line length to 100 for readability
+line-length = 100
+
+[lint]
+# Enable pycodestyle and pyflakes rules
+select = [
+    "E",    # pycodestyle errors
+    "F",    # Pyflakes
+    "W",    # pycodestyle warnings
+]
+# Ignore Ghidra-specific patterns
+ignore = [
+    "E501",  # Line too long - auto-generated code exceeds limit
+]
+
+# We now enforce E722 (bare except) - use specific exceptions instead!
+# Security-conscious exception handling is critical for binary analysis tools
+
+[lint.per-file-ignores]
+# Ghidra scripts have runtime-injected globals and special import patterns
+"GhidraCtrlP/**/*.py" = ["F821", "E402"]  # Undefined names, module imports
+"GhidraGo/**/*.py" = ["F821", "E402", "F403", "F405"]     # Ghidra globals, star imports
+"ghidra_scripts/**/*.py" = ["F821", "E402"] # Ghidra globals, module imports
+"__init__.py" = ["F401"]  # Unused imports in __init__
+"**/type_recovery_service.py" = ["F403", "F405"]  # Star imports needed for Ghidra types
+
+[format]
+quote-style = "double"

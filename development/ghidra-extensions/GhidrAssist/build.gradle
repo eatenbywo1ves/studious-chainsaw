@@ -1,0 +1,69 @@
+plugins {
+    id 'java'
+}
+
+group = 'com.catalyticcomputing'
+version = '1.0.0'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+repositories {
+    mavenCentral()
+}
+
+// Set Ghidra installation directory from environment variable
+def ghidraInstallDir = System.getenv('GHIDRA_INSTALL_DIR') ?: 'C:/Program Files/ghidra_11.0'
+
+dependencies {
+    // Ghidra dependencies (provided by Ghidra installation)
+    compileOnly fileTree(dir: ghidraInstallDir + '/Ghidra/Framework', include: '**/*.jar')
+    compileOnly fileTree(dir: ghidraInstallDir + '/Ghidra/Features', include: '**/*.jar')
+    compileOnly fileTree(dir: ghidraInstallDir + '/Ghidra/Processors', include: '**/*.jar')
+
+    // JSON processing
+    implementation 'org.json:json:20230227'
+
+    // Testing
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.9.0'
+    testImplementation 'org.mockito:mockito-core:5.3.1'
+}
+
+test {
+    useJUnitPlatform()
+}
+
+// Custom task to build Ghidra extension ZIP
+task buildExtension(type: Zip) {
+    dependsOn build
+
+    // Include Module.manifest at root
+    from('.') {
+        include 'Module.manifest'
+    }
+
+    // Include source files
+    from('src/main') {
+        into 'ghidra_scripts'
+    }
+
+    // Include compiled JAR and dependencies
+    from('build/libs') {
+        into 'lib'
+    }
+
+    archiveBaseName = 'GhidrAssist'
+    archiveVersion = version
+    destinationDirectory = file('dist')
+}
+
+// Task to display environment info
+task showEnvironment {
+    doLast {
+        println "Ghidra Install Dir: ${ghidraInstallDir}"
+        println "Java Version: ${System.getProperty('java.version')}"
+        println "Gradle Version: ${gradle.gradleVersion}"
+    }
+}

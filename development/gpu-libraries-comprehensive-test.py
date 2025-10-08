@@ -30,7 +30,7 @@ def test_pytorch():
             b = torch.randn(2048, 2048, device=device)
 
             start_time = time.time()
-            c = torch.mm(a, b)
+            torch.mm(a, b)
             torch.cuda.synchronize()
             elapsed = time.time() - start_time
 
@@ -79,7 +79,7 @@ def test_cupy():
             b = cp.random.randn(2048, 2048, dtype=cp.float32)
 
             start_time = time.time()
-            c = cp.matmul(a, b)
+            cp.matmul(a, b)
             cp.cuda.Stream.null.synchronize()
             elapsed = time.time() - start_time
 
@@ -94,7 +94,7 @@ def test_cupy():
             cpu_array = np.random.randn(1000, 1000).astype(np.float32)
             start_time = time.time()
             gpu_array = cp.asarray(cpu_array)
-            result = cp.asnumpy(gpu_array)
+            cp.asnumpy(gpu_array)
             transfer_time = time.time() - start_time
             print(f"[OK] Memory transfer (1M elements): {transfer_time*1000:.1f}ms")
 

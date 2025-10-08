@@ -1,0 +1,72 @@
+# Dockerfile for GPU-Accelerated GhidraSimilarity
+# Secure base image for ML-powered binary function similarity analysis
+# B-MAD Phase 3: Analyze
+
+FROM nvidia/cuda:12.3.1-base-ubuntu22.04
+
+# Metadata
+LABEL maintainer="Catalytic Computing"
+LABEL description="GPU-accelerated binary similarity analysis for Ghidra"
+LABEL version="1.0.0"
+LABEL security.cve_mitigation="CVE-2025-23266,CVE-2024-0132"
+
+# Security: Create non-root user
+RUN groupadd -r ghidra && useradd -r -g ghidra -u 1000 ghidra
+
+# Install Python and dependencies
+RUN apt-get update && apt-get install -y \
+    python3.11 \
+    python3-pip \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set Python 3.11 as default
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.11 1 && \
+    update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1
+
+# Upgrade pip
+RUN python3 -m pip install --upgrade pip
+
+# Install PyTorch with CUDA support (compatible with CUDA 12.3)
+RUN pip3 install --no-cache-dir \
+    torch==2.1.0 \
+    torchvision==0.16.0 \
+    --index-url https://download.pytorch.org/whl/cu121
+
+# Install ML and binary analysis dependencies
+RUN pip3 install --no-cache-dir \
+    scikit-learn==1.3.2 \
+    numpy==1.24.3 \
+    pandas==2.1.3 \
+    capstone==5.0.1 \
+    tqdm==4.66.1
+
+# Install FastAPI for REST API
+RUN pip3 install --no-cache-dir \
+    fastapi==0.104.1 \
+    uvicorn[standard]==0.24.0 \
+    pydantic==2.5.0
+
+# Create application directory
+RUN mkdir -p /app /models /data /tmp && \
+    chown -R ghidra:ghidra /app /models /data /tmp
+
+# Copy application code (will be mounted)
+WORKDIR /app
+
+# Security: Read-only root filesystem support
+# Writable /tmp for model cache and temporary files
+VOLUME ["/tmp", "/models", "/data"]
+
+# Switch to non-root user
+USER ghidra
+
+# Expose API port
+EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD python3 -c "import torch; assert torch.cuda.is_available(), 'CUDA not available'" || exit 1
+
+# Default command (can be overridden)
+CMD ["python3", "-c", "import torch; print(f'PyTorch {torch.__version__}'); print(f'CUDA Available: {torch.cuda.is_available()}'); print(f'CUDA Version: {torch.version.cuda}'); print(f'cuDNN Version: {torch.backends.cudnn.version()}'); print(f'GPU Count: {torch.cuda.device_count()}'); print(f'GPU Name: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else \"N/A\"}')"]

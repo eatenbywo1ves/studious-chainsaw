@@ -1,0 +1,47 @@
+{
+  "environment": "staging",
+  "timestamp": "2025-10-01T19:30:03.722508",
+  "duration_seconds": 0,
+  "total_checks": 27,
+  "passed": 20,
+  "failed": 0,
+  "warnings": 3,
+  "info": 4,
+  "score": 100.0,
+  "results": {
+    "passed": [
+      "Keys found: jwt_staging_private.pem, jwt_staging_public.pem",
+      "JWT creation and verification working",
+      "Rate limiting module available",
+      "Rate limiting enabled",
+      "Rate limit appropriate: 60 req/min",
+      "Input validation module available",
+      "Pydantic 2.11.9 installed",
+      "Email validator available",
+      "Bleach library available for HTML sanitization",
+      "Encryption keys present",
+      "Cryptography 46.0.2 installed",
+      "TLS check (manual verification needed for production)",
+      "Non-root user configured",
+      "Security options configured",
+      "Prometheus configuration exists",
+      "Security alerts configured",
+      "PyJWT in requirements",
+      "cryptography in requirements",
+      "pydantic in requirements",
+      "bleach in requirements"
+    ],
+    "failed": [],
+    "warnings": [
+      "Permissions should be 600, found: 666",
+      "Distroless base image not found in Dockerfile",
+      "Read-only filesystem not found in Dockerfile"
+    ],
+    "info": [
+      "Environment file not found: C:\\Users\\Corbin\\development\\saas\\.env.staging",
+      "Kubernetes directory not found",
+      "Pod Security Standards check skipped",
+      "Run: pip-audit or safety check (manual step)"
+    ]
+  }
+}

@@ -4,7 +4,7 @@ Automatically routes operations based on size, type, and performance characteris
 """
 
 import logging
-from typing import Optional, Dict, Any, Callable
+from typing import Optional, Dict, Any
 from enum import Enum
 from dataclasses import dataclass
 import numpy as np

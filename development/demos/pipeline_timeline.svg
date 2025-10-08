@@ -1,0 +1,160 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1480">
+<defs>
+  <style>
+    .title { font-family: Arial, sans-serif; font-size: 24px; font-weight: bold; fill: #333; }
+    .timeline-label { font-family: monospace; font-size: 14px; fill: #333; }
+    .timeline-time { font-family: monospace; font-size: 12px; fill: #666; }
+    .timeline-bar { fill: #e0e0e0; }
+  </style>
+</defs>
+
+<rect x="0" y="0" width="1600" height="1480" fill="#f9f9f9"/>
+<text x="800.0" y="40" class="title" text-anchor="middle">GPU Profiling Timeline</text>
+<line x1="100" y1="80" x2="1500" y2="80" stroke="#ccc" stroke-width="2"/>
+
+<g transform="translate(120, 120)">
+<polygon points="30,18.0 19.5,39.0 40.5,39.0" fill="#ffff00" stroke="#333" stroke-width="2" stroke-dasharray="5,3"/>
+<text x="75.0" y="39.0" font-size="9.0" fill="#333" font-weight="bold">+</text>
+</g>
+<text x="220" y="140" class="timeline-label">^+</text>
+<text x="280" y="140" class="timeline-label">memory_allocation</text>
+<rect x="800" y="125" width="80.91116628502353" height="30" fill="#ffff00" opacity="0.6" stroke="#333" stroke-width="1"/>
+<text x="890.9111662850236" y="145" class="timeline-time">35.61ms</text>
+<text x="1450" y="145" class="timeline-time">0.0MB</text>
+<g transform="translate(120, 190)">
+<polygon points="30,18.0 19.5,39.0 40.5,39.0" fill="#ffff00" stroke="#333" stroke-width="2" stroke-dasharray="5,3"/>
+<text x="75.0" y="39.0" font-size="9.0" fill="#333" font-weight="bold">/</text>
+</g>
+<text x="220" y="210" class="timeline-label">^/</text>
+<text x="280" y="210" class="timeline-label">memory_transfer</text>
+<rect x="800" y="195" width="41.24060121884995" height="30" fill="#ffff00" opacity="0.6" stroke="#333" stroke-width="1"/>
+<text x="851.24060121885" y="215" class="timeline-time">18.15ms</text>
+<text x="1450" y="215" class="timeline-time">0.0MB</text>
+<g transform="translate(120, 260)">
+<circle cx="30" cy="30" r="12.0" fill="#ffff00" stroke="#333" stroke-width="2" stroke-dasharray="5,3"/>
+<text x="75.0" y="39.0" font-size="9.0" fill="#333" font-weight="bold">+</text>
+</g>
+<text x="220" y="280" class="timeline-label">O+</text>
+<text x="280" y="280" class="timeline-label">matrix_multiply</text>
+<rect x="800" y="265" width="103.54172665933564" height="30" fill="#ffff00" opacity="0.6" stroke="#333" stroke-width="1"/>
+<text x="913.5417266593356" y="285" class="timeline-time">45.57ms</text>
+<text x="1450" y="285" class="timeline-time">0.0MB</text>
+<g transform="translate(120, 330)">
+<circle cx="30" cy="30" r="12.0" fill="#ffff00" stroke="#333" stroke-width="2" stroke-dasharray="5,3"/>
+<text x="75.0" y="39.0" font-size="9.0" fill="#333" font-weight="bold">x</text>
+</g>
+<text x="220" y="350" class="timeline-label">Ox</text>
+<text x="280" y="350" class="timeline-label">matrix_multiply</text>
+<rect x="800" y="335" width="34.27518461193465" height="30" fill="#ffff00" opacity="0.6" stroke="#333" stroke-width="1"/>
+<text x="844.2751846119346" y="355" class="timeline-time">15.09ms</text>
+<text x="1450" y="355" class="timeline-time">0.0MB</text>
+<g transform="translate(120, 400)">
+<circle cx="30" cy="30" r="12.0" fill="#7fff00" stroke="#333" stroke-width="2" stroke-dasharray="5,3"/>
+<text x="75.0" y="39.0" font-size="9.0" fill="#333" font-weight="bold">o</text>
+</g>
+<text x="220" y="420" class="timeline-label">Oo</text>
+<text x="280" y="420" class="timeline-label">matrix_multiply</text>
+<rect x="800" y="405" width="19.390514675729207" height="30" fill="#7fff00" opacity="0.6" stroke="#333" stroke-width="1"/>
+<text x="829.3905146757293" y="425" class="timeline-time">8.53ms</text>
+<text x="1450" y="425" class="timeline-time">0.0MB</text>
+<g transform="translate(120, 470)">
+<polygon points="30,18.0 42.0,30 30,42.0 18.0,30" fill="#7fff00" stroke="#333" stroke-width="2" stroke-dasharray="5,3"/>
+<text x="75.0" y="39.0" font-size="9.0" fill="#333" font-weight="bold">+</text>
+</g>
+<text x="220" y="490" class="timeline-label"><>+</text>
+<text x="280" y="490" class="timeline-label">xor_transform</text>
+<rect x="800" y="475" width="12.25241681936202" height="30" fill="#7fff00" opacity="0.6" stroke="#333" stroke-width="1"/>
+<text x="822.252416819362" y="495" class="timeline-time">5.39ms</text>
+<text x="1450" y="495" class="timeline-time">0.0MB</text>
+<g transform="translate(120, 540)">
+<polygon points="30,18.0 42.0,30 30,42.0 18.0,30" fill="#00ff00" stroke="#333" stroke-width="2" />
+<text x="75.0" y="39.0" font-size="9.0" fill="#333" font-weight="bold">/</text>
+</g>
+<text x="220" y="560" class="timeline-label"><>/</text>
+<text x="280" y="560" class="timeline-label">xor_transform</text>
+<rect x="800" y="545" width="1.79088642052284" height="30" fill="#00ff00" opacity="0.6" stroke="#333" stroke-width="1"/>
+<text x="811.7908864205228" y="565" class="timeline-time">0.79ms</text>
+<text x="1450" y="565" class="timeline-time">0.0MB</text>
+<g transform="translate(120, 610)">
+<polygon points="42.0,30.0 36.0,40.392304845413264 24.000000000000004,40.392304845413264 18.0,30.0 23.999999999999993,19.607695154586736 36.0,19.607695154586736" fill="#ff0000" stroke="#333" stroke-width="2" stroke-dasharray="5,3"/>
+<text x="75.0" y="39.0" font-size="9.0" fill="#333" font-weight="bold">+</text>
+</g>
+<text x="220" y="630" class="timeline-label">#+</text>
+<text x="280" y="630" class="timeline-label">graph_search</text>
+<rect x="800" y="615" width="273.96381312888894" height="30" fill="#ff0000" opacity="0.6" stroke="#333" stroke-width="1"/>
+<text x="1083.963813128889" y="635" class="timeline-time">120.58ms</text>
+<text x="1450" y="635" class="timeline-time">0.0MB</text>
+<g transform="translate(120, 680)">
+<polygon points="42.0,30.0 36.0,40.392304845413264 24.000000000000004,40.392304845413264 18.0,30.0 23.999999999999993,19.607695154586736 36.0,19.607695154586736" fill="#ffa500" stroke="#333" stroke-width="2" />
+<text x="75.0" y="39.0" font-size="9.0" fill="#333" font-weight="bold">/</text>
+</g>
+<text x="220" y="700" class="timeline-label">#/</text>
+<text x="280" y="700" class="timeline-label">graph_search</text>
+<rect x="800" y="685" width="171.9325929744362" height="30" fill="#ffa500" opacity="0.6" stroke="#333" stroke-width="1"/>
+<text x="981.9325929744361" y="705" class="timeline-time">75.67ms</text>
+<text x="1450" y="705" class="timeline-time">0.0MB</text>
+<g transform="translate(120, 750)">
+<polygon points="42.0,30.0 36.0,40.392304845413264 24.000000000000004,40.392304845413264 18.0,30.0 23.999999999999993,19.607695154586736 36.0,19.607695154586736" fill="#ffff00" stroke="#333" stroke-width="2" stroke-dasharray="2,2"/>
+<text x="75.0" y="39.0" font-size="9.0" fill="#333" font-weight="bold">x</text>
+</g>
+<text x="220" y="770" class="timeline-label">#x</text>
+<text x="280" y="770" class="timeline-label">path_finding</text>
+<rect x="800" y="755" width="57.91206772518875" height="30" fill="#ffff00" opacity="0.6" stroke="#333" stroke-width="1"/>
+<text x="867.9120677251888" y="775" class="timeline-time">25.49ms</text>
+<text x="1450" y="775" class="timeline-time">0.0MB</text>
+<g transform="translate(120, 820)">
+<polygon points="30.00001592153876,18.000000000010562 33.52671537799235,25.145900841285556 41.41267917954665,26.2917990959574 35.70633958977333,31.8541004520213 37.05343075598471,39.70819831742889 30.00000796076938,35.99999999999472 22.9465950056161,39.70821703430657 24.2936653302688,31.854115594299266 18.58731098044946,26.291829380539443 26.47327174123208,25.145910199758582" fill="#ffff00" stroke="#333" stroke-width="2" stroke-dasharray="5,3"/>
+<text x="75.0" y="39.0" font-size="9.0" fill="#333" font-weight="bold">+</text>
+</g>
+<text x="220" y="840" class="timeline-label">*+</text>
+<text x="280" y="840" class="timeline-label">random_generation</text>
+<rect x="800" y="825" width="30.306242243085403" height="30" fill="#ffff00" opacity="0.6" stroke="#333" stroke-width="1"/>
+<text x="840.3062422430854" y="845" class="timeline-time">13.34ms</text>
+<text x="1450" y="845" class="timeline-time">0.0MB</text>
+<g transform="translate(120, 890)">
+<polygon points="30.00001592153876,18.000000000010562 33.52671537799235,25.145900841285556 41.41267917954665,26.2917990959574 35.70633958977333,31.8541004520213 37.05343075598471,39.70819831742889 30.00000796076938,35.99999999999472 22.9465950056161,39.70821703430657 24.2936653302688,31.854115594299266 18.58731098044946,26.291829380539443 26.47327174123208,25.145910199758582" fill="#7fff00" stroke="#333" stroke-width="2" />
+<text x="75.0" y="39.0" font-size="9.0" fill="#333" font-weight="bold">/</text>
+</g>
+<text x="220" y="910" class="timeline-label">*/</text>
+<text x="280" y="910" class="timeline-label">random_generation</text>
+<rect x="800" y="895" width="4.252730427019657" height="30" fill="#7fff00" opacity="0.6" stroke="#333" stroke-width="1"/>
+<text x="814.2527304270196" y="915" class="timeline-time">1.87ms</text>
+<text x="1450" y="915" class="timeline-time">0.0MB</text>
+<g transform="translate(120, 960)">
+<circle cx="30" cy="30" r="12.0" fill="#ff0000" stroke="#333" stroke-width="2" stroke-dasharray="5,3"/>
+<text x="75.0" y="39.0" font-size="9.0" fill="#333" font-weight="bold">+</text>
+</g>
+<text x="220" y="980" class="timeline-label">O+</text>
+<text x="280" y="980" class="timeline-label">batch_process</text>
+<rect x="800" y="965" width="273.52302144883816" height="30" fill="#ff0000" opacity="0.6" stroke="#333" stroke-width="1"/>
+<text x="1083.523021448838" y="985" class="timeline-time">120.38ms</text>
+<text x="1450" y="985" class="timeline-time">0.0MB</text>
+<g transform="translate(120, 1030)">
+<circle cx="30" cy="30" r="12.0" fill="#ffff00" stroke="#333" stroke-width="2" stroke-dasharray="5,3"/>
+<text x="75.0" y="39.0" font-size="9.0" fill="#333" font-weight="bold">x</text>
+</g>
+<text x="220" y="1050" class="timeline-label">Ox</text>
+<text x="280" y="1050" class="timeline-label">batch_process</text>
+<rect x="800" y="1035" width="91.7650921316084" height="30" fill="#ffff00" opacity="0.6" stroke="#333" stroke-width="1"/>
+<text x="901.7650921316084" y="1055" class="timeline-time">40.39ms</text>
+<text x="1450" y="1055" class="timeline-time">0.0MB</text>
+<g transform="translate(120, 1100)">
+<rect x="19.5" y="19.5" width="21.0" height="21.0" fill="#00ff00" stroke="#333" stroke-width="2" />
+<text x="75.0" y="39.0" font-size="9.0" fill="#333" font-weight="bold">+</text>
+</g>
+<text x="220" y="1120" class="timeline-label">[]+</text>
+<text x="280" y="1120" class="timeline-label">routing_decision</text>
+<rect x="800" y="1105" width="1.9478899762757758" height="30" fill="#00ff00" opacity="0.6" stroke="#333" stroke-width="1"/>
+<text x="811.9478899762757" y="1125" class="timeline-time">0.86ms</text>
+<text x="1450" y="1125" class="timeline-time">0.0MB</text>
+<g transform="translate(120, 1170)">
+<rect x="19.5" y="19.5" width="21.0" height="21.0" fill="#00ff00" stroke="#333" stroke-width="2" />
+<text x="75.0" y="39.0" font-size="9.0" fill="#333" font-weight="bold">/</text>
+</g>
+<text x="220" y="1190" class="timeline-label">[]/</text>
+<text x="280" y="1190" class="timeline-label">routing_decision</text>
+<rect x="800" y="1175" width="0.9940532539009447" height="30" fill="#00ff00" opacity="0.6" stroke="#333" stroke-width="1"/>
+<text x="810.9940532539009" y="1195" class="timeline-time">0.44ms</text>
+<text x="1450" y="1195" class="timeline-time">0.0MB</text>
+<text x="800.0" y="1450" class="timeline-label" text-anchor="middle">Total Time: 528.14ms</text>
+</svg>

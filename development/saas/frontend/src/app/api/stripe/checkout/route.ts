@@ -1,25 +1,25 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { stripe } from '../config/route'
-import { verifyRequestAuth, unauthorizedResponse } from '@/lib/auth'
+import { NextRequest, NextResponse } from 'next/server';
+import { stripe } from '../config/route';
+import { verifyRequestAuth, unauthorizedResponse } from '@/lib/auth';
 
 // POST /api/stripe/checkout - Create checkout session
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    const { priceId, planCode, successUrl, cancelUrl, customerEmail, metadata = {} } = body
+    const body = await request.json();
+    const { priceId, planCode, successUrl, cancelUrl, customerEmail, metadata = {} } = body;
 
     // Validate required fields
     if (!priceId || !planCode) {
       return NextResponse.json(
         { error: 'Price ID and plan code are required' },
         { status: 400 }
-      )
+      );
     }
 
     // Verify JWT token and get user info
-    const authResult = await verifyRequestAuth(request)
+    const authResult = await verifyRequestAuth(request);
     if (!authResult.authenticated || !authResult.user) {
-      return unauthorizedResponse(authResult.error)
+      return unauthorizedResponse(authResult.error);
     }
 
     // Extract user data from verified token
@@ -27,20 +27,20 @@ export async function POST(request: NextRequest) {
       id: authResult.user.sub,
       tenant_id: authResult.user.tenant_id,
       email: authResult.user.email || customerEmail || 'user@example.com',
-      name: customerEmail || authResult.user.email || 'User',
-    }
+      name: customerEmail || authResult.user.email || 'User'
+    };
 
     // Create or retrieve customer
-    let customer
+    let customer;
     try {
       // Try to find existing customer by email
       const customers = await stripe.customers.list({
-        email: mockUser.email,
-        limit: 1,
-      })
+        email: user.email,
+        limit: 1
+      });
 
       if (customers.data.length > 0) {
-        customer = customers.data[0]
+        customer = customers.data[0];
       } else {
         // Create new customer
         customer = await stripe.customers.create({
@@ -48,16 +48,16 @@ export async function POST(request: NextRequest) {
           name: user.name,
           metadata: {
             user_id: user.id,
-            tenant_id: user.tenant_id,
-          },
-        })
+            tenant_id: user.tenant_id
+          }
+        });
       }
     } catch (error) {
-      console.error('Error creating/retrieving customer:', error)
+      console.error('Error creating/retrieving customer:', error);
       return NextResponse.json(
         { error: 'Failed to create customer' },
         { status: 500 }
-      )
+      );
     }
 
     // Create checkout session
@@ -67,8 +67,8 @@ export async function POST(request: NextRequest) {
       line_items: [
         {
           price: priceId,
-          quantity: 1,
-        },
+          quantity: 1
+        }
       ],
       mode: planCode === 'free' ? 'payment' : 'subscription',
       success_url: successUrl || `${request.nextUrl.origin}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
@@ -78,12 +78,12 @@ export async function POST(request: NextRequest) {
         tenant_id: user.tenant_id,
         user_email: user.email,
         plan_code: planCode,
-        ...metadata,
+        ...metadata
       },
       allow_promotion_codes: true,
       billing_address_collection: 'required',
       tax_id_collection: {
-        enabled: true,
+        enabled: true
       },
       // For subscriptions, set up billing
       ...(planCode !== 'free' && {
@@ -92,47 +92,47 @@ export async function POST(request: NextRequest) {
             user_id: user.id,
             tenant_id: user.tenant_id,
             user_email: user.email,
-            plan_code: planCode,
+            plan_code: planCode
           },
-          trial_period_days: planCode === 'starter' ? 14 : planCode === 'professional' ? 7 : undefined,
-        },
-      }),
-    })
+          trial_period_days: planCode === 'starter' ? 14 : planCode === 'professional' ? 7 : undefined
+        }
+      })
+    });
 
     return NextResponse.json({
       sessionId: session.id,
       url: session.url,
       customer: {
         id: customer.id,
-        email: customer.email,
-      },
-    })
+        email: customer.email
+      }
+    });
   } catch (error) {
-    console.error('Error creating checkout session:', error)
+    console.error('Error creating checkout session:', error);
     return NextResponse.json(
       { error: 'Failed to create checkout session' },
       { status: 500 }
-    )
+    );
   }
 }
 
 // GET /api/stripe/checkout - Retrieve checkout session
 export async function GET(request: NextRequest) {
   try {
-    const searchParams = request.nextUrl.searchParams
-    const sessionId = searchParams.get('session_id')
+    const searchParams = request.nextUrl.searchParams;
+    const sessionId = searchParams.get('session_id');
 
     if (!sessionId) {
       return NextResponse.json(
         { error: 'Session ID is required' },
         { status: 400 }
-      )
+      );
     }
 
     // Retrieve the checkout session
     const session = await stripe.checkout.sessions.retrieve(sessionId, {
-      expand: ['customer', 'subscription', 'payment_intent'],
-    })
+      expand: ['customer', 'subscription', 'payment_intent']
+    });
 
     // Return session details
     return NextResponse.json({
@@ -146,15 +146,15 @@ export async function GET(request: NextRequest) {
         metadata: session.metadata,
         subscription: session.subscription ? {
           id: session.subscription,
-          status: typeof session.subscription === 'object' ? session.subscription.status : 'active',
-        } : null,
-      },
-    })
+          status: typeof session.subscription === 'object' ? session.subscription.status : 'active'
+        } : null
+      }
+    });
   } catch (error) {
-    console.error('Error retrieving checkout session:', error)
+    console.error('Error retrieving checkout session:', error);
     return NextResponse.json(
       { error: 'Failed to retrieve checkout session' },
       { status: 500 }
-    )
+    );
   }
 }

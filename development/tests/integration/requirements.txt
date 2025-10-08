@@ -1,0 +1,36 @@
+# Integration Test Dependencies
+# Install with: pip install -r requirements.txt
+
+# Core testing framework
+pytest==8.0.0
+pytest-asyncio==0.23.3
+pytest-cov==4.1.0
+
+# HTTP client for API testing
+httpx==0.26.0
+
+# Database testing
+sqlalchemy==2.0.25
+psycopg2-binary==2.9.9
+alembic==1.13.1
+
+# Redis testing
+redis==5.0.1
+
+# Data validation
+pydantic==2.5.3
+
+# Async utilities
+asyncio==3.4.3
+
+# Test utilities
+faker==22.0.0
+pytest-timeout==2.2.0
+pytest-xdist==3.5.0  # Parallel test execution
+
+# Code coverage
+coverage==7.4.0
+
+# Test reporting
+pytest-html==4.1.1
+pytest-json-report==1.5.0

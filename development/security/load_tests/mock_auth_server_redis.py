@@ -259,7 +259,7 @@ async def health():
         redis_healthy = True
         redis_info = redis_client.info("stats")
         redis_commands = redis_info.get("total_commands_processed", 0)
-    except Exception as e:
+    except Exception:
         redis_healthy = False
         redis_commands = 0
 

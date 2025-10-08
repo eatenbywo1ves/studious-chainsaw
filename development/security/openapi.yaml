@@ -1,0 +1,1025 @@
+openapi: 3.0.3
+info:
+  title: Catalytic Computing Security API
+  description: |
+    **Comprehensive Security API** for the Catalytic Computing Platform
+
+    ## Features
+
+    - **JWT Authentication:** RSA-256 signed tokens with refresh mechanism
+    - **Token Revocation:** Distributed blacklist via Redis for instant revocation
+    - **Rate Limiting:** Multi-strategy protection (sliding window, token bucket, DDoS)
+    - **Secret Rotation:** Automated rotation with zero-downtime
+    - **Multi-Tenant Isolation:** Complete data separation between tenants
+    - **D3FEND Compliance:** D3-UAC, D3-RAC, D3-KM techniques implemented
+
+    ## Security
+
+    All endpoints except `/auth/login` and `/auth/register` require authentication via JWT bearer token.
+
+    ## Rate Limits
+
+    - **Login:** 5 attempts / 5 minutes per IP
+    - **Registration:** 3 / hour per IP
+    - **API Calls:** 100 / hour + 20 burst per user (token bucket)
+    - **DDoS Protection:** 1000 requests / minute per IP
+
+    ## Support
+
+    - **Documentation:** https://docs.catalytic.com
+    - **GitHub:** https://github.com/catalytic/security
+    - **Issues:** https://github.com/catalytic/security/issues
+
+  version: 2.0.0
+  contact:
+    name: Catalytic Computing API Support
+    email: api@catalytic.com
+    url: https://catalytic.com/support
+
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.catalytic.com/v2
+    description: Production server
+  - url: https://staging-api.catalytic.com/v2
+    description: Staging server
+  - url: http://localhost:8000/v2
+    description: Development server
+
+tags:
+  - name: Authentication
+    description: User authentication and token management
+  - name: Token Management
+    description: Token verification, refresh, and revocation
+  - name: Rate Limiting
+    description: API rate limit management and monitoring
+  - name: Security
+    description: Security operations and health checks
+  - name: Monitoring
+    description: Metrics and observability endpoints
+
+paths:
+  # ============================================================================
+  # AUTHENTICATION ENDPOINTS
+  # ============================================================================
+
+  /auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register new user
+      description: |
+        Register a new user account with email and password.
+
+        **Rate Limit:** 3 requests / hour per IP
+
+        **Security:**
+        - Password must be >= 8 characters
+        - Email must be valid format
+        - Passwords hashed with bcrypt (12 rounds)
+      operationId: registerUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+            examples:
+              basic:
+                summary: Basic registration
+                value:
+                  email: user@example.com
+                  password: SecurePassword123!
+                  username: john_doe
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+              examples:
+                success:
+                  value:
+                    user_id: usr_7k3m9n2p4q
+                    email: user@example.com
+                    username: john_doe
+                    created_at: '2025-10-03T10:30:00Z'
+                    message: Registration successful
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Login user
+      description: |
+        Authenticate user and receive access + refresh tokens.
+
+        **Rate Limit:** 5 attempts / 5 minutes per IP
+
+        **Returns:**
+        - Access Token (15-minute TTL)
+        - Refresh Token (7-day TTL)
+
+        **Security:**
+        - Brute force protection via rate limiting
+        - Failed attempts logged
+        - Account lockout after threshold
+      operationId: loginUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            examples:
+              basic:
+                summary: Basic login
+                value:
+                  email: user@example.com
+                  password: SecurePassword123!
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenPairResponse'
+              examples:
+                success:
+                  value:
+                    access_token: eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...
+                    refresh_token: eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...
+                    token_type: Bearer
+                    expires_in: 900
+                    user:
+                      user_id: usr_7k3m9n2p4q
+                      email: user@example.com
+                      roles: [user]
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /auth/refresh:
+    post:
+      tags:
+        - Token Management
+      summary: Refresh access token
+      description: |
+        Exchange refresh token for new access token.
+
+        **Rate Limit:** 20 / hour per user
+
+        **Returns:**
+        - New access token (15-minute TTL)
+        - Same refresh token (or new one if near expiry)
+      operationId: refreshToken
+      security:
+        - RefreshToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+            examples:
+              basic:
+                value:
+                  refresh_token: eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenPairResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /auth/logout:
+    post:
+      tags:
+        - Token Management
+      summary: Logout user (revoke tokens)
+      description: |
+        Revoke current access and refresh tokens.
+
+        **Security:**
+        - Tokens added to distributed Redis blacklist
+        - Revocation instant across all servers (<50ms)
+        - Blacklist entry expires with token TTL
+
+        **D3FEND:** D3-UAC (User Account Control) - Token Revocation
+      operationId: logoutUser
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Logged out successfully
+                  revoked_tokens:
+                    type: integer
+                    example: 2
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /auth/verify:
+    get:
+      tags:
+        - Token Management
+      summary: Verify token validity
+      description: |
+        Verify if current token is valid and not revoked.
+
+        **Checks:**
+        - Signature verification (RSA-256)
+        - Expiration check
+        - Blacklist check (Redis)
+        - Audience/issuer validation
+      operationId: verifyToken
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Token is valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenVerificationResponse'
+              examples:
+                valid:
+                  value:
+                    valid: true
+                    user_id: usr_7k3m9n2p4q
+                    roles: [user]
+                    permissions: [read, write]
+                    expires_at: '2025-10-03T11:45:00Z'
+                    security_level: enhanced
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ============================================================================
+  # RATE LIMITING ENDPOINTS
+  # ============================================================================
+
+  /rate-limit/check:
+    post:
+      tags:
+        - Rate Limiting
+      summary: Check rate limit status
+      description: |
+        Check if request would be allowed under current rate limits.
+
+        **Strategies:**
+        - Sliding Window (precise, no edge effects)
+        - Token Bucket (burst support)
+        - Fixed Window (simple quotas)
+
+        **D3FEND:** D3-RAC (Rate-based Access Control)
+      operationId: checkRateLimit
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RateLimitCheckRequest'
+            examples:
+              api_endpoint:
+                summary: Check API endpoint limit
+                value:
+                  endpoint: /api/compute/run
+                  limit_type: per_user
+      responses:
+        '200':
+          description: Rate limit status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateLimitResponse'
+              examples:
+                allowed:
+                  summary: Request allowed
+                  value:
+                    allowed: true
+                    remaining: 95
+                    reset_time: 1696341600
+                    reset_in: 3456
+                    limit_type: per_user
+                    strategy: sliding_window
+                blocked:
+                  summary: Request blocked
+                  value:
+                    allowed: false
+                    remaining: 0
+                    reset_time: 1696341600
+                    retry_after: 120
+                    limit_type: per_user
+                    message: Rate limit exceeded. Try again in 2 minutes.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /rate-limit/config:
+    get:
+      tags:
+        - Rate Limiting
+      summary: Get rate limit configuration
+      description: |
+        Retrieve current rate limit configuration for endpoints.
+
+        **Admin Only**
+      operationId: getRateLimitConfig
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Rate limit configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateLimitConfigResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  # ============================================================================
+  # SECURITY MANAGEMENT ENDPOINTS
+  # ============================================================================
+
+  /security/health:
+    get:
+      tags:
+        - Security
+      summary: Security system health check
+      description: |
+        Check health status of all security components.
+
+        **Components Checked:**
+        - Redis connection
+        - JWT manager
+        - Rate limiter
+        - Secret rotation status
+      operationId: securityHealthCheck
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: System health status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthCheckResponse'
+              examples:
+                healthy:
+                  value:
+                    status: healthy
+                    components:
+                      redis:
+                        status: up
+                        mode: distributed
+                        latency_ms: 2.3
+                      jwt_manager:
+                        status: up
+                        security_level: enhanced
+                      rate_limiter:
+                        status: up
+                        strategies: [sliding_window, token_bucket, ddos]
+                      secret_rotation:
+                        status: scheduled
+                        last_rotation: '2025-10-01T02:00:00Z'
+                        next_rotation: '2025-11-01T02:00:00Z'
+                    timestamp: '2025-10-03T10:30:00Z'
+                degraded:
+                  value:
+                    status: degraded
+                    components:
+                      redis:
+                        status: down
+                        mode: in_memory_fallback
+                        warning: Not suitable for production
+                      jwt_manager:
+                        status: up
+                        security_level: enhanced
+                        warning: Token blacklist not distributed
+                    timestamp: '2025-10-03T10:30:00Z'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '503':
+          description: Service unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthCheckResponse'
+
+  /security/rotate-secrets:
+    post:
+      tags:
+        - Security
+      summary: Trigger secret rotation
+      description: |
+        Manually trigger rotation of security secrets.
+
+        **Admin Only**
+
+        **Rotates:**
+        - SESSION_SECRET_KEY (256-bit)
+        - CSRF_SECRET_KEY (256-bit)
+        - REDIS_PASSWORD (256-bit)
+
+        **D3FEND:** D3-KM (Key Management) - Secret Rotation
+
+        **Warning:** This will invalidate all active sessions.
+      operationId: rotateSecrets
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SecretRotationRequest'
+            examples:
+              full_rotation:
+                summary: Rotate all secrets
+                value:
+                  secrets: [session, csrf, redis]
+                  create_backup: true
+      responses:
+        '200':
+          description: Secrets rotated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SecretRotationResponse'
+              examples:
+                success:
+                  value:
+                    status: success
+                    rotated_secrets: 3
+                    backup_created: /backups/secrets/.env.production.backup.20251003_103000
+                    details:
+                      - secret: SESSION_SECRET_KEY
+                        old_hash: sha256:a1b2c3...
+                        new_hash: sha256:d4e5f6...
+                        status: rotated
+                      - secret: CSRF_SECRET_KEY
+                        old_hash: sha256:g7h8i9...
+                        new_hash: sha256:j0k1l2...
+                        status: rotated
+                      - secret: REDIS_PASSWORD
+                        status: rotated
+                        redis_updated: true
+                    timestamp: '2025-10-03T10:30:00Z'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ============================================================================
+  # MONITORING ENDPOINTS
+  # ============================================================================
+
+  /metrics:
+    get:
+      tags:
+        - Monitoring
+      summary: Prometheus metrics
+      description: |
+        Prometheus-compatible metrics endpoint.
+
+        **Metrics Exposed:**
+        - `security_auth_requests_total{endpoint, status}`
+        - `security_rate_limit_rejections_total{endpoint, reason}`
+        - `security_redis_operations_total{operation, status}`
+        - `security_token_operations_total{operation, status}`
+        - `security_secret_rotation_last_timestamp`
+
+        **Format:** Prometheus exposition format
+      operationId: getMetrics
+      responses:
+        '200':
+          description: Prometheus metrics
+          content:
+            text/plain:
+              schema:
+                type: string
+              example: |
+                # HELP security_auth_requests_total Total authentication requests
+                # TYPE security_auth_requests_total counter
+                security_auth_requests_total{endpoint="login",status="success"} 1523
+                security_auth_requests_total{endpoint="login",status="failed"} 42
+
+                # HELP security_rate_limit_rejections_total Rate limit rejections
+                # TYPE security_rate_limit_rejections_total counter
+                security_rate_limit_rejections_total{endpoint="/api/compute",reason="quota_exceeded"} 15
+
+  /stats/security:
+    get:
+      tags:
+        - Monitoring
+      summary: Security statistics
+      description: |
+        Aggregate security statistics and metrics.
+
+        **Admin Only**
+      operationId: getSecurityStats
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: time_range
+          in: query
+          description: Time range for statistics
+          schema:
+            type: string
+            enum: [1h, 24h, 7d, 30d]
+            default: 24h
+      responses:
+        '200':
+          description: Security statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SecurityStatsResponse'
+              examples:
+                last_24h:
+                  value:
+                    time_range: 24h
+                    authentication:
+                      total_logins: 1523
+                      successful_logins: 1481
+                      failed_logins: 42
+                      success_rate: 97.24
+                    rate_limiting:
+                      total_requests: 45203
+                      allowed: 44988
+                      blocked: 215
+                      block_rate: 0.48
+                    token_operations:
+                      created: 1481
+                      verified: 44988
+                      revoked: 125
+                    redis:
+                      status: up
+                      operations_per_sec: 152.3
+                      avg_latency_ms: 2.1
+                    timestamp: '2025-10-03T10:30:00Z'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+# ============================================================================
+# COMPONENTS
+# ============================================================================
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT access token for API authentication.
+
+        **Format:** `Authorization: Bearer <token>`
+
+        **TTL:** 15 minutes
+
+        **Algorithm:** RS256 (RSA-2048)
+
+    RefreshToken:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT refresh token for obtaining new access tokens.
+
+        **TTL:** 7 days
+
+  schemas:
+    # ========================================================================
+    # REQUEST SCHEMAS
+    # ========================================================================
+
+    RegisterRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: user@example.com
+          description: User email address
+        password:
+          type: string
+          format: password
+          minLength: 8
+          example: SecurePassword123!
+          description: User password (minimum 8 characters)
+        username:
+          type: string
+          minLength: 3
+          maxLength: 50
+          example: john_doe
+          description: Optional username
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: user@example.com
+        password:
+          type: string
+          format: password
+          example: SecurePassword123!
+
+    RefreshRequest:
+      type: object
+      required:
+        - refresh_token
+      properties:
+        refresh_token:
+          type: string
+          example: eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...
+          description: Valid refresh token
+
+    RateLimitCheckRequest:
+      type: object
+      required:
+        - endpoint
+      properties:
+        endpoint:
+          type: string
+          example: /api/compute/run
+          description: API endpoint to check
+        limit_type:
+          type: string
+          enum: [per_user, per_ip, per_tenant]
+          default: per_user
+          description: Type of rate limit to check
+
+    SecretRotationRequest:
+      type: object
+      properties:
+        secrets:
+          type: array
+          items:
+            type: string
+            enum: [session, csrf, redis, all]
+          example: [session, csrf, redis]
+          description: Secrets to rotate (default: all)
+        create_backup:
+          type: boolean
+          default: true
+          description: Create backup before rotation
+
+    # ========================================================================
+    # RESPONSE SCHEMAS
+    # ========================================================================
+
+    UserResponse:
+      type: object
+      properties:
+        user_id:
+          type: string
+          example: usr_7k3m9n2p4q
+        email:
+          type: string
+          example: user@example.com
+        username:
+          type: string
+          example: john_doe
+        created_at:
+          type: string
+          format: date-time
+          example: '2025-10-03T10:30:00Z'
+        message:
+          type: string
+          example: Registration successful
+
+    TokenPairResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+          example: eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...
+          description: JWT access token (15-minute TTL)
+        refresh_token:
+          type: string
+          example: eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...
+          description: JWT refresh token (7-day TTL)
+        token_type:
+          type: string
+          example: Bearer
+        expires_in:
+          type: integer
+          example: 900
+          description: Access token TTL in seconds
+        user:
+          type: object
+          properties:
+            user_id:
+              type: string
+            email:
+              type: string
+            roles:
+              type: array
+              items:
+                type: string
+
+    TokenVerificationResponse:
+      type: object
+      properties:
+        valid:
+          type: boolean
+          example: true
+        user_id:
+          type: string
+          example: usr_7k3m9n2p4q
+        roles:
+          type: array
+          items:
+            type: string
+          example: [user, admin]
+        permissions:
+          type: array
+          items:
+            type: string
+          example: [read, write, delete]
+        expires_at:
+          type: string
+          format: date-time
+          example: '2025-10-03T11:45:00Z'
+        security_level:
+          type: string
+          enum: [basic, enhanced, strict]
+          example: enhanced
+
+    RateLimitResponse:
+      type: object
+      properties:
+        allowed:
+          type: boolean
+          description: Whether request is allowed
+        remaining:
+          type: integer
+          description: Remaining requests in current window
+        reset_time:
+          type: integer
+          description: Unix timestamp when limit resets
+        reset_in:
+          type: integer
+          description: Seconds until limit resets
+        retry_after:
+          type: integer
+          description: Seconds to wait before retry (if blocked)
+        limit_type:
+          type: string
+          enum: [per_user, per_ip, per_tenant]
+        strategy:
+          type: string
+          enum: [sliding_window, token_bucket, fixed_window]
+        message:
+          type: string
+          description: Human-readable message
+
+    RateLimitConfigResponse:
+      type: object
+      properties:
+        endpoints:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              requests:
+                type: integer
+              window_seconds:
+                type: integer
+              strategy:
+                type: string
+              burst_allowance:
+                type: integer
+
+    HealthCheckResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+        components:
+          type: object
+          additionalProperties:
+            type: object
+        timestamp:
+          type: string
+          format: date-time
+
+    SecretRotationResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [success, partial, failed]
+        rotated_secrets:
+          type: integer
+        backup_created:
+          type: string
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              secret:
+                type: string
+              old_hash:
+                type: string
+              new_hash:
+                type: string
+              status:
+                type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    SecurityStatsResponse:
+      type: object
+      properties:
+        time_range:
+          type: string
+        authentication:
+          type: object
+        rate_limiting:
+          type: object
+        token_operations:
+          type: object
+        redis:
+          type: object
+        timestamp:
+          type: string
+          format: date-time
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          description: Error code
+        message:
+          type: string
+          description: Human-readable error message
+        details:
+          type: object
+          description: Additional error details
+        request_id:
+          type: string
+          description: Unique request identifier for debugging
+
+  # ==========================================================================
+  # COMMON RESPONSES
+  # ==========================================================================
+
+  responses:
+    BadRequest:
+      description: Bad request - Invalid input
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            invalid_email:
+              value:
+                error: invalid_input
+                message: Invalid email format
+                details:
+                  field: email
+                  provided: not-an-email
+                request_id: req_abc123
+
+    Unauthorized:
+      description: Unauthorized - Invalid or missing token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            missing_token:
+              value:
+                error: unauthorized
+                message: Missing authentication token
+                request_id: req_xyz789
+            invalid_token:
+              value:
+                error: invalid_token
+                message: Token signature verification failed
+                request_id: req_def456
+            expired_token:
+              value:
+                error: token_expired
+                message: Token has expired
+                details:
+                  expired_at: '2025-10-03T10:00:00Z'
+                request_id: req_ghi789
+
+    Forbidden:
+      description: Forbidden - Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            insufficient_permissions:
+              value:
+                error: forbidden
+                message: Insufficient permissions for this operation
+                details:
+                  required_role: admin
+                  user_role: user
+                request_id: req_jkl012
+
+    TooManyRequests:
+      description: Too many requests - Rate limit exceeded
+      headers:
+        Retry-After:
+          description: Seconds to wait before retry
+          schema:
+            type: integer
+            example: 120
+        X-RateLimit-Limit:
+          description: Request limit per window
+          schema:
+            type: integer
+            example: 5
+        X-RateLimit-Remaining:
+          description: Remaining requests in current window
+          schema:
+            type: integer
+            example: 0
+        X-RateLimit-Reset:
+          description: Unix timestamp when limit resets
+          schema:
+            type: integer
+            example: 1696341600
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            rate_limited:
+              value:
+                error: rate_limit_exceeded
+                message: Too many requests. Try again in 2 minutes.
+                details:
+                  limit: 5
+                  window: 300
+                  retry_after: 120
+                request_id: req_mno345
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            server_error:
+              value:
+                error: internal_error
+                message: An unexpected error occurred
+                request_id: req_pqr678

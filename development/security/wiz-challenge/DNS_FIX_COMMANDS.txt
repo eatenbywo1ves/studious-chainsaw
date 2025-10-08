@@ -1,0 +1,18 @@
+# Copy and paste these commands exactly in Ubuntu WSL2
+
+# Step 1: Open Ubuntu
+wsl -d Ubuntu
+
+# Step 2: Fix DNS (paste these three lines together)
+sudo rm -f /etc/resolv.conf
+sudo bash -c 'echo "nameserver 8.8.8.8" > /etc/resolv.conf'
+sudo bash -c 'echo "nameserver 8.8.4.4" >> /etc/resolv.conf'
+
+# Step 3: Test DNS works
+ping -c 3 google.com
+
+# Step 4: If ping succeeds, re-run installation
+cd /mnt/c/Users/Corbin/development/security/wiz-challenge
+./checkpoint-install.sh
+
+# That's it! Installation should now complete.

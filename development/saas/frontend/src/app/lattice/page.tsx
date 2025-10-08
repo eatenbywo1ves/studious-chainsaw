@@ -1,35 +1,35 @@
-'use client'
+'use client';
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Progress } from '@/components/ui/progress'
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Progress } from '@/components/ui/progress';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+  SelectValue
+} from '@/components/ui/select';
 import {
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+  TableRow
+} from '@/components/ui/table';
 import {
   Cpu, Activity, Database, Settings, Play, Pause, Square, RefreshCw,
   AlertCircle, CheckCircle, Clock, TrendingUp, Zap, Layers,
   Plus, Edit, Trash2, Eye, Download, Upload, Grid3X3
-} from 'lucide-react'
+} from 'lucide-react';
 
 interface LatticeConfig {
   id: string
@@ -46,17 +46,17 @@ interface LatticeConfig {
 }
 
 export default function LatticePage() {
-  const router = useRouter()
-  const [isLoading, setIsLoading] = useState(false)
-  const [selectedLattice, setSelectedLattice] = useState<string | null>(null)
-  const [showCreateModal, setShowCreateModal] = useState(false)
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
+  const [selectedLattice, setSelectedLattice] = useState<string | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [newLatticeConfig, setNewLatticeConfig] = useState({
     name: '',
     type: 'compute',
     region: 'us-east-1',
     size: 'small',
     nodes: 4
-  })
+  });
 
   // Mock lattice data
   const [lattices, setLattices] = useState<LatticeConfig[]>([
@@ -112,12 +112,12 @@ export default function LatticePage() {
       region: 'us-east-1',
       size: 'extra-large'
     }
-  ])
+  ]);
 
   const handleCreateLattice = async () => {
-    setIsLoading(true)
+    setIsLoading(true);
     // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000))
+    await new Promise(resolve => setTimeout(resolve, 2000));
 
     const newLattice: LatticeConfig = {
       id: `lattice-${String(lattices.length + 1).padStart(3, '0')}`,
@@ -131,80 +131,80 @@ export default function LatticePage() {
       lastModified: new Date().toISOString().split('T')[0],
       region: newLatticeConfig.region,
       size: newLatticeConfig.size
-    }
+    };
 
-    setLattices([...lattices, newLattice])
-    setShowCreateModal(false)
+    setLattices([...lattices, newLattice]);
+    setShowCreateModal(false);
     setNewLatticeConfig({
       name: '',
       type: 'compute',
       region: 'us-east-1',
       size: 'small',
       nodes: 4
-    })
-    setIsLoading(false)
-  }
+    });
+    setIsLoading(false);
+  };
 
   const handleLatticeAction = async (latticeId: string, action: 'start' | 'stop' | 'restart') => {
-    setIsLoading(true)
+    setIsLoading(true);
     // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
     setLattices(lattices.map(lattice => {
       if (lattice.id === latticeId) {
         switch (action) {
           case 'start':
-            return { ...lattice, status: 'running' as const }
+            return { ...lattice, status: 'running' as const };
           case 'stop':
-            return { ...lattice, status: 'stopped' as const, utilization: 0, performance: 0 }
+            return { ...lattice, status: 'stopped' as const, utilization: 0, performance: 0 };
           case 'restart':
-            return { ...lattice, status: 'pending' as const }
+            return { ...lattice, status: 'pending' as const };
           default:
-            return lattice
+            return lattice;
         }
       }
-      return lattice
-    }))
-    setIsLoading(false)
-  }
+      return lattice;
+    }));
+    setIsLoading(false);
+  };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'running':
-        return <CheckCircle className="h-4 w-4 text-green-500" />
+        return <CheckCircle className="h-4 w-4 text-green-500" />;
       case 'stopped':
-        return <Square className="h-4 w-4 text-gray-500" />
+        return <Square className="h-4 w-4 text-gray-500" />;
       case 'error':
-        return <AlertCircle className="h-4 w-4 text-red-500" />
+        return <AlertCircle className="h-4 w-4 text-red-500" />;
       case 'pending':
-        return <Clock className="h-4 w-4 text-yellow-500" />
+        return <Clock className="h-4 w-4 text-yellow-500" />;
       default:
-        return <AlertCircle className="h-4 w-4 text-gray-500" />
+        return <AlertCircle className="h-4 w-4 text-gray-500" />;
     }
-  }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'running':
-        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
+        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
       case 'stopped':
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300'
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300';
       case 'error':
-        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
+        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
       case 'pending':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300'
+        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
       default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300'
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300';
     }
-  }
+  };
 
   useEffect(() => {
     // Check if user is authenticated
-    const token = localStorage.getItem('token')
+    const token = localStorage.getItem('token');
     if (!token) {
-      router.push('/login')
+      router.push('/login');
     }
-  }, [router])
+  }, [router]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
@@ -715,5 +715,5 @@ export default function LatticePage() {
         )}
       </div>
     </div>
-  )
+  );
 }

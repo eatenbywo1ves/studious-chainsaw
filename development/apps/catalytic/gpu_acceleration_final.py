@@ -5,7 +5,7 @@ GPU Acceleration for Catalytic Lattice - Final Working Implementation
 
 import numpy as np
 import time
-from numba import cuda, jit, prange
+from numba import cuda
 import math
 
 @cuda.jit
@@ -169,7 +169,7 @@ class CatalyticGPUAccelerator:
 
             # GPU
             start = time.perf_counter()
-            result_gpu = self.xor_transform_gpu(data, key)
+            self.xor_transform_gpu(data, key)
             gpu_time = (time.perf_counter() - start) * 1000
 
             # CPU
@@ -218,12 +218,12 @@ class CatalyticGPUAccelerator:
 
             # GPU
             start = time.perf_counter()
-            dist_gpu = self.compute_lattice_distances(coords1, coords2)
+            self.compute_lattice_distances(coords1, coords2)
             gpu_time = (time.perf_counter() - start) * 1000
 
             # CPU
             start = time.perf_counter()
-            dist_cpu = np.sqrt(np.sum((coords1 - coords2)**2, axis=1))
+            np.sqrt(np.sum((coords1 - coords2)**2, axis=1))
             cpu_time = (time.perf_counter() - start) * 1000
 
             speedup = cpu_time / gpu_time

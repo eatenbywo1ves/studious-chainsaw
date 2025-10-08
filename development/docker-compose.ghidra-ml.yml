@@ -1,0 +1,138 @@
+# Docker Compose - GPU-Accelerated GhidraSimilarity Deployment
+# B-MAD Phase 4: Deploy with Security Hardening
+
+version: '3.8'
+
+services:
+  # Main ML inference service
+  ghidra-similarity-gpu:
+    image: ghidra-similarity:v1.0-gpu
+    container_name: ghidra-ml-similarity
+
+    # GPU access (Docker Desktop native support)
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+        limits:
+          memory: 6G
+          cpus: '4.0'
+
+    # Security hardening
+    user: "1000:1000"  # ghidra user from Dockerfile
+    read_only: false   # PyTorch needs write access for compilation cache
+
+    security_opt:
+      - no-new-privileges:true
+
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE  # For binding to port 8080
+
+    # Volumes for model storage and cache
+    volumes:
+      - ./models:/models:ro
+      - ./app:/app:ro
+      - similarity-cache:/tmp
+
+    # Environment variables
+    environment:
+      - CUDA_VISIBLE_DEVICES=0
+      - PYTHONUNBUFFERED=1
+      - MODEL_PATH=/models/similarity_model.pt
+      - INFERENCE_BATCH_SIZE=32
+      - LOG_LEVEL=INFO
+
+    # Override CMD to run API server
+    command: ["python3", "/app/similarity_api.py"]
+
+    # Expose API port
+    ports:
+      - "8000:8080"  # Host 8000 -> Container 8080
+
+    # Network
+    networks:
+      - ghidra-ml-network
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import torch; assert torch.cuda.is_available()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+    # Restart policy
+    restart: unless-stopped
+
+    # Logging
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Prometheus metrics exporter
+  nvidia-gpu-exporter:
+    image: nvidia/dcgm-exporter:3.3.5-3.4.0-ubuntu22.04
+    container_name: ghidra-ml-gpu-exporter
+
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+    # Security hardening: Minimal capabilities for GPU metrics collection
+    cap_drop:
+      - ALL
+    cap_add:
+      - SYS_PTRACE       # Required for DCGM process monitoring
+      - DAC_READ_SEARCH  # Required for reading GPU stats from /sys/class/nvidia*
+
+    networks:
+      - ghidra-ml-network
+
+    ports:
+      - "9400:9400"  # Prometheus metrics
+
+    restart: unless-stopped
+
+  # Simple monitoring dashboard
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: ghidra-ml-cadvisor
+
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+
+    ports:
+      - "8888:8080"  # cAdvisor UI
+
+    networks:
+      - ghidra-ml-network
+
+    restart: unless-stopped
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+networks:
+  ghidra-ml-network:
+    driver: bridge
+    # Auto-assign subnet to avoid conflicts with existing networks
+
+volumes:
+  similarity-cache:
+    driver: local

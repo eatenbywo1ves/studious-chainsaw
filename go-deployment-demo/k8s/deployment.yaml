@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: go-deployment-demo
+  labels:
+    app: go-deployment-demo
+    version: v1.0.0
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: go-deployment-demo
+  template:
+    metadata:
+      labels:
+        app: go-deployment-demo
+        version: v1.0.0
+    spec:
+      containers:
+      - name: go-deployment-demo
+        image: go-deployment-demo:1.0.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        env:
+        - name: PORT
+          value: "8080"
+        - name: ENVIRONMENT
+          valueFrom:
+            configMapKeyRef:
+              name: go-deployment-demo-config
+              key: environment
+        - name: VERSION
+          value: "1.0.0"
+        resources:
+          requests:
+            memory: "32Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 30
+          timeoutSeconds: 3
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 65534
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: go-deployment-demo
+  labels:
+    app: go-deployment-demo
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  selector:
+    app: go-deployment-demo
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: go-deployment-demo-config
+data:
+  environment: "production"

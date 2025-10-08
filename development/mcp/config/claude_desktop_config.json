@@ -1,0 +1,63 @@
+{
+  "mcpServers": {
+    "catalytic-deployment": {
+      "command": "node",
+      "args": ["C:\\Users\\Corbin\\development\\mcp\\servers\\deployment\\server.js"],
+      "env": {
+        "PROJECT_ROOT": "C:\\Users\\Corbin\\development",
+        "DOCKER_COMPOSE_PATH": "C:\\Users\\Corbin\\development\\docker-compose.yml",
+        "LOG_LEVEL": "info"
+      }
+    },
+    "catalytic-github": {
+      "command": "node",
+      "args": ["C:\\Users\\Corbin\\development\\mcp\\servers\\github\\server.js"],
+      "env": {
+        "GITHUB_TOKEN": "${GITHUB_TOKEN}",
+        "GITHUB_REPO": "${GITHUB_REPO}",
+        "PROJECT_ROOT": "C:\\Users\\Corbin\\development",
+        "LOG_LEVEL": "info"
+      }
+    },
+    "catalytic-slack": {
+      "command": "node",
+      "args": ["C:\\Users\\Corbin\\development\\mcp\\servers\\slack\\server.js"],
+      "env": {
+        "SLACK_BOT_TOKEN": "${SLACK_BOT_TOKEN}",
+        "SLACK_CHANNEL": "${SLACK_DEPLOYMENT_CHANNEL}",
+        "LOG_LEVEL": "info"
+      }
+    },
+    "catalytic-monitoring": {
+      "command": "node",
+      "args": ["C:\\Users\\Corbin\\development\\mcp\\servers\\monitoring\\server.js"],
+      "env": {
+        "PROMETHEUS_URL": "http://localhost:9090",
+        "GRAFANA_URL": "http://localhost:3000",
+        "GRAFANA_API_KEY": "${GRAFANA_API_KEY}",
+        "PROJECT_ROOT": "C:\\Users\\Corbin\\development",
+        "LOG_LEVEL": "info"
+      }
+    },
+    "catalytic-database": {
+      "command": "node",
+      "args": ["C:\\Users\\Corbin\\development\\mcp\\servers\\database\\server.js"],
+      "env": {
+        "DATABASE_URL": "${DATABASE_URL}",
+        "REDIS_URL": "${REDIS_URL}",
+        "PROJECT_ROOT": "C:\\Users\\Corbin\\development",
+        "LOG_LEVEL": "info"
+      }
+    },
+    "catalytic-sse": {
+      "command": "node",
+      "args": ["C:\\Users\\Corbin\\development\\mcp\\servers\\sse\\server.js"],
+      "env": {
+        "SSE_PORT": "8090",
+        "WEBSOCKET_PORT": "8091",
+        "PROJECT_ROOT": "C:\\Users\\Corbin\\development",
+        "LOG_LEVEL": "info"
+      }
+    }
+  }
+}

@@ -5,7 +5,6 @@ Testing PyTorch, CuPy, and Numba GPU capabilities
 Pirate mode: All hands on deck for GPU testing!
 """
 
-import sys
 import time
 import numpy as np
 
@@ -23,7 +22,7 @@ try:
     if torch.cuda.is_available():
         print(f"  GPU: {torch.cuda.get_device_name(0)}")
         print(f"  CUDA Version: {torch.version.cuda}")
-        
+
         # Quick benchmark
         x = torch.randn(5000, 5000, device='cuda')
         start = time.perf_counter()
@@ -50,7 +49,7 @@ try:
         device = cp.cuda.Device()
         print(f"  GPU: {device.name.decode()}")
         print(f"  Compute Capability: {device.compute_capability}")
-        
+
         # Quick benchmark
         x = cp.random.randn(5000, 5000, dtype=cp.float32)
         start = time.perf_counter()
@@ -74,31 +73,31 @@ try:
     from numba import cuda
     print(f"  Version: {numba.__version__}")
     print(f"  CUDA Available: {cuda.is_available()}")
-    
+
     if cuda.is_available():
         @cuda.jit
         def vector_add(a, b, c):
             i = cuda.grid(1)
             if i < a.size:
                 c[i] = a[i] + b[i]
-        
+
         n = 1000000
         a = np.ones(n, dtype=np.float32)
         b = np.ones(n, dtype=np.float32) * 2
         c = np.zeros(n, dtype=np.float32)
-        
+
         d_a = cuda.to_device(a)
         d_b = cuda.to_device(b)
         d_c = cuda.device_array_like(c)
-        
+
         threads = 256
         blocks = (n + threads - 1) // threads
-        
+
         start = time.perf_counter()
         vector_add[blocks, threads](d_a, d_b, d_c)
         cuda.synchronize()
         elapsed = time.perf_counter() - start
-        
+
         result = d_c.copy_to_host()
         print(f"  Vector add (1M elements): {elapsed*1000:.2f}ms")
         print("  [RESULT] Numba CUDA: WORKING!")

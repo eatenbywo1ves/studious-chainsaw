@@ -4,8 +4,6 @@ Setup CUDA environment and test GPU acceleration
 """
 
 import os
-import sys
-import ctypes
 
 def setup_cuda_environment():
     """Configure CUDA environment for CuPy"""
@@ -166,7 +164,7 @@ def test_gpu_with_numba():
             result_cpu[i] = data[i] ^ key[i % len(key)]
         cpu_xor_time = (time.perf_counter() - start) * 1000
 
-        print(f"\nCatalytic XOR Transform:")
+        print("\nCatalytic XOR Transform:")
         print(f"  GPU: {gpu_xor_time:.3f}ms")
         print(f"  CPU: {cpu_xor_time:.3f}ms")
         print(f"  Speedup: {cpu_xor_time/gpu_xor_time:.2f}x")

@@ -1,0 +1,2 @@
+setup-nvidia-research-env.sh: line 5: $'\r': command not found
+setup-nvidia-research-env.sh: line 7: $'\r': command not found
