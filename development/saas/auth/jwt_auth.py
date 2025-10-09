@@ -5,6 +5,7 @@ Implements secure token generation, validation, and tenant isolation
 
 import os
 import secrets
+import logging
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any, Tuple
 
@@ -16,6 +17,8 @@ from cryptography.hazmat.backends import default_backend
 from pydantic import BaseModel, Field, ValidationError
 import redis
 from passlib.context import CryptContext
+
+logger = logging.getLogger(__name__)
 
 # Configuration
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", secrets.token_urlsafe(32))
@@ -223,6 +226,21 @@ def create_access_token(
             f"{user_id}:{tenant_id}",
         )
 
+    logger.info(
+        "Access token created",
+        extra={
+            "user_id": user_id,
+            "tenant_id": tenant_id,
+            "email": email,
+            "role": role,
+            "token_type": "access",
+            "jti": token_data.jti,
+            "expires_in_seconds": int(
+                expires_delta.total_seconds() if expires_delta else ACCESS_TOKEN_EXPIRE_MINUTES * 60
+            ),
+        },
+    )
+
     return encoded_jwt
 
 
@@ -264,6 +282,18 @@ def create_refresh_token(
             f"{user_id}:{tenant_id}:active",
         )
 
+    logger.info(
+        "Refresh token created",
+        extra={
+            "user_id": user_id,
+            "tenant_id": tenant_id,
+            "email": email,
+            "token_type": "refresh",
+            "jti": token_data.jti,
+            "expires_in_days": REFRESH_TOKEN_EXPIRE_DAYS,
+        },
+    )
+
     return encoded_jwt
 
 
@@ -298,37 +328,74 @@ def verify_token(token: str, token_type: str = "access") -> Optional[TokenData]:
 
         # Validate token type
         if payload.get("type") != token_type:
+            logger.warning(
+                "Token type mismatch",
+                extra={"expected_type": token_type, "actual_type": payload.get("type")},
+            )
             return None
 
         # Check if token is blacklisted
         jti = payload.get("jti")
         if jti and redis_client:
             if redis_client.exists(f"blacklist:{jti}"):
+                logger.warning(
+                    "Token verification failed: blacklisted",
+                    extra={
+                        "jti": jti,
+                        "user_id": payload.get("sub"),
+                        "tenant_id": payload.get("tenant_id"),
+                    },
+                )
                 return None
 
             # Verify token is still active in Redis
             token_key = f"token:{token_type}:{jti}"
             if not redis_client.exists(token_key):
+                logger.warning(
+                    "Token verification failed: not found in Redis",
+                    extra={
+                        "jti": jti,
+                        "token_type": token_type,
+                        "user_id": payload.get("sub"),
+                    },
+                )
                 return None
 
         # Create TokenData object
         token_data = TokenData(**payload)
+
+        logger.debug(
+            "Token verified successfully",
+            extra={
+                "user_id": token_data.sub,
+                "tenant_id": token_data.tenant_id,
+                "token_type": token_type,
+                "jti": jti,
+            },
+        )
+
         return token_data
 
     except ExpiredSignatureError:
+        logger.warning("Token verification failed: expired signature")
         return None
-    except PyJWTError:
+    except PyJWTError as e:
+        logger.warning("Token verification failed: JWT error", extra={"error": str(e)})
         return None
-    except ValidationError:
+    except ValidationError as e:
+        logger.warning("Token verification failed: validation error", extra={"error": str(e)})
         return None
 
 
 def refresh_access_token(refresh_token: str) -> Optional[TokenResponse]:
     """Refresh access token using refresh token"""
 
+    logger.info("Refreshing access token")
+
     # Verify refresh token
     token_data = verify_token(refresh_token, token_type="refresh")
     if not token_data:
+        logger.warning("Refresh token verification failed")
         return None
 
     # Check if refresh token is marked for rotation
@@ -338,6 +405,14 @@ def refresh_access_token(refresh_token: str) -> Optional[TokenResponse]:
 
         if refresh_value and ":rotated" in refresh_value:
             # Token has been rotated, possible security issue
+            logger.error(
+                "Token rotation security breach detected",
+                extra={
+                    "user_id": token_data.sub,
+                    "tenant_id": token_data.tenant_id,
+                    "jti": token_data.jti,
+                },
+            )
             revoke_all_user_tokens(token_data.sub, token_data.tenant_id)
             return None
 
@@ -356,6 +431,15 @@ def refresh_access_token(refresh_token: str) -> Optional[TokenResponse]:
             3600,  # Keep for 1 hour for security tracking
             f"{token_data.sub}:{token_data.tenant_id}:rotated",
         )
+
+    logger.info(
+        "Access token refreshed successfully",
+        extra={
+            "user_id": token_data.sub,
+            "tenant_id": token_data.tenant_id,
+            "old_jti": token_data.jti,
+        },
+    )
 
     return new_tokens
 
@@ -379,13 +463,30 @@ def revoke_token(token: str):
             if exp:
                 ttl = max(0, exp - datetime.now(timezone.utc).timestamp())
                 redis_client.setex(f"blacklist:{jti}", int(ttl), "revoked")
-    except Exception:
-        pass
+
+                logger.warning(
+                    "Token revoked and blacklisted",
+                    extra={
+                        "jti": jti,
+                        "user_id": payload.get("sub"),
+                        "tenant_id": payload.get("tenant_id"),
+                        "token_type": payload.get("type"),
+                        "ttl_seconds": int(ttl),
+                    },
+                )
+    except Exception as e:
+        logger.error("Token revocation failed", extra={"error": str(e)}, exc_info=True)
 
 
 def revoke_all_user_tokens(user_id: str, tenant_id: str):
     """Revoke all tokens for a user (security breach response)"""
 
+    logger.warning(
+        "Revoking all user tokens (security action)",
+        extra={"user_id": user_id, "tenant_id": tenant_id},
+    )
+
+    revoked_count = 0
     if redis_client:
         # Pattern match all user tokens
         pattern = "token:*:*"
@@ -396,6 +497,12 @@ def revoke_all_user_tokens(user_id: str, tenant_id: str):
                 jti = key.split(":")[-1]
                 redis_client.setex(f"blacklist:{jti}", 86400, "security_revoked")
                 redis_client.delete(key)
+                revoked_count += 1
+
+    logger.warning(
+        "All user tokens revoked",
+        extra={"user_id": user_id, "tenant_id": tenant_id, "tokens_revoked": revoked_count},
+    )
 
 
 # ============================================================================
@@ -424,6 +531,16 @@ def generate_api_key(tenant_id: str, name: str, permissions: list = None) -> Tup
                 "created_at": datetime.now(timezone.utc).isoformat(),
             },
         )
+
+    logger.info(
+        "API key generated",
+        extra={
+            "tenant_id": tenant_id,
+            "key_name": name,
+            "permissions": permissions or [],
+            "key_prefix": api_key[:10],
+        },
+    )
 
     return api_key, key_hash
 

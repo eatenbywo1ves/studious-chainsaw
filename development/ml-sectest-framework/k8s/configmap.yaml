@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ml-sectest-config
+  namespace: ml-sectest
+data:
+  LOG_LEVEL: "INFO"
+  ENVIRONMENT: "production"
+  PYTHONIOENCODING: "UTF-8"
+  MAX_WORKERS: "3"
+  REQUEST_TIMEOUT: "10"
+  REPORT_FORMAT: "both"

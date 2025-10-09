@@ -43,6 +43,7 @@ async def get_current_user(
     """Dependency to get current authenticated user"""
 
     if not credentials:
+        logger.warning("Authentication attempt without credentials")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Authentication required",
@@ -51,11 +52,17 @@ async def get_current_user(
 
     token_data = verify_token(credentials.credentials)
     if not token_data:
+        logger.warning("Authentication failed: invalid or expired token")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+    logger.debug(
+        "User authenticated successfully",
+        extra={"user_id": token_data.sub, "tenant_id": token_data.tenant_id, "role": token_data.role},
+    )
 
     return token_data
 
@@ -72,9 +79,22 @@ async def require_admin(current_user: TokenData = Depends(get_current_active_use
     """Dependency to require admin role"""
 
     if current_user.role not in ["owner", "admin"]:
+        logger.warning(
+            "Admin access denied",
+            extra={
+                "user_id": current_user.sub,
+                "tenant_id": current_user.tenant_id,
+                "role": current_user.role,
+            },
+        )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="Admin privileges required"
         )
+
+    logger.debug(
+        "Admin access granted",
+        extra={"user_id": current_user.sub, "tenant_id": current_user.tenant_id, "role": current_user.role},
+    )
 
     return current_user
 
@@ -91,22 +111,35 @@ async def get_tenant_id(
     if credentials:
         token_data = verify_token(credentials.credentials)
         if token_data:
+            logger.debug(
+                "Tenant ID extracted from JWT token",
+                extra={"tenant_id": token_data.tenant_id, "path": request.url.path},
+            )
             return token_data.tenant_id
 
     # Try API key
     if api_key:
         key_data = verify_api_key(api_key)
         if key_data:
+            logger.debug(
+                "Tenant ID extracted from API key",
+                extra={"tenant_id": key_data.get("tenant_id"), "path": request.url.path},
+            )
             return key_data.get("tenant_id")
 
     # Try tenant header
     if tenant_id:
+        logger.debug(
+            "Tenant ID extracted from header",
+            extra={"tenant_id": tenant_id, "path": request.url.path},
+        )
         return tenant_id
 
     # Check if stored in request state (from middleware)
     if hasattr(request.state, "tenant_id"):
         return request.state.tenant_id
 
+    logger.warning("Tenant identification failed", extra={"path": request.url.path})
     raise HTTPException(
         status_code=status.HTTP_400_BAD_REQUEST, detail="Tenant identification required"
     )
@@ -135,11 +168,24 @@ class TenantIsolationMiddleware(BaseHTTPMiddleware):
             request.state.tenant_id = tenant_id
             request.state.has_tenant = True
 
+            logger.debug(
+                "Tenant isolation enforced",
+                extra={
+                    "tenant_id": tenant_id,
+                    "path": request.url.path,
+                    "method": request.method,
+                },
+            )
+
             # Set tenant context for database operations
             with TenantContext(tenant_id):
                 response = await call_next(request)
         else:
             request.state.has_tenant = False
+            logger.debug(
+                "Request without tenant context",
+                extra={"path": request.url.path, "method": request.method},
+            )
             response = await call_next(request)
 
         return response
@@ -182,6 +228,22 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
                 request.state.user_email = token_data.email
                 request.state.user_role = token_data.role
 
+                logger.info(
+                    "Authentication successful",
+                    extra={
+                        "auth_type": "jwt",
+                        "user_id": token_data.sub,
+                        "tenant_id": token_data.tenant_id,
+                        "path": request.url.path,
+                        "method": request.method,
+                    },
+                )
+            else:
+                logger.warning(
+                    "JWT authentication failed",
+                    extra={"path": request.url.path, "method": request.method},
+                )
+
         elif api_key:
             # Get database session for API key verification
             # Using centralized connection (no engine creation per-request)
@@ -195,12 +257,36 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
                     request.state.api_key_id = key_data.get("id")
                     request.state.api_key_name = key_data.get("name")
                     request.state.api_key_permissions = key_data.get("permissions", [])
+
+                    logger.info(
+                        "Authentication successful",
+                        extra={
+                            "auth_type": "api_key",
+                            "api_key_name": key_data.get("name"),
+                            "tenant_id": key_data.get("tenant_id"),
+                            "path": request.url.path,
+                            "method": request.method,
+                        },
+                    )
+                else:
+                    logger.warning(
+                        "API key authentication failed",
+                        extra={"path": request.url.path, "method": request.method},
+                    )
             finally:
                 db.close()
 
         if not authenticated:
             # Return 401 for API routes
             if request.url.path.startswith("/api/"):
+                logger.warning(
+                    "Unauthenticated API access attempt",
+                    extra={
+                        "path": request.url.path,
+                        "method": request.method,
+                        "client_ip": request.client.host if request.client else "unknown",
+                    },
+                )
                 return Response(
                     content='{"detail": "Authentication required"}',
                     status_code=401,
@@ -248,6 +334,19 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         request_times = self.request_counts.get(identifier, [])
         if len(request_times) >= self.default_limit:
             retry_after = int(self.window_seconds - (current_time - request_times[0]))
+
+            logger.warning(
+                "Rate limit exceeded",
+                extra={
+                    "identifier": identifier,
+                    "path": request.url.path,
+                    "method": request.method,
+                    "limit": self.default_limit,
+                    "window_seconds": self.window_seconds,
+                    "retry_after": retry_after,
+                },
+            )
+
             return Response(
                 content=f'{{"detail": "Rate limit exceeded. Try again in {retry_after} seconds"}}',
                 status_code=429,

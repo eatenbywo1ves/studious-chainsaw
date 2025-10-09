@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ml-sectest-agents
+  namespace: ml-sectest
+  labels:
+    app: ml-sectest
+    version: v1
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: ml-sectest
+  template:
+    metadata:
+      labels:
+        app: ml-sectest
+        version: v1
+    spec:
+      containers:
+      - name: agent
+        image: ml-sectest:latest
+        imagePullPolicy: IfNotPresent
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        envFrom:
+        - configMapRef:
+            name: ml-sectest-config
+        volumeMounts:
+        - name: reports
+          mountPath: /app/reports
+        - name: logs
+          mountPath: /app/logs
+        livenessProbe:
+          exec:
+            command:
+            - python
+            - -c
+            - "from core import SecurityOrchestrator"
+          initialDelaySeconds: 10
+          periodSeconds: 30
+          timeoutSeconds: 5
+        readinessProbe:
+          exec:
+            command:
+            - python
+            - -c
+            - "from core import SecurityOrchestrator"
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 3
+      volumes:
+      - name: reports
+        persistentVolumeClaim:
+          claimName: ml-sectest-reports-pvc
+      - name: logs
+        persistentVolumeClaim:
+          claimName: ml-sectest-logs-pvc
+      restartPolicy: Always
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000

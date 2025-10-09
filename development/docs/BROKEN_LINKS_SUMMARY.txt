@@ -1,0 +1,249 @@
+================================================================================
+                   BROKEN LINKS ANALYSIS - EXECUTIVE SUMMARY
+================================================================================
+Date: 2025-10-09
+Scope: Active Documentation Only (excludes archive/ and conversations/)
+================================================================================
+
+HEADLINE NUMBERS
+================================================================================
+Total Broken Links Found:        65
+├─ Active Documentation:         21 ⚠️  (THIS IS OUR FOCUS)
+└─ Archived Documentation:       44 ✓   (Intentionally ignored)
+
+FIX BREAKDOWN
+================================================================================
+High Priority:                   17 links  (Must fix)
+Low Priority:                     4 links  (Optional cleanup)
+
+By Difficulty:
+├─ Easy Fixes:                    9 links  (Path corrections)
+├─ Medium Fixes:                 12 links  (File moved/renamed)
+└─ Hard Fixes:                    0 links  (None!)
+
+AFFECTED FILES (Ranked by Impact)
+================================================================================
+
+Tier 1: Critical Documentation Files (5 links each)
+─────────────────────────────────────────────────────────────────────────────
+1. docs/DOCUMENTATION_MIGRATION_PLAN.md                    [5 broken links]
+   Lines: 122, 191, 194, 195, 196
+   Issue: Uses "./docs/" prefix when already inside docs/ directory
+   Fix: Remove "./docs/" → use relative paths from docs root
+   Priority: HIGH
+
+2. docs/DOCUMENTATION_MAINTENANCE_GUIDE.md                 [5 broken links]
+   Lines: 289, 290, 298, 305, 310
+   Issue: Template examples (289-290) + wrong relative paths (298, 305, 310)
+   Fix: Add "(example)" notes + correct paths
+   Priority: HIGH (3 links) + LOW (2 links)
+
+Tier 2: Guide Documentation (3 links each)
+─────────────────────────────────────────────────────────────────────────────
+3. docs/guides/ka-lattice-deployment-guide.md              [3 broken links]
+   Lines: 300, 301, 302
+   Issue: Wrong relative paths to docs root and test directory
+   Fix: Update "./docs/" → "../" and "./tests/" → "../../tests/"
+   Priority: HIGH
+
+4. docs/guides/FOLD7_README.md                             [3 broken links]
+   Lines: 55, 56, 58
+   Issue: Files moved during repository reorganization
+   Fix: Update paths to scripts/deployment/ and development root
+   Priority: HIGH
+
+Tier 3: Architecture & Implementation Docs (1 link each)
+─────────────────────────────────────────────────────────────────────────────
+5. docs/architecture/security-architecture.md              [1 broken link]
+   Line: 389
+   Issue: Points to archive but file still active in security/ dir
+   Fix: Change "archive/2025-Q4/" → "../../security/"
+   Priority: HIGH
+
+6. docs/IMPLEMENTATION_GUIDE_INDEX.md                      [1 broken link]
+   Line: 517
+   Issue: File moved from docs root to guides/ subdirectory
+   Fix: Change "../NVIDIA_BMAD_DEPLOYMENT_PLAN.md" → "guides/..."
+   Priority: HIGH
+
+7. docs/quickstart/security-tools-5min.md                  [1 broken link]
+   Line: 214
+   Issue: Optional file not yet created (marked "if exists")
+   Fix: Create file OR leave as-is (already marked optional)
+   Priority: HIGH (but acceptable to defer)
+
+Tier 4: Meta-Documentation (1 link each - Low Priority)
+─────────────────────────────────────────────────────────────────────────────
+8. docs/DOCUMENTATION_TOOLS_IMPLEMENTATION.md              [1 broken link]
+   Line: 202
+   Issue: Regex pattern example in documentation about link validation
+   Fix: Add "(example pattern)" comment
+   Priority: LOW
+
+9. docs/guides/README.md                                   [1 broken link]
+   Line: 47
+   Issue: Missing services/webhooks/README.md
+   Fix: Create README OR remove link
+   Priority: LOW
+
+COMMON ROOT CAUSES
+================================================================================
+
+Issue Pattern 1: Wrong Base Path Assumption (9 occurrences)
+────────────────────────────────────────────────────────────
+Problem:  File uses "./docs/" or "../docs/" prefix
+Reality:  File is already IN docs/ directory
+Examples: Lines 191, 194, 195, 196, 300, 301
+Fix:      Remove "./docs/" prefix or change to relative from docs root
+
+Issue Pattern 2: File Reorganization (6 occurrences)
+────────────────────────────────────────────────────────────
+Problem:  Links point to old locations after files were moved
+Reality:  Files now in scripts/deployment/, guides/, security/
+Examples: fold7 files, NVIDIA plan, container research report
+Fix:      Update paths to new locations
+
+Issue Pattern 3: Template Examples (4 occurrences)
+────────────────────────────────────────────────────────────
+Problem:  Example links in documentation tutorials
+Reality:  These are intentional examples, not real links
+Examples: Lines 289, 290, 202
+Fix:      Add "(example)" clarification comments
+
+ACTIONABLE FIX PLAN
+================================================================================
+
+Option A: Automated Fix (RECOMMENDED)
+────────────────────────────────────────────────────────────
+Command:  bash scripts/utilities/fix_broken_links.sh
+Time:     30 seconds
+Result:   17 of 21 links fixed automatically
+Backups:  Created in .backup_links_YYYYMMDD/
+
+Option B: Manual Fix
+────────────────────────────────────────────────────────────
+Time:     15-20 minutes
+Steps:    Edit 9 files, update 21 links
+Risk:     Human error in path calculations
+
+VERIFICATION
+================================================================================
+
+Step 1: Run Validation (Before)
+────────────────────────────────────────────────────────────
+$ python scripts/utilities/validate_docs_links.py
+Expected: "65 broken links (21 active, 44 archived)"
+
+Step 2: Apply Fix
+────────────────────────────────────────────────────────────
+$ bash scripts/utilities/fix_broken_links.sh
+Expected: "✅ Fixed 17 high-priority broken links"
+
+Step 3: Run Validation (After)
+────────────────────────────────────────────────────────────
+$ python scripts/utilities/validate_docs_links.py
+Expected: "~4 broken links (low priority template examples)"
+
+DECISION TREE
+================================================================================
+
+                        ┌─────────────────────┐
+                        │  Need to fix links? │
+                        └──────────┬──────────┘
+                                   │
+                    ┌──────────────┴──────────────┐
+                    │                             │
+            ┌───────▼────────┐          ┌────────▼────────┐
+            │  Quick fix     │          │  Detailed work  │
+            │  (automated)   │          │  (manual)       │
+            └───────┬────────┘          └────────┬────────┘
+                    │                            │
+        ┌───────────▼────────────┐   ┌──────────▼─────────────┐
+        │ bash fix_broken_links.sh│   │ Follow detailed report │
+        │ Fixes 17/21 instantly   │   │ BROKEN_LINKS_ANALYSIS_ │
+        └───────────┬─────────────┘   │ REPORT.md              │
+                    │                 └────────────────────────┘
+                    │
+        ┌───────────▼────────────┐
+        │ Verify with validation │
+        │ tool                   │
+        └───────────┬────────────┘
+                    │
+            ┌───────▼────────┐
+            │  Handle 4 low  │
+            │  priority items│
+            │  (optional)    │
+            └───────┬────────┘
+                    │
+            ┌───────▼────────┐
+            │   Commit!      │
+            └────────────────┘
+
+MANUAL ACTIONS REQUIRED (After Auto-Fix)
+================================================================================
+
+1. DOCUMENTATION_MAINTENANCE_GUIDE.md (lines 289-290)
+   Action: Add "(example)" after template links
+   Time: 30 seconds
+   Priority: LOW
+
+2. DOCUMENTATION_MAINTENANCE_GUIDE.md (line 310)
+   Action: Add "<!-- Intentional bad example -->" comment
+   Time: 15 seconds
+   Priority: LOW
+
+3. guides/README.md (line 47)
+   Action: Create services/webhooks/README.md OR remove link
+   Time: 2 minutes (create) or 10 seconds (remove)
+   Priority: LOW
+
+4. quickstart/security-tools-5min.md (line 214)
+   Action: Create PRODUCTION_SECURITY_AUDIT.md OR leave as-is
+   Time: Variable (depends on content needed)
+   Priority: LOW (marked "if exists")
+
+RISK ASSESSMENT
+================================================================================
+
+Risk Level: LOW
+Confidence: HIGH
+
+Risks:
+✓ All file locations verified
+✓ All fixes tested in analysis
+✓ Automated script creates backups
+✓ No destructive operations
+✓ Easy rollback (restore from backup)
+
+Edge Cases Handled:
+✓ Files with multiple broken links
+✓ Different path depths (../, ../../, etc.)
+✓ Windows/Unix path separators
+✓ Template examples vs real links
+
+RESOURCES
+================================================================================
+
+Full Reports:
+├─ BROKEN_LINKS_ANALYSIS_REPORT.md       (Detailed breakdown with examples)
+├─ BROKEN_LINKS_QUICK_REFERENCE.md       (Quick lookup guide)
+└─ BROKEN_LINKS_SUMMARY.txt              (This file)
+
+Tools:
+├─ scripts/utilities/fix_broken_links.sh           (Auto-fix script)
+├─ scripts/utilities/validate_docs_links.py        (Detection tool)
+└─ scripts/utilities/analyze_broken_links.py       (Analysis tool)
+
+================================================================================
+RECOMMENDATION: Run the automated fix script. It's fast, safe, and effective.
+================================================================================
+
+Command to execute:
+  cd /c/Users/Corbin/development && bash scripts/utilities/fix_broken_links.sh
+
+Expected completion time: 30 seconds
+Expected result: 17 of 21 links fixed
+
+================================================================================
+                              END OF SUMMARY
+================================================================================
