@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 # ENVIRONMENT CONFIGURATION - Load once at module level
 # ============================================================================
 
-env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env')
+env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env")
 load_dotenv(env_path)
 
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -39,8 +39,7 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
     # Default to SQLite for development
     sqlite_path = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-        "catalytic.db"
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "catalytic.db"
     )
     DATABASE_URL = f"sqlite:///{sqlite_path}"
 
@@ -64,7 +63,7 @@ else:
     # pool_pre_ping=True: Verify connections are alive before using
     logger.info(
         "Initializing PostgreSQL database engine",
-        extra={"database": "PostgreSQL", "pool_size": 20, "max_overflow": 40}
+        extra={"database": "PostgreSQL", "pool_size": 20, "max_overflow": 40},
     )
     engine = create_engine(
         DATABASE_URL,
@@ -82,21 +81,25 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 # CONNECTION POOL MONITORING
 # ============================================================================
 
+
 # Add pool event listeners for monitoring
 @event.listens_for(Pool, "connect")
 def receive_connect(dbapi_conn, connection_record):
     """Log when new database connection is created"""
     logger.debug("New database connection created", extra={"connection_id": id(dbapi_conn)})
 
+
 @event.listens_for(Pool, "checkout")
 def receive_checkout(dbapi_conn, connection_record, connection_proxy):
     """Log when connection is checked out from pool"""
     logger.debug("Connection checked out from pool", extra={"connection_id": id(dbapi_conn)})
 
+
 @event.listens_for(Pool, "checkin")
 def receive_checkin(dbapi_conn, connection_record):
     """Log when connection is returned to pool"""
     logger.debug("Connection returned to pool", extra={"connection_id": id(dbapi_conn)})
+
 
 def get_pool_status() -> dict:
     """
@@ -116,11 +119,13 @@ def get_pool_status() -> dict:
     logger.debug("Pool status retrieved", extra=status)
     return status
 
+
 # ============================================================================
 # DEPENDENCY INJECTION FUNCTION
 # ============================================================================
 
 _session_counter = 0
+
 
 def get_db() -> Generator[Session, None, None]:
     """
@@ -141,18 +146,15 @@ def get_db() -> Generator[Session, None, None]:
     _session_counter += 1
     session_id = _session_counter
 
-    logger.debug(f"Creating database session", extra={"session_id": session_id})
+    logger.debug("Creating database session", extra={"session_id": session_id})
     db = SessionLocal()
     try:
         yield db
-        logger.debug(f"Database session completed successfully", extra={"session_id": session_id})
+        logger.debug("Database session completed successfully", extra={"session_id": session_id})
     except Exception as e:
-        logger.error(
-            f"Database session error",
-            extra={"session_id": session_id, "error": str(e)}
-        )
+        logger.error("Database session error", extra={"session_id": session_id, "error": str(e)})
         db.rollback()
         raise
     finally:
         db.close()
-        logger.debug(f"Database session closed", extra={"session_id": session_id})
+        logger.debug("Database session closed", extra={"session_id": session_id})

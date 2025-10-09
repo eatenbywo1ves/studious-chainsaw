@@ -23,7 +23,7 @@ load_dotenv(env_path)
 # Setup logging
 logging.basicConfig(
     level=logging.INFO if os.getenv("DEPLOYMENT_ENV") == "production" else logging.DEBUG,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
 
@@ -373,14 +373,14 @@ async def register_user(request: RegisterRequest, db: Session = Depends(get_db))
     db.refresh(user)
 
     logger.info(
-        f"User registered successfully",
+        "User registered successfully",
         extra={
             "user_id": user.id,
             "email": user.email,
             "tenant_id": tenant.id,
             "tenant_slug": tenant.slug,
-            "role": user.role
-        }
+            "role": user.role,
+        },
     )
 
     return {
@@ -398,7 +398,9 @@ async def register_user(request: RegisterRequest, db: Session = Depends(get_db))
 async def login(request: LoginRequest, db: Session = Depends(get_db)):
     """Authenticate user and return tokens (Reactive version)"""
 
-    logger.info(f"Login attempt for email: {request.email}, tenant: {request.tenant_slug or 'default'}")
+    logger.info(
+        f"Login attempt for email: {request.email}, tenant: {request.tenant_slug or 'default'}"
+    )
 
     # Import RxPY operators for async execution
     from rx import operators as ops
@@ -467,14 +469,14 @@ async def create_lattice(
     """Create new lattice for tenant (Reactive version)"""
 
     logger.info(
-        f"Creating lattice",
+        "Creating lattice",
         extra={
             "tenant_id": current_user.tenant_id,
             "user_id": current_user.sub,
             "dimensions": request.dimensions,
             "size": request.size,
-            "name": request.name
-        }
+            "name": request.name,
+        },
     )
 
     # Import RxPY operators for async execution
@@ -495,23 +497,20 @@ async def create_lattice(
         result = await lattice_observable.pipe(ops.to_future())
 
         logger.info(
-            f"Lattice created successfully",
+            "Lattice created successfully",
             extra={
                 "tenant_id": current_user.tenant_id,
                 "lattice_id": result.get("id"),
                 "vertices": result.get("vertices"),
-                "memory_kb": result.get("memory_kb")
-            }
+                "memory_kb": result.get("memory_kb"),
+            },
         )
         return result
     except Exception as e:
         logger.error(
-            f"Lattice creation failed",
-            extra={
-                "tenant_id": current_user.tenant_id,
-                "error": str(e)
-            },
-            exc_info=True
+            "Lattice creation failed",
+            extra={"tenant_id": current_user.tenant_id, "error": str(e)},
+            exc_info=True,
         )
         raise
 

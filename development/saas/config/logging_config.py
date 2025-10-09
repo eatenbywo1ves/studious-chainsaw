@@ -31,10 +31,9 @@ DEVELOPMENT_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 # LOGGING SETUP
 # ============================================================================
 
+
 def setup_logging(
-    level: str = None,
-    environment: str = None,
-    log_file: Optional[str] = None
+    level: str = None, environment: str = None, log_file: Optional[str] = None
 ) -> logging.Logger:
     """
     Configure application-wide logging.
@@ -69,10 +68,7 @@ def setup_logging(
     if environment == "production":
         formatter = StructuredFormatter(PRODUCTION_FORMAT)
     else:
-        formatter = logging.Formatter(
-            DEVELOPMENT_FORMAT,
-            datefmt="%Y-%m-%d %H:%M:%S"
-        )
+        formatter = logging.Formatter(DEVELOPMENT_FORMAT, datefmt="%Y-%m-%d %H:%M:%S")
 
     console_handler.setFormatter(formatter)
     root_logger.addHandler(console_handler)
@@ -101,11 +97,30 @@ class StructuredFormatter(logging.Formatter):
         # Extract extra fields
         extra_fields = {}
         for key, value in record.__dict__.items():
-            if key not in ['name', 'msg', 'args', 'created', 'filename', 'funcName',
-                          'levelname', 'levelno', 'lineno', 'module', 'msecs',
-                          'message', 'pathname', 'process', 'processName',
-                          'relativeCreated', 'thread', 'threadName', 'exc_info',
-                          'exc_text', 'stack_info', 'asctime']:
+            if key not in [
+                "name",
+                "msg",
+                "args",
+                "created",
+                "filename",
+                "funcName",
+                "levelname",
+                "levelno",
+                "lineno",
+                "module",
+                "msecs",
+                "message",
+                "pathname",
+                "process",
+                "processName",
+                "relativeCreated",
+                "thread",
+                "threadName",
+                "exc_info",
+                "exc_text",
+                "stack_info",
+                "asctime",
+            ]:
                 extra_fields[key] = value
 
         # Add extra fields to record for formatting
@@ -119,6 +134,7 @@ class StructuredFormatter(logging.Formatter):
 # ============================================================================
 
 _loggers = {}
+
 
 def get_logger(name: str) -> logging.Logger:
     """
@@ -145,6 +161,7 @@ def get_logger(name: str) -> logging.Logger:
 # CONTEXT LOGGING HELPERS
 # ============================================================================
 
+
 class RequestContext:
     """
     Context manager for request-scoped logging.
@@ -169,56 +186,32 @@ class RequestContext:
                     "request_id": self.request_id,
                     "duration_ms": duration_ms,
                     "error": str(exc_val),
-                    **self.context
-                }
+                    **self.context,
+                },
             )
         else:
             self.logger.info(
                 "Request completed",
-                extra={
-                    "request_id": self.request_id,
-                    "duration_ms": duration_ms,
-                    **self.context
-                }
+                extra={"request_id": self.request_id, "duration_ms": duration_ms, **self.context},
             )
 
     def log_info(self, message: str, **extra):
         """Log info message with request context"""
-        self.logger.info(
-            message,
-            extra={
-                "request_id": self.request_id,
-                **self.context,
-                **extra
-            }
-        )
+        self.logger.info(message, extra={"request_id": self.request_id, **self.context, **extra})
 
     def log_warning(self, message: str, **extra):
         """Log warning message with request context"""
-        self.logger.warning(
-            message,
-            extra={
-                "request_id": self.request_id,
-                **self.context,
-                **extra
-            }
-        )
+        self.logger.warning(message, extra={"request_id": self.request_id, **self.context, **extra})
 
     def log_error(self, message: str, **extra):
         """Log error message with request context"""
-        self.logger.error(
-            message,
-            extra={
-                "request_id": self.request_id,
-                **self.context,
-                **extra
-            }
-        )
+        self.logger.error(message, extra={"request_id": self.request_id, **self.context, **extra})
 
 
 # ============================================================================
 # PERFORMANCE LOGGING
 # ============================================================================
+
 
 def log_performance(logger: logging.Logger, operation: str):
     """
@@ -229,6 +222,7 @@ def log_performance(logger: logging.Logger, operation: str):
         def create_lattice(...):
             pass
     """
+
     def decorator(func):
         def wrapper(*args, **kwargs):
             start_time = datetime.utcnow()
@@ -237,17 +231,19 @@ def log_performance(logger: logging.Logger, operation: str):
                 duration_ms = (datetime.utcnow() - start_time).total_seconds() * 1000
                 logger.info(
                     f"{operation} completed",
-                    extra={"operation": operation, "duration_ms": duration_ms}
+                    extra={"operation": operation, "duration_ms": duration_ms},
                 )
                 return result
             except Exception as e:
                 duration_ms = (datetime.utcnow() - start_time).total_seconds() * 1000
                 logger.error(
                     f"{operation} failed",
-                    extra={"operation": operation, "duration_ms": duration_ms, "error": str(e)}
+                    extra={"operation": operation, "duration_ms": duration_ms, "error": str(e)},
                 )
                 raise
+
         return wrapper
+
     return decorator
 
 
