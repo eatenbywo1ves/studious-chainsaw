@@ -4,6 +4,7 @@ Handles tenant registration, user management, and subscriptions
 """
 
 import os
+import logging
 from typing import List, Optional
 from datetime import datetime, timedelta
 from uuid import UUID, uuid4
@@ -17,6 +18,8 @@ from sqlalchemy.exc import IntegrityError
 import sys
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+logger = logging.getLogger(__name__)
 
 from auth.jwt_auth import create_token_pair, generate_api_key
 from auth.middleware import get_current_active_user, require_admin, TokenData
@@ -178,10 +181,21 @@ async def register_tenant(
 ):
     """Register a new tenant with owner user"""
 
+    logger.info(
+        "Tenant registration started",
+        extra={
+            "company_name": registration.company_name,
+            "email": registration.email,
+            "plan_code": registration.plan_code,
+        },
+    )
+
     try:
         # Generate unique slug from company name
         slug = registration.company_name.lower().replace(" ", "-").replace(".", "")
         slug = f"{slug}-{str(uuid4())[:8]}"
+
+        logger.debug("Generated tenant slug", extra={"slug": slug, "email": registration.email})
 
         # Create tenant
         tenant = Tenant(
@@ -202,9 +216,18 @@ async def register_tenant(
         )
 
         if not plan:
+            logger.error(
+                "Invalid plan code during registration",
+                extra={"plan_code": registration.plan_code, "email": registration.email},
+            )
             raise HTTPException(
                 status_code=400, detail=f"Invalid plan code: {registration.plan_code}"
             )
+
+        logger.debug(
+            "Creating subscription for new tenant",
+            extra={"slug": slug, "plan_code": registration.plan_code},
+        )
 
         # Create subscription
         subscription = TenantSubscription(
@@ -231,7 +254,19 @@ async def register_tenant(
         # Commit transaction
         db.commit()
 
+        logger.info(
+            "Tenant registered successfully",
+            extra={
+                "tenant_id": str(tenant.id),
+                "slug": tenant.slug,
+                "owner_id": str(owner.id),
+                "email": owner.email,
+                "plan_code": registration.plan_code,
+            },
+        )
+
         # Create tokens
+        logger.debug("Creating token pair for new tenant owner", extra={"user_id": str(owner.id)})
         tokens = create_token_pair(
             user_id=str(owner.id), tenant_id=str(tenant.id), email=owner.email, role=owner.role
         )
@@ -252,11 +287,24 @@ async def register_tenant(
             "tokens": tokens.dict(),
         }
 
-    except IntegrityError:
+    except IntegrityError as e:
         db.rollback()
+        logger.warning(
+            "Email already registered",
+            extra={"email": registration.email, "company_name": registration.company_name},
+        )
         raise HTTPException(status_code=400, detail="Email already registered")
     except Exception as e:
         db.rollback()
+        logger.error(
+            "Tenant registration failed",
+            extra={
+                "email": registration.email,
+                "company_name": registration.company_name,
+                "error": str(e),
+            },
+            exc_info=True,
+        )
         raise HTTPException(status_code=500, detail=f"Registration failed: {str(e)}")
 
 
@@ -329,6 +377,16 @@ async def create_user(
 ):
     """Create new user in tenant"""
 
+    logger.info(
+        "Creating new user",
+        extra={
+            "tenant_id": current_user.tenant_id,
+            "email": user_data.email,
+            "role": user_data.role,
+            "created_by": current_user.sub,
+        },
+    )
+
     # Check if email already exists in tenant
     existing = (
         db.query(User)
@@ -337,6 +395,10 @@ async def create_user(
     )
 
     if existing:
+        logger.warning(
+            "User email already exists in tenant",
+            extra={"tenant_id": current_user.tenant_id, "email": user_data.email},
+        )
         raise HTTPException(status_code=400, detail="User with this email already exists")
 
     # Create user
@@ -355,6 +417,16 @@ async def create_user(
         db.commit()
         db.refresh(user)
 
+        logger.info(
+            "User created successfully",
+            extra={
+                "tenant_id": current_user.tenant_id,
+                "user_id": str(user.id),
+                "email": user.email,
+                "role": user.role,
+            },
+        )
+
         return UserResponse(
             id=user.id,
             email=user.email,
@@ -369,6 +441,15 @@ async def create_user(
 
     except Exception as e:
         db.rollback()
+        logger.error(
+            "User creation failed",
+            extra={
+                "tenant_id": current_user.tenant_id,
+                "email": user_data.email,
+                "error": str(e),
+            },
+            exc_info=True,
+        )
         raise HTTPException(status_code=500, detail=f"User creation failed: {str(e)}")
 
 
@@ -448,9 +529,22 @@ async def delete_user(
 ):
     """Delete user from tenant"""
 
+    logger.warning(
+        "Deleting user",
+        extra={
+            "tenant_id": current_user.tenant_id,
+            "user_id": str(user_id),
+            "deleted_by": current_user.sub,
+        },
+    )
+
     user = db.query(User).filter_by(id=user_id, tenant_id=UUID(current_user.tenant_id)).first()
 
     if not user:
+        logger.warning(
+            "User not found for deletion",
+            extra={"tenant_id": current_user.tenant_id, "user_id": str(user_id)},
+        )
         raise HTTPException(status_code=404, detail="User not found")
 
     # Prevent deleting the last owner
@@ -467,9 +561,26 @@ async def delete_user(
     try:
         db.delete(user)
         db.commit()
+        logger.warning(
+            "User deleted successfully",
+            extra={
+                "tenant_id": current_user.tenant_id,
+                "user_id": str(user_id),
+                "email": user.email,
+            },
+        )
         return {"message": "User deleted successfully"}
     except Exception as e:
         db.rollback()
+        logger.error(
+            "User deletion failed",
+            extra={
+                "tenant_id": current_user.tenant_id,
+                "user_id": str(user_id),
+                "error": str(e),
+            },
+            exc_info=True,
+        )
         raise HTTPException(status_code=500, detail=f"Deletion failed: {str(e)}")
 
 
@@ -485,6 +596,16 @@ async def create_api_key(
     db: Session = Depends(get_db),
 ):
     """Create new API key for tenant"""
+
+    logger.info(
+        "Creating API key",
+        extra={
+            "tenant_id": current_user.tenant_id,
+            "user_id": current_user.sub,
+            "key_name": key_data.name,
+            "permissions": key_data.permissions,
+        },
+    )
 
     # Generate API key
     api_key, key_hash = generate_api_key(
@@ -513,6 +634,16 @@ async def create_api_key(
         db.commit()
         db.refresh(key_record)
 
+        logger.info(
+            "API key created successfully",
+            extra={
+                "tenant_id": current_user.tenant_id,
+                "key_id": str(key_record.id),
+                "key_name": key_record.name,
+                "key_prefix": key_record.key_prefix,
+            },
+        )
+
         return ApiKeyResponse(
             id=key_record.id,
             name=key_record.name,
@@ -525,6 +656,15 @@ async def create_api_key(
 
     except Exception as e:
         db.rollback()
+        logger.error(
+            "API key creation failed",
+            extra={
+                "tenant_id": current_user.tenant_id,
+                "key_name": key_data.name,
+                "error": str(e),
+            },
+            exc_info=True,
+        )
         raise HTTPException(status_code=500, detail=f"API key creation failed: {str(e)}")
 
 
@@ -558,18 +698,40 @@ async def revoke_api_key(
 ):
     """Revoke API key"""
 
+    logger.info(
+        "Revoking API key",
+        extra={"tenant_id": current_user.tenant_id, "key_id": str(key_id), "user_id": current_user.sub},
+    )
+
     key = db.query(ApiKey).filter_by(id=key_id, tenant_id=UUID(current_user.tenant_id)).first()
 
     if not key:
+        logger.warning(
+            "API key not found for revocation",
+            extra={"tenant_id": current_user.tenant_id, "key_id": str(key_id)},
+        )
         raise HTTPException(status_code=404, detail="API key not found")
 
     key.is_active = False
 
     try:
         db.commit()
+        logger.info(
+            "API key revoked successfully",
+            extra={
+                "tenant_id": current_user.tenant_id,
+                "key_id": str(key_id),
+                "key_name": key.name,
+            },
+        )
         return {"message": "API key revoked successfully"}
     except Exception as e:
         db.rollback()
+        logger.error(
+            "API key revocation failed",
+            extra={"tenant_id": current_user.tenant_id, "key_id": str(key_id), "error": str(e)},
+            exc_info=True,
+        )
         raise HTTPException(status_code=500, detail=f"Revocation failed: {str(e)}")
 
 

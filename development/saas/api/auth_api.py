@@ -5,6 +5,7 @@ Provides JWT verification and authentication endpoints for frontend
 
 import os
 import sys
+import logging
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, status
@@ -14,6 +15,8 @@ from pydantic import BaseModel
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from auth.jwt_auth import verify_token
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/auth", tags=["authentication"])
 
@@ -55,16 +58,28 @@ async def verify_jwt_token(request: TokenVerifyRequest):
     This endpoint is called by the Next.js frontend to verify
     JWT tokens for API routes that require authentication.
     """
+    logger.debug("Token verification requested", extra={"token_type": request.token_type})
+
     try:
         # Verify token using backend JWT verification
         token_data = verify_token(request.token, request.token_type)
 
         if not token_data:
+            logger.warning("Token verification failed", extra={"token_type": request.token_type})
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token"
             )
 
         # Convert TokenData to response model
+        logger.info(
+            "Token verified successfully",
+            extra={
+                "user_id": token_data.sub,
+                "tenant_id": token_data.tenant_id,
+                "token_type": token_data.type,
+            },
+        )
+
         return TokenVerifyResponse(
             sub=token_data.sub,
             tenant_id=token_data.tenant_id,
@@ -79,6 +94,9 @@ async def verify_jwt_token(request: TokenVerifyRequest):
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(
+            "Error verifying token", extra={"token_type": request.token_type, "error": str(e)}, exc_info=True
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error verifying token: {str(e)}",
@@ -90,6 +108,7 @@ async def auth_health_check():
     """
     Health check endpoint for authentication service
     """
+    logger.debug("Authentication health check")
     return {
         "status": "healthy",
         "service": "authentication",

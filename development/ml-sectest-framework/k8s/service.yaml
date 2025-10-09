@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ml-sectest-service
+  namespace: ml-sectest
+  labels:
+    app: ml-sectest
+spec:
+  type: ClusterIP
+  selector:
+    app: ml-sectest
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  sessionAffinity: ClientIP

@@ -5,6 +5,7 @@ Handles subscription operations triggered by Stripe webhooks and user actions
 
 import os
 import sys
+import logging
 from datetime import datetime, timezone
 from typing import Optional, Dict, Any
 
@@ -15,6 +16,8 @@ from sqlalchemy.exc import IntegrityError
 
 # Add parent directories to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+logger = logging.getLogger(__name__)
 
 from database.models import (
     Tenant,
@@ -119,14 +122,32 @@ async def create_subscription(request: SubscriptionCreateRequest, db: Session = 
     """
     Create a new subscription (called by Stripe webhook)
     """
+    logger.info(
+        "Creating subscription",
+        extra={
+            "tenant_id": request.tenant_id,
+            "user_id": request.user_id,
+            "plan_code": request.plan_code,
+            "stripe_subscription_id": request.stripe_subscription_id,
+        },
+    )
+
     try:
         # Get user and plan
         user = get_user_by_id(db, request.user_id, request.tenant_id)
         if not user:
+            logger.warning(
+                "User not found during subscription creation",
+                extra={"user_id": request.user_id, "tenant_id": request.tenant_id},
+            )
             raise HTTPException(status_code=404, detail="User not found")
 
         plan = get_plan_by_code(db, request.plan_code)
         if not plan:
+            logger.error(
+                "Plan not found during subscription creation",
+                extra={"plan_code": request.plan_code, "tenant_id": request.tenant_id},
+            )
             raise HTTPException(status_code=404, detail=f"Plan not found: {request.plan_code}")
 
         # Check if subscription already exists
@@ -141,6 +162,16 @@ async def create_subscription(request: SubscriptionCreateRequest, db: Session = 
 
         if existing_sub:
             # Update existing subscription
+            logger.info(
+                "Updating existing subscription",
+                extra={
+                    "tenant_id": request.tenant_id,
+                    "subscription_id": str(existing_sub.id),
+                    "old_plan_id": str(existing_sub.plan_id),
+                    "new_plan_id": str(plan.id),
+                    "status": request.status,
+                },
+            )
             existing_sub.plan_id = plan.id
             existing_sub.status = request.status
             existing_sub.current_period_start = request.current_period_start
@@ -150,6 +181,14 @@ async def create_subscription(request: SubscriptionCreateRequest, db: Session = 
             existing_sub.updated_at = datetime.now(timezone.utc)
         else:
             # Create new subscription
+            logger.info(
+                "Creating new subscription",
+                extra={
+                    "tenant_id": request.tenant_id,
+                    "plan_code": request.plan_code,
+                    "status": request.status,
+                },
+            )
             new_subscription = TenantSubscription(
                 tenant_id=request.tenant_id,
                 plan_id=plan.id,
@@ -171,6 +210,15 @@ async def create_subscription(request: SubscriptionCreateRequest, db: Session = 
 
         db.commit()
 
+        logger.info(
+            "Subscription created successfully",
+            extra={
+                "tenant_id": request.tenant_id,
+                "plan_code": request.plan_code,
+                "stripe_subscription_id": request.stripe_subscription_id,
+            },
+        )
+
         return {
             "status": "success",
             "message": "Subscription created successfully",
@@ -180,9 +228,27 @@ async def create_subscription(request: SubscriptionCreateRequest, db: Session = 
 
     except IntegrityError as e:
         db.rollback()
+        logger.error(
+            "Database integrity error during subscription creation",
+            extra={
+                "tenant_id": request.tenant_id,
+                "user_id": request.user_id,
+                "error": str(e),
+            },
+            exc_info=True,
+        )
         raise HTTPException(status_code=400, detail=f"Database integrity error: {str(e)}")
     except Exception as e:
         db.rollback()
+        logger.error(
+            "Error creating subscription",
+            extra={
+                "tenant_id": request.tenant_id,
+                "user_id": request.user_id,
+                "error": str(e),
+            },
+            exc_info=True,
+        )
         raise HTTPException(status_code=500, detail=f"Error creating subscription: {str(e)}")
 
 
@@ -191,6 +257,11 @@ async def update_subscription(request: SubscriptionUpdateRequest, db: Session = 
     """
     Update an existing subscription (called by Stripe webhook)
     """
+    logger.info(
+        "Updating subscription",
+        extra={"stripe_subscription_id": request.stripe_subscription_id, "status": request.status},
+    )
+
     try:
         # Find subscription by Stripe subscription ID in metadata
         subscriptions = (
@@ -203,9 +274,18 @@ async def update_subscription(request: SubscriptionUpdateRequest, db: Session = 
         )
 
         if not subscriptions:
+            logger.warning(
+                "Subscription not found for update",
+                extra={"stripe_subscription_id": request.stripe_subscription_id},
+            )
             raise HTTPException(status_code=404, detail="Subscription not found")
 
         subscription = subscriptions[0]
+
+        logger.debug(
+            "Found subscription to update",
+            extra={"subscription_id": str(subscription.id), "tenant_id": str(subscription.tenant_id)},
+        )
 
         # Update subscription fields
         if request.status:
@@ -222,6 +302,15 @@ async def update_subscription(request: SubscriptionUpdateRequest, db: Session = 
         subscription.updated_at = datetime.now(timezone.utc)
         db.commit()
 
+        logger.info(
+            "Subscription updated successfully",
+            extra={
+                "stripe_subscription_id": request.stripe_subscription_id,
+                "subscription_id": str(subscription.id),
+                "status": subscription.status,
+            },
+        )
+
         return {
             "status": "success",
             "message": "Subscription updated successfully",
@@ -230,6 +319,11 @@ async def update_subscription(request: SubscriptionUpdateRequest, db: Session = 
 
     except Exception as e:
         db.rollback()
+        logger.error(
+            "Error updating subscription",
+            extra={"stripe_subscription_id": request.stripe_subscription_id, "error": str(e)},
+            exc_info=True,
+        )
         raise HTTPException(status_code=500, detail=f"Error updating subscription: {str(e)}")
 
 
@@ -238,6 +332,8 @@ async def cancel_subscription(user_id: str, tenant_id: str, db: Session = Depend
     """
     Cancel a subscription (downgrade to free plan)
     """
+    logger.info("Cancelling subscription", extra={"tenant_id": tenant_id, "user_id": user_id})
+
     try:
         # Get active subscription
         subscription = (
@@ -250,11 +346,23 @@ async def cancel_subscription(user_id: str, tenant_id: str, db: Session = Depend
         )
 
         if not subscription:
+            logger.warning(
+                "No active subscription found for cancellation",
+                extra={"tenant_id": tenant_id, "user_id": user_id},
+            )
             raise HTTPException(status_code=404, detail="Active subscription not found")
+
+        logger.debug(
+            "Found active subscription to cancel",
+            extra={"subscription_id": str(subscription.id), "plan_id": str(subscription.plan_id)},
+        )
 
         # Get free plan
         free_plan = get_plan_by_code(db, "free")
         if not free_plan:
+            logger.error(
+                "Free plan not configured in system", extra={"tenant_id": tenant_id, "user_id": user_id}
+            )
             raise HTTPException(status_code=500, detail="Free plan not configured")
 
         # Update subscription to cancelled
@@ -275,6 +383,16 @@ async def cancel_subscription(user_id: str, tenant_id: str, db: Session = Depend
 
         db.commit()
 
+        logger.info(
+            "Subscription cancelled successfully",
+            extra={
+                "tenant_id": tenant_id,
+                "user_id": user_id,
+                "cancelled_subscription_id": str(subscription.id),
+                "new_free_subscription_id": str(free_subscription.id),
+            },
+        )
+
         return {
             "status": "success",
             "message": "Subscription cancelled, downgraded to free plan",
@@ -283,6 +401,11 @@ async def cancel_subscription(user_id: str, tenant_id: str, db: Session = Depend
 
     except Exception as e:
         db.rollback()
+        logger.error(
+            "Error cancelling subscription",
+            extra={"tenant_id": tenant_id, "user_id": user_id, "error": str(e)},
+            exc_info=True,
+        )
         raise HTTPException(status_code=500, detail=f"Error cancelling subscription: {str(e)}")
 
 
@@ -291,9 +414,22 @@ async def update_customer_info(request: CustomerUpdateRequest, db: Session = Dep
     """
     Update customer information from Stripe webhook
     """
+    logger.info(
+        "Updating customer information",
+        extra={
+            "tenant_id": request.tenant_id,
+            "user_id": request.user_id,
+            "stripe_customer_id": request.stripe_customer_id,
+        },
+    )
+
     try:
         user = get_user_by_id(db, request.user_id, request.tenant_id)
         if not user:
+            logger.warning(
+                "User not found during customer update",
+                extra={"user_id": request.user_id, "tenant_id": request.tenant_id},
+            )
             raise HTTPException(status_code=404, detail="User not found")
 
         # Update user metadata
@@ -310,6 +446,16 @@ async def update_customer_info(request: CustomerUpdateRequest, db: Session = Dep
         user.updated_at = datetime.now(timezone.utc)
         db.commit()
 
+        logger.info(
+            "Customer information updated successfully",
+            extra={
+                "user_id": request.user_id,
+                "tenant_id": request.tenant_id,
+                "email_updated": bool(request.email),
+                "name_updated": bool(request.name),
+            },
+        )
+
         return {
             "status": "success",
             "message": "Customer information updated",
@@ -318,6 +464,11 @@ async def update_customer_info(request: CustomerUpdateRequest, db: Session = Dep
 
     except Exception as e:
         db.rollback()
+        logger.error(
+            "Error updating customer information",
+            extra={"user_id": request.user_id, "tenant_id": request.tenant_id, "error": str(e)},
+            exc_info=True,
+        )
         raise HTTPException(status_code=500, detail=f"Error updating customer: {str(e)}")
 
 
@@ -326,13 +477,25 @@ async def suspend_user_access(request: SubscriptionSuspendRequest, db: Session =
     """
     Suspend user access due to payment failure
     """
+    logger.warning(
+        "Suspending user access",
+        extra={"tenant_id": request.tenant_id, "user_id": request.user_id, "reason": request.reason},
+    )
+
     try:
         user = get_user_by_id(db, request.user_id, request.tenant_id)
         if not user:
+            logger.error(
+                "User not found during suspension",
+                extra={"user_id": request.user_id, "tenant_id": request.tenant_id},
+            )
             raise HTTPException(status_code=404, detail="User not found")
 
         tenant = get_tenant_by_id(db, request.tenant_id)
         if not tenant:
+            logger.error(
+                "Tenant not found during suspension", extra={"tenant_id": request.tenant_id}
+            )
             raise HTTPException(status_code=404, detail="Tenant not found")
 
         # Suspend user
@@ -351,6 +514,16 @@ async def suspend_user_access(request: SubscriptionSuspendRequest, db: Session =
 
         db.commit()
 
+        logger.warning(
+            "User access suspended successfully",
+            extra={
+                "user_id": request.user_id,
+                "tenant_id": request.tenant_id,
+                "reason": request.reason,
+                "suspended_at": tenant.meta_data.get("suspended_at"),
+            },
+        )
+
         return {
             "status": "success",
             "message": "User access suspended",
@@ -360,6 +533,11 @@ async def suspend_user_access(request: SubscriptionSuspendRequest, db: Session =
 
     except Exception as e:
         db.rollback()
+        logger.error(
+            "Error suspending user access",
+            extra={"user_id": request.user_id, "tenant_id": request.tenant_id, "error": str(e)},
+            exc_info=True,
+        )
         raise HTTPException(status_code=500, detail=f"Error suspending access: {str(e)}")
 
 
@@ -368,6 +546,8 @@ async def get_subscription_status(tenant_id: str, db: Session = Depends(get_db))
     """
     Get current subscription status for a tenant
     """
+    logger.debug("Getting subscription status", extra={"tenant_id": tenant_id})
+
     subscription = (
         db.query(TenantSubscription)
         .filter(
@@ -378,9 +558,19 @@ async def get_subscription_status(tenant_id: str, db: Session = Depends(get_db))
     )
 
     if not subscription:
+        logger.debug("No active subscription found", extra={"tenant_id": tenant_id})
         return {"status": "no_active_subscription", "plan_code": "free"}
 
     plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == subscription.plan_id).first()
+
+    logger.info(
+        "Subscription status retrieved",
+        extra={
+            "tenant_id": tenant_id,
+            "plan_code": plan.code if plan else "unknown",
+            "status": subscription.status,
+        },
+    )
 
     return {
         "status": subscription.status,

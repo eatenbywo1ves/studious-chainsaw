@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ml-sectest
+  labels:
+    name: ml-sectest
+    app: ml-security-testing
+    environment: production
+    managed-by: kubectl

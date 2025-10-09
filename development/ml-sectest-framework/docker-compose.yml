@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  # ML-SecTest Agent Framework
+  ml-sectest:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ml-sectest:latest
+    container_name: ml-sectest-agent
+    volumes:
+      - ./reports:/app/reports
+      - ./config:/app/config:ro
+      - ./logs:/app/logs
+    environment:
+      - ENVIRONMENT=development
+      - LOG_LEVEL=INFO
+      - PYTHONIOENCODING=UTF-8
+    networks:
+      - sectest-network
+    restart: unless-stopped
+    command: list-challenges
+    
+  # Mock target server for testing (nginx)
+  test-target:
+    image: nginx:alpine
+    container_name: ml-sectest-target
+    ports:
+      - "8000:80"
+    volumes:
+      - ./tests/mock-server:/usr/share/nginx/html:ro
+    networks:
+      - sectest-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+networks:
+  sectest-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  reports:
+  logs:

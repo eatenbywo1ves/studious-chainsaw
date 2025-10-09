@@ -43,6 +43,7 @@ class ReactiveAuthService:
     def __init__(self, max_workers: int = 4):
         self.scheduler = ThreadPoolScheduler(max_workers)
         self.logger = logging.getLogger(__name__)
+        self.logger.info("ReactiveAuthService initialized", extra={"max_workers": max_workers})
 
     def login_stream(
         self, email: str, password: str, tenant_slug: Optional[str], db: Session
@@ -99,6 +100,8 @@ class ReactiveAuthService:
             email = ctx["email"]
             tenant_slug = ctx["tenant_slug"]
 
+            self.logger.debug("Finding user", extra={"email": email, "tenant_slug": tenant_slug})
+
             query = db.query(User).filter_by(email=email, is_active=True)
 
             if tenant_slug:
@@ -109,10 +112,12 @@ class ReactiveAuthService:
             user = query.first()
 
             if not user:
+                self.logger.warning("User not found during login", extra={"email": email})
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials"
                 )
 
+            self.logger.debug("User found", extra={"user_id": str(user.id), "email": email})
             ctx["user"] = user
             return ctx
 
@@ -125,18 +130,27 @@ class ReactiveAuthService:
         password = ctx["password"]
 
         if not user.verify_password(password):
+            self.logger.warning("Password verification failed", extra={"user_id": str(user.id)})
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials"
             )
 
+        self.logger.debug("Password verified", extra={"user_id": str(user.id)})
         return ctx
 
     def _create_tokens(self, ctx: Dict[str, Any]) -> Dict[str, Any]:
         """Create JWT token pair"""
         user = ctx["user"]
 
+        self.logger.debug("Creating token pair", extra={"user_id": str(user.id)})
+
         tokens = create_token_pair(
             user_id=str(user.id), tenant_id=str(user.tenant_id), email=user.email, role=user.role
+        )
+
+        self.logger.info(
+            "Reactive login successful",
+            extra={"user_id": str(user.id), "tenant_id": str(user.tenant_id), "email": user.email},
         )
 
         ctx["tokens"] = tokens
@@ -247,6 +261,7 @@ class ReactiveLatticeService:
         self.lattice_manager = lattice_manager
         self.scheduler = ThreadPoolScheduler(max_workers)
         self.logger = logging.getLogger(__name__)
+        self.logger.info("ReactiveLatticeService initialized", extra={"max_workers": max_workers})
 
         # Observable subject for lattice creation events
         self.lattice_created_subject = rx.subject.Subject()
