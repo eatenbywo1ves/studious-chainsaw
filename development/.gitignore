@@ -242,3 +242,12 @@ saas/frontend/out/
 *_knowledge_backup.json
 *_optimization_results.json
 proof_library.json
+
+# Runtime artifacts (directory-level)
+/cache/
+/logs/
+/results/
+/temp/
+/ka_lattice_state/
+/ka_knowledge/
+/test_knowledge/
