@@ -8,6 +8,7 @@ import os
 import sys
 import time
 import asyncio
+import logging
 from datetime import datetime
 from contextlib import asynccontextmanager
 from typing import Optional, Dict
@@ -18,6 +19,13 @@ from dotenv import load_dotenv
 
 env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env")
 load_dotenv(env_path)
+
+# Setup logging
+logging.basicConfig(
+    level=logging.INFO if os.getenv("DEPLOYMENT_ENV") == "production" else logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 from fastapi import FastAPI, Depends, HTTPException, status  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
@@ -56,7 +64,7 @@ from database.models import (  # noqa: E402
     TenantLattice,
     LatticeOperation,
 )
-from database.connection import get_db  # noqa: E402
+from database.connection import get_db, engine, SessionLocal  # noqa: E402
 
 # Import original Catalytic Computing components
 from apps.catalytic.catalytic_lattice_graph import CatalyticLatticeGraph  # noqa: E402
@@ -157,15 +165,21 @@ async def lifespan(app: FastAPI):
     """Application lifecycle management"""
 
     # Startup
-    print("Starting Catalytic Computing SaaS API Server...")
-    print(f"GPU Available: {GPU_AVAILABLE}")
+    logger.info("=" * 60)
+    logger.info("Starting Catalytic Computing SaaS API Server")
+    logger.info("=" * 60)
+    logger.info(f"GPU Available: {GPU_AVAILABLE}")
+    logger.info(f"Environment: {os.getenv('DEPLOYMENT_ENV', 'development')}")
+    logger.info(f"Port: {os.getenv('PORT', '8000')}")
+    logger.info(f"Workers: {os.getenv('WORKERS', '4')}")
 
     # Create database tables
     try:
+        logger.info("Initializing database tables...")
         Base.metadata.create_all(bind=engine)
-        print("Database initialized successfully")
+        logger.info("Database initialized successfully")
     except Exception as e:
-        print(f"Database initialization error: {e}")
+        logger.error(f"Database initialization error: {e}", exc_info=True)
 
     # Ensure default plans exist
     db = SessionLocal()
@@ -306,6 +320,8 @@ async def register_user(request: RegisterRequest, db: Session = Depends(get_db))
     from database.models import User, Tenant, UserRole
     from uuid import uuid4
 
+    logger.info(f"Registration attempt for email: {request.email}")
+
     # Generate tenant slug from email if not provided
     tenant_slug = request.tenant_slug or request.email.split("@")[0]
 
@@ -318,6 +334,7 @@ async def register_user(request: RegisterRequest, db: Session = Depends(get_db))
     )
 
     if existing_user:
+        logger.warning(f"Registration failed - user already exists: {request.email}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="User with this email already exists"
         )
@@ -355,6 +372,17 @@ async def register_user(request: RegisterRequest, db: Session = Depends(get_db))
     db.commit()
     db.refresh(user)
 
+    logger.info(
+        f"User registered successfully",
+        extra={
+            "user_id": user.id,
+            "email": user.email,
+            "tenant_id": tenant.id,
+            "tenant_slug": tenant.slug,
+            "role": user.role
+        }
+    )
+
     return {
         "id": user.id,
         "email": user.email,
@@ -370,18 +398,25 @@ async def register_user(request: RegisterRequest, db: Session = Depends(get_db))
 async def login(request: LoginRequest, db: Session = Depends(get_db)):
     """Authenticate user and return tokens (Reactive version)"""
 
+    logger.info(f"Login attempt for email: {request.email}, tenant: {request.tenant_slug or 'default'}")
+
     # Import RxPY operators for async execution
     from rx import operators as ops
 
-    # Create reactive login stream
-    login_observable = auth_service.login_stream(
-        email=request.email, password=request.password, tenant_slug=request.tenant_slug, db=db
-    )
+    try:
+        # Create reactive login stream
+        login_observable = auth_service.login_stream(
+            email=request.email, password=request.password, tenant_slug=request.tenant_slug, db=db
+        )
 
-    # Execute reactive pipeline and await result
-    result = await login_observable.pipe(ops.to_future())
+        # Execute reactive pipeline and await result
+        result = await login_observable.pipe(ops.to_future())
 
-    return result
+        logger.info(f"Login successful for email: {request.email}")
+        return result
+    except Exception as e:
+        logger.warning(f"Login failed for email: {request.email}, error: {str(e)}")
+        raise
 
 
 @app.post("/auth/refresh")
@@ -431,23 +466,54 @@ async def create_lattice(
 ):
     """Create new lattice for tenant (Reactive version)"""
 
+    logger.info(
+        f"Creating lattice",
+        extra={
+            "tenant_id": current_user.tenant_id,
+            "user_id": current_user.sub,
+            "dimensions": request.dimensions,
+            "size": request.size,
+            "name": request.name
+        }
+    )
+
     # Import RxPY operators for async execution
     from rx import operators as ops
 
-    # Create reactive lattice creation stream
-    lattice_observable = lattice_service.create_lattice_stream(
-        tenant_id=current_user.tenant_id,
-        user_id=current_user.sub,
-        dimensions=request.dimensions,
-        size=request.size,
-        name=request.name,
-        db=db,
-    )
+    try:
+        # Create reactive lattice creation stream
+        lattice_observable = lattice_service.create_lattice_stream(
+            tenant_id=current_user.tenant_id,
+            user_id=current_user.sub,
+            dimensions=request.dimensions,
+            size=request.size,
+            name=request.name,
+            db=db,
+        )
 
-    # Execute reactive pipeline and await result
-    result = await lattice_observable.pipe(ops.to_future())
+        # Execute reactive pipeline and await result
+        result = await lattice_observable.pipe(ops.to_future())
 
-    return result
+        logger.info(
+            f"Lattice created successfully",
+            extra={
+                "tenant_id": current_user.tenant_id,
+                "lattice_id": result.get("id"),
+                "vertices": result.get("vertices"),
+                "memory_kb": result.get("memory_kb")
+            }
+        )
+        return result
+    except Exception as e:
+        logger.error(
+            f"Lattice creation failed",
+            extra={
+                "tenant_id": current_user.tenant_id,
+                "error": str(e)
+            },
+            exc_info=True
+        )
+        raise
 
 
 @app.get("/api/lattices")
