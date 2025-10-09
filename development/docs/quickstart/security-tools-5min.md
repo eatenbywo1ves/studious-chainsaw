@@ -207,7 +207,7 @@ services:
 - **Security Architecture:** [Security Architecture](../architecture/security-architecture.md)
 - **D3FEND Alignment:** [Defensive Security Agent Architecture](../specifications/DEFENSIVE_SECURITY_AGENT_ARCHITECTURE.md)
 - **Threat Analysis:** [Wiz Zeroday Cloud Defense](../specifications/WIZ_ZERODAY_CLOUD_2025_DEFENSE_STRATEGY.md)
-- **Container Security:** [Container Escape Research](../archive/2025-Q4/CONTAINER_ESCAPE_RESEARCH_REPORT.md)
+- **Container Security:** [Container Escape Research](../../security/CONTAINER_ESCAPE_RESEARCH_REPORT.md)
 
 ### Security Reports
 - **Image Defense Validation:** [Arbitrary Image Defense](../archive/2025-Q4/ARBITRARY_IMAGE_SCENARIO_DEFENSE_VALIDATION.md)
