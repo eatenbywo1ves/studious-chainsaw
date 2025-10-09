@@ -236,3 +236,9 @@ terraform.tfvars.json
 # SaaS specific
 saas/frontend/.next/
 saas/frontend/out/
+
+# KA Lattice runtime artifacts
+*_baseline_metrics.json
+*_knowledge_backup.json
+*_optimization_results.json
+proof_library.json
