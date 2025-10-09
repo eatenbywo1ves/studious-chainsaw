@@ -43,8 +43,7 @@ def sample_analysis():
 
 
 def get_function_list():
-    r = requests.get("%s/get_functions_list/%s" %
-                     (URL, SHA256), timeout=300)
+    r = requests.get("%s/get_functions_list/%s" % (URL, SHA256), timeout=300)
     print("get_function_list status_code", r.status_code)
     if r.status_code == 200:
         return True
@@ -52,8 +51,7 @@ def get_function_list():
 
 
 def get_functions_list_detailed():
-    r = requests.get("%s/get_functions_list_detailed/%s" %
-                     (URL, SHA256), timeout=300)
+    r = requests.get("%s/get_functions_list_detailed/%s" % (URL, SHA256), timeout=300)
     print("get_functions_list_detailed status_code", r.status_code)
     if r.status_code == 200:
         return True
@@ -62,8 +60,7 @@ def get_functions_list_detailed():
 
 def get_decompiled_function():
     offset = "0x101020L"
-    r = requests.get("%s/get_decompiled_function/%s/%s" %
-                     (URL, SHA256, offset), timeout=300)
+    r = requests.get("%s/get_decompiled_function/%s/%s" % (URL, SHA256, offset), timeout=300)
     print("get_decompiled_function status_code", r.status_code)
     if r.status_code == 200:
         return True
@@ -71,8 +68,7 @@ def get_decompiled_function():
 
 
 def analysis_terminated():
-    r = requests.get("%s/analysis_terminated/%s" %
-                     (URL, SHA256), timeout=300)
+    r = requests.get("%s/analysis_terminated/%s" % (URL, SHA256), timeout=300)
     print("analysis_terminated status_code", r.status_code)
     if r.status_code == 200:
         return True
@@ -86,8 +82,8 @@ def ghida_checkin():
     }
 
     bb = [
-        ('bytes', (BYTES, open(BYTES, 'rb'), 'application/octet')),
-        ('data', ('data', json.dumps(options), 'application/json'))
+        ("bytes", (BYTES, open(BYTES, "rb"), "application/octet")),
+        ("data", ("data", json.dumps(options), "application/json")),
     ]
 
     r = requests.post("%s/ida_plugin_checkin/" % URL, files=bb, timeout=300)
@@ -101,16 +97,15 @@ def ghida_decompile():
     options = {
         "md5": "AAE30A28635D1D634F3D9BF9A04E0055",
         "filename": "AAE30A28635D1D634F3D9BF9A04E0055_gYBqc",
-        "address": '0x00402AED'
+        "address": "0x00402AED",
     }
 
     bb = [
-        ('xml', (XML, open(XML, 'rb'), 'application/octet')),
-        ('data', ('data', json.dumps(options), 'application/json'))
+        ("xml", (XML, open(XML, "rb"), "application/octet")),
+        ("data", ("data", json.dumps(options), "application/json")),
     ]
 
-    r = requests.post("%s/ida_plugin_get_decompiled_function/" %
-                      URL, files=bb, timeout=300)
+    r = requests.post("%s/ida_plugin_get_decompiled_function/" % URL, files=bb, timeout=300)
     print("ghida_decompile status_code", r.status_code)
     if r.status_code == 200:
         return True
@@ -123,8 +118,7 @@ def ghida_checkout():
         "filename": "AAE30A28635D1D634F3D9BF9A04E0055_gYBqc",
     }
 
-    r = requests.post("%s/ida_plugin_checkout/" %
-                      URL, json=json.dumps(data), timeout=300)
+    r = requests.post("%s/ida_plugin_checkout/" % URL, json=json.dumps(data), timeout=300)
     print("ghida_checkout status_code", r.status_code)
     if r.status_code == 200:
         return True

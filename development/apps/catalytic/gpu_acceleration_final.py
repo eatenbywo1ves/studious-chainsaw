@@ -8,12 +8,14 @@ import time
 from numba import cuda
 import math
 
+
 @cuda.jit
 def catalytic_xor_kernel(data, key, result):
     """CUDA kernel for catalytic XOR transformation"""
     idx = cuda.grid(1)
     if idx < data.shape[0]:
         result[idx] = data[idx] ^ key[idx % key.shape[0]]
+
 
 @cuda.jit
 def lattice_distance_kernel(coords1, coords2, distances):
@@ -26,6 +28,7 @@ def lattice_distance_kernel(coords1, coords2, distances):
             dist += diff * diff
         distances[idx] = math.sqrt(dist)
 
+
 @cuda.jit
 def matrix_multiply_kernel(A, B, C):
     """CUDA kernel for matrix multiplication"""
@@ -35,6 +38,7 @@ def matrix_multiply_kernel(A, B, C):
         for k in range(A.shape[1]):
             tmp += A[row, k] * B[k, col]
         C[row, col] = tmp
+
 
 class CatalyticGPUAccelerator:
     """Production-ready GPU acceleration for Catalytic Computing"""
@@ -155,9 +159,9 @@ class CatalyticGPUAccelerator:
 
     def benchmark(self):
         """Run comprehensive GPU benchmark"""
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("    GPU ACCELERATION BENCHMARK")
-        print("="*60)
+        print("=" * 60)
 
         results = {}
 
@@ -180,9 +184,11 @@ class CatalyticGPUAccelerator:
             cpu_time = (time.perf_counter() - start) * 1000
 
             speedup = cpu_time / gpu_time
-            results[f'xor_{size}'] = speedup
+            results[f"xor_{size}"] = speedup
 
-            print(f"   {size:,} elements: GPU={gpu_time:.2f}ms, CPU={cpu_time:.2f}ms, Speedup={speedup:.1f}x")
+            print(
+                f"   {size:,} elements: GPU={gpu_time:.2f}ms, CPU={cpu_time:.2f}ms, Speedup={speedup:.1f}x"
+            )
 
         # Test 2: Matrix Multiplication
         print("\n2. Matrix Multiplication:")
@@ -202,12 +208,14 @@ class CatalyticGPUAccelerator:
             cpu_time = (time.perf_counter() - start) * 1000
 
             speedup = cpu_time / gpu_time
-            results[f'matmul_{size}'] = speedup
+            results[f"matmul_{size}"] = speedup
 
             # Verify correctness
             error = np.max(np.abs(C_gpu - C_cpu))
 
-            print(f"   {size}x{size}: GPU={gpu_time:.2f}ms, CPU={cpu_time:.2f}ms, Speedup={speedup:.1f}x, Error={error:.2e}")
+            print(
+                f"   {size}x{size}: GPU={gpu_time:.2f}ms, CPU={cpu_time:.2f}ms, Speedup={speedup:.1f}x, Error={error:.2e}"
+            )
 
         # Test 3: Lattice Distance Computation
         print("\n3. Lattice Distance Computation:")
@@ -223,25 +231,28 @@ class CatalyticGPUAccelerator:
 
             # CPU
             start = time.perf_counter()
-            np.sqrt(np.sum((coords1 - coords2)**2, axis=1))
+            np.sqrt(np.sum((coords1 - coords2) ** 2, axis=1))
             cpu_time = (time.perf_counter() - start) * 1000
 
             speedup = cpu_time / gpu_time
-            results[f'distance_{n_points}'] = speedup
+            results[f"distance_{n_points}"] = speedup
 
-            print(f"   {n_points:,} points: GPU={gpu_time:.2f}ms, CPU={cpu_time:.2f}ms, Speedup={speedup:.1f}x")
+            print(
+                f"   {n_points:,} points: GPU={gpu_time:.2f}ms, CPU={cpu_time:.2f}ms, Speedup={speedup:.1f}x"
+            )
 
         # Summary
         avg_speedup = sum(results.values()) / len(results)
 
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("    BENCHMARK SUMMARY")
-        print("="*60)
+        print("=" * 60)
         print(f"Average Speedup: {avg_speedup:.1f}x")
         print(f"Max Speedup: {max(results.values()):.1f}x")
         print(f"Min Speedup: {min(results.values()):.1f}x")
 
         return results
+
 
 def main():
     """Main test function"""
@@ -269,14 +280,14 @@ def main():
         is_reversible = np.array_equal(data, restored)
         print(f"   Reversibility: {'PASSED' if is_reversible else 'FAILED'}")
 
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("    GPU ACCELERATION STATUS")
-        print("="*60)
+        print("=" * 60)
         print("✅ CUDA: OPERATIONAL")
         print("✅ GPU Device: DETECTED")
         print("✅ Kernels: COMPILED")
         print("✅ Performance: VERIFIED")
-        print(f"✅ Average Speedup: {sum(results.values())/len(results):.1f}x")
+        print(f"✅ Average Speedup: {sum(results.values()) / len(results):.1f}x")
 
         print("\nGPU acceleration is fully operational and ready for production!")
         return True
@@ -284,8 +295,10 @@ def main():
     except Exception as e:
         print(f"GPU acceleration test failed: {e}")
         import traceback
+
         traceback.print_exc()
         return False
+
 
 if __name__ == "__main__":
     success = main()

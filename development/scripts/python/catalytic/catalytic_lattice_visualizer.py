@@ -9,6 +9,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from lattice_visualization import HighDimensionalLatticeVisualizer, LatticeConfig
 
+
 class CatalyticLatticeVisualizer:
     """
     Specialized visualizer for catalytic lattice computing operations
@@ -27,73 +28,95 @@ class CatalyticLatticeVisualizer:
 
         # Create figure with subplots
         fig = make_subplots(
-            rows=2, cols=3,
+            rows=2,
+            cols=3,
             subplot_titles=[
-                'Initial Data', 'Catalyst Memory', 'XOR Transformation',
-                'Processing', 'Result', 'Catalyst Restored'
+                "Initial Data",
+                "Catalyst Memory",
+                "XOR Transformation",
+                "Processing",
+                "Result",
+                "Catalyst Restored",
             ],
-            specs=[[{'type': 'scatter3d'}, {'type': 'scatter3d'}, {'type': 'scatter3d'}],
-                   [{'type': 'scatter3d'}, {'type': 'scatter3d'}, {'type': 'scatter3d'}]],
+            specs=[
+                [{"type": "scatter3d"}, {"type": "scatter3d"}, {"type": "scatter3d"}],
+                [{"type": "scatter3d"}, {"type": "scatter3d"}, {"type": "scatter3d"}],
+            ],
             horizontal_spacing=0.05,
-            vertical_spacing=0.1
+            vertical_spacing=0.1,
         )
 
         # Step 1: Initial state
         fig.add_trace(
             go.Scatter3d(
-                x=data[:, 0], y=data[:, 1], z=data[:, 2],
-                mode='markers',
-                marker=dict(size=3, color='blue', opacity=0.6),
-                name='Data'
+                x=data[:, 0],
+                y=data[:, 1],
+                z=data[:, 2],
+                mode="markers",
+                marker=dict(size=3, color="blue", opacity=0.6),
+                name="Data",
             ),
-            row=1, col=1
+            row=1,
+            col=1,
         )
 
         # Step 2: Catalyst
         fig.add_trace(
             go.Scatter3d(
-                x=catalyst[:, 0], y=catalyst[:, 1], z=catalyst[:, 2],
-                mode='markers',
-                marker=dict(size=3, color='red', opacity=0.6),
-                name='Catalyst'
+                x=catalyst[:, 0],
+                y=catalyst[:, 1],
+                z=catalyst[:, 2],
+                mode="markers",
+                marker=dict(size=3, color="red", opacity=0.6),
+                name="Catalyst",
             ),
-            row=1, col=2
+            row=1,
+            col=2,
         )
 
         # Step 3: XOR transformation (simulated)
         transformed = data * np.cos(catalyst) + catalyst * np.sin(data)
         fig.add_trace(
             go.Scatter3d(
-                x=transformed[:, 0], y=transformed[:, 1], z=transformed[:, 2],
-                mode='markers',
-                marker=dict(size=3, color='purple', opacity=0.6),
-                name='XOR Result'
+                x=transformed[:, 0],
+                y=transformed[:, 1],
+                z=transformed[:, 2],
+                mode="markers",
+                marker=dict(size=3, color="purple", opacity=0.6),
+                name="XOR Result",
             ),
-            row=1, col=3
+            row=1,
+            col=3,
         )
 
         # Step 4: Processing
         processed = transformed * 1.5 + np.random.randn(size, 3) * 0.1
         fig.add_trace(
             go.Scatter3d(
-                x=processed[:, 0], y=processed[:, 1], z=processed[:, 2],
-                mode='markers',
-                marker=dict(size=3, color='green', opacity=0.6),
-                name='Processing'
+                x=processed[:, 0],
+                y=processed[:, 1],
+                z=processed[:, 2],
+                mode="markers",
+                marker=dict(size=3, color="green", opacity=0.6),
+                name="Processing",
             ),
-            row=2, col=1
+            row=2,
+            col=1,
         )
 
         # Step 5: Result
         result = processed / 1.5
         fig.add_trace(
             go.Scatter3d(
-                x=result[:, 0], y=result[:, 1], z=result[:, 2],
-                mode='markers',
-                marker=dict(size=3, color='orange', opacity=0.6),
-                name='Result'
+                x=result[:, 0],
+                y=result[:, 1],
+                z=result[:, 2],
+                mode="markers",
+                marker=dict(size=3, color="orange", opacity=0.6),
+                name="Result",
             ),
-            row=2, col=2
+            row=2,
+            col=2,
         )
 
         # Step 6: Catalyst restored (reverse XOR)
@@ -102,23 +125,22 @@ class CatalyticLatticeVisualizer:
 
         fig.add_trace(
             go.Scatter3d(
-                x=restored[:, 0], y=restored[:, 1], z=restored[:, 2],
-                mode='markers',
-                marker=dict(
-                    size=3,
-                    color='red' if difference < 0.1 else 'yellow',
-                    opacity=0.6
-                ),
-                name=f'Restored (err={difference:.4f})'
+                x=restored[:, 0],
+                y=restored[:, 1],
+                z=restored[:, 2],
+                mode="markers",
+                marker=dict(size=3, color="red" if difference < 0.1 else "yellow", opacity=0.6),
+                name=f"Restored (err={difference:.4f})",
             ),
-            row=2, col=3
+            row=2,
+            col=3,
         )
 
         fig.update_layout(
             title="Catalytic Memory Operation Visualization",
             height=800,
             width=1400,
-            showlegend=False
+            showlegend=False,
         )
 
         return fig
@@ -128,11 +150,7 @@ class CatalyticLatticeVisualizer:
         Visualize pathfinding through high-dimensional lattice
         """
         # Generate lattice
-        config = LatticeConfig(
-            dimensions=dims,
-            points_per_dim=size,
-            lattice_type='hypercubic'
-        )
+        config = LatticeConfig(dimensions=dims, points_per_dim=size, lattice_type="hypercubic")
         lattice = self.viz.generate_lattice(config)
 
         # Simulate pathfinding (random walk for demo)
@@ -151,74 +169,71 @@ class CatalyticLatticeVisualizer:
         path = lattice[path_indices]
 
         # Project to 3D
-        lattice_3d = self.viz.reduce_dimensions(lattice, method='pca', target_dim=3)
-        path_3d = self.viz.reduce_dimensions(path, method='pca', target_dim=3)
+        lattice_3d = self.viz.reduce_dimensions(lattice, method="pca", target_dim=3)
+        path_3d = self.viz.reduce_dimensions(path, method="pca", target_dim=3)
 
         # Create visualization
         fig = go.Figure()
 
         # Lattice points
-        fig.add_trace(go.Scatter3d(
-            x=lattice_3d[:, 0],
-            y=lattice_3d[:, 1],
-            z=lattice_3d[:, 2],
-            mode='markers',
-            marker=dict(
-                size=2,
-                color='lightgray',
-                opacity=0.3
-            ),
-            name='Lattice'
-        ))
+        fig.add_trace(
+            go.Scatter3d(
+                x=lattice_3d[:, 0],
+                y=lattice_3d[:, 1],
+                z=lattice_3d[:, 2],
+                mode="markers",
+                marker=dict(size=2, color="lightgray", opacity=0.3),
+                name="Lattice",
+            )
+        )
 
         # Path
-        fig.add_trace(go.Scatter3d(
-            x=path_3d[:, 0],
-            y=path_3d[:, 1],
-            z=path_3d[:, 2],
-            mode='lines+markers',
-            line=dict(
-                color='red',
-                width=4
-            ),
-            marker=dict(
-                size=6,
-                color=list(range(len(path_3d))),
-                colorscale='Viridis',
-                showscale=True,
-                colorbar=dict(title="Step")
-            ),
-            name='Path'
-        ))
+        fig.add_trace(
+            go.Scatter3d(
+                x=path_3d[:, 0],
+                y=path_3d[:, 1],
+                z=path_3d[:, 2],
+                mode="lines+markers",
+                line=dict(color="red", width=4),
+                marker=dict(
+                    size=6,
+                    color=list(range(len(path_3d))),
+                    colorscale="Viridis",
+                    showscale=True,
+                    colorbar=dict(title="Step"),
+                ),
+                name="Path",
+            )
+        )
 
         # Start and end points
-        fig.add_trace(go.Scatter3d(
-            x=[path_3d[0, 0]],
-            y=[path_3d[0, 1]],
-            z=[path_3d[0, 2]],
-            mode='markers',
-            marker=dict(size=10, color='green'),
-            name='Start'
-        ))
+        fig.add_trace(
+            go.Scatter3d(
+                x=[path_3d[0, 0]],
+                y=[path_3d[0, 1]],
+                z=[path_3d[0, 2]],
+                mode="markers",
+                marker=dict(size=10, color="green"),
+                name="Start",
+            )
+        )
 
-        fig.add_trace(go.Scatter3d(
-            x=[path_3d[-1, 0]],
-            y=[path_3d[-1, 1]],
-            z=[path_3d[-1, 2]],
-            mode='markers',
-            marker=dict(size=10, color='red'),
-            name='End'
-        ))
+        fig.add_trace(
+            go.Scatter3d(
+                x=[path_3d[-1, 0]],
+                y=[path_3d[-1, 1]],
+                z=[path_3d[-1, 2]],
+                mode="markers",
+                marker=dict(size=10, color="red"),
+                name="End",
+            )
+        )
 
         fig.update_layout(
             title=f"{dims}D Lattice Pathfinding (PCA Projection)",
-            scene=dict(
-                xaxis_title="PC1",
-                yaxis_title="PC2",
-                zaxis_title="PC3"
-            ),
+            scene=dict(xaxis_title="PC1", yaxis_title="PC2", zaxis_title="PC3"),
             width=900,
-            height=700
+            height=700,
         )
 
         return fig
@@ -242,48 +257,50 @@ class CatalyticLatticeVisualizer:
 
         fig = go.Figure()
 
-        fig.add_trace(go.Scatter(
-            x=sizes,
-            y=traditional_memory,
-            mode='lines+markers',
-            name='Traditional',
-            line=dict(color='red', width=2),
-            marker=dict(size=8)
-        ))
+        fig.add_trace(
+            go.Scatter(
+                x=sizes,
+                y=traditional_memory,
+                mode="lines+markers",
+                name="Traditional",
+                line=dict(color="red", width=2),
+                marker=dict(size=8),
+            )
+        )
 
-        fig.add_trace(go.Scatter(
-            x=sizes,
-            y=catalytic_memory,
-            mode='lines+markers',
-            name='Catalytic',
-            line=dict(color='green', width=2),
-            marker=dict(size=8)
-        ))
+        fig.add_trace(
+            go.Scatter(
+                x=sizes,
+                y=catalytic_memory,
+                mode="lines+markers",
+                name="Catalytic",
+                line=dict(color="green", width=2),
+                marker=dict(size=8),
+            )
+        )
 
         # Add efficiency ratio
-        ratio = [t/c for t, c in zip(traditional_memory, catalytic_memory)]
-        fig.add_trace(go.Scatter(
-            x=sizes,
-            y=ratio,
-            mode='lines+markers',
-            name='Efficiency Ratio',
-            line=dict(color='blue', width=2, dash='dash'),
-            marker=dict(size=6),
-            yaxis='y2'
-        ))
+        ratio = [t / c for t, c in zip(traditional_memory, catalytic_memory)]
+        fig.add_trace(
+            go.Scatter(
+                x=sizes,
+                y=ratio,
+                mode="lines+markers",
+                name="Efficiency Ratio",
+                line=dict(color="blue", width=2, dash="dash"),
+                marker=dict(size=6),
+                yaxis="y2",
+            )
+        )
 
         fig.update_layout(
             title="Memory Efficiency: Traditional vs Catalytic Computing",
             xaxis_title="Problem Size (N)",
             yaxis_title="Memory Usage (MB)",
-            yaxis2=dict(
-                title="Efficiency Ratio",
-                overlaying='y',
-                side='right'
-            ),
-            hovermode='x unified',
+            yaxis2=dict(title="Efficiency Ratio", overlaying="y", side="right"),
+            hovermode="x unified",
             width=900,
-            height=600
+            height=600,
         )
 
         return fig
@@ -449,7 +466,7 @@ class CatalyticLatticeVisualizer:
 </html>
         """
 
-        with open("catalytic_dashboard.html", "w", encoding='utf-8') as f:
+        with open("catalytic_dashboard.html", "w", encoding="utf-8") as f:
             f.write(dashboard_html)
 
         print("\nDashboard created successfully!")
@@ -461,6 +478,7 @@ class CatalyticLatticeVisualizer:
 
         return "catalytic_dashboard.html"
 
+
 def main():
     """Run catalytic lattice visualizer"""
     viz = CatalyticLatticeVisualizer()
@@ -468,7 +486,9 @@ def main():
 
     print(f"\nOpening dashboard: {dashboard_file}")
     import webbrowser
+
     webbrowser.open(dashboard_file)
+
 
 if __name__ == "__main__":
     main()

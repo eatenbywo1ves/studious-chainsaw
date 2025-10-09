@@ -8,6 +8,7 @@ Specific exceptions enable better debugging and prevent masking critical failure
 
 class GhidraGoError(Exception):
     """Base exception for all GhidraGo errors"""
+
     pass
 
 
@@ -54,8 +55,7 @@ class UnsupportedVersionError(GhidraGoError):
         self.version = version
         self.supported_versions = supported_versions
         super().__init__(
-            f"Go version {version} not supported. "
-            f"Supported: {', '.join(supported_versions)}"
+            f"Go version {version} not supported. Supported: {', '.join(supported_versions)}"
         )
 
 

@@ -18,7 +18,7 @@ class GrafanaValidator:
         self,
         grafana_url: str = "http://localhost:3000",
         username: str = "admin",
-        password: str = "changeme123!"
+        password: str = "changeme123!",
     ):
         self.grafana_url = grafana_url
         self.api_url = f"{grafana_url}/api"
@@ -47,9 +47,7 @@ class GrafanaValidator:
         """Test a datasource connection"""
         try:
             response = requests.get(
-                f"{self.api_url}/datasources/{datasource_id}/health",
-                auth=self.auth,
-                timeout=10
+                f"{self.api_url}/datasources/{datasource_id}/health", auth=self.auth, timeout=10
             )
             data = response.json()
             return data.get("status") == "OK"
@@ -61,9 +59,7 @@ class GrafanaValidator:
         """Get all dashboards"""
         try:
             response = requests.get(
-                f"{self.api_url}/search?type=dash-db",
-                auth=self.auth,
-                timeout=5
+                f"{self.api_url}/search?type=dash-db", auth=self.auth, timeout=5
             )
             response.raise_for_status()
             return response.json()
@@ -75,9 +71,7 @@ class GrafanaValidator:
         """Get a dashboard by UID"""
         try:
             response = requests.get(
-                f"{self.api_url}/dashboards/uid/{uid}",
-                auth=self.auth,
-                timeout=5
+                f"{self.api_url}/dashboards/uid/{uid}", auth=self.auth, timeout=5
             )
             response.raise_for_status()
             return response.json()
@@ -116,17 +110,16 @@ class GrafanaValidator:
                     if query:
                         query_results["valid_queries"] += 1
                     else:
-                        query_results["invalid_queries"].append({
-                            "panel": panel.get("title", "Unknown"),
-                            "query": query
-                        })
+                        query_results["invalid_queries"].append(
+                            {"panel": panel.get("title", "Unknown"), "query": query}
+                        )
 
         return query_results
 
     def load_dashboard_from_file(self, filepath: str) -> Optional[Dict[str, Any]]:
         """Load a dashboard JSON file"""
         try:
-            with open(filepath, 'r') as f:
+            with open(filepath, "r") as f:
                 return json.load(f)
         except Exception as e:
             print(f"Failed to load dashboard file {filepath}: {e}")
@@ -162,6 +155,7 @@ class GrafanaValidator:
 # PYTEST TEST CASES
 # ============================================================================
 
+
 @pytest.fixture
 def validator():
     """Create a GrafanaValidator instance"""
@@ -190,17 +184,15 @@ def test_prometheus_datasource_health(validator):
 
     for ds in prometheus_sources:
         ds_id = ds.get("id")
-        assert validator.test_datasource(ds_id), \
+        assert validator.test_datasource(ds_id), (
             f"Prometheus datasource '{ds.get('name')}' connection failed"
+        )
 
 
 def test_security_dashboard_exists(validator):
     """Test that security dashboard exists"""
     dashboards = validator.get_dashboards()
-    security_dashboards = [
-        d for d in dashboards
-        if "security" in d.get("title", "").lower()
-    ]
+    security_dashboards = [d for d in dashboards if "security" in d.get("title", "").lower()]
 
     assert len(security_dashboards) > 0, "No security dashboard found"
 
@@ -218,7 +210,7 @@ def test_dashboard_files_valid():
     for filepath in dashboard_files:
         # Load dashboard
         try:
-            with open(filepath, 'r') as f:
+            with open(filepath, "r") as f:
                 dashboard = json.load(f)
         except Exception as e:
             pytest.fail(f"Failed to parse {filepath}: {e}")
@@ -232,7 +224,9 @@ def test_dashboard_files_valid():
 def test_security_dashboard_structure():
     """Test security dashboard structure"""
     validator = GrafanaValidator()
-    dashboard_path = Path("C:/Users/Corbin/development/monitoring/grafana/dashboards/security-overview.json")
+    dashboard_path = Path(
+        "C:/Users/Corbin/development/monitoring/grafana/dashboards/security-overview.json"
+    )
 
     if not dashboard_path.exists():
         pytest.skip("Security dashboard file not found")
@@ -249,7 +243,9 @@ def test_security_dashboard_structure():
 def test_security_dashboard_panels():
     """Test security dashboard has required panels"""
     validator = GrafanaValidator()
-    dashboard_path = Path("C:/Users/Corbin/development/monitoring/grafana/dashboards/security-overview.json")
+    dashboard_path = Path(
+        "C:/Users/Corbin/development/monitoring/grafana/dashboards/security-overview.json"
+    )
 
     if not dashboard_path.exists():
         pytest.skip("Security dashboard file not found")
@@ -303,12 +299,8 @@ def test_all_dashboard_panels_have_queries():
                 targets = panel.get("targets", [])
                 if targets:
                     # At least one target should have a query
-                    has_query = any(
-                        t.get("expr") or t.get("query")
-                        for t in targets
-                    )
-                    assert has_query, \
-                        f"Panel '{panel_title}' in {filepath.name} has no queries"
+                    has_query = any(t.get("expr") or t.get("query") for t in targets)
+                    assert has_query, f"Panel '{panel_title}' in {filepath.name} has no queries"
 
 
 # ============================================================================

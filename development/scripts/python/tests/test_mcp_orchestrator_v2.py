@@ -9,7 +9,8 @@ import json
 from pathlib import Path
 
 # Add the orchestrator directory to path
-sys.path.insert(0, 'Tools/mcp-orchestrator')
+sys.path.insert(0, "Tools/mcp-orchestrator")
+
 
 def test_orchestrator():
     """Test MCP Orchestrator v2 features"""
@@ -39,11 +40,13 @@ def test_orchestrator():
     print("\n4. State Persistence:")
     state_file = Path("Tools/mcp-orchestrator/orchestrator_state.json")
     if state_file.exists():
-        with open(state_file, 'r') as f:
+        with open(state_file, "r") as f:
             state = json.load(f)
         print(f"   [OK] State file exists with {len(state)} server entries")
         for name in list(state.keys())[:3]:
-            print(f"   - {name}: restarts={state[name]['total_restarts']}, failures={state[name]['consecutive_failures']}")
+            print(
+                f"   - {name}: restarts={state[name]['total_restarts']}, failures={state[name]['consecutive_failures']}"
+            )
     else:
         print("   ! No state file found")
 
@@ -77,11 +80,11 @@ def test_orchestrator():
 
     # Check monitoring capabilities
     print("\n8. Monitoring Capabilities:")
-    if hasattr(orch, 'monitor_interval'):
+    if hasattr(orch, "monitor_interval"):
         print(f"   [OK] Monitor interval: {orch.monitor_interval} seconds")
-    if hasattr(orch, 'health_check_interval'):
+    if hasattr(orch, "health_check_interval"):
         print(f"   [OK] Health check interval: {orch.health_check_interval} seconds")
-    if hasattr(orch, 'max_restart_attempts'):
+    if hasattr(orch, "max_restart_attempts"):
         print(f"   [OK] Max restart attempts: {orch.max_restart_attempts}")
 
     print("\n" + "=" * 60)
@@ -90,6 +93,7 @@ def test_orchestrator():
 
     return True
 
+
 if __name__ == "__main__":
     try:
         test_orchestrator()
@@ -97,5 +101,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\n[FAILED] Test failed: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)

@@ -35,9 +35,9 @@ class TypelinksParser:
         self.moduledata = moduledata
         self.memory = program.getMemory()
         self.type_offsets = []
-        self.types_base = moduledata['types']
-        self.typelinks_addr = moduledata['typelinks_addr']
-        self.typelinks_len = moduledata['typelinks_len']
+        self.types_base = moduledata["types"]
+        self.typelinks_addr = moduledata["typelinks_addr"]
+        self.typelinks_len = moduledata["typelinks_len"]
 
     def parse(self) -> List[int]:
         """
@@ -86,7 +86,7 @@ class TypelinksParser:
         # But should still resolve to a valid address
 
         types_start = self.types_base.getOffset()
-        types_end = self.moduledata['etypes'].getOffset()
+        types_end = self.moduledata["etypes"].getOffset()
         types_end - types_start
 
         # The offset is signed, so handle negative values
@@ -101,7 +101,7 @@ class TypelinksParser:
         # Check if target address is in a reasonable range
         # Allow some flexibility for edge cases
         min_addr = types_start - (10 * 1024 * 1024)  # 10MB before
-        max_addr = types_end + (10 * 1024 * 1024)    # 10MB after
+        max_addr = types_end + (10 * 1024 * 1024)  # 10MB after
 
         return min_addr <= target_addr <= max_addr
 
@@ -136,9 +136,9 @@ class TypelinksParser:
 # Helper function for testing
 def test_typelinks_parser():
     """Test typelinks parser with current program."""
-    print("="*60)
+    print("=" * 60)
     print("Testing TypelinksParser")
-    print("="*60)
+    print("=" * 60)
 
     print("\nTo use TypelinksParser:")
     print("1. First run ModuledataScanner to get moduledata dict")

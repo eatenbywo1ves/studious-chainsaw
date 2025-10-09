@@ -15,11 +15,12 @@ sys.path.insert(0, str(Path(__file__).parent))
 from apps.catalytic.core.unified_lattice import UnifiedCatalyticLattice
 from apps.catalytic.ka_lattice.knowledge_base import KnowledgeStore, PatternLibrary, Pattern
 
+
 def test_basic_lattice():
     """Test basic lattice creation and operations"""
-    print("="*60)
+    print("=" * 60)
     print("KA LATTICE BASIC FUNCTIONALITY TEST")
-    print("="*60)
+    print("=" * 60)
 
     # Test 1: Lattice Creation (CPU-only mode to avoid CUDA issues)
     print("\n[Test 1] Creating 4D lattice (10x10x10x10)...")
@@ -29,7 +30,7 @@ def test_basic_lattice():
     print(f"[OK] Lattice created in {elapsed:.2f}ms")
     print(f"  Dimensions: {lattice.dimensions}, Size: {lattice.size}")
     print(f"  GPU Enabled: {lattice.enable_gpu}")
-    if hasattr(lattice, 'graph') and lattice.graph:
+    if hasattr(lattice, "graph") and lattice.graph:
         print(f"  Vertices: {lattice.graph.vcount()}, Edges: {lattice.graph.ecount()}")
 
     # Test 2: XOR Transform
@@ -48,8 +49,8 @@ def test_basic_lattice():
     stats = lattice.analyze_structure()
     elapsed = (time.time() - start) * 1000
     print(f"[OK] Analysis completed in {elapsed:.2f}ms")
-    avg_deg = stats.get('avg_degree', 'N/A')
-    density = stats.get('density', 'N/A')
+    avg_deg = stats.get("avg_degree", "N/A")
+    density = stats.get("density", "N/A")
     print(f"  Avg degree: {avg_deg if isinstance(avg_deg, str) else f'{avg_deg:.2f}'}")
     print(f"  Density: {density if isinstance(density, str) else f'{density:.6f}'}")
 
@@ -72,40 +73,43 @@ def test_basic_lattice():
 
     # Store a pattern
     from datetime import datetime
+
     pattern = Pattern(
         id=f"test_{int(time.time())}",
-        operation='xor_transform',
+        operation="xor_transform",
         input_shape=test_array.shape,
-        input_stats={'mean': float(np.mean(test_array)), 'std': float(np.std(test_array))},
+        input_stats={"mean": float(np.mean(test_array)), "std": float(np.std(test_array))},
         output_shape=result.shape,
         execution_time_ms=1.0,
         memory_mb=0.001,
         confidence=0.95,
         created_at=datetime.now(),
-        last_used=datetime.now()
+        last_used=datetime.now(),
     )
-    knowledge_store.store_pattern(pattern, result_data=result.tolist() if hasattr(result, 'tolist') else str(result))
+    knowledge_store.store_pattern(
+        pattern, result_data=result.tolist() if hasattr(result, "tolist") else str(result)
+    )
     print("[OK] Pattern stored in knowledge base")
 
     # Get statistics
     stats = knowledge_store.get_statistics()
     print(f"  Total patterns: {stats['total_patterns']}")
-    if 'average_confidence' in stats:
+    if "average_confidence" in stats:
         print(f"  Avg confidence: {stats['average_confidence']:.3f}")
 
     # Test 6: Pattern Library
     print("\n[Test 6] Testing pattern library...")
     pattern_lib = PatternLibrary()
     print("[OK] Pattern library initialized")
-    if hasattr(pattern_lib, 'patterns'):
+    if hasattr(pattern_lib, "patterns"):
         print(f"  Available patterns: {len(pattern_lib.patterns)}")
         for pattern_name in list(pattern_lib.patterns.keys())[:5]:
             print(f"    - {pattern_name}")
 
     # Performance Summary
-    print("\n"+"="*60)
+    print("\n" + "=" * 60)
     print("PERFORMANCE SUMMARY")
-    print("="*60)
+    print("=" * 60)
     print("All core operations functional [OK]")
     print("- Lattice creation: ~100ms for 10K vertices")
     print("- XOR Transform: <5ms for small arrays")
@@ -115,8 +119,9 @@ def test_basic_lattice():
 
     # Cleanup
     import shutil
+
     # Close the database connection first
-    if hasattr(knowledge_store, 'conn'):
+    if hasattr(knowledge_store, "conn"):
         knowledge_store.conn.close()
     if knowledge_path.exists():
         try:
@@ -126,15 +131,17 @@ def test_basic_lattice():
 
     return True
 
+
 if __name__ == "__main__":
     try:
         success = test_basic_lattice()
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("[OK] ALL TESTS PASSED" if success else "[FAIL] TESTS FAILED")
-        print("="*60)
+        print("=" * 60)
         sys.exit(0 if success else 1)
     except Exception as e:
         print(f"\n[FAIL] TEST FAILED: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)

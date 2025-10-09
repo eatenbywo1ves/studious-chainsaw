@@ -9,6 +9,7 @@ import numpy as np
 
 try:
     import torch
+
     PYTORCH_AVAILABLE = True
 except ImportError:
     PYTORCH_AVAILABLE = False
@@ -43,7 +44,7 @@ class PyTorchLatticeGPU(BaseLatticeGPU):
                 raise GPUNotAvailableError(f"Device {self.device_id} not found")
 
             # Set device
-            self.device = torch.device(f'cuda:{self.device_id}')
+            self.device = torch.device(f"cuda:{self.device_id}")
             torch.cuda.set_device(self.device)
 
             # Get capabilities
@@ -54,7 +55,9 @@ class PyTorchLatticeGPU(BaseLatticeGPU):
             if not self.allocate_memory(aux_size_mb):
                 raise GPUMemoryError(aux_size_mb, self._capabilities.available_memory_mb)
 
-            logger.info(f"Initialized PyTorch device {self.device_id}: {self._capabilities.device_name}")
+            logger.info(
+                f"Initialized PyTorch device {self.device_id}: {self._capabilities.device_name}"
+            )
             return True
 
         except Exception as e:
@@ -69,15 +72,15 @@ class PyTorchLatticeGPU(BaseLatticeGPU):
         return GPUCapabilities(
             device_name=props.name,
             device_id=self.device_id,
-            total_memory_mb=props.total_memory / (1024 ** 2),
-            available_memory_mb=mem_info[0] / (1024 ** 2),
+            total_memory_mb=props.total_memory / (1024**2),
+            available_memory_mb=mem_info[0] / (1024**2),
             compute_capability=(props.major, props.minor),
             max_threads_per_block=props.max_threads_per_block,
             max_blocks=props.max_threads_per_multiprocessor,
             warp_size=props.warp_size,
             supports_double_precision=True,
             supports_tensor_cores=props.major >= 7,
-            backend_name="pytorch"
+            backend_name="pytorch",
         )
 
     def allocate_memory(self, size_mb: float) -> bool:
@@ -85,9 +88,7 @@ class PyTorchLatticeGPU(BaseLatticeGPU):
         try:
             size_elements = int(size_mb * 1024 * 1024 / 4)  # float32 elements
             self.auxiliary_memory = torch.zeros(
-                size_elements,
-                dtype=torch.float32,
-                device=self.device
+                size_elements, dtype=torch.float32, device=self.device
             )
             logger.debug(f"Allocated {size_mb:.2f} MB auxiliary memory")
             return True
@@ -152,7 +153,9 @@ class PyTorchLatticeGPU(BaseLatticeGPU):
         self.adjacency_data = (row, col, data)
 
         build_time = (time.perf_counter() - start_time) * 1000
-        logger.info(f"Built lattice on GPU: {self.n_points} vertices, {len(edges)} edges in {build_time:.2f}ms")
+        logger.info(
+            f"Built lattice on GPU: {self.n_points} vertices, {len(edges)} edges in {build_time:.2f}ms"
+        )
 
         return self.adjacency_data
 
@@ -162,7 +165,9 @@ class PyTorchLatticeGPU(BaseLatticeGPU):
         data_tensor = torch.from_numpy(data.astype(np.uint8)).to(self.device)
 
         if key is None:
-            key_tensor = torch.randint(0, 256, data_tensor.shape, dtype=torch.uint8, device=self.device)
+            key_tensor = torch.randint(
+                0, 256, data_tensor.shape, dtype=torch.uint8, device=self.device
+            )
         else:
             key_tensor = torch.from_numpy(key.astype(np.uint8)).to(self.device)
 
@@ -182,7 +187,9 @@ class PyTorchLatticeGPU(BaseLatticeGPU):
         row, col, _ = self.adjacency_data
 
         # Initialize tensors on GPU
-        distances = torch.full((self.n_points,), float('inf'), dtype=torch.float32, device=self.device)
+        distances = torch.full(
+            (self.n_points,), float("inf"), dtype=torch.float32, device=self.device
+        )
         distances[start] = 0
         parents = torch.full((self.n_points,), -1, dtype=torch.int32, device=self.device)
         visited = torch.zeros(self.n_points, dtype=torch.bool, device=self.device)

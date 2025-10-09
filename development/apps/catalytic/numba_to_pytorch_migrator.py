@@ -11,11 +11,12 @@ from typing import Optional, Callable
 
 # Global PyTorch device configuration
 if torch.cuda.is_available():
-    PYTORCH_DEVICE = torch.device('cuda')
+    PYTORCH_DEVICE = torch.device("cuda")
     print(f"Migration utility using GPU: {torch.cuda.get_device_name()}")
 else:
-    PYTORCH_DEVICE = torch.device('cpu')
+    PYTORCH_DEVICE = torch.device("cpu")
     print("Migration utility using CPU (CUDA not available)")
+
 
 class NumbaCompatibilityLayer:
     """
@@ -30,6 +31,7 @@ class NumbaCompatibilityLayer:
     @staticmethod
     def get_current_device():
         """Mimic numba.cuda.get_current_device()"""
+
         class MockDevice:
             @property
             def name(self):
@@ -117,6 +119,7 @@ class NumbaCompatibilityLayer:
         # In PyTorch, we typically use vectorized operations instead
         return 0
 
+
 def cuda_jit_replacement(func: Callable) -> Callable:
     """
     Replacement for @cuda.jit decorator
@@ -131,7 +134,7 @@ def cuda_jit_replacement(func: Callable) -> Callable:
             f"Function {func.__name__} was decorated with @cuda.jit but is being "
             "executed with PyTorch compatibility layer. Consider migrating to "
             "native PyTorch operations for better performance.",
-            UserWarning
+            UserWarning,
         )
 
         # Try to execute the original function (will likely fail)
@@ -147,6 +150,7 @@ def cuda_jit_replacement(func: Callable) -> Callable:
             )
 
     return wrapper
+
 
 # Mock cuda module for compatibility
 class MockCudaModule:
@@ -183,8 +187,10 @@ class MockCudaModule:
             return [f"GPU_{i}" for i in range(torch.cuda.device_count())]
         return []
 
+
 # Create the mock cuda instance
 cuda = MockCudaModule()
+
 
 def migrate_existing_code(file_path: str, output_path: Optional[str] = None):
     """
@@ -195,16 +201,16 @@ def migrate_existing_code(file_path: str, output_path: Optional[str] = None):
         output_path: Optional output path (defaults to original path with _pytorch suffix)
     """
     if output_path is None:
-        output_path = file_path.replace('.py', '_pytorch.py')
+        output_path = file_path.replace(".py", "_pytorch.py")
 
-    with open(file_path, 'r') as f:
+    with open(file_path, "r") as f:
         content = f.read()
 
     # Replace Numba imports with compatibility layer
     replacements = [
-        ('from numba import cuda', 'from numba_to_pytorch_migrator import cuda'),
-        ('import numba.cuda', 'from numba_to_pytorch_migrator import cuda'),
-        ('numba.cuda', 'cuda'),
+        ("from numba import cuda", "from numba_to_pytorch_migrator import cuda"),
+        ("import numba.cuda", "from numba_to_pytorch_migrator import cuda"),
+        ("numba.cuda", "cuda"),
     ]
 
     migrated_content = content
@@ -223,11 +229,14 @@ For optimal performance, consider rewriting with native PyTorch operations.
 
     migrated_content = header + migrated_content
 
-    with open(output_path, 'w') as f:
+    with open(output_path, "w") as f:
         f.write(migrated_content)
 
     print(f"Migrated {file_path} -> {output_path}")
-    print("Note: This provides basic compatibility. For best performance, rewrite with PyTorch operations.")
+    print(
+        "Note: This provides basic compatibility. For best performance, rewrite with PyTorch operations."
+    )
+
 
 def create_pytorch_equivalent_template(kernel_name: str, description: str = ""):
     """
@@ -288,6 +297,7 @@ def {kernel_name}_wrapper(input_data):
 
     return template
 
+
 def main():
     """Demonstration of migration utilities"""
     print("Numba to PyTorch Migration Utility")
@@ -309,6 +319,7 @@ def main():
     # Show migration template
     print("\nSample migration template:")
     print(create_pytorch_equivalent_template("example_kernel", "Demonstrates migration pattern"))
+
 
 if __name__ == "__main__":
     main()

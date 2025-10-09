@@ -33,6 +33,7 @@ from httpx import AsyncClient
 # TEST CLASS: User Authentication Flow
 # ============================================================================
 
+
 class TestUserAuthenticationFlow:
     """Test complete user authentication workflow"""
 
@@ -50,14 +51,15 @@ class TestUserAuthenticationFlow:
             "email": "newuser@example.com",
             "password": "SecurePass123!",
             "name": "New User",
-            "company_name": "Test Company"
+            "company_name": "Test Company",
         }
 
         response = await api_client.post("/auth/register", json=registration_data)
 
         # Assertions
-        assert response.status_code == 201, \
+        assert response.status_code == 201, (
             f"Expected 201, got {response.status_code}: {response.text}"
+        )
         data = response.json()
         assert "id" in data, "Response should include user ID"
         assert "tenant_id" in data, "Response should include tenant ID"
@@ -76,7 +78,7 @@ class TestUserAuthenticationFlow:
         registration_data = {
             "email": "duplicate@example.com",
             "password": "SecurePass123!",
-            "name": "User One"
+            "name": "User One",
         }
 
         # First registration
@@ -85,8 +87,9 @@ class TestUserAuthenticationFlow:
 
         # Duplicate registration
         response2 = await api_client.post("/auth/register", json=registration_data)
-        assert response2.status_code == 409, \
+        assert response2.status_code == 409, (
             f"Expected 409 for duplicate email, got {response2.status_code}"
+        )
         assert "already registered" in response2.json()["detail"].lower()
 
     async def test_user_login_success(self, api_client: AsyncClient):
@@ -100,17 +103,19 @@ class TestUserAuthenticationFlow:
         4. Verify token is valid JWT
         """
         # Register
-        await api_client.post("/auth/register", json={
-            "email": "logintest@example.com",
-            "password": "SecurePass123!",
-            "name": "Login Test"
-        })
+        await api_client.post(
+            "/auth/register",
+            json={
+                "email": "logintest@example.com",
+                "password": "SecurePass123!",
+                "name": "Login Test",
+            },
+        )
 
         # Login
-        login_response = await api_client.post("/auth/login", json={
-            "email": "logintest@example.com",
-            "password": "SecurePass123!"
-        })
+        login_response = await api_client.post(
+            "/auth/login", json={"email": "logintest@example.com", "password": "SecurePass123!"}
+        )
 
         assert login_response.status_code == 200
         data = login_response.json()
@@ -131,10 +136,9 @@ class TestUserAuthenticationFlow:
         1. Attempt login with non-existent user
         2. Verify 401 response
         """
-        response = await api_client.post("/auth/login", json={
-            "email": "nonexistent@example.com",
-            "password": "WrongPass123!"
-        })
+        response = await api_client.post(
+            "/auth/login", json={"email": "nonexistent@example.com", "password": "WrongPass123!"}
+        )
 
         assert response.status_code == 401
         assert "invalid" in response.json()["detail"].lower()
@@ -170,13 +174,12 @@ class TestUserAuthenticationFlow:
 # TEST CLASS: Lattice Management
 # ============================================================================
 
+
 class TestLatticeManagement:
     """Test lattice CRUD operations with tenant isolation"""
 
     async def test_create_lattice_authenticated(
-        self,
-        authenticated_client: AsyncClient,
-        sample_lattice_data: Dict[str, Any]
+        self, authenticated_client: AsyncClient, sample_lattice_data: Dict[str, Any]
     ):
         """
         Test authenticated user can create lattice.
@@ -187,13 +190,11 @@ class TestLatticeManagement:
         3. Verify response contains lattice_id, metadata
         4. Verify lattice associated with correct tenant
         """
-        response = await authenticated_client.post(
-            "/api/lattices",
-            json=sample_lattice_data
-        )
+        response = await authenticated_client.post("/api/lattices", json=sample_lattice_data)
 
-        assert response.status_code == 201, \
+        assert response.status_code == 201, (
             f"Expected 201, got {response.status_code}: {response.text}"
+        )
         data = response.json()
         assert "id" in data, "Response should include lattice ID"
         assert "tenant_id" in data, "Response should include tenant ID"
@@ -203,9 +204,7 @@ class TestLatticeManagement:
         assert "edges" in data, "Response should include edge count"
 
     async def test_create_lattice_unauthenticated(
-        self,
-        api_client: AsyncClient,
-        sample_lattice_data: Dict[str, Any]
+        self, api_client: AsyncClient, sample_lattice_data: Dict[str, Any]
     ):
         """
         Test unauthenticated request to create lattice returns 401.
@@ -215,13 +214,10 @@ class TestLatticeManagement:
         2. Verify 401 response
         """
         response = await api_client.post("/api/lattices", json=sample_lattice_data)
-        assert response.status_code == 401, \
-            "Unauthenticated request should return 401"
+        assert response.status_code == 401, "Unauthenticated request should return 401"
 
     async def test_get_lattice_by_id(
-        self,
-        authenticated_client: AsyncClient,
-        sample_lattice_data: Dict[str, Any]
+        self, authenticated_client: AsyncClient, sample_lattice_data: Dict[str, Any]
     ):
         """
         Test retrieving specific lattice by ID.
@@ -232,10 +228,7 @@ class TestLatticeManagement:
         3. Verify 200 response with correct data
         """
         # Create lattice
-        create_response = await authenticated_client.post(
-            "/api/lattices",
-            json=sample_lattice_data
-        )
+        create_response = await authenticated_client.post("/api/lattices", json=sample_lattice_data)
         lattice_id = create_response.json()["id"]
 
         # Get lattice
@@ -245,9 +238,7 @@ class TestLatticeManagement:
         assert data["id"] == lattice_id
 
     async def test_get_lattice_cross_tenant_isolation(
-        self,
-        api_client: AsyncClient,
-        two_tenants_fixture
+        self, api_client: AsyncClient, two_tenants_fixture
     ):
         """
         Test user cannot access another tenant's lattice.
@@ -261,20 +252,17 @@ class TestLatticeManagement:
 
         # Tenant A creates lattice
         create_response = await tenant_a_client.post(
-            "/api/lattices",
-            json={"dimensions": 2, "size": 100}
+            "/api/lattices", json={"dimensions": 2, "size": 100}
         )
         lattice_id = create_response.json()["id"]
 
         # Tenant B attempts access
         access_response = await tenant_b_client.get(f"/api/lattices/{lattice_id}")
-        assert access_response.status_code == 404, \
+        assert access_response.status_code == 404, (
             "Cross-tenant access should return 404 (not 403 to avoid info disclosure)"
+        )
 
-    async def test_list_lattices_filtered_by_tenant(
-        self,
-        authenticated_client: AsyncClient
-    ):
+    async def test_list_lattices_filtered_by_tenant(self, authenticated_client: AsyncClient):
         """
         Test listing lattices returns only tenant's lattices.
 
@@ -287,7 +275,7 @@ class TestLatticeManagement:
         for i in range(3):
             await authenticated_client.post(
                 "/api/lattices",
-                json={"dimensions": 2, "size": 100 + i * 10, "name": f"Lattice {i}"}
+                json={"dimensions": 2, "size": 100 + i * 10, "name": f"Lattice {i}"},
             )
 
         # List lattices
@@ -298,9 +286,7 @@ class TestLatticeManagement:
         assert len(data["lattices"]) >= 3, "Should return at least our 3 lattices"
 
     async def test_delete_lattice(
-        self,
-        authenticated_client: AsyncClient,
-        sample_lattice_data: Dict[str, Any]
+        self, authenticated_client: AsyncClient, sample_lattice_data: Dict[str, Any]
     ):
         """
         Test deleting lattice.
@@ -312,10 +298,7 @@ class TestLatticeManagement:
         4. Verify lattice no longer accessible
         """
         # Create
-        create_response = await authenticated_client.post(
-            "/api/lattices",
-            json=sample_lattice_data
-        )
+        create_response = await authenticated_client.post("/api/lattices", json=sample_lattice_data)
         lattice_id = create_response.json()["id"]
 
         # Delete
@@ -331,6 +314,7 @@ class TestLatticeManagement:
 # TEST CLASS: Lattice Transformations
 # ============================================================================
 
+
 class TestLatticeTransformations:
     """Test lattice transformation operations"""
 
@@ -339,7 +323,7 @@ class TestLatticeTransformations:
         self,
         authenticated_client: AsyncClient,
         sample_lattice_data: Dict[str, Any],
-        gpu_available: bool
+        gpu_available: bool,
     ):
         """
         Test XOR transformation with GPU.
@@ -356,7 +340,7 @@ class TestLatticeTransformations:
         # Create lattice
         create_response = await authenticated_client.post(
             "/api/lattices",
-            json={**sample_lattice_data, "size": 10000}  # Large enough for GPU
+            json={**sample_lattice_data, "size": 10000},  # Large enough for GPU
         )
         lattice_id = create_response.json()["id"]
 
@@ -366,8 +350,8 @@ class TestLatticeTransformations:
             json={
                 "transformation_type": "xor",
                 "parameters": {"key": "test_key_123"},
-                "use_gpu": True
-            }
+                "use_gpu": True,
+            },
         )
 
         assert transform_response.status_code == 200
@@ -377,9 +361,7 @@ class TestLatticeTransformations:
         assert "execution_time_ms" in data
 
     async def test_xor_transformation_cpu_fallback(
-        self,
-        authenticated_client: AsyncClient,
-        sample_lattice_data: Dict[str, Any]
+        self, authenticated_client: AsyncClient, sample_lattice_data: Dict[str, Any]
     ):
         """
         Test XOR transformation falls back to CPU.
@@ -391,10 +373,7 @@ class TestLatticeTransformations:
         4. Verify CPU was used
         """
         # Create lattice
-        create_response = await authenticated_client.post(
-            "/api/lattices",
-            json=sample_lattice_data
-        )
+        create_response = await authenticated_client.post("/api/lattices", json=sample_lattice_data)
         lattice_id = create_response.json()["id"]
 
         # Transform
@@ -403,18 +382,15 @@ class TestLatticeTransformations:
             json={
                 "transformation_type": "xor",
                 "parameters": {"key": "test_key_123"},
-                "use_gpu": False
-            }
+                "use_gpu": False,
+            },
         )
 
         assert transform_response.status_code == 200
         data = transform_response.json()
         assert not data["gpu_used"]
 
-    async def test_concurrent_transformations(
-        self,
-        authenticated_client: AsyncClient
-    ):
+    async def test_concurrent_transformations(self, authenticated_client: AsyncClient):
         """
         Test multiple concurrent transformations.
 
@@ -425,8 +401,7 @@ class TestLatticeTransformations:
         """
         # Create lattice
         create_response = await authenticated_client.post(
-            "/api/lattices",
-            json={"dimensions": 2, "size": 100}
+            "/api/lattices", json={"dimensions": 2, "size": 100}
         )
         lattice_id = create_response.json()["id"]
 
@@ -435,21 +410,16 @@ class TestLatticeTransformations:
         for i in range(5):
             task = authenticated_client.post(
                 f"/api/lattices/{lattice_id}/transform",
-                json={
-                    "transformation_type": "xor",
-                    "parameters": {"key": f"key_{i}"}
-                }
+                json={"transformation_type": "xor", "parameters": {"key": f"key_{i}"}},
             )
             tasks.append(task)
 
         responses = await asyncio.gather(*tasks)
-        assert all(r.status_code == 200 for r in responses), \
+        assert all(r.status_code == 200 for r in responses), (
             "All concurrent transformations should succeed"
+        )
 
-    async def test_transformation_history(
-        self,
-        authenticated_client: AsyncClient
-    ):
+    async def test_transformation_history(self, authenticated_client: AsyncClient):
         """
         Test transformation history is recorded.
 
@@ -461,8 +431,7 @@ class TestLatticeTransformations:
         """
         # Create lattice
         create_response = await authenticated_client.post(
-            "/api/lattices",
-            json={"dimensions": 2, "size": 100}
+            "/api/lattices", json={"dimensions": 2, "size": 100}
         )
         lattice_id = create_response.json()["id"]
 
@@ -470,7 +439,7 @@ class TestLatticeTransformations:
         for i in range(3):
             await authenticated_client.post(
                 f"/api/lattices/{lattice_id}/transform",
-                json={"transformation_type": "xor", "parameters": {}}
+                json={"transformation_type": "xor", "parameters": {}},
             )
 
         # Get history
@@ -486,13 +455,11 @@ class TestLatticeTransformations:
 # TEST CLASS: Rate Limiting
 # ============================================================================
 
+
 class TestRateLimiting:
     """Test rate limiting integration"""
 
-    async def test_rate_limit_enforcement(
-        self,
-        authenticated_client: AsyncClient
-    ):
+    async def test_rate_limit_enforcement(self, authenticated_client: AsyncClient):
         """
         Test rate limits are enforced.
 
@@ -503,8 +470,7 @@ class TestRateLimiting:
         """
         # Create lattice
         create_response = await authenticated_client.post(
-            "/api/lattices",
-            json={"dimensions": 2, "size": 10}
+            "/api/lattices", json={"dimensions": 2, "size": 10}
         )
         lattice_id = create_response.json()["id"]
 
@@ -513,7 +479,7 @@ class TestRateLimiting:
         for i in range(6):
             response = await authenticated_client.post(
                 f"/api/lattices/{lattice_id}/transform",
-                json={"transformation_type": "xor", "parameters": {}}
+                json={"transformation_type": "xor", "parameters": {}},
             )
             responses.append(response)
 
@@ -522,10 +488,7 @@ class TestRateLimiting:
         status_codes = [r.status_code for r in responses]
         assert 429 in status_codes, "At least one request should be rate limited"
 
-    async def test_rate_limit_per_tenant(
-        self,
-        two_tenants_fixture
-    ):
+    async def test_rate_limit_per_tenant(self, two_tenants_fixture):
         """
         Test rate limits are per-tenant, not global.
 
@@ -537,36 +500,28 @@ class TestRateLimiting:
         tenant_a_client, tenant_b_client = two_tenants_fixture
 
         # Tenant A hits limit
-        create_a = await tenant_a_client.post(
-            "/api/lattices",
-            json={"dimensions": 2, "size": 10}
-        )
+        create_a = await tenant_a_client.post("/api/lattices", json={"dimensions": 2, "size": 10})
         lattice_a_id = create_a.json()["id"]
 
         for _ in range(10):
             await tenant_a_client.post(
                 f"/api/lattices/{lattice_a_id}/transform",
-                json={"transformation_type": "xor", "parameters": {}}
+                json={"transformation_type": "xor", "parameters": {}},
             )
 
         # Tenant B should not be affected
-        create_b = await tenant_b_client.post(
-            "/api/lattices",
-            json={"dimensions": 2, "size": 10}
-        )
+        create_b = await tenant_b_client.post("/api/lattices", json={"dimensions": 2, "size": 10})
         lattice_b_id = create_b.json()["id"]
 
         response_b = await tenant_b_client.post(
             f"/api/lattices/{lattice_b_id}/transform",
-            json={"transformation_type": "xor", "parameters": {}}
+            json={"transformation_type": "xor", "parameters": {}},
         )
-        assert response_b.status_code != 429, \
+        assert response_b.status_code != 429, (
             "Tenant B should not be rate limited by Tenant A's usage"
+        )
 
-    async def test_burst_allowance(
-        self,
-        authenticated_client: AsyncClient
-    ):
+    async def test_burst_allowance(self, authenticated_client: AsyncClient):
         """
         Test burst allowance works correctly.
 
@@ -584,13 +539,12 @@ class TestRateLimiting:
 # TEST CLASS: Webhook Integration
 # ============================================================================
 
+
 class TestWebhookIntegration:
     """Test webhook delivery for events"""
 
     async def test_webhook_on_lattice_creation(
-        self,
-        authenticated_client: AsyncClient,
-        webhook_server_fixture
+        self, authenticated_client: AsyncClient, webhook_server_fixture
     ):
         """
         Test webhook triggered on lattice creation.
@@ -602,8 +556,7 @@ class TestWebhookIntegration:
         """
         # Create lattice
         await authenticated_client.post(
-            "/api/lattices",
-            json={"dimensions": 2, "size": 100, "name": "Webhook Test"}
+            "/api/lattices", json={"dimensions": 2, "size": 100, "name": "Webhook Test"}
         )
 
         # Check webhook server
@@ -612,9 +565,7 @@ class TestWebhookIntegration:
         assert webhooks[0]["event"] == "lattice.created"
 
     async def test_webhook_on_transformation(
-        self,
-        authenticated_client: AsyncClient,
-        webhook_server_fixture
+        self, authenticated_client: AsyncClient, webhook_server_fixture
     ):
         """
         Test webhook triggered on transformation.
@@ -626,26 +577,22 @@ class TestWebhookIntegration:
         """
         # Create and transform
         create_response = await authenticated_client.post(
-            "/api/lattices",
-            json={"dimensions": 2, "size": 100}
+            "/api/lattices", json={"dimensions": 2, "size": 100}
         )
         lattice_id = create_response.json()["id"]
 
         await authenticated_client.post(
             f"/api/lattices/{lattice_id}/transform",
-            json={"transformation_type": "xor", "parameters": {}}
+            json={"transformation_type": "xor", "parameters": {}},
         )
 
         # Verify webhook
         webhooks = webhook_server_fixture.get_received()
         transformation_webhooks = [w for w in webhooks if w["event"] == "transformation.completed"]
-        assert len(transformation_webhooks) > 0, \
-            "Transformation webhook should be received"
+        assert len(transformation_webhooks) > 0, "Transformation webhook should be received"
 
     async def test_webhook_retry_on_failure(
-        self,
-        authenticated_client: AsyncClient,
-        webhook_server_fixture
+        self, authenticated_client: AsyncClient, webhook_server_fixture
     ):
         """
         Test webhook retries on failure.
@@ -658,28 +605,21 @@ class TestWebhookIntegration:
         webhook_server_fixture.fail_next(count=1)
 
         # Trigger event
-        await authenticated_client.post(
-            "/api/lattices",
-            json={"dimensions": 2, "size": 100}
-        )
+        await authenticated_client.post("/api/lattices", json={"dimensions": 2, "size": 100})
 
         # Verify retry
-        assert webhook_server_fixture.get_retry_count() > 0, \
-            "Webhook should retry on failure"
+        assert webhook_server_fixture.get_retry_count() > 0, "Webhook should retry on failure"
 
 
 # ============================================================================
 # TEST CLASS: Complete Workflow
 # ============================================================================
 
+
 class TestCompleteWorkflow:
     """Test end-to-end user workflows"""
 
-    async def test_complete_user_journey(
-        self,
-        api_client: AsyncClient,
-        clean_redis
-    ):
+    async def test_complete_user_journey(self, api_client: AsyncClient, clean_redis):
         """
         Test complete user journey from registration to results.
 
@@ -694,18 +634,20 @@ class TestCompleteWorkflow:
         start_time = time.time()
 
         # 1. Register
-        register_response = await api_client.post("/auth/register", json={
-            "email": "journey@example.com",
-            "password": "JourneyPass123!",
-            "name": "Journey Test"
-        })
+        register_response = await api_client.post(
+            "/auth/register",
+            json={
+                "email": "journey@example.com",
+                "password": "JourneyPass123!",
+                "name": "Journey Test",
+            },
+        )
         assert register_response.status_code == 201
 
         # 2. Login
-        login_response = await api_client.post("/auth/login", json={
-            "email": "journey@example.com",
-            "password": "JourneyPass123!"
-        })
+        login_response = await api_client.post(
+            "/auth/login", json={"email": "journey@example.com", "password": "JourneyPass123!"}
+        )
         assert login_response.status_code == 200
         token = login_response.json()["access_token"]
 
@@ -713,18 +655,16 @@ class TestCompleteWorkflow:
         api_client.headers.update({"Authorization": f"Bearer {token}"})
 
         # 3. Create lattice
-        create_response = await api_client.post("/api/lattices", json={
-            "dimensions": 2,
-            "size": 100,
-            "name": "Journey Lattice"
-        })
+        create_response = await api_client.post(
+            "/api/lattices", json={"dimensions": 2, "size": 100, "name": "Journey Lattice"}
+        )
         assert create_response.status_code == 201
         lattice_id = create_response.json()["id"]
 
         # 4. Transform
         transform_response = await api_client.post(
             f"/api/lattices/{lattice_id}/transform",
-            json={"transformation_type": "xor", "parameters": {"key": "test"}}
+            json={"transformation_type": "xor", "parameters": {"key": "test"}},
         )
         assert transform_response.status_code == 200
 
@@ -734,13 +674,9 @@ class TestCompleteWorkflow:
 
         # Performance check
         duration = time.time() - start_time
-        assert duration < 5.0, \
-            f"Complete workflow should take < 5s, took {duration:.2f}s"
+        assert duration < 5.0, f"Complete workflow should take < 5s, took {duration:.2f}s"
 
-    async def test_multi_user_concurrent_workflows(
-        self,
-        api_client: AsyncClient
-    ):
+    async def test_multi_user_concurrent_workflows(self, api_client: AsyncClient):
         """
         Test multiple users can work concurrently without interference.
 
@@ -754,25 +690,27 @@ class TestCompleteWorkflow:
         # Register 3 users
         users = []
         for i in range(3):
-            register_response = await api_client.post("/auth/register", json={
-                "email": f"user{i}@example.com",
-                "password": "SecurePass123!",
-                "name": f"User {i}"
-            })
+            register_response = await api_client.post(
+                "/auth/register",
+                json={
+                    "email": f"user{i}@example.com",
+                    "password": "SecurePass123!",
+                    "name": f"User {i}",
+                },
+            )
             assert register_response.status_code == 201
 
             # Login
-            login_response = await api_client.post("/auth/login", json={
-                "email": f"user{i}@example.com",
-                "password": "SecurePass123!"
-            })
+            login_response = await api_client.post(
+                "/auth/login", json={"email": f"user{i}@example.com", "password": "SecurePass123!"}
+            )
             token = login_response.json()["access_token"]
 
             # Create client
             client = AsyncClient(
                 base_url=str(api_client.base_url),
                 headers={"Authorization": f"Bearer {token}"},
-                timeout=30.0
+                timeout=30.0,
             )
             users.append(client)
 
@@ -793,7 +731,7 @@ class TestCompleteWorkflow:
         transform_tasks = [
             users[i].post(
                 f"/api/lattices/{lattice_ids[i]}/transform",
-                json={"transformation_type": "xor", "parameters": {}}
+                json={"transformation_type": "xor", "parameters": {}},
             )
             for i in range(len(users))
         ]

@@ -17,19 +17,14 @@ from pathlib import Path
 # Add development directory to path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from libs.gpu import (
-    get_profiler,
-    get_glyph_analyzer,
-    GlyphShape,
-    IterationMarker
-)
+from libs.gpu import get_profiler, get_glyph_analyzer, GlyphShape, IterationMarker
 
 
 def test_glyph_shape_mapping():
     """Test glyph shape determination for different operation types"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 1: Glyph Shape Mapping")
-    print("="*70)
+    print("=" * 70)
 
     analyzer = get_glyph_analyzer()
 
@@ -49,8 +44,9 @@ def test_glyph_shape_mapping():
     for operation, expected_shape in test_cases:
         shape = analyzer.determine_shape(operation)
         status = "PASS" if shape == expected_shape else "FAIL"
-        print(f"  {operation:<25} -> {shape.value:<10} "
-              f"(expected: {expected_shape.value}) [{status}]")
+        print(
+            f"  {operation:<25} -> {shape.value:<10} (expected: {expected_shape.value}) [{status}]"
+        )
         if shape == expected_shape:
             passed += 1
 
@@ -62,18 +58,18 @@ def test_glyph_shape_mapping():
 
 def test_performance_color_encoding():
     """Test color encoding based on performance"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 2: Performance Color Encoding")
-    print("="*70)
+    print("=" * 70)
 
     analyzer = get_glyph_analyzer()
 
     test_cases = [
-        (0.5, "#00ff00", "excellent"),     # <1ms
-        (5.0, "#7fff00", "good"),          # 1-10ms
-        (25.0, "#ffff00", "moderate"),     # 10-50ms
-        (75.0, "#ffa500", "slow"),         # 50-100ms
-        (150.0, "#ff0000", "critical"),    # >100ms
+        (0.5, "#00ff00", "excellent"),  # <1ms
+        (5.0, "#7fff00", "good"),  # 1-10ms
+        (25.0, "#ffff00", "moderate"),  # 10-50ms
+        (75.0, "#ffa500", "slow"),  # 50-100ms
+        (150.0, "#ff0000", "critical"),  # >100ms
     ]
 
     print("\n[Test 2.1] Color Determination")
@@ -93,18 +89,18 @@ def test_performance_color_encoding():
 
 def test_memory_size_encoding():
     """Test size encoding based on memory usage"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 3: Memory Size Encoding")
-    print("="*70)
+    print("=" * 70)
 
     analyzer = get_glyph_analyzer()
 
     test_cases = [
-        (0.5, "tiny"),      # <1MB
-        (5.0, "small"),     # 1-10MB
-        (50.0, "medium"),   # 10-100MB
-        (500.0, "large"),   # 100-1000MB
-        (1500.0, "huge"),   # >1000MB
+        (0.5, "tiny"),  # <1MB
+        (5.0, "small"),  # 1-10MB
+        (50.0, "medium"),  # 10-100MB
+        (500.0, "large"),  # 100-1000MB
+        (1500.0, "huge"),  # >1000MB
     ]
 
     print("\n[Test 3.1] Size Determination")
@@ -124,9 +120,9 @@ def test_memory_size_encoding():
 
 def test_device_border_style():
     """Test border style encoding based on device"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 4: Device Border Style Encoding")
-    print("="*70)
+    print("=" * 70)
 
     analyzer = get_glyph_analyzer()
 
@@ -155,9 +151,9 @@ def test_device_border_style():
 
 def test_iteration_markers():
     """Test iteration marker determination based on optimization level"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 5: Iteration Markers (Optimization Levels)")
-    print("="*70)
+    print("=" * 70)
 
     analyzer = get_glyph_analyzer()
 
@@ -188,9 +184,9 @@ def test_iteration_markers():
 
 def test_glyph_notation():
     """Test glyph notation generation"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 6: Glyph Notation (Mernithian Style)")
-    print("="*70)
+    print("=" * 70)
 
     analyzer = get_glyph_analyzer()
 
@@ -220,9 +216,9 @@ def test_glyph_notation():
 
 def test_profiler_glyph_integration():
     """Test integration of glyph system with GPU profiler"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 7: Profiler-Glyph Integration")
-    print("="*70)
+    print("=" * 70)
 
     profiler = get_profiler(enabled=True)
     profiler.reset()
@@ -231,10 +227,12 @@ def test_profiler_glyph_integration():
     # Profile some operations
     with profiler.profile("matrix_multiply", device="gpu", smart_routed=False):
         import time
+
         time.sleep(0.01)  # Simulate work
 
     with profiler.profile("xor_transform", device="cpu", smart_routed=True, speedup=180):
         import time
+
         time.sleep(0.001)  # Simulate work
 
     print(f"  Profiled {len(profiler.get_entries())} operations")
@@ -247,7 +245,9 @@ def test_profiler_glyph_integration():
     assert len(glyphs) == 2, f"Should have 2 glyphs, got {len(glyphs)}"
     print(f"  Generated {len(glyphs)} glyphs")
     for glyph in glyphs:
-        print(f"    {glyph.get_notation():<10} {glyph.operation_name:<20} {glyph.duration_ms:.2f}ms")
+        print(
+            f"    {glyph.get_notation():<10} {glyph.operation_name:<20} {glyph.duration_ms:.2f}ms"
+        )
     print("  Status: PASS")
 
     print("\n[Test 7.3] Print Glyph Summary")
@@ -255,26 +255,35 @@ def test_profiler_glyph_integration():
     print("  Status: PASS")
 
     print("\n[Test 7.4] Export Glyphs to JSON")
-    with tempfile.NamedTemporaryFile(mode='w', suffix='_glyphs.json', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix="_glyphs.json", delete=False) as f:
         glyph_file = f.name
 
     profiler.export_glyphs_json(glyph_file)
 
     # Verify export
-    with open(glyph_file, 'r') as f:
+    with open(glyph_file, "r") as f:
         data = json.load(f)
 
-    assert 'glyphs' in data, "Should have glyphs key"
-    assert 'glyph_count' in data, "Should have glyph_count key"
-    assert data['glyph_count'] == 2, f"Should have 2 glyphs, got {data['glyph_count']}"
+    assert "glyphs" in data, "Should have glyphs key"
+    assert "glyph_count" in data, "Should have glyph_count key"
+    assert data["glyph_count"] == 2, f"Should have 2 glyphs, got {data['glyph_count']}"
 
     print(f"  Exported to: {glyph_file}")
     print(f"  Glyph count: {data['glyph_count']}")
 
     # Check glyph structure
-    glyph_data = data['glyphs'][0]
-    required_keys = ['operation', 'shape', 'color', 'size', 'border',
-                     'iteration', 'glyph_notation', 'duration_ms', 'memory_mb']
+    glyph_data = data["glyphs"][0]
+    required_keys = [
+        "operation",
+        "shape",
+        "color",
+        "size",
+        "border",
+        "iteration",
+        "glyph_notation",
+        "duration_ms",
+        "memory_mb",
+    ]
     for key in required_keys:
         assert key in glyph_data, f"Glyph data missing key: {key}"
 
@@ -290,9 +299,9 @@ def test_profiler_glyph_integration():
 
 def test_complex_profiling_scenario():
     """Test complex profiling scenario with multiple optimization levels"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 8: Complex Profiling Scenario")
-    print("="*70)
+    print("=" * 70)
 
     profiler = get_profiler(enabled=True)
     profiler.reset()
@@ -332,19 +341,19 @@ def test_complex_profiling_scenario():
     print("  Status: PASS")
 
     print("\n[Test 8.3] Export and Verify")
-    with tempfile.NamedTemporaryFile(mode='w', suffix='_complex.json', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix="_complex.json", delete=False) as f:
         complex_file = f.name
 
     profiler.export_glyphs_json(complex_file)
 
-    with open(complex_file, 'r') as f:
+    with open(complex_file, "r") as f:
         data = json.load(f)
 
     # Verify glyph count by optimization level
-    glyph_data = data['glyphs']
+    glyph_data = data["glyphs"]
     by_level = {}
     for g in glyph_data:
-        level = g['optimization_level']
+        level = g["optimization_level"]
         by_level[level] = by_level.get(level, 0) + 1
 
     print(f"  Glyphs by optimization level: {by_level}")
@@ -363,9 +372,9 @@ def test_complex_profiling_scenario():
 
 def test_visualization_data_generation():
     """Test data generation for visualization"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 9: Visualization Data Generation")
-    print("="*70)
+    print("=" * 70)
 
     # Create sample profiling data
     profiling_data = {
@@ -376,7 +385,7 @@ def test_visualization_data_generation():
                 "device": "gpu",
                 "backend": "pytorch",
                 "memory_allocated_mb": 16.5,
-                "metadata": {"smart_routed": False}
+                "metadata": {"smart_routed": False},
             },
             {
                 "operation": "xor_transform",
@@ -384,8 +393,8 @@ def test_visualization_data_generation():
                 "device": "cpu",
                 "backend": "cpu",
                 "memory_allocated_mb": 0.1,
-                "metadata": {"smart_routed": True, "speedup": 180}
-            }
+                "metadata": {"smart_routed": True, "speedup": 180},
+            },
         ]
     }
 
@@ -397,26 +406,28 @@ def test_visualization_data_generation():
     print(f"  Generated {len(glyphs)} glyphs")
 
     for glyph in glyphs:
-        print(f"    {glyph.get_notation():<10} "
-              f"{glyph.operation_name:<20} "
-              f"{glyph.duration_ms:.2f}ms "
-              f"({glyph.color})")
+        print(
+            f"    {glyph.get_notation():<10} "
+            f"{glyph.operation_name:<20} "
+            f"{glyph.duration_ms:.2f}ms "
+            f"({glyph.color})"
+        )
 
     print("  Status: PASS")
 
     print("\n[Test 9.2] Export for Visualization")
-    with tempfile.NamedTemporaryFile(mode='w', suffix='_viz.json', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix="_viz.json", delete=False) as f:
         viz_file = f.name
 
     analyzer.export_glyphs_json(glyphs, viz_file)
 
     # Verify
-    with open(viz_file, 'r') as f:
+    with open(viz_file, "r") as f:
         data = json.load(f)
 
-    assert 'glyph_count' in data, "Should have glyph_count"
-    assert 'glyphs' in data, "Should have glyphs array"
-    assert data['glyph_count'] == 2, "Should have 2 glyphs"
+    assert "glyph_count" in data, "Should have glyph_count"
+    assert "glyphs" in data, "Should have glyphs array"
+    assert data["glyph_count"] == 2, "Should have 2 glyphs"
 
     print(f"  Exported to: {viz_file}")
     print("  Status: PASS")
@@ -429,10 +440,10 @@ def test_visualization_data_generation():
 
 
 def main():
-    print("="*70)
+    print("=" * 70)
     print("MERNITHIAN GPU PROFILING TEST SUITE")
     print("Phase 1: Symbolic Performance Representation")
-    print("="*70)
+    print("=" * 70)
 
     all_passed = True
 
@@ -465,9 +476,9 @@ def main():
         all_passed = all_passed and test9
 
         # Final summary
-        print("\n" + "="*70)
+        print("\n" + "=" * 70)
         print("TEST SUITE SUMMARY")
-        print("="*70)
+        print("=" * 70)
         if all_passed:
             print("[SUCCESS] ALL PHASE 1 TESTS PASSED")
             print("\nKey Features Validated:")
@@ -483,13 +494,14 @@ def main():
             print("\nPhase 1 (Symbolic Performance Representation) COMPLETE!")
         else:
             print("[FAILURE] SOME TESTS FAILED - Review output above")
-        print("="*70)
+        print("=" * 70)
 
         return 0 if all_passed else 1
 
     except Exception as e:
         print(f"\n[FAILURE] Test suite failed: {e}")
         import traceback
+
         traceback.print_exc()
         return 1
 

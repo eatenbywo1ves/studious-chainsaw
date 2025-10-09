@@ -24,20 +24,22 @@ class ComplexityTier(Enum):
     4-tier complexity hierarchy inspired by Mernithian iteration system
     Each tier represents ~10x increase in computational cost
     """
-    TRIVIAL = 0      # ⊕ O(1), O(log n)
-    LINEAR = 1       # ⊘ O(n), O(n log n)
-    POLYNOMIAL = 2   # ⊗ O(n²), O(n³)
+
+    TRIVIAL = 0  # ⊕ O(1), O(log n)
+    LINEAR = 1  # ⊘ O(n), O(n log n)
+    POLYNOMIAL = 2  # ⊗ O(n²), O(n³)
     EXPONENTIAL = 3  # ⊙ O(2ⁿ), O(n!)
 
 
 class ComplexityClass(Enum):
     """Computational complexity classes"""
-    P = "P"                    # Polynomial time
-    NP = "NP"                  # Nondeterministic polynomial
+
+    P = "P"  # Polynomial time
+    NP = "NP"  # Nondeterministic polynomial
     NP_COMPLETE = "NP-complete"
     NP_HARD = "NP-hard"
-    PSPACE = "PSPACE"          # Polynomial space
-    EXPTIME = "EXPTIME"        # Exponential time
+    PSPACE = "PSPACE"  # Polynomial space
+    EXPTIME = "EXPTIME"  # Exponential time
 
 
 @dataclass
@@ -45,14 +47,15 @@ class AlgorithmicComplexity:
     """
     Big-O complexity classification for an algorithm
     """
-    time_complexity: str              # e.g., "O(n²)"
-    space_complexity: str             # e.g., "O(n)"
-    tier: ComplexityTier              # 0-3 (Trivial to Exponential)
+
+    time_complexity: str  # e.g., "O(n²)"
+    space_complexity: str  # e.g., "O(n)"
+    tier: ComplexityTier  # 0-3 (Trivial to Exponential)
     complexity_class: ComplexityClass
 
     # Parallelization properties
     is_parallelizable: bool
-    parallelism_degree: int           # Max parallel units (1 = serial)
+    parallelism_degree: int  # Max parallel units (1 = serial)
 
     # Algorithm characteristics
     deterministic: bool = True
@@ -62,16 +65,16 @@ class AlgorithmicComplexity:
     def to_dict(self) -> Dict:
         """Export to dictionary"""
         return {
-            'time_complexity': self.time_complexity,
-            'space_complexity': self.space_complexity,
-            'tier': self.tier.value,
-            'tier_name': self.tier.name,
-            'complexity_class': self.complexity_class.value,
-            'is_parallelizable': self.is_parallelizable,
-            'parallelism_degree': self.parallelism_degree,
-            'deterministic': self.deterministic,
-            'has_recursion': self.has_recursion,
-            'recursion_depth': self.recursion_depth
+            "time_complexity": self.time_complexity,
+            "space_complexity": self.space_complexity,
+            "tier": self.tier.value,
+            "tier_name": self.tier.name,
+            "complexity_class": self.complexity_class.value,
+            "is_parallelizable": self.is_parallelizable,
+            "parallelism_degree": self.parallelism_degree,
+            "deterministic": self.deterministic,
+            "has_recursion": self.has_recursion,
+            "recursion_depth": self.recursion_depth,
         }
 
 
@@ -81,28 +84,29 @@ class OperationalComplexity:
     Runtime operational characteristics
     Measured from actual execution
     """
+
     data_size_mb: float
-    flop_count: int                   # Floating point operations
-    memory_ops: int                   # Memory read/write operations
-    branching_factor: int             # Conditional branches
-    loop_depth: int                   # Nested loop levels
-    dependency_graph_size: int        # Data dependency complexity
+    flop_count: int  # Floating point operations
+    memory_ops: int  # Memory read/write operations
+    branching_factor: int  # Conditional branches
+    loop_depth: int  # Nested loop levels
+    dependency_graph_size: int  # Data dependency complexity
 
     # Derived metrics
-    flop_per_byte: float              # Compute intensity
+    flop_per_byte: float  # Compute intensity
     memory_bandwidth_utilization: float  # % of peak bandwidth
 
     def to_dict(self) -> Dict:
         """Export to dictionary"""
         return {
-            'data_size_mb': self.data_size_mb,
-            'flop_count': self.flop_count,
-            'memory_ops': self.memory_ops,
-            'branching_factor': self.branching_factor,
-            'loop_depth': self.loop_depth,
-            'dependency_graph_size': self.dependency_graph_size,
-            'flop_per_byte': self.flop_per_byte,
-            'memory_bandwidth_utilization': self.memory_bandwidth_utilization
+            "data_size_mb": self.data_size_mb,
+            "flop_count": self.flop_count,
+            "memory_ops": self.memory_ops,
+            "branching_factor": self.branching_factor,
+            "loop_depth": self.loop_depth,
+            "dependency_graph_size": self.dependency_graph_size,
+            "flop_per_byte": self.flop_per_byte,
+            "memory_bandwidth_utilization": self.memory_bandwidth_utilization,
         }
 
 
@@ -111,6 +115,7 @@ class TransformationComplexity:
     """
     Tracks complexity evolution through transformation pipeline
     """
+
     original_tier: ComplexityTier
     current_tier: ComplexityTier
     transformation_chain: List[str] = field(default_factory=list)
@@ -121,12 +126,12 @@ class TransformationComplexity:
     def to_dict(self) -> Dict:
         """Export to dictionary"""
         return {
-            'original_tier': self.original_tier.value,
-            'current_tier': self.current_tier.value,
-            'transformation_chain': self.transformation_chain,
-            'chain_depth': self.chain_depth,
-            'complexity_reduction': self.complexity_reduction,
-            'semantic_equivalence_proof': self.semantic_equivalence_proof
+            "original_tier": self.original_tier.value,
+            "current_tier": self.current_tier.value,
+            "transformation_chain": self.transformation_chain,
+            "chain_depth": self.chain_depth,
+            "complexity_reduction": self.complexity_reduction,
+            "semantic_equivalence_proof": self.semantic_equivalence_proof,
         }
 
 
@@ -135,34 +140,35 @@ class ComplexityScore:
     """
     Unified complexity scoring with multiplicative hierarchy
     """
+
     # Component scores
-    algorithmic_score: float          # Based on Big-O tier
-    operational_score: float          # Based on runtime metrics
-    memory_score: float               # Memory complexity component
-    parallelism_score: float          # Parallelization effectiveness
+    algorithmic_score: float  # Based on Big-O tier
+    operational_score: float  # Based on runtime metrics
+    memory_score: float  # Memory complexity component
+    parallelism_score: float  # Parallelization effectiveness
 
     # Composite metrics
-    total_score: float                # Weighted combination
-    normalized_score: float           # 0-1 normalized
-    complexity_grade: str             # "A", "B", "C", "D", "F"
+    total_score: float  # Weighted combination
+    normalized_score: float  # 0-1 normalized
+    complexity_grade: str  # "A", "B", "C", "D", "F"
 
     # Context
     tier: ComplexityTier
-    bottleneck: str                   # "compute", "memory", "transfer", "none"
+    bottleneck: str  # "compute", "memory", "transfer", "none"
 
     def to_dict(self) -> Dict:
         """Export to dictionary"""
         return {
-            'algorithmic_score': self.algorithmic_score,
-            'operational_score': self.operational_score,
-            'memory_score': self.memory_score,
-            'parallelism_score': self.parallelism_score,
-            'total_score': self.total_score,
-            'normalized_score': self.normalized_score,
-            'complexity_grade': self.complexity_grade,
-            'tier': self.tier.value,
-            'tier_name': self.tier.name,
-            'bottleneck': self.bottleneck
+            "algorithmic_score": self.algorithmic_score,
+            "operational_score": self.operational_score,
+            "memory_score": self.memory_score,
+            "parallelism_score": self.parallelism_score,
+            "total_score": self.total_score,
+            "normalized_score": self.normalized_score,
+            "complexity_grade": self.complexity_grade,
+            "tier": self.tier.value,
+            "tier_name": self.tier.name,
+            "bottleneck": self.bottleneck,
         }
 
 
@@ -178,48 +184,47 @@ class ComplexityAnalyzer:
             ComplexityTier.TRIVIAL: 1.0,
             ComplexityTier.LINEAR: 10.0,
             ComplexityTier.POLYNOMIAL: 100.0,
-            ComplexityTier.EXPONENTIAL: 1000.0
+            ComplexityTier.EXPONENTIAL: 1000.0,
         }
 
     def _build_operation_map(self) -> Dict[str, AlgorithmicComplexity]:
         """Build map of known operations to their complexities"""
         return {
             # Trivial operations - O(1), O(log n)
-            'hash_lookup': AlgorithmicComplexity(
+            "hash_lookup": AlgorithmicComplexity(
                 time_complexity="O(1)",
                 space_complexity="O(1)",
                 tier=ComplexityTier.TRIVIAL,
                 complexity_class=ComplexityClass.P,
                 is_parallelizable=True,
-                parallelism_degree=1000
+                parallelism_degree=1000,
             ),
-            'array_access': AlgorithmicComplexity(
+            "array_access": AlgorithmicComplexity(
                 time_complexity="O(1)",
                 space_complexity="O(1)",
                 tier=ComplexityTier.TRIVIAL,
                 complexity_class=ComplexityClass.P,
                 is_parallelizable=True,
-                parallelism_degree=1000
+                parallelism_degree=1000,
             ),
-            'xor_transform': AlgorithmicComplexity(
+            "xor_transform": AlgorithmicComplexity(
                 time_complexity="O(n)",
                 space_complexity="O(1)",
                 tier=ComplexityTier.LINEAR,
                 complexity_class=ComplexityClass.P,
                 is_parallelizable=True,
-                parallelism_degree=1000
+                parallelism_degree=1000,
             ),
-
             # Linear operations - O(n), O(n log n)
-            'array_scan': AlgorithmicComplexity(
+            "array_scan": AlgorithmicComplexity(
                 time_complexity="O(n)",
                 space_complexity="O(1)",
                 tier=ComplexityTier.LINEAR,
                 complexity_class=ComplexityClass.P,
                 is_parallelizable=True,
-                parallelism_degree=1000
+                parallelism_degree=1000,
             ),
-            'quicksort': AlgorithmicComplexity(
+            "quicksort": AlgorithmicComplexity(
                 time_complexity="O(n log n)",
                 space_complexity="O(log n)",
                 tier=ComplexityTier.LINEAR,
@@ -227,9 +232,9 @@ class ComplexityAnalyzer:
                 is_parallelizable=True,
                 parallelism_degree=100,
                 has_recursion=True,
-                recursion_depth=10
+                recursion_depth=10,
             ),
-            'merge_sort': AlgorithmicComplexity(
+            "merge_sort": AlgorithmicComplexity(
                 time_complexity="O(n log n)",
                 space_complexity="O(n)",
                 tier=ComplexityTier.LINEAR,
@@ -237,37 +242,35 @@ class ComplexityAnalyzer:
                 is_parallelizable=True,
                 parallelism_degree=100,
                 has_recursion=True,
-                recursion_depth=10
+                recursion_depth=10,
             ),
-
             # Polynomial operations - O(n²), O(n³)
-            'matrix_multiply': AlgorithmicComplexity(
+            "matrix_multiply": AlgorithmicComplexity(
                 time_complexity="O(n³)",
                 space_complexity="O(n²)",
                 tier=ComplexityTier.POLYNOMIAL,
                 complexity_class=ComplexityClass.P,
                 is_parallelizable=True,
-                parallelism_degree=10000
+                parallelism_degree=10000,
             ),
-            'bubble_sort': AlgorithmicComplexity(
+            "bubble_sort": AlgorithmicComplexity(
                 time_complexity="O(n²)",
                 space_complexity="O(1)",
                 tier=ComplexityTier.POLYNOMIAL,
                 complexity_class=ComplexityClass.P,
                 is_parallelizable=False,
-                parallelism_degree=1
+                parallelism_degree=1,
             ),
-            'nested_loop': AlgorithmicComplexity(
+            "nested_loop": AlgorithmicComplexity(
                 time_complexity="O(n²)",
                 space_complexity="O(1)",
                 tier=ComplexityTier.POLYNOMIAL,
                 complexity_class=ComplexityClass.P,
                 is_parallelizable=True,
-                parallelism_degree=100
+                parallelism_degree=100,
             ),
-
             # Exponential operations - O(2ⁿ), O(n!)
-            'graph_search': AlgorithmicComplexity(
+            "graph_search": AlgorithmicComplexity(
                 time_complexity="O(2ⁿ)",
                 space_complexity="O(n)",
                 tier=ComplexityTier.EXPONENTIAL,
@@ -275,29 +278,30 @@ class ComplexityAnalyzer:
                 is_parallelizable=True,
                 parallelism_degree=1000,
                 has_recursion=True,
-                recursion_depth=20
+                recursion_depth=20,
             ),
-            'traveling_salesman': AlgorithmicComplexity(
+            "traveling_salesman": AlgorithmicComplexity(
                 time_complexity="O(n!)",
                 space_complexity="O(n)",
                 tier=ComplexityTier.EXPONENTIAL,
                 complexity_class=ComplexityClass.NP_COMPLETE,
                 is_parallelizable=True,
                 parallelism_degree=1000,
-                deterministic=False
+                deterministic=False,
             ),
-            'subset_sum': AlgorithmicComplexity(
+            "subset_sum": AlgorithmicComplexity(
                 time_complexity="O(2ⁿ)",
                 space_complexity="O(n)",
                 tier=ComplexityTier.EXPONENTIAL,
                 complexity_class=ComplexityClass.NP_COMPLETE,
                 is_parallelizable=True,
-                parallelism_degree=1000
-            )
+                parallelism_degree=1000,
+            ),
         }
 
-    def classify_algorithm(self, operation_name: str,
-                          metadata: Optional[Dict] = None) -> AlgorithmicComplexity:
+    def classify_algorithm(
+        self, operation_name: str, metadata: Optional[Dict] = None
+    ) -> AlgorithmicComplexity:
         """
         Classify algorithmic complexity from operation name and metadata
 
@@ -316,58 +320,58 @@ class ComplexityAnalyzer:
         operation_lower = operation_name.lower()
 
         # Matrix operations
-        if any(keyword in operation_lower for keyword in ['matrix', 'gemm', 'matmul']):
+        if any(keyword in operation_lower for keyword in ["matrix", "gemm", "matmul"]):
             return AlgorithmicComplexity(
                 time_complexity="O(n³)",
                 space_complexity="O(n²)",
                 tier=ComplexityTier.POLYNOMIAL,
                 complexity_class=ComplexityClass.P,
                 is_parallelizable=True,
-                parallelism_degree=10000
+                parallelism_degree=10000,
             )
 
         # Sort operations
-        if any(keyword in operation_lower for keyword in ['sort', 'order']):
+        if any(keyword in operation_lower for keyword in ["sort", "order"]):
             return AlgorithmicComplexity(
                 time_complexity="O(n log n)",
                 space_complexity="O(n)",
                 tier=ComplexityTier.LINEAR,
                 complexity_class=ComplexityClass.P,
                 is_parallelizable=True,
-                parallelism_degree=100
+                parallelism_degree=100,
             )
 
         # Search operations
-        if any(keyword in operation_lower for keyword in ['search', 'find', 'lookup']):
+        if any(keyword in operation_lower for keyword in ["search", "find", "lookup"]):
             return AlgorithmicComplexity(
                 time_complexity="O(log n)",
                 space_complexity="O(1)",
                 tier=ComplexityTier.TRIVIAL,
                 complexity_class=ComplexityClass.P,
                 is_parallelizable=True,
-                parallelism_degree=1000
+                parallelism_degree=1000,
             )
 
         # Graph operations
-        if any(keyword in operation_lower for keyword in ['graph', 'tree', 'path']):
+        if any(keyword in operation_lower for keyword in ["graph", "tree", "path"]):
             return AlgorithmicComplexity(
                 time_complexity="O(n²)",
                 space_complexity="O(n)",
                 tier=ComplexityTier.POLYNOMIAL,
                 complexity_class=ComplexityClass.P,
                 is_parallelizable=True,
-                parallelism_degree=100
+                parallelism_degree=100,
             )
 
         # Transform operations
-        if any(keyword in operation_lower for keyword in ['transform', 'convert', 'xor']):
+        if any(keyword in operation_lower for keyword in ["transform", "convert", "xor"]):
             return AlgorithmicComplexity(
                 time_complexity="O(n)",
                 space_complexity="O(1)",
                 tier=ComplexityTier.LINEAR,
                 complexity_class=ComplexityClass.P,
                 is_parallelizable=True,
-                parallelism_degree=1000
+                parallelism_degree=1000,
             )
 
         # Default: assume linear
@@ -378,14 +382,12 @@ class ComplexityAnalyzer:
             tier=ComplexityTier.LINEAR,
             complexity_class=ComplexityClass.P,
             is_parallelizable=True,
-            parallelism_degree=10
+            parallelism_degree=10,
         )
 
-    def compute_operational_complexity(self,
-                                      duration_ms: float,
-                                      memory_mb: float,
-                                      device: str,
-                                      metadata: Optional[Dict] = None) -> OperationalComplexity:
+    def compute_operational_complexity(
+        self, duration_ms: float, memory_mb: float, device: str, metadata: Optional[Dict] = None
+    ) -> OperationalComplexity:
         """
         Compute operational complexity from runtime metrics
 
@@ -402,12 +404,12 @@ class ComplexityAnalyzer:
 
         # Estimate FLOP count from duration (rough heuristic)
         # Assume ~1 TFLOPS for GPU, ~10 GFLOPS for CPU
-        peak_flops = 1e12 if device == 'gpu' else 1e10
+        peak_flops = 1e12 if device == "gpu" else 1e10
         flop_count = int(peak_flops * (duration_ms / 1000.0) * 0.5)  # 50% utilization
 
         # Estimate memory operations
         # Assume ~500 GB/s for GPU, ~50 GB/s for CPU
-        peak_bandwidth = 500e9 if device == 'gpu' else 50e9
+        peak_bandwidth = 500e9 if device == "gpu" else 50e9
         memory_ops = int((memory_mb * 1e6) / 8)  # Rough estimate
 
         # Compute FLOP/byte ratio
@@ -418,9 +420,9 @@ class ComplexityAnalyzer:
         memory_bandwidth_utilization = min(actual_bandwidth / peak_bandwidth * 100, 100.0)
 
         # Extract or estimate other metrics
-        branching_factor = metadata.get('branching_factor', 1)
-        loop_depth = metadata.get('loop_depth', 1)
-        dependency_graph_size = metadata.get('dependency_graph_size', 10)
+        branching_factor = metadata.get("branching_factor", 1)
+        loop_depth = metadata.get("loop_depth", 1)
+        dependency_graph_size = metadata.get("dependency_graph_size", 10)
 
         return OperationalComplexity(
             data_size_mb=memory_mb,
@@ -430,12 +432,12 @@ class ComplexityAnalyzer:
             loop_depth=loop_depth,
             dependency_graph_size=dependency_graph_size,
             flop_per_byte=flop_per_byte,
-            memory_bandwidth_utilization=memory_bandwidth_utilization
+            memory_bandwidth_utilization=memory_bandwidth_utilization,
         )
 
-    def infer_complexity_from_metrics(self,
-                                     duration_ms: float,
-                                     data_size_mb: float) -> ComplexityTier:
+    def infer_complexity_from_metrics(
+        self, duration_ms: float, data_size_mb: float
+    ) -> ComplexityTier:
         """
         Infer algorithmic complexity tier from runtime scaling
 
@@ -460,17 +462,17 @@ class ComplexityAnalyzer:
         # Classify based on time per MB scaling
         # Adjusted thresholds to be more reasonable
         if time_per_mb < 5.0:
-            return ComplexityTier.TRIVIAL      # Sub-linear or O(1), O(log n)
+            return ComplexityTier.TRIVIAL  # Sub-linear or O(1), O(log n)
         elif time_per_mb < 15.0:
-            return ComplexityTier.LINEAR       # Linear scaling
+            return ComplexityTier.LINEAR  # Linear scaling
         elif time_per_mb < 150.0:
-            return ComplexityTier.POLYNOMIAL   # Polynomial scaling
+            return ComplexityTier.POLYNOMIAL  # Polynomial scaling
         else:
             return ComplexityTier.EXPONENTIAL  # Exponential scaling
 
-    def compute_complexity_score(self,
-                                algorithmic: AlgorithmicComplexity,
-                                operational: OperationalComplexity) -> ComplexityScore:
+    def compute_complexity_score(
+        self, algorithmic: AlgorithmicComplexity, operational: OperationalComplexity
+    ) -> ComplexityScore:
         """
         Compute unified complexity score with multiplicative hierarchy
 
@@ -503,10 +505,10 @@ class ComplexityAnalyzer:
 
         # Total score (weighted combination)
         total_score = (
-            algorithmic_score * 0.4 +
-            operational_score * 0.3 +
-            memory_score * 0.2 +
-            parallelism_score * 0.1
+            algorithmic_score * 0.4
+            + operational_score * 0.3
+            + memory_score * 0.2
+            + parallelism_score * 0.1
         )
 
         # Normalize to 0-1 range (log scale)
@@ -544,14 +546,16 @@ class ComplexityAnalyzer:
             normalized_score=normalized_score,
             complexity_grade=grade,
             tier=algorithmic.tier,
-            bottleneck=bottleneck
+            bottleneck=bottleneck,
         )
 
-    def track_transformation_complexity(self,
-                                       original: ComplexityScore,
-                                       transformation_name: str,
-                                       new_score: ComplexityScore,
-                                       existing_chain: Optional[TransformationComplexity] = None) -> TransformationComplexity:
+    def track_transformation_complexity(
+        self,
+        original: ComplexityScore,
+        transformation_name: str,
+        new_score: ComplexityScore,
+        existing_chain: Optional[TransformationComplexity] = None,
+    ) -> TransformationComplexity:
         """
         Track complexity changes through transformation pipeline
 
@@ -584,7 +588,7 @@ class ComplexityAnalyzer:
             current_tier=new_score.tier,
             transformation_chain=chain,
             chain_depth=len(chain),
-            complexity_reduction=reduction
+            complexity_reduction=reduction,
         )
 
 
@@ -608,46 +612,46 @@ class ComplexityHierarchy:
             Hierarchy dictionary organized by tier
         """
         hierarchy = {
-            'tiers': {
+            "tiers": {
                 ComplexityTier.TRIVIAL.value: [],
                 ComplexityTier.LINEAR.value: [],
                 ComplexityTier.POLYNOMIAL.value: [],
-                ComplexityTier.EXPONENTIAL.value: []
+                ComplexityTier.EXPONENTIAL.value: [],
             },
-            'total_operations': len(operations),
-            'total_complexity_score': 0.0,
-            'average_complexity_score': 0.0
+            "total_operations": len(operations),
+            "total_complexity_score": 0.0,
+            "average_complexity_score": 0.0,
         }
 
         total_score = 0.0
 
         for op in operations:
-            complexity_score = op.get('complexity_score', {})
-            tier = complexity_score.get('tier', 0)
-            score = complexity_score.get('total_score', 0.0)
+            complexity_score = op.get("complexity_score", {})
+            tier = complexity_score.get("tier", 0)
+            score = complexity_score.get("total_score", 0.0)
 
             tier_key = tier
-            hierarchy['tiers'][tier_key].append({
-                'operation': op.get('operation', 'unknown'),
-                'score': score,
-                'grade': complexity_score.get('complexity_grade', 'N/A'),
-                'bottleneck': complexity_score.get('bottleneck', 'none')
-            })
+            hierarchy["tiers"][tier_key].append(
+                {
+                    "operation": op.get("operation", "unknown"),
+                    "score": score,
+                    "grade": complexity_score.get("complexity_grade", "N/A"),
+                    "bottleneck": complexity_score.get("bottleneck", "none"),
+                }
+            )
 
             total_score += score
 
-        hierarchy['total_complexity_score'] = total_score
-        hierarchy['average_complexity_score'] = total_score / max(len(operations), 1)
+        hierarchy["total_complexity_score"] = total_score
+        hierarchy["average_complexity_score"] = total_score / max(len(operations), 1)
 
         # Sort each tier by score (descending)
-        for tier_ops in hierarchy['tiers'].values():
-            tier_ops.sort(key=lambda x: x['score'], reverse=True)
+        for tier_ops in hierarchy["tiers"].values():
+            tier_ops.sort(key=lambda x: x["score"], reverse=True)
 
         return hierarchy
 
-    def find_complexity_bottlenecks(self,
-                                   hierarchy: Dict,
-                                   threshold: float = 100.0) -> List[Dict]:
+    def find_complexity_bottlenecks(self, hierarchy: Dict, threshold: float = 100.0) -> List[Dict]:
         """
         Identify operations above complexity threshold
 
@@ -660,25 +664,27 @@ class ComplexityHierarchy:
         """
         bottlenecks = []
 
-        for tier, ops in hierarchy['tiers'].items():
+        for tier, ops in hierarchy["tiers"].items():
             for op in ops:
-                if op['score'] >= threshold:
-                    bottlenecks.append({
-                        'operation': op['operation'],
-                        'tier': tier,
-                        'score': op['score'],
-                        'grade': op['grade'],
-                        'bottleneck': op['bottleneck']
-                    })
+                if op["score"] >= threshold:
+                    bottlenecks.append(
+                        {
+                            "operation": op["operation"],
+                            "tier": tier,
+                            "score": op["score"],
+                            "grade": op["grade"],
+                            "bottleneck": op["bottleneck"],
+                        }
+                    )
 
         # Sort by score (descending)
-        bottlenecks.sort(key=lambda x: x['score'], reverse=True)
+        bottlenecks.sort(key=lambda x: x["score"], reverse=True)
 
         return bottlenecks
 
-    def suggest_complexity_reductions(self,
-                                     operation: str,
-                                     complexity: ComplexityScore) -> List[str]:
+    def suggest_complexity_reductions(
+        self, operation: str, complexity: ComplexityScore
+    ) -> List[str]:
         """
         Suggest ways to reduce complexity
 
@@ -693,14 +699,18 @@ class ComplexityHierarchy:
 
         # Tier-based suggestions
         if complexity.tier == ComplexityTier.EXPONENTIAL:
-            suggestions.append("Consider algorithmic optimization (e.g., dynamic programming, pruning)")
+            suggestions.append(
+                "Consider algorithmic optimization (e.g., dynamic programming, pruning)"
+            )
             suggestions.append("Use approximation algorithms for NP-complete problems")
             suggestions.append("Consider heuristic-based search with early termination")
 
         if complexity.tier == ComplexityTier.POLYNOMIAL:
             suggestions.append("Consider batch fusion to amortize overhead")
             suggestions.append("Use GPU parallelization if not already applied")
-            suggestions.append("Consider algorithmic improvements (e.g., Strassen for matrix multiply)")
+            suggestions.append(
+                "Consider algorithmic improvements (e.g., Strassen for matrix multiply)"
+            )
 
         # Bottleneck-specific suggestions
         if complexity.bottleneck == "compute":
@@ -716,7 +726,7 @@ class ComplexityHierarchy:
             suggestions.append("Use kernel fusion to reduce transfer count")
 
         # Grade-based suggestions
-        if complexity.complexity_grade in ['D', 'F']:
+        if complexity.complexity_grade in ["D", "F"]:
             suggestions.append("High complexity detected - prioritize optimization")
 
         return suggestions
@@ -735,7 +745,7 @@ class ComplexityVisualizer:
             hierarchy: Complexity hierarchy from build_hierarchy()
             filepath: Output JSON file path
         """
-        with open(filepath, 'w') as f:
+        with open(filepath, "w") as f:
             json.dump(hierarchy, f, indent=2)
 
         logger.info(f"Exported complexity tree to {filepath}")
@@ -750,19 +760,14 @@ class ComplexityVisualizer:
         Returns:
             Heatmap data dictionary
         """
-        heatmap = {
-            'operations': [],
-            'scores': [],
-            'tiers': [],
-            'grades': []
-        }
+        heatmap = {"operations": [], "scores": [], "tiers": [], "grades": []}
 
         for op in operations:
-            complexity_score = op.get('complexity_score', {})
-            heatmap['operations'].append(op.get('operation', 'unknown'))
-            heatmap['scores'].append(complexity_score.get('total_score', 0.0))
-            heatmap['tiers'].append(complexity_score.get('tier', 0))
-            heatmap['grades'].append(complexity_score.get('complexity_grade', 'N/A'))
+            complexity_score = op.get("complexity_score", {})
+            heatmap["operations"].append(op.get("operation", "unknown"))
+            heatmap["scores"].append(complexity_score.get("total_score", 0.0))
+            heatmap["tiers"].append(complexity_score.get("tier", 0))
+            heatmap["grades"].append(complexity_score.get("complexity_grade", "N/A"))
 
         return heatmap
 

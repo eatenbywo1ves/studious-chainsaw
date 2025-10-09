@@ -17,25 +17,23 @@ from libs.constants.constants import (
     CUDA_CORES_PER_SM,
     GPU_MEMORY_SAFETY_MARGIN,
     TARGET_MEMORY_REDUCTION_FACTOR,
-    MEMORY_ALIGNMENT_BYTES
+    MEMORY_ALIGNMENT_BYTES,
 )
 from libs.utils.exceptions import (
     GPUNotAvailableError,
     GPUMemoryError,
     LatticeCreationError,
     PathNotFoundException,
-    MemoryAllocationError
+    MemoryAllocationError,
 )
-from libs.utils.validation import (
-    validate_dimensions,
-    validate_lattice_size
-)
+from libs.utils.validation import validate_dimensions, validate_lattice_size
 
 # Conditional imports for GPU support
 try:
     import cupy as cp
     import torch
     from numba import cuda, jit
+
     GPU_AVAILABLE = torch.cuda.is_available() and cp.cuda.is_available()
 except ImportError:
     GPU_AVAILABLE = False
@@ -48,13 +46,14 @@ except ImportError:
 logger = get_logger(__name__)
 
 # Type variables for generic types
-T = TypeVar('T')
-ArrayType = TypeVar('ArrayType', np.ndarray, 'cp.ndarray')
+T = TypeVar("T")
+ArrayType = TypeVar("ArrayType", np.ndarray, "cp.ndarray")
 
 
 @dataclass
 class GPUDeviceInfo:
     """GPU device information"""
+
     name: str
     compute_capability: Tuple[int, int]
     total_memory_mb: float
@@ -73,6 +72,7 @@ class GPUDeviceInfo:
 @dataclass
 class PerformanceMetrics:
     """Performance metrics for operations"""
+
     operation: str
     cpu_time_ms: float
     gpu_time_ms: float
@@ -93,8 +93,8 @@ class CatalyticLatticeGPU:
         self,
         dimensions: int,
         size: int,
-        device: Union[str, int] = 'cuda',
-        memory_limit_mb: Optional[float] = None
+        device: Union[str, int] = "cuda",
+        memory_limit_mb: Optional[float] = None,
     ) -> None:
         """
         Initialize GPU-accelerated lattice
@@ -114,7 +114,7 @@ class CatalyticLatticeGPU:
         self.dimensions = validate_dimensions(dimensions)
         self.size = validate_lattice_size(size, dimensions)
         self.device = device
-        self.n_points = self.size ** self.dimensions
+        self.n_points = self.size**self.dimensions
 
         # Check GPU availability
         if not GPU_AVAILABLE:
@@ -135,7 +135,9 @@ class CatalyticLatticeGPU:
         self.auxiliary_memory: Optional[Union[np.ndarray, cp.ndarray]] = None
         self._performance_history: List[PerformanceMetrics] = []
 
-        logger.info(f"Initialized CatalyticLatticeGPU: {dimensions}D, size={size}, points={self.n_points}")
+        logger.info(
+            f"Initialized CatalyticLatticeGPU: {dimensions}D, size={size}, points={self.n_points}"
+        )
 
     def _initialize_gpu(self, memory_limit_mb: Optional[float]) -> None:
         """
@@ -163,34 +165,28 @@ class CatalyticLatticeGPU:
                 required_memory_mb = min(required_memory_mb, memory_limit_mb)
 
             if free_memory_mb < required_memory_mb:
-                raise GPUMemoryError(
-                    required_mb=required_memory_mb,
-                    available_mb=free_memory_mb
-                )
+                raise GPUMemoryError(required_mb=required_memory_mb, available_mb=free_memory_mb)
 
             # Store device info
             self.gpu_info = GPUDeviceInfo(
                 name=torch.cuda.get_device_name(0) if torch else "Unknown",
-                compute_capability=(
-                    device_props['major'],
-                    device_props['minor']
-                ),
+                compute_capability=(device_props["major"], device_props["minor"]),
                 total_memory_mb=total_memory_mb,
                 free_memory_mb=free_memory_mb,
-                max_threads_per_block=device_props['maxThreadsPerBlock'],
-                multiprocessor_count=device_props['multiProcessorCount'],
-                cuda_cores=device_props['multiProcessorCount'] * CUDA_CORES_PER_SM
+                max_threads_per_block=device_props["maxThreadsPerBlock"],
+                multiprocessor_count=device_props["multiProcessorCount"],
+                cuda_cores=device_props["multiProcessorCount"] * CUDA_CORES_PER_SM,
             )
 
             # Set memory limit
-            self.memory_limit_mb = memory_limit_mb or (
-                free_memory_mb * GPU_MEMORY_SAFETY_MARGIN
-            )
+            self.memory_limit_mb = memory_limit_mb or (free_memory_mb * GPU_MEMORY_SAFETY_MARGIN)
 
             # Allocate auxiliary memory
             self._allocate_auxiliary_memory()
 
-            logger.info(f"GPU initialized: {self.gpu_info.name}, {self.gpu_info.cuda_cores} CUDA cores")
+            logger.info(
+                f"GPU initialized: {self.gpu_info.name}, {self.gpu_info.cuda_cores} CUDA cores"
+            )
 
         except Exception as e:
             logger.error(f"GPU initialization failed: {e}")
@@ -240,9 +236,7 @@ class CatalyticLatticeGPU:
 
     @staticmethod
     def _allocate_aligned_memory(
-        size: int,
-        dtype: type,
-        alignment: int = MEMORY_ALIGNMENT_BYTES
+        size: int, dtype: type, alignment: int = MEMORY_ALIGNMENT_BYTES
     ) -> np.ndarray:
         """
         Allocate cache-aligned memory for better performance
@@ -266,7 +260,7 @@ class CatalyticLatticeGPU:
         offset = (alignment - (raw.ctypes.data % alignment)) % alignment
 
         # Return aligned view
-        return raw[offset:offset + size]
+        return raw[offset : offset + size]
 
     def build_lattice_gpu(self) -> Union[np.ndarray, cp.ndarray]:
         """
@@ -303,9 +297,7 @@ class CatalyticLatticeGPU:
         except Exception as e:
             logger.error(f"Lattice creation failed: {e}")
             raise LatticeCreationError(
-                f"Failed to build lattice: {str(e)}",
-                dimensions=self.dimensions,
-                size=self.size
+                f"Failed to build lattice: {str(e)}", dimensions=self.dimensions, size=self.size
             )
 
     def _generate_lattice_edges(self) -> List[Tuple[int, int]]:
@@ -350,11 +342,7 @@ class CatalyticLatticeGPU:
         self.adjacency_gpu = (row, col, data)  # Still called adjacency_gpu for compatibility
 
     @cuda.jit if cuda else lambda f: f
-    def _cuda_xor_transform(
-        data: cp.ndarray,
-        key: cp.ndarray,
-        result: cp.ndarray
-    ) -> None:
+    def _cuda_xor_transform(data: cp.ndarray, key: cp.ndarray, result: cp.ndarray) -> None:
         """
         CUDA kernel for XOR transformation
 
@@ -368,9 +356,7 @@ class CatalyticLatticeGPU:
             result[idx] = data[idx] ^ key[idx % key.shape[0]]
 
     def xor_transform_gpu(
-        self,
-        data: np.ndarray,
-        key: Optional[np.ndarray] = None
+        self, data: np.ndarray, key: Optional[np.ndarray] = None
     ) -> Union[np.ndarray, cp.ndarray]:
         """
         GPU-accelerated XOR transformation with performance tracking
@@ -394,12 +380,7 @@ class CatalyticLatticeGPU:
 
                 # Track performance
                 cpu_time = self._estimate_cpu_time(len(data))
-                self._record_performance(
-                    "xor_transform",
-                    cpu_time,
-                    gpu_time,
-                    len(data) / (1024**2)
-                )
+                self._record_performance("xor_transform", cpu_time, gpu_time, len(data) / (1024**2))
 
             return result
 
@@ -407,11 +388,7 @@ class CatalyticLatticeGPU:
             logger.error(f"XOR transform failed: {e}")
             raise
 
-    def _xor_transform_gpu_impl(
-        self,
-        data: np.ndarray,
-        key: Optional[np.ndarray]
-    ) -> cp.ndarray:
+    def _xor_transform_gpu_impl(self, data: np.ndarray, key: Optional[np.ndarray]) -> cp.ndarray:
         """GPU implementation of XOR transform"""
         # Transfer to GPU
         data_gpu = cp.asarray(data, dtype=cp.uint8)
@@ -427,11 +404,7 @@ class CatalyticLatticeGPU:
 
         return result_gpu
 
-    def _xor_transform_cpu(
-        self,
-        data: np.ndarray,
-        key: Optional[np.ndarray]
-    ) -> np.ndarray:
+    def _xor_transform_cpu(self, data: np.ndarray, key: Optional[np.ndarray]) -> np.ndarray:
         """CPU fallback for XOR transform"""
         if key is None:
             key = np.random.randint(0, 256, size=len(data), dtype=np.uint8)
@@ -439,10 +412,7 @@ class CatalyticLatticeGPU:
         return np.bitwise_xor(data.astype(np.uint8), key.astype(np.uint8))
 
     def parallel_path_finding_gpu(
-        self,
-        start: int,
-        end: int,
-        algorithm: str = "bfs"
+        self, start: int, end: int, algorithm: str = "bfs"
     ) -> Tuple[List[int], float]:
         """
         GPU-accelerated parallel path finding
@@ -588,10 +558,7 @@ class CatalyticLatticeGPU:
         return self._bfs_path_finding(start, end)
 
     def _reconstruct_path(
-        self,
-        parents: Union[np.ndarray, cp.ndarray],
-        start: int,
-        end: int
+        self, parents: Union[np.ndarray, cp.ndarray], start: int, end: int
     ) -> List[int]:
         """Reconstruct path from parent array"""
         path = []
@@ -601,7 +568,7 @@ class CatalyticLatticeGPU:
             path.append(int(current))
             if current == start:
                 break
-            current = int(parents[current]) if hasattr(parents, '__getitem__') else -1
+            current = int(parents[current]) if hasattr(parents, "__getitem__") else -1
 
         if path and path[-1] == start:
             return list(reversed(path))
@@ -623,11 +590,7 @@ class CatalyticLatticeGPU:
         return index
 
     def _record_performance(
-        self,
-        operation: str,
-        cpu_time: float,
-        gpu_time: float,
-        memory_mb: float
+        self, operation: str, cpu_time: float, gpu_time: float, memory_mb: float
     ) -> None:
         """Record performance metrics"""
         speedup = cpu_time / gpu_time if gpu_time > 0 else 1.0
@@ -637,7 +600,7 @@ class CatalyticLatticeGPU:
             cpu_time_ms=cpu_time,
             gpu_time_ms=gpu_time,
             speedup=speedup,
-            memory_used_mb=memory_mb
+            memory_used_mb=memory_mb,
         )
 
         self._performance_history.append(metric)
@@ -660,9 +623,9 @@ class CatalyticLatticeGPU:
 
             # Calculate sparse memory
             if self._use_cpu_fallback:
-                sparse_memory = (row.nbytes + col.nbytes + data.nbytes)
+                sparse_memory = row.nbytes + col.nbytes + data.nbytes
             else:
-                sparse_memory = (row.nbytes + col.nbytes + data.nbytes)
+                sparse_memory = row.nbytes + col.nbytes + data.nbytes
 
             # Add auxiliary memory
             if self.auxiliary_memory is not None:
@@ -679,11 +642,11 @@ class CatalyticLatticeGPU:
         reduction = dense_memory_mb / sparse_memory_mb if sparse_memory_mb > 0 else 1.0
 
         return {
-            'sparse_memory_mb': round(sparse_memory_mb, 2),
-            'dense_memory_mb': round(dense_memory_mb, 2),
-            'memory_reduction_factor': round(reduction, 2),
-            'target_reduction_factor': TARGET_MEMORY_REDUCTION_FACTOR,
-            'efficiency_percent': round((reduction / TARGET_MEMORY_REDUCTION_FACTOR) * 100, 2)
+            "sparse_memory_mb": round(sparse_memory_mb, 2),
+            "dense_memory_mb": round(dense_memory_mb, 2),
+            "memory_reduction_factor": round(reduction, 2),
+            "target_reduction_factor": TARGET_MEMORY_REDUCTION_FACTOR,
+            "efficiency_percent": round((reduction / TARGET_MEMORY_REDUCTION_FACTOR) * 100, 2),
         }
 
     def get_performance_summary(self) -> Dict[str, Any]:
@@ -694,7 +657,7 @@ class CatalyticLatticeGPU:
             Performance statistics dictionary
         """
         if not self._performance_history:
-            return {'message': 'No performance data available'}
+            return {"message": "No performance data available"}
 
         avg_speedup = np.mean([m.speedup for m in self._performance_history])
         max_speedup = max(m.speedup for m in self._performance_history)
@@ -702,13 +665,13 @@ class CatalyticLatticeGPU:
         total_cpu_time = sum(m.cpu_time_ms for m in self._performance_history)
 
         return {
-            'operations_count': len(self._performance_history),
-            'average_speedup': round(avg_speedup, 2),
-            'max_speedup': round(max_speedup, 2),
-            'total_gpu_time_ms': round(total_gpu_time, 2),
-            'total_cpu_time_ms': round(total_cpu_time, 2),
-            'time_saved_ms': round(total_cpu_time - total_gpu_time, 2),
-            'gpu_info': self.gpu_info.__dict__ if hasattr(self, 'gpu_info') else None
+            "operations_count": len(self._performance_history),
+            "average_speedup": round(avg_speedup, 2),
+            "max_speedup": round(max_speedup, 2),
+            "total_gpu_time_ms": round(total_gpu_time, 2),
+            "total_cpu_time_ms": round(total_cpu_time, 2),
+            "time_saved_ms": round(total_cpu_time - total_gpu_time, 2),
+            "gpu_info": self.gpu_info.__dict__ if hasattr(self, "gpu_info") else None,
         }
 
     def cleanup(self) -> None:
@@ -732,22 +695,18 @@ def benchmark_gpu_acceleration() -> Dict[str, Any]:
     logger.info("Starting GPU acceleration benchmark")
 
     results = {
-        'timestamp': time.strftime('%Y-%m-%d %H:%M:%S'),
-        'gpu_available': GPU_AVAILABLE,
-        'tests': []
+        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "gpu_available": GPU_AVAILABLE,
+        "tests": [],
     }
 
     if not GPU_AVAILABLE:
         logger.warning("GPU not available for benchmarking")
-        results['message'] = "GPU not available"
+        results["message"] = "GPU not available"
         return results
 
     # Test different configurations
-    test_configs = [
-        (3, 10, "small"),
-        (4, 8, "medium"),
-        (5, 5, "large")
-    ]
+    test_configs = [(3, 10, "small"), (4, 8, "medium"), (5, 5, "large")]
 
     for dims, size, label in test_configs:
         try:
@@ -768,26 +727,25 @@ def benchmark_gpu_acceleration() -> Dict[str, Any]:
             memory_metrics = lattice.get_memory_efficiency()
             performance_metrics = lattice.get_performance_summary()
 
-            results['tests'].append({
-                'label': label,
-                'dimensions': dims,
-                'size': size,
-                'points': lattice.n_points,
-                'path_length': len(path),
-                'path_time_ms': round(path_time, 2),
-                'memory_metrics': memory_metrics,
-                'performance_metrics': performance_metrics
-            })
+            results["tests"].append(
+                {
+                    "label": label,
+                    "dimensions": dims,
+                    "size": size,
+                    "points": lattice.n_points,
+                    "path_length": len(path),
+                    "path_time_ms": round(path_time, 2),
+                    "memory_metrics": memory_metrics,
+                    "performance_metrics": performance_metrics,
+                }
+            )
 
             # Cleanup
             lattice.cleanup()
 
         except Exception as e:
             logger.error(f"Benchmark failed for {label}: {e}")
-            results['tests'].append({
-                'label': label,
-                'error': str(e)
-            })
+            results["tests"].append({"label": label, "error": str(e)})
 
     logger.info("GPU acceleration benchmark complete")
     return results
@@ -796,6 +754,7 @@ def benchmark_gpu_acceleration() -> Dict[str, Any]:
 if __name__ == "__main__":
     # Initialize logging
     from config.logging_config import init_default_logging
+
     init_default_logging()
 
     try:
@@ -803,19 +762,23 @@ if __name__ == "__main__":
         results = benchmark_gpu_acceleration()
 
         # Print results
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("GPU ACCELERATION BENCHMARK RESULTS")
-        print("="*60)
+        print("=" * 60)
 
-        if results.get('gpu_available'):
-            for test in results['tests']:
-                if 'error' not in test:
+        if results.get("gpu_available"):
+            for test in results["tests"]:
+                if "error" not in test:
                     print(f"\n{test['label'].upper()} ({test['dimensions']}D x {test['size']}):")
                     print(f"  Points: {test['points']}")
                     print(f"  Path finding: {test['path_time_ms']}ms")
-                    print(f"  Memory reduction: {test['memory_metrics']['memory_reduction_factor']}x")
-                    if test['performance_metrics']:
-                        print(f"  Average speedup: {test['performance_metrics']['average_speedup']}x")
+                    print(
+                        f"  Memory reduction: {test['memory_metrics']['memory_reduction_factor']}x"
+                    )
+                    if test["performance_metrics"]:
+                        print(
+                            f"  Average speedup: {test['performance_metrics']['average_speedup']}x"
+                        )
         else:
             print("GPU not available - using CPU fallback")
 

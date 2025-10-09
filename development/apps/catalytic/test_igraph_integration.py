@@ -6,16 +6,14 @@ Validates performance improvements and correctness of graph operations
 import numpy as np
 import time
 import sys
-from catalytic_lattice_graph import (
-    CatalyticLatticeGraph,
-    GraphAcceleratedCatalyticComputer
-)
+from catalytic_lattice_graph import CatalyticLatticeGraph, GraphAcceleratedCatalyticComputer
+
 
 def test_basic_operations():
     """Test fundamental graph operations"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("TEST 1: Basic Graph Operations")
-    print("="*60)
+    print("=" * 60)
 
     graph = CatalyticLatticeGraph(dimensions=3, lattice_size=8)
 
@@ -43,9 +41,9 @@ def test_basic_operations():
 
 def test_advanced_algorithms():
     """Test advanced graph algorithms"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("TEST 2: Advanced Graph Algorithms")
-    print("="*60)
+    print("=" * 60)
 
     graph = CatalyticLatticeGraph(dimensions=4, lattice_size=5)
 
@@ -56,14 +54,14 @@ def test_advanced_algorithms():
     print(f"[OK] Graph colored with {n_colors} colors")
 
     # Test 2: Community detection
-    communities = graph.find_communities('fast_greedy')
+    communities = graph.find_communities("fast_greedy")
     assert len(communities) > 0, "Should find at least one community"
     total_vertices = sum(len(c) for c in communities)
     assert total_vertices == graph.n_points, "All vertices should be in communities"
     print(f"[OK] Found {len(communities)} communities")
 
     # Test 3: Centrality measures
-    centrality = graph.compute_centrality('betweenness')
+    centrality = graph.compute_centrality("betweenness")
     assert len(centrality) == graph.n_points, "Centrality for all vertices"
     assert centrality.max() > centrality.min(), "Should have varying centrality"
     print(f"[OK] Centrality computed (max={centrality.max():.4f})")
@@ -84,15 +82,11 @@ def test_advanced_algorithms():
 
 def test_catalytic_integration():
     """Test integration with catalytic computing"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("TEST 3: Catalytic Computing Integration")
-    print("="*60)
+    print("=" * 60)
 
-    computer = GraphAcceleratedCatalyticComputer(
-        dimensions=5,
-        lattice_size=4,
-        aux_memory_mb=50
-    )
+    computer = GraphAcceleratedCatalyticComputer(dimensions=5, lattice_size=4, aux_memory_mb=50)
 
     # Test 1: Catalytic graph traversal
     start, end = 0, computer.graph.n_points - 1
@@ -106,14 +100,14 @@ def test_catalytic_integration():
     print(f"[OK] Catalytic traversal: {len(path)} steps, memory restored")
 
     # Test 2: Parallel operations
-    results = computer.parallel_lattice_operation('compute')
+    results = computer.parallel_lattice_operation("compute")
     total_processed = sum(len(r) for r in results)
     assert total_processed == computer.graph.n_points, "All vertices processed"
     print(f"[OK] Parallel operation: {len(results)} groups, {total_processed} vertices")
 
     # Test 3: Memory efficiency
     aux_mb = computer.aux_memory.nbytes / (1024 * 1024)
-    traditional_mb = (computer.graph.n_points ** 2) * 8 / (1024 * 1024)
+    traditional_mb = (computer.graph.n_points**2) * 8 / (1024 * 1024)
     reduction = traditional_mb / aux_mb
     print(f"[OK] Memory: {aux_mb:.2f}MB auxiliary vs {traditional_mb:.2f}MB traditional")
     print(f"     Reduction factor: {reduction:.1f}x")
@@ -123,15 +117,15 @@ def test_catalytic_integration():
 
 def test_performance_scaling():
     """Test performance with different lattice sizes"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("TEST 4: Performance Scaling Analysis")
-    print("="*60)
+    print("=" * 60)
 
     sizes = [(3, 5), (3, 10), (4, 5), (4, 8), (5, 4)]
     results = []
 
     for dims, size in sizes:
-        n_points = size ** dims
+        n_points = size**dims
 
         # Skip very large lattices
         if n_points > 10000:
@@ -150,23 +144,27 @@ def test_performance_scaling():
         graph.get_neighbors(n_points // 2, radius=2)
         neighbor_time = time.time() - op_start
 
-        results.append({
-            'dims': dims,
-            'size': size,
-            'n_points': n_points,
-            'build_time': build_time,
-            'path_time': path_time,
-            'neighbor_time': neighbor_time
-        })
+        results.append(
+            {
+                "dims": dims,
+                "size": size,
+                "n_points": n_points,
+                "build_time": build_time,
+                "path_time": path_time,
+                "neighbor_time": neighbor_time,
+            }
+        )
 
-        print(f"  {dims}D x {size}: {n_points:5d} points | "
-              f"Build: {build_time*1000:6.2f}ms | "
-              f"Path: {path_time*1000:6.2f}ms | "
-              f"Neighbors: {neighbor_time*1000:6.2f}ms")
+        print(
+            f"  {dims}D x {size}: {n_points:5d} points | "
+            f"Build: {build_time * 1000:6.2f}ms | "
+            f"Path: {path_time * 1000:6.2f}ms | "
+            f"Neighbors: {neighbor_time * 1000:6.2f}ms"
+        )
 
     # Check scaling behavior
-    times = [r['build_time'] for r in results]
-    points = [r['n_points'] for r in results]
+    times = [r["build_time"] for r in results]
+    points = [r["n_points"] for r in results]
 
     # Roughly linear scaling is good
     if len(results) > 1:
@@ -180,13 +178,13 @@ def test_performance_scaling():
 
 def test_memory_efficiency():
     """Test memory usage compared to traditional approaches"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("TEST 5: Memory Efficiency Validation")
-    print("="*60)
+    print("=" * 60)
 
     # Small lattice for memory comparison
     dims, size = 4, 6
-    n_points = size ** dims
+    n_points = size**dims
 
     # Traditional adjacency matrix size
     traditional_bytes = n_points * n_points * 8  # 8 bytes per float64
@@ -208,8 +206,12 @@ def test_memory_efficiency():
 
     print(f"Lattice: {dims}D x {size} = {n_points} points")
     print(f"  Traditional (dense): {traditional_mb:8.2f} MB")
-    print(f"  igraph (sparse):     {sparse_mb:8.2f} MB ({traditional_mb/sparse_mb:.1f}x reduction)")
-    print(f"  Catalytic (aux):     {catalytic_mb:8.2f} MB ({traditional_mb/catalytic_mb:.1f}x reduction)")
+    print(
+        f"  igraph (sparse):     {sparse_mb:8.2f} MB ({traditional_mb / sparse_mb:.1f}x reduction)"
+    )
+    print(
+        f"  Catalytic (aux):     {catalytic_mb:8.2f} MB ({traditional_mb / catalytic_mb:.1f}x reduction)"
+    )
 
     assert sparse_mb < traditional_mb, "Sparse should use less memory"
     assert catalytic_mb < traditional_mb, "Catalytic should use less memory"
@@ -220,9 +222,9 @@ def test_memory_efficiency():
 
 def test_correctness():
     """Verify correctness of graph operations"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("TEST 6: Correctness Verification")
-    print("="*60)
+    print("=" * 60)
 
     # Create small lattice for manual verification
     graph = CatalyticLatticeGraph(dimensions=2, lattice_size=3)
@@ -249,7 +251,7 @@ def test_correctness():
     print("[OK] Path symmetry verified")
 
     # Test 4: Community structure
-    communities = graph.find_communities('multilevel')
+    communities = graph.find_communities("multilevel")
     all_vertices = set()
     for community in communities:
         all_vertices.update(community)
@@ -261,9 +263,9 @@ def test_correctness():
 
 def run_all_tests():
     """Run complete test suite"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print(" IGRAPH INTEGRATION TEST SUITE FOR CATALYTIC COMPUTING")
-    print("="*70)
+    print("=" * 70)
 
     tests = [
         ("Basic Operations", test_basic_operations),
@@ -271,7 +273,7 @@ def run_all_tests():
         ("Catalytic Integration", test_catalytic_integration),
         ("Performance Scaling", test_performance_scaling),
         ("Memory Efficiency", test_memory_efficiency),
-        ("Correctness", test_correctness)
+        ("Correctness", test_correctness),
     ]
 
     passed = 0
@@ -289,9 +291,9 @@ def run_all_tests():
             failed += 1
             print(f"\n[ERROR] {test_name}: {e}")
 
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print(f" RESULTS: {passed}/{len(tests)} tests passed")
-    print("="*70)
+    print("=" * 70)
 
     if failed == 0:
         print("\n[SUCCESS] All tests passed! igraph integration is working perfectly.")

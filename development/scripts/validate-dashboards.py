@@ -16,37 +16,50 @@ from pathlib import Path
 from typing import Dict, List, Tuple, Optional
 import logging
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
+
 
 class DashboardValidator:
     """Validates Grafana dashboard configurations."""
 
     def __init__(self):
-        self.required_dashboard_fields = [
-            'title', 'panels', 'time', 'timepicker', 'refresh'
-        ]
+        self.required_dashboard_fields = ["title", "panels", "time", "timepicker", "refresh"]
 
-        self.required_panel_fields = [
-            'id', 'title', 'type', 'gridPos', 'targets'
-        ]
+        self.required_panel_fields = ["id", "title", "type", "gridPos", "targets"]
 
         self.valid_panel_types = [
-            'timeseries', 'stat', 'gauge', 'table', 'piechart',
-            'bargauge', 'geomap', 'graph'
+            "timeseries",
+            "stat",
+            "gauge",
+            "table",
+            "piechart",
+            "bargauge",
+            "geomap",
+            "graph",
         ]
 
         self.prometheus_functions = [
-            'rate', 'increase', 'sum', 'avg', 'max', 'min',
-            'histogram_quantile', 'topk', 'changes', 'offset'
+            "rate",
+            "increase",
+            "sum",
+            "avg",
+            "max",
+            "min",
+            "histogram_quantile",
+            "topk",
+            "changes",
+            "offset",
         ]
 
-    def validate_json_structure(self, dashboard_path: Path) -> Tuple[bool, Optional[Dict], List[str]]:
+    def validate_json_structure(
+        self, dashboard_path: Path
+    ) -> Tuple[bool, Optional[Dict], List[str]]:
         """Validate JSON structure and load dashboard data."""
         errors = []
 
         try:
-            with open(dashboard_path, 'r', encoding='utf-8') as f:
+            with open(dashboard_path, "r", encoding="utf-8") as f:
                 dashboard_data = json.load(f)
         except json.JSONDecodeError as e:
             errors.append(f"Invalid JSON syntax: {e}")
@@ -56,7 +69,7 @@ class DashboardValidator:
             return False, None, errors
 
         # Check root structure
-        if 'dashboard' not in dashboard_data:
+        if "dashboard" not in dashboard_data:
             errors.append("Missing 'dashboard' root key")
             return False, None, errors
 
@@ -72,17 +85,17 @@ class DashboardValidator:
                 errors.append(f"Missing required dashboard field: {field}")
 
         # Validate title
-        if 'title' in dashboard:
-            if not isinstance(dashboard['title'], str) or len(dashboard['title']) == 0:
+        if "title" in dashboard:
+            if not isinstance(dashboard["title"], str) or len(dashboard["title"]) == 0:
                 errors.append("Dashboard title must be a non-empty string")
 
         # Validate time configuration
-        if 'time' in dashboard:
-            time_config = dashboard['time']
+        if "time" in dashboard:
+            time_config = dashboard["time"]
             if not isinstance(time_config, dict):
                 errors.append("Time configuration must be an object")
             else:
-                required_time_fields = ['from', 'to']
+                required_time_fields = ["from", "to"]
                 for field in required_time_fields:
                     if field not in time_config:
                         errors.append(f"Missing time field: {field}")
@@ -99,7 +112,7 @@ class DashboardValidator:
             errors.extend(panel_errors)
 
             # Check for duplicate panel IDs
-            panel_id = panel.get('id')
+            panel_id = panel.get("id")
             if panel_id is not None:
                 if panel_id in panel_ids:
                     errors.append(f"Duplicate panel ID: {panel_id}")
@@ -117,14 +130,14 @@ class DashboardValidator:
                 errors.append(f"Panel {panel_index}: Missing required field '{field}'")
 
         # Validate panel type
-        panel_type = panel.get('type')
+        panel_type = panel.get("type")
         if panel_type and panel_type not in self.valid_panel_types:
             errors.append(f"Panel {panel_index}: Invalid panel type '{panel_type}'")
 
         # Validate gridPos
-        if 'gridPos' in panel:
-            grid_pos = panel['gridPos']
-            required_grid_fields = ['h', 'w', 'x', 'y']
+        if "gridPos" in panel:
+            grid_pos = panel["gridPos"]
+            required_grid_fields = ["h", "w", "x", "y"]
             for field in required_grid_fields:
                 if field not in grid_pos:
                     errors.append(f"Panel {panel_index}: Missing gridPos field '{field}'")
@@ -132,8 +145,8 @@ class DashboardValidator:
                     errors.append(f"Panel {panel_index}: gridPos '{field}' must be an integer")
 
         # Validate targets (queries)
-        if 'targets' in panel:
-            target_errors = self.validate_panel_targets(panel['targets'], panel_index)
+        if "targets" in panel:
+            target_errors = self.validate_panel_targets(panel["targets"], panel_index)
             errors.extend(target_errors)
 
         return errors
@@ -144,13 +157,15 @@ class DashboardValidator:
 
         for target_index, target in enumerate(targets):
             # Check for expression (Prometheus query)
-            if 'expr' not in target:
+            if "expr" not in target:
                 errors.append(f"Panel {panel_index}, Target {target_index}: Missing 'expr' field")
                 continue
 
-            expr = target['expr']
+            expr = target["expr"]
             if not isinstance(expr, str) or len(expr.strip()) == 0:
-                errors.append(f"Panel {panel_index}, Target {target_index}: 'expr' must be a non-empty string")
+                errors.append(
+                    f"Panel {panel_index}, Target {target_index}: 'expr' must be a non-empty string"
+                )
                 continue
 
             # Validate Prometheus query syntax
@@ -158,12 +173,16 @@ class DashboardValidator:
             errors.extend(query_errors)
 
             # Validate legendFormat if present
-            if 'legendFormat' in target and not isinstance(target['legendFormat'], str):
-                errors.append(f"Panel {panel_index}, Target {target_index}: 'legendFormat' must be a string")
+            if "legendFormat" in target and not isinstance(target["legendFormat"], str):
+                errors.append(
+                    f"Panel {panel_index}, Target {target_index}: 'legendFormat' must be a string"
+                )
 
         return errors
 
-    def validate_prometheus_query(self, query: str, panel_index: int, target_index: int) -> List[str]:
+    def validate_prometheus_query(
+        self, query: str, panel_index: int, target_index: int
+    ) -> List[str]:
         """Validate Prometheus query syntax."""
         errors = []
 
@@ -173,29 +192,37 @@ class DashboardValidator:
             return errors
 
         # Check for balanced parentheses
-        if query.count('(') != query.count(')'):
-            errors.append(f"Panel {panel_index}, Target {target_index}: Unbalanced parentheses in query")
+        if query.count("(") != query.count(")"):
+            errors.append(
+                f"Panel {panel_index}, Target {target_index}: Unbalanced parentheses in query"
+            )
 
         # Check for balanced braces
-        if query.count('{') != query.count('}'):
+        if query.count("{") != query.count("}"):
             errors.append(f"Panel {panel_index}, Target {target_index}: Unbalanced braces in query")
 
         # Check for balanced brackets
-        if query.count('[') != query.count(']'):
-            errors.append(f"Panel {panel_index}, Target {target_index}: Unbalanced brackets in query")
+        if query.count("[") != query.count("]"):
+            errors.append(
+                f"Panel {panel_index}, Target {target_index}: Unbalanced brackets in query"
+            )
 
         # Validate metric names (basic check)
-        metric_pattern = r'[a-zA-Z_:][a-zA-Z0-9_:]*'
+        metric_pattern = r"[a-zA-Z_:][a-zA-Z0-9_:]*"
         if not re.search(metric_pattern, query):
-            errors.append(f"Panel {panel_index}, Target {target_index}: No valid metric names found in query")
+            errors.append(
+                f"Panel {panel_index}, Target {target_index}: No valid metric names found in query"
+            )
 
         # Check for common Prometheus functions
         any(func in query for func in self.prometheus_functions)
-        any(agg in query for agg in ['sum', 'avg', 'max', 'min', 'count'])
+        any(agg in query for agg in ["sum", "avg", "max", "min", "count"])
 
-        if 'rate(' in query or 'increase(' in query:
-            if not re.search(r'\[[0-9]+[smhd]\]', query):
-                errors.append(f"Panel {panel_index}, Target {target_index}: rate/increase function missing time range")
+        if "rate(" in query or "increase(" in query:
+            if not re.search(r"\[[0-9]+[smhd]\]", query):
+                errors.append(
+                    f"Panel {panel_index}, Target {target_index}: rate/increase function missing time range"
+                )
 
         return errors
 
@@ -203,19 +230,19 @@ class DashboardValidator:
         """Validate dashboard template variables."""
         errors = []
 
-        if 'list' not in templating:
+        if "list" not in templating:
             return errors
 
-        variables = templating['list']
+        variables = templating["list"]
         for i, variable in enumerate(variables):
-            if 'name' not in variable:
+            if "name" not in variable:
                 errors.append(f"Template variable {i}: Missing 'name' field")
 
-            if 'type' not in variable:
+            if "type" not in variable:
                 errors.append(f"Template variable {i}: Missing 'type' field")
 
-            var_type = variable.get('type')
-            if var_type == 'query' and 'query' not in variable:
+            var_type = variable.get("type")
+            if var_type == "query" and "query" not in variable:
                 errors.append(f"Template variable {i}: Query type variable missing 'query' field")
 
         return errors
@@ -229,7 +256,7 @@ class DashboardValidator:
         if not is_valid_json:
             return False, json_errors
 
-        dashboard = dashboard_data['dashboard']
+        dashboard = dashboard_data["dashboard"]
         all_errors = []
 
         # Validate dashboard metadata
@@ -237,21 +264,21 @@ class DashboardValidator:
         all_errors.extend(metadata_errors)
 
         # Validate panels
-        if 'panels' in dashboard:
-            panel_errors = self.validate_panels(dashboard['panels'])
+        if "panels" in dashboard:
+            panel_errors = self.validate_panels(dashboard["panels"])
             all_errors.extend(panel_errors)
 
         # Validate template variables
-        if 'templating' in dashboard:
-            template_errors = self.validate_template_variables(dashboard['templating'])
+        if "templating" in dashboard:
+            template_errors = self.validate_template_variables(dashboard["templating"])
             all_errors.extend(template_errors)
 
         # Validate annotations
-        if 'annotations' in dashboard and 'list' in dashboard['annotations']:
-            for i, annotation in enumerate(dashboard['annotations']['list']):
-                if 'expr' in annotation:
+        if "annotations" in dashboard and "list" in dashboard["annotations"]:
+            for i, annotation in enumerate(dashboard["annotations"]["list"]):
+                if "expr" in annotation:
                     query_errors = self.validate_prometheus_query(
-                        annotation['expr'], f"annotation-{i}", 0
+                        annotation["expr"], f"annotation-{i}", 0
                     )
                     all_errors.extend(query_errors)
 
@@ -265,6 +292,7 @@ class DashboardValidator:
                 logger.error(f"   • {error}")
 
         return is_valid, all_errors
+
 
 def main():
     """Main validation function."""
@@ -299,9 +327,9 @@ def main():
             all_errors.extend([f"{dashboard_file.name}: {error}" for error in errors])
 
     # Summary
-    logger.info("\n" + "="*50)
+    logger.info("\n" + "=" * 50)
     logger.info("📊 VALIDATION SUMMARY")
-    logger.info("="*50)
+    logger.info("=" * 50)
     logger.info(f"✅ Valid dashboards: {total_valid}")
     logger.info(f"❌ Invalid dashboards: {total_invalid}")
     logger.info(f"📝 Total errors: {len(all_errors)}")
@@ -320,6 +348,7 @@ def main():
 
         return False
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     success = main()
     exit(0 if success else 1)

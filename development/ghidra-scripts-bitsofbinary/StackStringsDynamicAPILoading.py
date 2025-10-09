@@ -37,7 +37,9 @@ class DynamicAPILoadingHandler:
         category_path (CategoryPath): the path to the Windows APIs
     """
 
-    def __init__(self, windows_data_type_manager, category_path=CategoryPath("/winbase.h/functions")):
+    def __init__(
+        self, windows_data_type_manager, category_path=CategoryPath("/winbase.h/functions")
+    ):
         self.windows_data_type_manager = windows_data_type_manager
         self.category_path = category_path
 
@@ -83,7 +85,9 @@ class DynamicAPILoadingHandler:
             )
 
             if dyn_data_type:
-                print("Retyping local variable %s as %s" % (local_variable.getName(), stack_str.val))
+                print(
+                    "Retyping local variable %s as %s" % (local_variable.getName(), stack_str.val)
+                )
                 local_variable.setDataType(dyn_data_type, SourceType.USER_DEFINED)
 
         except CodeUnitInsertionException:
@@ -148,7 +152,6 @@ class StackStringFunctionHandler:
         self.building_stack_str.addr = self.ins.getOperandReferences(0)[0].getToAddress()
 
         for variable in self.current_func.getLocalVariables():
-
             if variable.getStackOffset() == self.building_stack_str.addr.getOffset():
                 self.building_stack_str.var = variable
 
@@ -162,10 +165,8 @@ class StackStringFunctionHandler:
         """
         # Check the scalar is in a "nice" ASCII range
         if stack_char >= 0x2E and stack_char <= 0x7A:
-
             # If we're building a StackString, make sure we've only incremented one byte on the stack
             if self.previous_stack_offset and (stack_offset - self.previous_stack_offset) == 1:
-
                 self.building_stack_str.val += chr(stack_char)
                 self.previous_stack_offset = stack_offset
 
@@ -179,20 +180,23 @@ class StackStringFunctionHandler:
 
         # If the scalar is NULL, then it is likely the end of the string
         elif stack_char == 0 and len(self.building_stack_str.val) >= self.MIN_STACK_STRING_LENGTH:
-
             print("\nStack string found:")
             print("Value: %s" % (self.building_stack_str.val))
             print("Address: %s" % (str(self.building_stack_str.addr)))
             print("Variable: %s\n" % (str(self.building_stack_str.var)))
 
             # Rename the stack string variable
-            self.building_stack_str.var.setName(self.building_stack_str.val + "_stack_str", SourceType.USER_DEFINED)
+            self.building_stack_str.var.setName(
+                self.building_stack_str.val + "_stack_str", SourceType.USER_DEFINED
+            )
 
             # Get the data type for "char"
             single_char_data_type = getDataTypes("char")[0]
 
             # Create a proper length character array DataType
-            data_type = ArrayDataType(single_char_data_type, len(self.building_stack_str.val) + 1, 1)
+            data_type = ArrayDataType(
+                single_char_data_type, len(self.building_stack_str.val) + 1, 1
+            )
 
             # Setup the VariableStorage associated with the character array
             stack_offset = self.building_stack_str.var.getStackOffset()
@@ -203,7 +207,9 @@ class StackStringFunctionHandler:
             )
 
             # Set the new data type
-            self.building_stack_str.var.setDataType(data_type, variable_storage, True, SourceType.USER_DEFINED)
+            self.building_stack_str.var.setDataType(
+                data_type, variable_storage, True, SourceType.USER_DEFINED
+            )
 
             # Add to the stack strings, and clear the building stack string
             self.stack_strs.append(self.building_stack_str)
@@ -224,7 +230,6 @@ class StackStringFunctionHandler:
             symbol = getSymbolAt(call_addr).getName()
 
             if "GetProcAddress" in symbol or "LoadLibrary" in symbol:
-
                 backwards_counter = 0
                 backwards_ins = self.ins
 
@@ -236,26 +241,36 @@ class StackStringFunctionHandler:
                         backwards_ins.getMnemonicString() == "LEA"
                         and type(backwards_ins.getOpObjects(1)[0]) == Register
                     ):
-
                         for stack_str in self.stack_strs:
-                            loaded_var_offset_scalar = backwards_ins.getOpObjects(1)[1].subtract(stack_adjustment)
+                            loaded_var_offset_scalar = backwards_ins.getOpObjects(1)[1].subtract(
+                                stack_adjustment
+                            )
 
-                            if loaded_var_offset_scalar.getSignedValue() == stack_str.var.getStackOffset():
+                            if (
+                                loaded_var_offset_scalar.getSignedValue()
+                                == stack_str.var.getStackOffset()
+                            ):
                                 forward_ins = self.ins.getNext()
 
                                 if forward_ins.getMnemonicString() == "MOV":
-                                    dyn_loaded_addr = forward_ins.getOperandReferences(0)[0].getToAddress()
+                                    dyn_loaded_addr = forward_ins.getOperandReferences(0)[
+                                        0
+                                    ].getToAddress()
 
                                     # Case for global variables
                                     if dyn_loaded_addr.isMemoryAddress():
-                                        self.dyn_api_handler.global_variable_handler(dyn_loaded_addr, stack_str)
+                                        self.dyn_api_handler.global_variable_handler(
+                                            dyn_loaded_addr, stack_str
+                                        )
 
                                     # Case for local variables
                                     else:
                                         local_variable = self.find_local_variable(dyn_loaded_addr)
 
                                         if local_variable:
-                                            self.dyn_api_handler.local_variable_handler(local_variable, stack_str)
+                                            self.dyn_api_handler.local_variable_handler(
+                                                local_variable, stack_str
+                                            )
 
                                     return
 
@@ -270,7 +285,10 @@ class StackStringFunctionHandler:
 
         # Set a stack adjustment variable
         # BP stacks are off by 0x4, and SP stacks are off by a variable amount
-        if self.ins.getMnemonicString() == "SUB" and self.ins.getOpObjects(0)[0].getName() in ["ESP", "RSP"]:
+        if self.ins.getMnemonicString() == "SUB" and self.ins.getOpObjects(0)[0].getName() in [
+            "ESP",
+            "RSP",
+        ]:
             stack_adjustment = self.ins.getOpObjects(1)[0].getUnsignedValue()
 
         else:
@@ -282,19 +300,19 @@ class StackStringFunctionHandler:
             and self.ins.getAddress() < self.end_of_func_addr
             and self.counter != self.MAX_STEPS
         ):
-
             # Case: potential stack string loading OR loading EAX into another address
             if self.ins.getMnemonicString() == "MOV":
-
                 # This is safe to do as MOV always has two operands
                 op1 = self.ins.getOpObjects(0)
                 op2 = self.ins.getOpObjects(1)
 
                 # Case: If a scalar is being moved into a register offset
                 if type(op1[0]) == Register and type(op2[0]) == Scalar:
-
-                    if op1[0].getName() in self.STACK_REGISTERS and len(op1) > 1 and type(op1[1]) == Scalar:
-
+                    if (
+                        op1[0].getName() in self.STACK_REGISTERS
+                        and len(op1) > 1
+                        and type(op1[1]) == Scalar
+                    ):
                         stack_char = op2[0].getUnsignedValue()
                         stack_offset = op1[1].getSignedValue()
                         self.stack_char_handler(stack_char, stack_offset)
@@ -360,9 +378,7 @@ class StackStringProgramHandler:
 
         end_of_func_addr = function.getBody().getMaxAddress()
 
-        func_handler = StackStringFunctionHandler(
-            self.dyn_api_handler, function, end_of_func_addr
-        )
+        func_handler = StackStringFunctionHandler(self.dyn_api_handler, function, end_of_func_addr)
 
         func_handler.instruction_iterator()
 
@@ -377,7 +393,9 @@ class StackStringProgramHandler:
         self.get_data_type_managers()
         self.get_windows_data_type_manager()
 
-        self.dyn_api_handler = DynamicAPILoadingHandler(self.windows_data_type_manager, self.category_path)
+        self.dyn_api_handler = DynamicAPILoadingHandler(
+            self.windows_data_type_manager, self.category_path
+        )
 
         if choice_code == 0:
             current_func = getFunctionContaining(currentAddress)

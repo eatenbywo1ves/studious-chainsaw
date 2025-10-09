@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class D3FENDTechniqueDetails:
     """D3FEND technique details from API"""
+
     id: str
     name: str
     definition: str
@@ -29,6 +30,7 @@ class D3FENDTechniqueDetails:
 @dataclass
 class ATT_CKMapping:
     """ATT&CK to D3FEND countermeasure mapping"""
+
     attack_id: str
     attack_name: str
     countermeasures: List[str]
@@ -77,13 +79,13 @@ class D3FENDAPIClient:
                         data = await response.json()
 
                         details = D3FENDTechniqueDetails(
-                            id=data.get('id', technique_id),
-                            name=data.get('name', ''),
-                            definition=data.get('definition', ''),
-                            category=data.get('category', ''),
-                            artifact_relationships=data.get('artifacts', []),
-                            attack_mitigations=data.get('mitigates', []),
-                            nist_mappings=data.get('nist_controls', [])
+                            id=data.get("id", technique_id),
+                            name=data.get("name", ""),
+                            definition=data.get("definition", ""),
+                            category=data.get("category", ""),
+                            artifact_relationships=data.get("artifacts", []),
+                            attack_mitigations=data.get("mitigates", []),
+                            nist_mappings=data.get("nist_controls", []),
                         )
 
                         self.cache[cache_key] = details
@@ -97,9 +99,7 @@ class D3FENDAPIClient:
             return None
 
     async def get_countermeasures_for_attack(
-        self,
-        attack_id: str,
-        attack_framework: str = "mitre-attack"
+        self, attack_id: str, attack_framework: str = "mitre-attack"
     ) -> Optional[ATT_CKMapping]:
         """
         Get D3FEND countermeasures for an ATT&CK technique
@@ -126,8 +126,8 @@ class D3FENDAPIClient:
 
                         mapping = ATT_CKMapping(
                             attack_id=attack_id,
-                            attack_name=data.get('attack_name', ''),
-                            countermeasures=data.get('d3fend_techniques', [])
+                            attack_name=data.get("attack_name", ""),
+                            countermeasures=data.get("d3fend_techniques", []),
                         )
 
                         self.cache[cache_key] = mapping
@@ -140,9 +140,7 @@ class D3FENDAPIClient:
             return None
 
     async def validate_technique_implementation(
-        self,
-        technique_id: str,
-        implementation_data: Dict[str, Any]
+        self, technique_id: str, implementation_data: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
         Validate if implementation meets D3FEND technique requirements
@@ -157,10 +155,7 @@ class D3FENDAPIClient:
         technique = await self.get_technique(technique_id)
 
         if not technique:
-            return {
-                "valid": False,
-                "errors": [f"Unknown D3FEND technique: {technique_id}"]
-            }
+            return {"valid": False, "errors": [f"Unknown D3FEND technique: {technique_id}"]}
 
         validation_report = {
             "technique_id": technique_id,
@@ -168,12 +163,12 @@ class D3FENDAPIClient:
             "valid": True,
             "errors": [],
             "warnings": [],
-            "recommendations": []
+            "recommendations": [],
         }
 
         # Validate artifact coverage
         required_artifacts = set(technique.artifact_relationships)
-        implemented_artifacts = set(implementation_data.get('artifacts', []))
+        implemented_artifacts = set(implementation_data.get("artifacts", []))
 
         missing_artifacts = required_artifacts - implemented_artifacts
         if missing_artifacts:
@@ -191,8 +186,7 @@ class D3FENDAPIClient:
         return validation_report
 
     async def get_digital_artifacts(
-        self,
-        artifact_type: Optional[str] = None
+        self, artifact_type: Optional[str] = None
     ) -> List[Dict[str, Any]]:
         """
         Get digital artifacts from D3FEND ontology
@@ -217,10 +211,7 @@ class D3FENDAPIClient:
             logger.error(f"Error fetching digital artifacts: {e}")
             return []
 
-    async def get_technique_by_category(
-        self,
-        category: D3FENDCategory
-    ) -> List[Dict[str, Any]]:
+    async def get_technique_by_category(self, category: D3FENDCategory) -> List[Dict[str, Any]]:
         """
         Get all techniques in a D3FEND category
 
@@ -244,11 +235,7 @@ class D3FENDAPIClient:
             logger.error(f"Error fetching techniques for {category.value}: {e}")
             return []
 
-    async def search_techniques(
-        self,
-        query: str,
-        limit: int = 10
-    ) -> List[Dict[str, Any]]:
+    async def search_techniques(self, query: str, limit: int = 10) -> List[Dict[str, Any]]:
         """
         Search D3FEND techniques by keyword
 
@@ -273,10 +260,7 @@ class D3FENDAPIClient:
             logger.error(f"Error searching D3FEND: {e}")
             return []
 
-    async def get_nist_mapping(
-        self,
-        technique_id: str
-    ) -> List[str]:
+    async def get_nist_mapping(self, technique_id: str) -> List[str]:
         """
         Get NIST 800-53 control mappings for a D3FEND technique
 
@@ -290,9 +274,7 @@ class D3FENDAPIClient:
         return technique.nist_mappings if technique else []
 
     async def recommend_techniques_for_gaps(
-        self,
-        implemented_techniques: List[str],
-        required_coverage: List[D3FENDCategory]
+        self, implemented_techniques: List[str], required_coverage: List[D3FENDCategory]
     ) -> Dict[str, Any]:
         """
         Recommend D3FEND techniques to fill coverage gaps
@@ -307,7 +289,7 @@ class D3FENDAPIClient:
         recommendations = {
             "implemented_count": len(implemented_techniques),
             "gap_categories": [],
-            "recommended_techniques": []
+            "recommended_techniques": [],
         }
 
         implemented_set = set(implemented_techniques)
@@ -316,35 +298,33 @@ class D3FENDAPIClient:
             techniques = await self.get_technique_by_category(category)
 
             # Find techniques in this category not yet implemented
-            category_gaps = [
-                t for t in techniques
-                if t.get('id') not in implemented_set
-            ]
+            category_gaps = [t for t in techniques if t.get("id") not in implemented_set]
 
             if category_gaps:
-                recommendations["gap_categories"].append({
-                    "category": category.value,
-                    "missing_count": len(category_gaps),
-                    "priority": "HIGH" if category in [
-                        D3FENDCategory.DETECT, D3FENDCategory.ISOLATE
-                    ] else "MEDIUM"
-                })
+                recommendations["gap_categories"].append(
+                    {
+                        "category": category.value,
+                        "missing_count": len(category_gaps),
+                        "priority": "HIGH"
+                        if category in [D3FENDCategory.DETECT, D3FENDCategory.ISOLATE]
+                        else "MEDIUM",
+                    }
+                )
 
                 # Add top 3 recommendations for this category
                 for technique in category_gaps[:3]:
-                    recommendations["recommended_techniques"].append({
-                        "id": technique.get('id'),
-                        "name": technique.get('name'),
-                        "category": category.value,
-                        "reason": f"Fill gap in {category.value} category"
-                    })
+                    recommendations["recommended_techniques"].append(
+                        {
+                            "id": technique.get("id"),
+                            "name": technique.get("name"),
+                            "category": category.value,
+                            "reason": f"Fill gap in {category.value} category",
+                        }
+                    )
 
         return recommendations
 
-    async def download_ontology(
-        self,
-        output_format: str = "ttl"
-    ) -> Optional[str]:
+    async def download_ontology(self, output_format: str = "ttl") -> Optional[str]:
         """
         Download D3FEND ontology file
 
@@ -358,7 +338,7 @@ class D3FENDAPIClient:
             "ttl": f"{self.ONTOLOGY_URL}?format=turtle",
             "owl": self.ONTOLOGY_URL,
             "rdf": f"{self.ONTOLOGY_URL}?format=rdf",
-            "jsonld": f"{self.ONTOLOGY_URL}?format=jsonld"
+            "jsonld": f"{self.ONTOLOGY_URL}?format=jsonld",
         }
 
         url = format_urls.get(output_format, self.ONTOLOGY_URL)
@@ -394,31 +374,31 @@ class D3FENDOfflineData:
             "name": "Network Traffic Analysis",
             "definition": "Analyzing network traffic to detect anomalies and threats",
             "category": "detect",
-            "artifacts": ["NetworkTraffic", "NetworkNode", "NetworkConnection"]
+            "artifacts": ["NetworkTraffic", "NetworkNode", "NetworkConnection"],
         },
         "D3-IV": {
             "name": "Input Validation",
             "definition": "Validating input to prevent injection attacks",
             "category": "harden",
-            "artifacts": ["UserInput", "APIRequest", "FormData"]
+            "artifacts": ["UserInput", "APIRequest", "FormData"],
         },
         "D3-EAR": {
             "name": "Encryption at Rest",
             "definition": "Encrypting data when stored",
             "category": "harden",
-            "artifacts": ["File", "Database", "Volume"]
+            "artifacts": ["File", "Database", "Volume"],
         },
         "D3-EAT": {
             "name": "Encryption in Transit",
             "definition": "Encrypting data during transmission",
             "category": "harden",
-            "artifacts": ["NetworkTraffic", "NetworkConnection"]
+            "artifacts": ["NetworkTraffic", "NetworkConnection"],
         },
         "D3-UAC": {
             "name": "User Account Control",
             "definition": "Managing user account permissions and access",
             "category": "harden",
-            "artifacts": ["UserAccount", "Credential", "Permission"]
+            "artifacts": ["UserAccount", "Credential", "Permission"],
         },
     }
 

@@ -40,7 +40,7 @@ async def test_production():
     warmup_times = []
     for i in range(10):
         data = np.random.randn(50, 50).astype(np.float32)
-        result = await lattice.compute('transform', data, {'type': 'normalize'})
+        result = await lattice.compute("transform", data, {"type": "normalize"})
         warmup_times.append(result.execution_time_ms)
 
     avg_warmup = np.mean(warmup_times)
@@ -48,30 +48,25 @@ async def test_production():
 
     # Production workload
     print("\n4. Running production workload (100 operations)...")
-    operations = {
-        'transform': [],
-        'reduce': [],
-        'pathfind': [],
-        'analyze': []
-    }
+    operations = {"transform": [], "reduce": [], "pathfind": [], "analyze": []}
 
     start_time = time.time()
     for i in range(100):
         # Cycle through operations
         if i % 4 == 0:
-            op = 'transform'
+            op = "transform"
             data = np.random.randn(100, 100).astype(np.float32)
-            params = {'type': 'normalize'}
+            params = {"type": "normalize"}
         elif i % 4 == 1:
-            op = 'reduce'
+            op = "reduce"
             data = np.random.randn(1000).astype(np.float32)
-            params = {'operation': 'sum'}
+            params = {"operation": "sum"}
         elif i % 4 == 2:
-            op = 'pathfind'
+            op = "pathfind"
             data = np.array([])
-            params = {'start': 0, 'end': 50}
+            params = {"start": 0, "end": 50}
         else:
-            op = 'analyze'
+            op = "analyze"
             data = np.random.randn(50, 50).astype(np.float32)
             params = {}
 
@@ -81,7 +76,7 @@ async def test_production():
         if (i + 1) % 25 == 0:
             elapsed = time.time() - start_time
             throughput = (i + 1) / elapsed
-            print(f"   Progress: {i+1}/100 ({throughput:.1f} ops/sec)")
+            print(f"   Progress: {i + 1}/100 ({throughput:.1f} ops/sec)")
 
     total_time = time.time() - start_time
     total_throughput = 100 / total_time

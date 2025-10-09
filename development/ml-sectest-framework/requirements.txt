@@ -1,0 +1,31 @@
+# ML-SecTest Framework Requirements
+# ===================================
+
+# Core dependencies
+requests>=2.31.0
+numpy>=1.24.0
+
+# Optional dependencies for advanced features
+# Uncomment as needed:
+
+# For image-based adversarial attacks
+# pillow>=10.0.0
+# opencv-python>=4.8.0
+
+# For deep learning model testing
+# tensorflow>=2.13.0
+# torch>=2.0.0
+
+# For enhanced reporting
+# matplotlib>=3.7.0
+# seaborn>=0.12.0
+
+# For async operations
+# aiohttp>=3.8.0
+# asyncio>=3.4.3
+
+# Development dependencies
+# pytest>=7.4.0
+# pytest-cov>=4.1.0
+# black>=23.7.0
+# mypy>=1.5.0

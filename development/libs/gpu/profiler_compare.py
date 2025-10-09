@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 class ChangeType(Enum):
     """Type of performance change"""
+
     IMPROVEMENT = "improvement"
     REGRESSION = "regression"
     NO_CHANGE = "no_change"
@@ -24,6 +25,7 @@ class ChangeType(Enum):
 @dataclass
 class OperationComparison:
     """Comparison of a single operation between two runs"""
+
     operation: str
     baseline_time_ms: float
     current_time_ms: float
@@ -43,6 +45,7 @@ class OperationComparison:
 @dataclass
 class ComparisonSummary:
     """Summary of comparison between two profiling runs"""
+
     total_operations: int
     regressions_count: int
     improvements_count: int
@@ -66,7 +69,7 @@ class ProfilerComparison:
         self,
         baseline_data: Dict,
         current_data: Dict,
-        significance_threshold: float = 5.0  # 5% change is significant
+        significance_threshold: float = 5.0,  # 5% change is significant
     ):
         """
         Initialize profiler comparison
@@ -85,8 +88,8 @@ class ProfilerComparison:
 
     def _analyze(self):
         """Analyze differences between baseline and current"""
-        baseline_summary = self.baseline.get('summary', {})
-        current_summary = self.current.get('summary', {})
+        baseline_summary = self.baseline.get("summary", {})
+        current_summary = self.current.get("summary", {})
 
         # Get all operation names
         all_ops = set(baseline_summary.keys()) | set(current_summary.keys())
@@ -102,46 +105,41 @@ class ProfilerComparison:
                 # Operation removed
                 comparison = OperationComparison(
                     operation=op,
-                    baseline_time_ms=baseline_stats['total_time_ms'],
+                    baseline_time_ms=baseline_stats["total_time_ms"],
                     current_time_ms=0.0,
-                    change_ms=-baseline_stats['total_time_ms'],
+                    change_ms=-baseline_stats["total_time_ms"],
                     change_percent=-100.0,
                     change_type=ChangeType.REMOVED_OPERATION,
-                    baseline_calls=baseline_stats['call_count'],
+                    baseline_calls=baseline_stats["call_count"],
                     current_calls=0,
                     is_significant=True,
-                    baseline_memory_mb=baseline_stats.get('avg_memory_mb', 0.0),
+                    baseline_memory_mb=baseline_stats.get("avg_memory_mb", 0.0),
                     current_memory_mb=0.0,
-                    memory_change_mb=-baseline_stats.get('avg_memory_mb', 0.0)
+                    memory_change_mb=-baseline_stats.get("avg_memory_mb", 0.0),
                 )
             else:  # current_stats and not baseline_stats
                 # New operation
                 comparison = OperationComparison(
                     operation=op,
                     baseline_time_ms=0.0,
-                    current_time_ms=current_stats['total_time_ms'],
-                    change_ms=current_stats['total_time_ms'],
+                    current_time_ms=current_stats["total_time_ms"],
+                    change_ms=current_stats["total_time_ms"],
                     change_percent=100.0,
                     change_type=ChangeType.NEW_OPERATION,
                     baseline_calls=0,
-                    current_calls=current_stats['call_count'],
+                    current_calls=current_stats["call_count"],
                     is_significant=True,
                     baseline_memory_mb=0.0,
-                    current_memory_mb=current_stats.get('avg_memory_mb', 0.0),
-                    memory_change_mb=current_stats.get('avg_memory_mb', 0.0)
+                    current_memory_mb=current_stats.get("avg_memory_mb", 0.0),
+                    memory_change_mb=current_stats.get("avg_memory_mb", 0.0),
                 )
 
             self.comparisons.append(comparison)
 
-    def _compare_operation(
-        self,
-        op: str,
-        baseline: Dict,
-        current: Dict
-    ) -> OperationComparison:
+    def _compare_operation(self, op: str, baseline: Dict, current: Dict) -> OperationComparison:
         """Compare a single operation between runs"""
-        baseline_time = baseline['total_time_ms']
-        current_time = current['total_time_ms']
+        baseline_time = baseline["total_time_ms"]
+        current_time = current["total_time_ms"]
 
         change_ms = current_time - baseline_time
         change_percent = (change_ms / baseline_time * 100) if baseline_time > 0 else 0
@@ -158,8 +156,8 @@ class ProfilerComparison:
             is_significant = True
 
         # Memory comparison
-        baseline_mem = baseline.get('avg_memory_mb', 0.0)
-        current_mem = current.get('avg_memory_mb', 0.0)
+        baseline_mem = baseline.get("avg_memory_mb", 0.0)
+        current_mem = current.get("avg_memory_mb", 0.0)
         memory_change = current_mem - baseline_mem
 
         return OperationComparison(
@@ -169,12 +167,12 @@ class ProfilerComparison:
             change_ms=change_ms,
             change_percent=change_percent,
             change_type=change_type,
-            baseline_calls=baseline['call_count'],
-            current_calls=current['call_count'],
+            baseline_calls=baseline["call_count"],
+            current_calls=current["call_count"],
             is_significant=is_significant,
             baseline_memory_mb=baseline_mem,
             current_memory_mb=current_mem,
-            memory_change_mb=memory_change
+            memory_change_mb=memory_change,
         )
 
     def get_summary(self) -> ComparisonSummary:
@@ -192,10 +190,10 @@ class ProfilerComparison:
         total_change_percent = (total_change_ms / baseline_total * 100) if baseline_total > 0 else 0
 
         # Find worst regression and best improvement
-        worst_regression = (max(regressions, key=lambda c: c.change_percent)
-                           if regressions else None)
-        best_improvement = (min(improvements, key=lambda c: c.change_percent)
-                           if improvements else None)
+        worst_regression = max(regressions, key=lambda c: c.change_percent) if regressions else None
+        best_improvement = (
+            min(improvements, key=lambda c: c.change_percent) if improvements else None
+        )
 
         return ComparisonSummary(
             total_operations=len(self.comparisons),
@@ -207,7 +205,7 @@ class ProfilerComparison:
             total_time_change_ms=total_change_ms,
             total_time_change_percent=total_change_percent,
             worst_regression=worst_regression,
-            best_improvement=best_improvement
+            best_improvement=best_improvement,
         )
 
     def get_regressions(self, top_n: Optional[int] = None) -> List[OperationComparison]:
@@ -226,9 +224,9 @@ class ProfilerComparison:
         """Print comparison summary"""
         summary = self.get_summary()
 
-        print(f"\n{'='*80}")
+        print(f"\n{'=' * 80}")
         print("PROFILING COMPARISON SUMMARY")
-        print(f"{'='*80}")
+        print(f"{'=' * 80}")
         print(f"Total Operations: {summary.total_operations}")
         print(f"  Regressions: {summary.regressions_count}")
         print(f"  Improvements: {summary.improvements_count}")
@@ -236,22 +234,28 @@ class ProfilerComparison:
         print(f"  New: {summary.new_operations_count}")
         print(f"  Removed: {summary.removed_operations_count}")
 
-        print(f"\nOverall Performance Change: {summary.total_time_change_ms:+.2f}ms "
-              f"({summary.total_time_change_percent:+.1f}%)")
+        print(
+            f"\nOverall Performance Change: {summary.total_time_change_ms:+.2f}ms "
+            f"({summary.total_time_change_percent:+.1f}%)"
+        )
 
         if summary.worst_regression:
             reg = summary.worst_regression
             print(f"\nWorst Regression: {reg.operation}")
-            print(f"  {reg.baseline_time_ms:.2f}ms -> {reg.current_time_ms:.2f}ms "
-                  f"({reg.change_percent:+.1f}%)")
+            print(
+                f"  {reg.baseline_time_ms:.2f}ms -> {reg.current_time_ms:.2f}ms "
+                f"({reg.change_percent:+.1f}%)"
+            )
 
         if summary.best_improvement:
             imp = summary.best_improvement
             print(f"\nBest Improvement: {imp.operation}")
-            print(f"  {imp.baseline_time_ms:.2f}ms -> {imp.current_time_ms:.2f}ms "
-                  f"({imp.change_percent:+.1f}%)")
+            print(
+                f"  {imp.baseline_time_ms:.2f}ms -> {imp.current_time_ms:.2f}ms "
+                f"({imp.change_percent:+.1f}%)"
+            )
 
-        print(f"{'='*80}\n")
+        print(f"{'=' * 80}\n")
 
     def print_regressions(self, top_n: int = 5):
         """Print top regressions"""
@@ -261,9 +265,9 @@ class ProfilerComparison:
             print("\nNo performance regressions detected!")
             return
 
-        print(f"\n{'='*80}")
+        print(f"\n{'=' * 80}")
         print(f"TOP {len(regressions)} PERFORMANCE REGRESSIONS")
-        print(f"{'='*80}")
+        print(f"{'=' * 80}")
 
         for i, reg in enumerate(regressions, 1):
             print(f"\n[{i}] {reg.operation}")
@@ -272,10 +276,12 @@ class ProfilerComparison:
             print(f"  Change:   {reg.change_ms:+.2f}ms ({reg.change_percent:+.1f}%)")
 
             if reg.memory_change_mb != 0:
-                print(f"  Memory:   {reg.baseline_memory_mb:.1f}MB -> "
-                      f"{reg.current_memory_mb:.1f}MB ({reg.memory_change_mb:+.1f}MB)")
+                print(
+                    f"  Memory:   {reg.baseline_memory_mb:.1f}MB -> "
+                    f"{reg.current_memory_mb:.1f}MB ({reg.memory_change_mb:+.1f}MB)"
+                )
 
-        print(f"\n{'='*80}\n")
+        print(f"\n{'=' * 80}\n")
 
     def print_improvements(self, top_n: int = 5):
         """Print top improvements"""
@@ -285,9 +291,9 @@ class ProfilerComparison:
             print("\nNo performance improvements detected!")
             return
 
-        print(f"\n{'='*80}")
+        print(f"\n{'=' * 80}")
         print(f"TOP {len(improvements)} PERFORMANCE IMPROVEMENTS")
-        print(f"{'='*80}")
+        print(f"{'=' * 80}")
 
         for i, imp in enumerate(improvements, 1):
             print(f"\n[{i}] {imp.operation}")
@@ -296,50 +302,50 @@ class ProfilerComparison:
             print(f"  Change:   {imp.change_ms:+.2f}ms ({imp.change_percent:+.1f}%)")
 
             if imp.memory_change_mb != 0:
-                print(f"  Memory:   {imp.baseline_memory_mb:.1f}MB -> "
-                      f"{imp.current_memory_mb:.1f}MB ({imp.memory_change_mb:+.1f}MB)")
+                print(
+                    f"  Memory:   {imp.baseline_memory_mb:.1f}MB -> "
+                    f"{imp.current_memory_mb:.1f}MB ({imp.memory_change_mb:+.1f}MB)"
+                )
 
-        print(f"\n{'='*80}\n")
+        print(f"\n{'=' * 80}\n")
 
     def export_comparison(self, filepath: str):
         """Export comparison to JSON"""
         data = {
-            'summary': {
-                'total_operations': self.get_summary().total_operations,
-                'regressions': self.get_summary().regressions_count,
-                'improvements': self.get_summary().improvements_count,
-                'unchanged': self.get_summary().unchanged_count,
-                'new_operations': self.get_summary().new_operations_count,
-                'removed_operations': self.get_summary().removed_operations_count,
-                'total_change_ms': self.get_summary().total_time_change_ms,
-                'total_change_percent': self.get_summary().total_time_change_percent
+            "summary": {
+                "total_operations": self.get_summary().total_operations,
+                "regressions": self.get_summary().regressions_count,
+                "improvements": self.get_summary().improvements_count,
+                "unchanged": self.get_summary().unchanged_count,
+                "new_operations": self.get_summary().new_operations_count,
+                "removed_operations": self.get_summary().removed_operations_count,
+                "total_change_ms": self.get_summary().total_time_change_ms,
+                "total_change_percent": self.get_summary().total_time_change_percent,
             },
-            'comparisons': [
+            "comparisons": [
                 {
-                    'operation': c.operation,
-                    'baseline_time_ms': c.baseline_time_ms,
-                    'current_time_ms': c.current_time_ms,
-                    'change_ms': c.change_ms,
-                    'change_percent': c.change_percent,
-                    'change_type': c.change_type.value,
-                    'is_significant': c.is_significant,
-                    'baseline_calls': c.baseline_calls,
-                    'current_calls': c.current_calls
+                    "operation": c.operation,
+                    "baseline_time_ms": c.baseline_time_ms,
+                    "current_time_ms": c.current_time_ms,
+                    "change_ms": c.change_ms,
+                    "change_percent": c.change_percent,
+                    "change_type": c.change_type.value,
+                    "is_significant": c.is_significant,
+                    "baseline_calls": c.baseline_calls,
+                    "current_calls": c.current_calls,
                 }
                 for c in self.comparisons
-            ]
+            ],
         }
 
-        with open(filepath, 'w') as f:
+        with open(filepath, "w") as f:
             json.dump(data, f, indent=2)
 
         logger.info(f"Exported comparison to {filepath}")
 
 
 def compare_profiling_runs(
-    baseline_file: str,
-    current_file: str,
-    significance_threshold: float = 5.0
+    baseline_file: str, current_file: str, significance_threshold: float = 5.0
 ) -> ProfilerComparison:
     """
     Compare two profiling runs from JSON files
@@ -352,11 +358,10 @@ def compare_profiling_runs(
     Returns:
         ProfilerComparison instance
     """
-    with open(baseline_file, 'r') as f:
+    with open(baseline_file, "r") as f:
         baseline_data = json.load(f)
 
-    with open(current_file, 'r') as f:
+    with open(current_file, "r") as f:
         current_data = json.load(f)
 
     return ProfilerComparison(baseline_data, current_data, significance_threshold)
-

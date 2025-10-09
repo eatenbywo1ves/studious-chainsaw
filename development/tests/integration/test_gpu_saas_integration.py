@@ -31,14 +31,13 @@ from httpx import AsyncClient
 # TEST CLASS: GPU Acceleration
 # ============================================================================
 
+
 class TestGPUAcceleration:
     """Test GPU-accelerated transformations"""
 
     @pytest.mark.gpu_required
     async def test_small_lattice_gpu_vs_cpu(
-        self,
-        authenticated_client: AsyncClient,
-        gpu_available: bool
+        self, authenticated_client: AsyncClient, gpu_available: bool
     ):
         """
         Test GPU vs CPU comparison for small lattice.
@@ -51,8 +50,7 @@ class TestGPUAcceleration:
 
         # Create small lattice
         create_response = await authenticated_client.post(
-            "/api/lattices",
-            json={"dimensions": 2, "size": 100, "name": "Small GPU Test"}
+            "/api/lattices", json={"dimensions": 2, "size": 100, "name": "Small GPU Test"}
         )
         assert create_response.status_code == 201
         lattice_id = create_response.json()["id"]
@@ -60,11 +58,7 @@ class TestGPUAcceleration:
         # Transform with GPU request (should use CPU due to small size)
         gpu_response = await authenticated_client.post(
             f"/api/lattices/{lattice_id}/transform",
-            json={
-                "transformation_type": "xor",
-                "parameters": {"key": "test_key"},
-                "use_gpu": True
-            }
+            json={"transformation_type": "xor", "parameters": {"key": "test_key"}, "use_gpu": True},
         )
         assert gpu_response.status_code == 200
         gpu_data = gpu_response.json()
@@ -76,9 +70,7 @@ class TestGPUAcceleration:
 
     @pytest.mark.gpu_required
     async def test_large_lattice_gpu_performance(
-        self,
-        authenticated_client: AsyncClient,
-        gpu_available: bool
+        self, authenticated_client: AsyncClient, gpu_available: bool
     ):
         """
         Test GPU performance on large lattice.
@@ -91,8 +83,7 @@ class TestGPUAcceleration:
 
         # Create large lattice
         create_response = await authenticated_client.post(
-            "/api/lattices",
-            json={"dimensions": 3, "size": 10000, "name": "Large GPU Test"}
+            "/api/lattices", json={"dimensions": 3, "size": 10000, "name": "Large GPU Test"}
         )
         assert create_response.status_code == 201
         lattice_id = create_response.json()["id"]
@@ -100,11 +91,7 @@ class TestGPUAcceleration:
         # GPU transformation
         gpu_response = await authenticated_client.post(
             f"/api/lattices/{lattice_id}/transform",
-            json={
-                "transformation_type": "xor",
-                "parameters": {"key": "test_key"},
-                "use_gpu": True
-            }
+            json={"transformation_type": "xor", "parameters": {"key": "test_key"}, "use_gpu": True},
         )
         assert gpu_response.status_code == 200
         gpu_time = gpu_response.json()["execution_time_ms"]
@@ -116,8 +103,8 @@ class TestGPUAcceleration:
             json={
                 "transformation_type": "xor",
                 "parameters": {"key": "test_key"},
-                "use_gpu": False
-            }
+                "use_gpu": False,
+            },
         )
         assert cpu_response.status_code == 200
         cpu_time = cpu_response.json()["execution_time_ms"]
@@ -129,9 +116,7 @@ class TestGPUAcceleration:
 
     @pytest.mark.gpu_required
     async def test_gpu_results_match_cpu(
-        self,
-        authenticated_client: AsyncClient,
-        gpu_available: bool
+        self, authenticated_client: AsyncClient, gpu_available: bool
     ):
         """
         Test GPU and CPU produce identical results.
@@ -154,19 +139,17 @@ class TestGPUAcceleration:
         # Same transformation parameters
         transform_params = {
             "transformation_type": "xor",
-            "parameters": {"key": "identical_key_12345"}
+            "parameters": {"key": "identical_key_12345"},
         }
 
         # GPU transformation
         gpu_result = await authenticated_client.post(
-            f"/api/lattices/{lattice_gpu_id}/transform",
-            json={**transform_params, "use_gpu": True}
+            f"/api/lattices/{lattice_gpu_id}/transform", json={**transform_params, "use_gpu": True}
         )
 
         # CPU transformation
         cpu_result = await authenticated_client.post(
-            f"/api/lattices/{lattice_cpu_id}/transform",
-            json={**transform_params, "use_gpu": False}
+            f"/api/lattices/{lattice_cpu_id}/transform", json={**transform_params, "use_gpu": False}
         )
 
         # Both should succeed
@@ -182,30 +165,23 @@ class TestGPUAcceleration:
 # TEST CLASS: GPU Fallback
 # ============================================================================
 
+
 class TestGPUFallback:
     """Test CPU fallback when GPU unavailable"""
 
-    async def test_cpu_fallback_when_gpu_disabled(
-        self,
-        authenticated_client: AsyncClient
-    ):
+    async def test_cpu_fallback_when_gpu_disabled(self, authenticated_client: AsyncClient):
         """
         Test CPU fallback works when GPU explicitly disabled.
         """
         create_response = await authenticated_client.post(
-            "/api/lattices",
-            json={"dimensions": 2, "size": 1000}
+            "/api/lattices", json={"dimensions": 2, "size": 1000}
         )
         lattice_id = create_response.json()["id"]
 
         # Explicit CPU request
         cpu_response = await authenticated_client.post(
             f"/api/lattices/{lattice_id}/transform",
-            json={
-                "transformation_type": "xor",
-                "parameters": {"key": "cpu_key"},
-                "use_gpu": False
-            }
+            json={"transformation_type": "xor", "parameters": {"key": "cpu_key"}, "use_gpu": False},
         )
 
         assert cpu_response.status_code == 200
@@ -213,10 +189,7 @@ class TestGPUFallback:
         assert not data["gpu_used"]
         assert data["execution_time_ms"] > 0
 
-    async def test_automatic_cpu_fallback(
-        self,
-        authenticated_client: AsyncClient
-    ):
+    async def test_automatic_cpu_fallback(self, authenticated_client: AsyncClient):
         """
         Test automatic CPU fallback when GPU unavailable.
 
@@ -227,8 +200,7 @@ class TestGPUFallback:
         graceful handling.
         """
         create_response = await authenticated_client.post(
-            "/api/lattices",
-            json={"dimensions": 2, "size": 1000}
+            "/api/lattices", json={"dimensions": 2, "size": 1000}
         )
         lattice_id = create_response.json()["id"]
 
@@ -238,8 +210,8 @@ class TestGPUFallback:
             json={
                 "transformation_type": "xor",
                 "parameters": {"key": "fallback_key"},
-                "use_gpu": True
-            }
+                "use_gpu": True,
+            },
         )
 
         assert response.status_code == 200
@@ -253,14 +225,13 @@ class TestGPUFallback:
 # TEST CLASS: Concurrent GPU
 # ============================================================================
 
+
 class TestConcurrentGPU:
     """Test concurrent GPU request handling"""
 
     @pytest.mark.gpu_required
     async def test_concurrent_small_lattices(
-        self,
-        authenticated_client: AsyncClient,
-        gpu_available: bool
+        self, authenticated_client: AsyncClient, gpu_available: bool
     ):
         """
         Test handling 10 concurrent small lattice requests.
@@ -272,8 +243,7 @@ class TestConcurrentGPU:
         lattice_ids = []
         for i in range(10):
             create_resp = await authenticated_client.post(
-                "/api/lattices",
-                json={"dimensions": 2, "size": 100, "name": f"Concurrent {i}"}
+                "/api/lattices", json={"dimensions": 2, "size": 100, "name": f"Concurrent {i}"}
             )
             lattice_ids.append(create_resp.json()["id"])
 
@@ -281,7 +251,7 @@ class TestConcurrentGPU:
         async def transform(lattice_id):
             return await authenticated_client.post(
                 f"/api/lattices/{lattice_id}/transform",
-                json={"transformation_type": "xor", "parameters": {}}
+                json={"transformation_type": "xor", "parameters": {}},
             )
 
         tasks = [transform(lid) for lid in lattice_ids]
@@ -292,9 +262,7 @@ class TestConcurrentGPU:
 
     @pytest.mark.gpu_required
     async def test_concurrent_large_lattices(
-        self,
-        authenticated_client: AsyncClient,
-        gpu_available: bool
+        self, authenticated_client: AsyncClient, gpu_available: bool
     ):
         """
         Test handling 5 concurrent large lattice requests.
@@ -310,7 +278,7 @@ class TestConcurrentGPU:
         for i in range(5):
             create_resp = await authenticated_client.post(
                 "/api/lattices",
-                json={"dimensions": 2, "size": 5000, "name": f"Large Concurrent {i}"}
+                json={"dimensions": 2, "size": 5000, "name": f"Large Concurrent {i}"},
             )
             lattice_ids.append(create_resp.json()["id"])
 
@@ -318,7 +286,7 @@ class TestConcurrentGPU:
         async def transform(lattice_id):
             return await authenticated_client.post(
                 f"/api/lattices/{lattice_id}/transform",
-                json={"transformation_type": "xor", "parameters": {}, "use_gpu": True}
+                json={"transformation_type": "xor", "parameters": {}, "use_gpu": True},
             )
 
         tasks = [transform(lid) for lid in lattice_ids]
@@ -330,9 +298,7 @@ class TestConcurrentGPU:
 
     @pytest.mark.gpu_required
     async def test_mixed_gpu_cpu_concurrent(
-        self,
-        authenticated_client: AsyncClient,
-        gpu_available: bool
+        self, authenticated_client: AsyncClient, gpu_available: bool
     ):
         """
         Test handling mixed GPU and CPU requests concurrently.
@@ -344,8 +310,7 @@ class TestConcurrentGPU:
         lattice_ids = []
         for i in range(10):
             create_resp = await authenticated_client.post(
-                "/api/lattices",
-                json={"dimensions": 2, "size": 1000}
+                "/api/lattices", json={"dimensions": 2, "size": 1000}
             )
             lattice_ids.append(create_resp.json()["id"])
 
@@ -353,11 +318,7 @@ class TestConcurrentGPU:
         async def transform(lattice_id, use_gpu):
             return await authenticated_client.post(
                 f"/api/lattices/{lattice_id}/transform",
-                json={
-                    "transformation_type": "xor",
-                    "parameters": {},
-                    "use_gpu": use_gpu
-                }
+                json={"transformation_type": "xor", "parameters": {}, "use_gpu": use_gpu},
             )
 
         tasks = []
@@ -373,14 +334,13 @@ class TestConcurrentGPU:
 # TEST CLASS: GPU Memory Management
 # ============================================================================
 
+
 class TestGPUMemoryManagement:
     """Test GPU memory allocation and cleanup"""
 
     @pytest.mark.gpu_required
     async def test_memory_allocated_and_freed(
-        self,
-        authenticated_client: AsyncClient,
-        gpu_available: bool
+        self, authenticated_client: AsyncClient, gpu_available: bool
     ):
         """
         Test GPU memory is allocated and freed correctly.
@@ -393,14 +353,13 @@ class TestGPUMemoryManagement:
 
         # Create and transform
         create_resp = await authenticated_client.post(
-            "/api/lattices",
-            json={"dimensions": 2, "size": 5000}
+            "/api/lattices", json={"dimensions": 2, "size": 5000}
         )
         lattice_id = create_resp.json()["id"]
 
         transform_resp = await authenticated_client.post(
             f"/api/lattices/{lattice_id}/transform",
-            json={"transformation_type": "xor", "parameters": {}, "use_gpu": True}
+            json={"transformation_type": "xor", "parameters": {}, "use_gpu": True},
         )
         assert transform_resp.status_code == 200
 
@@ -411,11 +370,7 @@ class TestGPUMemoryManagement:
         assert transform_resp.json()["gpu_used"]
 
     @pytest.mark.gpu_required
-    async def test_no_memory_leaks(
-        self,
-        authenticated_client: AsyncClient,
-        gpu_available: bool
-    ):
+    async def test_no_memory_leaks(self, authenticated_client: AsyncClient, gpu_available: bool):
         """
         Test no memory leaks over 100 transformations.
         """
@@ -424,8 +379,7 @@ class TestGPUMemoryManagement:
 
         # Create lattice
         create_resp = await authenticated_client.post(
-            "/api/lattices",
-            json={"dimensions": 2, "size": 1000}
+            "/api/lattices", json={"dimensions": 2, "size": 1000}
         )
         lattice_id = create_resp.json()["id"]
 
@@ -433,7 +387,7 @@ class TestGPUMemoryManagement:
         for i in range(100):
             transform_resp = await authenticated_client.post(
                 f"/api/lattices/{lattice_id}/transform",
-                json={"transformation_type": "xor", "parameters": {}, "use_gpu": True}
+                json={"transformation_type": "xor", "parameters": {}, "use_gpu": True},
             )
             assert transform_resp.status_code == 200
 
@@ -442,9 +396,7 @@ class TestGPUMemoryManagement:
 
     @pytest.mark.gpu_required
     async def test_memory_exhaustion_handling(
-        self,
-        authenticated_client: AsyncClient,
-        gpu_available: bool
+        self, authenticated_client: AsyncClient, gpu_available: bool
     ):
         """
         Test handling GPU out-of-memory gracefully.
@@ -457,8 +409,7 @@ class TestGPUMemoryManagement:
 
         # Very large lattice (likely to exceed GPU memory)
         create_resp = await authenticated_client.post(
-            "/api/lattices",
-            json={"dimensions": 3, "size": 100000, "name": "OOM Test"}
+            "/api/lattices", json={"dimensions": 3, "size": 100000, "name": "OOM Test"}
         )
 
         if create_resp.status_code == 413:
@@ -471,7 +422,7 @@ class TestGPUMemoryManagement:
         # Attempt transformation
         transform_resp = await authenticated_client.post(
             f"/api/lattices/{lattice_id}/transform",
-            json={"transformation_type": "xor", "parameters": {}, "use_gpu": True}
+            json={"transformation_type": "xor", "parameters": {}, "use_gpu": True},
         )
 
         # Should either succeed with CPU fallback or return helpful error
@@ -486,14 +437,13 @@ class TestGPUMemoryManagement:
 # TEST CLASS: GPU Monitoring
 # ============================================================================
 
+
 class TestGPUMonitoring:
     """Test GPU monitoring and metrics"""
 
     @pytest.mark.gpu_required
     async def test_gpu_status_endpoint(
-        self,
-        authenticated_client: AsyncClient,
-        gpu_available: bool
+        self, authenticated_client: AsyncClient, gpu_available: bool
     ):
         """
         Test GPU status endpoint returns correct data.
@@ -521,9 +471,7 @@ class TestGPUMonitoring:
 
     @pytest.mark.gpu_required
     async def test_gpu_metrics_collection(
-        self,
-        authenticated_client: AsyncClient,
-        gpu_available: bool
+        self, authenticated_client: AsyncClient, gpu_available: bool
     ):
         """
         Test GPU metrics are collected during transformation.
@@ -533,14 +481,13 @@ class TestGPUMonitoring:
 
         # Create lattice and transform with GPU
         create_resp = await authenticated_client.post(
-            "/api/lattices",
-            json={"dimensions": 2, "size": 2000}
+            "/api/lattices", json={"dimensions": 2, "size": 2000}
         )
         lattice_id = create_resp.json()["id"]
 
         transform_resp = await authenticated_client.post(
             f"/api/lattices/{lattice_id}/transform",
-            json={"transformation_type": "xor", "parameters": {}, "use_gpu": True}
+            json={"transformation_type": "xor", "parameters": {}, "use_gpu": True},
         )
         assert transform_resp.status_code == 200
 
@@ -555,7 +502,10 @@ class TestGPUMonitoring:
             if metrics_resp.status_code == 200:
                 metrics_text = metrics_resp.text
                 # Check for GPU utilization metric
-                assert "gpu_utilization_percent" in metrics_text or "lattice_transformation" in metrics_text
+                assert (
+                    "gpu_utilization_percent" in metrics_text
+                    or "lattice_transformation" in metrics_text
+                )
         except Exception:
             # Metrics endpoint may not be implemented yet
             pass
@@ -565,14 +515,13 @@ class TestGPUMonitoring:
 # TEST CLASS: GPU Error Handling
 # ============================================================================
 
+
 class TestGPUErrorHandling:
     """Test GPU error scenarios"""
 
     @pytest.mark.gpu_required
     async def test_cuda_oom_error_handling(
-        self,
-        authenticated_client: AsyncClient,
-        gpu_available: bool
+        self, authenticated_client: AsyncClient, gpu_available: bool
     ):
         """
         Test CUDA out-of-memory error is handled gracefully.
@@ -582,8 +531,7 @@ class TestGPUErrorHandling:
 
         # Attempt very large operation
         create_resp = await authenticated_client.post(
-            "/api/lattices",
-            json={"dimensions": 3, "size": 50000}
+            "/api/lattices", json={"dimensions": 3, "size": 50000}
         )
 
         if create_resp.status_code != 201:
@@ -595,7 +543,7 @@ class TestGPUErrorHandling:
 
         transform_resp = await authenticated_client.post(
             f"/api/lattices/{lattice_id}/transform",
-            json={"transformation_type": "xor", "parameters": {}, "use_gpu": True}
+            json={"transformation_type": "xor", "parameters": {}, "use_gpu": True},
         )
 
         # Should not crash server - either succeeds or returns error
@@ -605,27 +553,19 @@ class TestGPUErrorHandling:
             # Succeeded (possibly with CPU fallback)
             assert "gpu_used" in transform_resp.json()
 
-    async def test_invalid_gpu_operation(
-        self,
-        authenticated_client: AsyncClient
-    ):
+    async def test_invalid_gpu_operation(self, authenticated_client: AsyncClient):
         """
         Test invalid GPU operation returns clear error.
         """
         create_resp = await authenticated_client.post(
-            "/api/lattices",
-            json={"dimensions": 2, "size": 100}
+            "/api/lattices", json={"dimensions": 2, "size": 100}
         )
         lattice_id = create_resp.json()["id"]
 
         # Invalid transformation type
         transform_resp = await authenticated_client.post(
             f"/api/lattices/{lattice_id}/transform",
-            json={
-                "transformation_type": "invalid_operation",
-                "parameters": {},
-                "use_gpu": True
-            }
+            json={"transformation_type": "invalid_operation", "parameters": {}, "use_gpu": True},
         )
 
         # Should return clear error (not crash)

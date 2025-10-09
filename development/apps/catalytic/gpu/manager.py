@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 class GPUStatus(Enum):
     """GPU availability status"""
+
     AVAILABLE = "available"
     BUSY = "busy"
     UNAVAILABLE = "unavailable"
@@ -77,7 +78,7 @@ class GPUManager:
                 device_id=0,
                 total_memory_mb=self._get_cpu_memory(),
                 available_memory_mb=self._get_cpu_memory() * 0.8,
-                backend_name="cpu"
+                backend_name="cpu",
             )
             self.device_status[0] = GPUStatus.AVAILABLE
 
@@ -85,17 +86,18 @@ class GPUManager:
         """Detect CUDA devices using pycuda or torch"""
         try:
             import torch
+
             if not torch.cuda.is_available():
                 return False
 
             device_count = torch.cuda.device_count()
             for i in range(device_count):
                 props = torch.cuda.get_device_properties(i)
-                total_mem = props.total_memory / (1024 ** 2)
+                total_mem = props.total_memory / (1024**2)
 
                 # Get available memory
                 torch.cuda.set_device(i)
-                free_mem = torch.cuda.mem_get_info()[0] / (1024 ** 2)
+                free_mem = torch.cuda.mem_get_info()[0] / (1024**2)
 
                 self.devices[i] = GPUCapabilities(
                     device_name=props.name,
@@ -106,7 +108,7 @@ class GPUManager:
                     max_threads_per_block=props.max_threads_per_block,
                     max_blocks=props.max_threads_per_multiprocessor,
                     warp_size=props.warp_size,
-                    backend_name="cuda"
+                    backend_name="cuda",
                 )
                 self.device_status[i] = GPUStatus.AVAILABLE
 
@@ -131,17 +133,19 @@ class GPUManager:
                 props = cp.cuda.runtime.getDeviceProperties(i)
 
                 mem_info = cp.cuda.runtime.memGetInfo()
-                free_mem = mem_info[0] / (1024 ** 2)
-                total_mem = mem_info[1] / (1024 ** 2)
+                free_mem = mem_info[0] / (1024**2)
+                total_mem = mem_info[1] / (1024**2)
 
                 self.devices[i] = GPUCapabilities(
-                    device_name=props['name'].decode('utf-8') if isinstance(props['name'], bytes) else props['name'],
+                    device_name=props["name"].decode("utf-8")
+                    if isinstance(props["name"], bytes)
+                    else props["name"],
                     device_id=i,
                     total_memory_mb=total_mem,
                     available_memory_mb=free_mem,
-                    compute_capability=(props['major'], props['minor']),
-                    max_threads_per_block=props['maxThreadsPerBlock'],
-                    backend_name="cupy"
+                    compute_capability=(props["major"], props["minor"]),
+                    max_threads_per_block=props["maxThreadsPerBlock"],
+                    backend_name="cupy",
                 )
                 self.device_status[i] = GPUStatus.AVAILABLE
 
@@ -159,18 +163,19 @@ class GPUManager:
         """Detect PyTorch GPU devices"""
         try:
             import torch
+
             if torch.cuda.is_available():
                 # Already detected via CUDA
                 return False
 
             # Check for other accelerators (MPS on Mac, etc.)
-            if hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
+            if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
                 self.devices[0] = GPUCapabilities(
                     device_name="Apple Metal Performance Shaders",
                     device_id=0,
                     total_memory_mb=8192,  # Default estimate
                     available_memory_mb=6144,
-                    backend_name="pytorch-mps"
+                    backend_name="pytorch-mps",
                 )
                 self.device_status[0] = GPUStatus.AVAILABLE
                 logger.info("Detected MPS device")
@@ -187,7 +192,8 @@ class GPUManager:
         """Get available CPU memory in MB"""
         try:
             import psutil
-            return psutil.virtual_memory().available / (1024 ** 2)
+
+            return psutil.virtual_memory().available / (1024**2)
         except ImportError:
             # Fallback to a reasonable default
             return 8192.0
@@ -204,7 +210,8 @@ class GPUManager:
 
         # Filter available devices
         available = [
-            (id, caps) for id, caps in self.devices.items()
+            (id, caps)
+            for id, caps in self.devices.items()
             if self.device_status.get(id) == GPUStatus.AVAILABLE
         ]
 
@@ -225,7 +232,9 @@ class GPUManager:
                 selected_id = configured_id
             else:
                 selected_id = available[0][0]
-                logger.warning(f"Configured device {configured_id} not available, using {selected_id}")
+                logger.warning(
+                    f"Configured device {configured_id} not available, using {selected_id}"
+                )
 
         self.selected_device_id = selected_id
         return selected_id
@@ -306,10 +315,13 @@ class GPUManager:
         """
         caps = self.get_device_info(device_id)
         return {
-            'total_mb': caps.total_memory_mb,
-            'available_mb': caps.available_memory_mb,
-            'used_mb': caps.total_memory_mb - caps.available_memory_mb,
-            'usage_percent': ((caps.total_memory_mb - caps.available_memory_mb) / caps.total_memory_mb) * 100
+            "total_mb": caps.total_memory_mb,
+            "available_mb": caps.available_memory_mb,
+            "used_mb": caps.total_memory_mb - caps.available_memory_mb,
+            "usage_percent": (
+                (caps.total_memory_mb - caps.available_memory_mb) / caps.total_memory_mb
+            )
+            * 100,
         }
 
     def reset(self):

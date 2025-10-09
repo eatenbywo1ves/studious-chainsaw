@@ -14,9 +14,9 @@ load_dotenv()
 
 def test_sendgrid():
     """Test SendGrid email service"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TESTING SENDGRID")
-    print("="*70 + "\n")
+    print("=" * 70 + "\n")
 
     api_key = os.getenv("SENDGRID_API_KEY")
 
@@ -49,7 +49,7 @@ def test_sendgrid():
         message = Mail(
             from_email=(email_from, email_from_name),
             to_emails=test_email,
-            subject=f'Catalytic Computing SaaS - Email Test ({datetime.now().strftime("%Y-%m-%d %H:%M:%S")})',
+            subject=f"Catalytic Computing SaaS - Email Test ({datetime.now().strftime('%Y-%m-%d %H:%M:%S')})",
             html_content=f"""
             <html>
             <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
@@ -63,7 +63,7 @@ def test_sendgrid():
                             <li><strong>Provider:</strong> SendGrid</li>
                             <li><strong>Timestamp:</strong> {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}</li>
                             <li><strong>From:</strong> {email_from}</li>
-                            <li><strong>Environment:</strong> {os.getenv('APP_ENV', 'development')}</li>
+                            <li><strong>Environment:</strong> {os.getenv("APP_ENV", "development")}</li>
                         </ul>
                     </div>
 
@@ -76,7 +76,7 @@ def test_sendgrid():
                 </div>
             </body>
             </html>
-            """
+            """,
         )
 
         sg = SendGridAPIClient(api_key)
@@ -102,9 +102,9 @@ def test_sendgrid():
 
 def test_aws_ses():
     """Test AWS SES email service"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TESTING AWS SES")
-    print("="*70 + "\n")
+    print("=" * 70 + "\n")
 
     access_key = os.getenv("AWS_ACCESS_KEY_ID")
     secret_key = os.getenv("AWS_SECRET_ACCESS_KEY")
@@ -139,23 +139,23 @@ def test_aws_ses():
         print(f"\nSending test email to: {test_email}")
 
         ses_client = boto3.client(
-            'ses',
+            "ses",
             region_name=region,
             aws_access_key_id=access_key,
-            aws_secret_access_key=secret_key
+            aws_secret_access_key=secret_key,
         )
 
         response = ses_client.send_email(
             Source=email_from,
-            Destination={'ToAddresses': [test_email]},
+            Destination={"ToAddresses": [test_email]},
             Message={
-                'Subject': {
-                    'Data': f'Catalytic Computing SaaS - Email Test ({datetime.now().strftime("%Y-%m-%d %H:%M:%S")})',
-                    'Charset': 'UTF-8'
+                "Subject": {
+                    "Data": f"Catalytic Computing SaaS - Email Test ({datetime.now().strftime('%Y-%m-%d %H:%M:%S')})",
+                    "Charset": "UTF-8",
                 },
-                'Body': {
-                    'Html': {
-                        'Data': f"""
+                "Body": {
+                    "Html": {
+                        "Data": f"""
                         <html>
                         <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
                             <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -177,10 +177,10 @@ def test_aws_ses():
                         </body>
                         </html>
                         """,
-                        'Charset': 'UTF-8'
+                        "Charset": "UTF-8",
                     }
-                }
-            }
+                },
+            },
         )
 
         print("[OK] Email sent successfully via AWS SES")
@@ -201,9 +201,9 @@ def test_aws_ses():
 
 def test_smtp():
     """Test SMTP email service"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TESTING SMTP")
-    print("="*70 + "\n")
+    print("=" * 70 + "\n")
 
     smtp_host = os.getenv("SMTP_HOST")
     smtp_port = os.getenv("SMTP_PORT", "587")
@@ -238,10 +238,12 @@ def test_smtp():
 
         print(f"\nSending test email to: {test_email}")
 
-        msg = MIMEMultipart('alternative')
-        msg['Subject'] = f'Catalytic Computing SaaS - Email Test ({datetime.now().strftime("%Y-%m-%d %H:%M:%S")})'
-        msg['From'] = email_from
-        msg['To'] = test_email
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = (
+            f"Catalytic Computing SaaS - Email Test ({datetime.now().strftime('%Y-%m-%d %H:%M:%S')})"
+        )
+        msg["From"] = email_from
+        msg["To"] = test_email
 
         html = f"""
         <html>
@@ -266,7 +268,7 @@ def test_smtp():
         </html>
         """
 
-        msg.attach(MIMEText(html, 'html'))
+        msg.attach(MIMEText(html, "html"))
 
         with smtplib.SMTP(smtp_host, int(smtp_port)) as server:
             server.starttls()
@@ -284,33 +286,35 @@ def test_smtp():
 
 def show_email_config():
     """Display current email configuration"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("CURRENT EMAIL CONFIGURATION")
-    print("="*70 + "\n")
+    print("=" * 70 + "\n")
 
     configs = {
         "SendGrid": {
             "API Key": os.getenv("SENDGRID_API_KEY", "NOT SET"),
             "From Email": os.getenv("EMAIL_FROM", "NOT SET"),
-            "From Name": os.getenv("EMAIL_FROM_NAME", "NOT SET")
+            "From Name": os.getenv("EMAIL_FROM_NAME", "NOT SET"),
         },
         "AWS SES": {
             "Access Key ID": os.getenv("AWS_ACCESS_KEY_ID", "NOT SET"),
             "Secret Key": "***" if os.getenv("AWS_SECRET_ACCESS_KEY") else "NOT SET",
-            "Region": os.getenv("AWS_REGION", "NOT SET")
+            "Region": os.getenv("AWS_REGION", "NOT SET"),
         },
         "SMTP": {
             "Host": os.getenv("SMTP_HOST", "NOT SET"),
             "Port": os.getenv("SMTP_PORT", "NOT SET"),
             "Username": os.getenv("SMTP_USERNAME", "NOT SET"),
-            "Password": "***" if os.getenv("SMTP_PASSWORD") else "NOT SET"
-        }
+            "Password": "***" if os.getenv("SMTP_PASSWORD") else "NOT SET",
+        },
     }
 
     for provider, settings in configs.items():
         print(f"{provider}:")
         for key, value in settings.items():
-            status = "[CONFIGURED]" if value not in ["NOT SET", "SG.YOUR_API_KEY_HERE"] else "[NOT SET]"
+            status = (
+                "[CONFIGURED]" if value not in ["NOT SET", "SG.YOUR_API_KEY_HERE"] else "[NOT SET]"
+            )
             display_value = value[:20] + "..." if len(value) > 20 and value != "NOT SET" else value
             print(f"  {key:.<30} {display_value:.<30} {status}")
         print()
@@ -318,27 +322,27 @@ def show_email_config():
 
 def main():
     """Main testing function"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("CATALYTIC COMPUTING SAAS - EMAIL SERVICE SETUP")
-    print("="*70)
+    print("=" * 70)
 
     # Show current configuration
     show_email_config()
 
     # Test available providers
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TESTING EMAIL PROVIDERS")
-    print("="*70)
+    print("=" * 70)
 
     results = {}
-    results['sendgrid'] = test_sendgrid()
-    results['aws_ses'] = test_aws_ses()
-    results['smtp'] = test_smtp()
+    results["sendgrid"] = test_sendgrid()
+    results["aws_ses"] = test_aws_ses()
+    results["smtp"] = test_smtp()
 
     # Summary
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("EMAIL SERVICE TEST SUMMARY")
-    print("="*70 + "\n")
+    print("=" * 70 + "\n")
 
     for provider, success in results.items():
         status = "[OK] Working" if success else "[SKIP] Not configured or failed"
@@ -349,7 +353,7 @@ def main():
     else:
         print("\n[WARN] No email providers configured. Email notifications will not work.")
 
-    print("\n" + "="*70 + "\n")
+    print("\n" + "=" * 70 + "\n")
 
 
 if __name__ == "__main__":

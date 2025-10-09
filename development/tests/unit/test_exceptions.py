@@ -10,7 +10,6 @@ from libs.utils.exceptions import (
     # Base exception
     CatalyticException,
     ErrorCode,
-
     # Lattice exceptions
     LatticeException,
     LatticeCreationError,
@@ -18,34 +17,28 @@ from libs.utils.exceptions import (
     LatticeLimitExceededError,
     InvalidDimensionsError,
     PathNotFoundException,
-
     # GPU exceptions
     GPUException,
     GPUNotAvailableError,
     GPUMemoryError,
     ComputationTimeoutError,
-
     # API exceptions
     APIException,
     ValidationError,
     AuthenticationError,
     RateLimitExceededError,
-
     # Webhook exceptions
     WebhookRegistrationError,
     WebhookDeliveryError,
     WebhookSignatureError,
-
     # Database exceptions
     DatabaseConnectionError,
     DatabaseQueryError,
-
     # Memory exceptions
     MemoryAllocationError,
     MemoryLimitExceededError,
-
     # Utility function
-    handle_exception
+    handle_exception,
 )
 
 
@@ -54,10 +47,7 @@ class TestCatalyticException:
 
     def test_basic_exception_creation(self):
         """Test creating a basic exception"""
-        exc = CatalyticException(
-            message="Test error",
-            error_code=ErrorCode.UNKNOWN_ERROR
-        )
+        exc = CatalyticException(message="Test error", error_code=ErrorCode.UNKNOWN_ERROR)
 
         assert str(exc) == "[UNKNOWN_ERROR] Test error"
         assert exc.message == "Test error"
@@ -69,9 +59,7 @@ class TestCatalyticException:
         """Test exception with additional details"""
         details = {"field": "test", "value": 42}
         exc = CatalyticException(
-            message="Detailed error",
-            error_code=ErrorCode.VALIDATION_ERROR,
-            details=details
+            message="Detailed error", error_code=ErrorCode.VALIDATION_ERROR, details=details
         )
 
         assert exc.details == details
@@ -82,9 +70,7 @@ class TestCatalyticException:
         """Test exception with a cause"""
         original_error = ValueError("Original error")
         exc = CatalyticException(
-            message="Wrapped error",
-            error_code=ErrorCode.UNKNOWN_ERROR,
-            cause=original_error
+            message="Wrapped error", error_code=ErrorCode.UNKNOWN_ERROR, cause=original_error
         )
 
         assert exc.cause == original_error
@@ -96,7 +82,7 @@ class TestCatalyticException:
         exc = CatalyticException(
             message="API error",
             error_code=ErrorCode.INVALID_REQUEST,
-            details={"endpoint": "/api/test"}
+            details={"endpoint": "/api/test"},
         )
 
         result = exc.to_dict()
@@ -112,7 +98,7 @@ class TestCatalyticException:
         exc = CatalyticException(
             message="JSON error",
             error_code=ErrorCode.DATABASE_QUERY_ERROR,
-            details={"query": "SELECT * FROM test"}
+            details={"query": "SELECT * FROM test"},
         )
 
         json_str = exc.to_json()
@@ -125,9 +111,7 @@ class TestCatalyticException:
     def test_exception_repr(self):
         """Test exception representation"""
         exc = CatalyticException(
-            message="Test",
-            error_code=ErrorCode.UNKNOWN_ERROR,
-            details={"key": "value"}
+            message="Test", error_code=ErrorCode.UNKNOWN_ERROR, details={"key": "value"}
         )
 
         repr_str = repr(exc)
@@ -180,11 +164,7 @@ class TestLatticeExceptions:
 
     def test_lattice_creation_error(self):
         """Test LatticeCreationError"""
-        exc = LatticeCreationError(
-            message="Failed to create lattice",
-            dimensions=5,
-            size=10
-        )
+        exc = LatticeCreationError(message="Failed to create lattice", dimensions=5, size=10)
 
         assert exc.error_code == ErrorCode.LATTICE_CREATION_ERROR
         assert exc.details["dimensions"] == 5
@@ -287,11 +267,7 @@ class TestAPIExceptions:
 
     def test_validation_error(self):
         """Test ValidationError"""
-        exc = ValidationError(
-            field="email",
-            value="invalid@",
-            reason="Invalid email format"
-        )
+        exc = ValidationError(field="email", value="invalid@", reason="Invalid email format")
 
         assert exc.error_code == ErrorCode.VALIDATION_ERROR
         assert "email" in exc.message
@@ -333,10 +309,7 @@ class TestWebhookExceptions:
 
     def test_webhook_registration_error(self):
         """Test WebhookRegistrationError"""
-        exc = WebhookRegistrationError(
-            url="https://example.com/hook",
-            reason="Connection refused"
-        )
+        exc = WebhookRegistrationError(url="https://example.com/hook", reason="Connection refused")
 
         assert exc.error_code == ErrorCode.WEBHOOK_REGISTRATION_FAILED
         assert "https://example.com/hook" in exc.message
@@ -510,9 +483,7 @@ class TestExceptionSerialization:
     def test_serialize_complex_exception(self):
         """Test serializing exception with complex details"""
         exc = ValidationError(
-            field="data",
-            value={"nested": {"key": [1, 2, 3]}},
-            reason="Complex validation failure"
+            field="data", value={"nested": {"key": [1, 2, 3]}}, reason="Complex validation failure"
         )
 
         serialized = exc.to_dict()
@@ -529,7 +500,7 @@ class TestExceptionSerialization:
         exc = CatalyticException(
             "Error with date",
             ErrorCode.UNKNOWN_ERROR,
-            details={"timestamp": datetime.datetime.now()}
+            details={"timestamp": datetime.datetime.now()},
         )
 
         # to_dict should work, but JSON serialization would fail

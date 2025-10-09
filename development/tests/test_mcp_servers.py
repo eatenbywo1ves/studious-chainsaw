@@ -9,6 +9,7 @@ import json
 import subprocess
 from pathlib import Path
 
+
 def test_server_directory(name, path):
     """Test if a server directory exists and has required files."""
     print(f"\n[DIR] Testing {name} server...")
@@ -21,9 +22,9 @@ def test_server_directory(name, path):
 
     # Check for common files
     files_to_check = {
-        'PRIMS': ['server/main.py', 'requirements.txt'],
-        'JSExecutor': ['index.js', 'package.json'],
-        'RepoMapper': ['mcp_server.py', 'repomap.py'],
+        "PRIMS": ["server/main.py", "requirements.txt"],
+        "JSExecutor": ["index.js", "package.json"],
+        "RepoMapper": ["mcp_server.py", "repomap.py"],
     }
 
     if name in files_to_check:
@@ -37,30 +38,32 @@ def test_server_directory(name, path):
 
     return True
 
+
 def test_python_modules():
     """Test if required Python modules are installed."""
     print("\n[PYTHON] Testing Python modules...")
 
     modules = [
-        'mcp_server_notify',  # Desktop notification server
-        'igraph',  # For catalytic computing
-        'numpy',   # For numerical operations
+        "mcp_server_notify",  # Desktop notification server
+        "igraph",  # For catalytic computing
+        "numpy",  # For numerical operations
     ]
 
     for module in modules:
         try:
-            __import__(module.replace('-', '_'))
+            __import__(module.replace("-", "_"))
             print(f"  [OK] {module} is installed")
         except ImportError:
             print(f"  [X] {module} is not installed")
             print(f"     Install with: pip install {module}")
+
 
 def test_node_modules():
     """Test if Node.js and required modules are available."""
     print("\n[NODE] Testing Node.js environment...")
 
     try:
-        result = subprocess.run(['node', '--version'], capture_output=True, text=True)
+        result = subprocess.run(["node", "--version"], capture_output=True, text=True)
         if result.returncode == 0:
             print(f"  [OK] Node.js is installed: {result.stdout.strip()}")
         else:
@@ -72,13 +75,14 @@ def test_node_modules():
 
     # Check npm
     try:
-        result = subprocess.run(['npm', '--version'], capture_output=True, text=True)
+        result = subprocess.run(["npm", "--version"], capture_output=True, text=True)
         if result.returncode == 0:
             print(f"  [OK] npm is installed: {result.stdout.strip()}")
-    except:
+    except (FileNotFoundError, Exception):
         print("  [X] npm is not accessible")
 
     return True
+
 
 def test_claude_config():
     """Test Claude Desktop configuration."""
@@ -93,15 +97,15 @@ def test_claude_config():
     print(f"  [OK] Configuration found at: {config_path}")
 
     try:
-        with open(config_path, 'r') as f:
+        with open(config_path, "r") as f:
             config = json.load(f)
 
-        if 'mcpServers' in config:
+        if "mcpServers" in config:
             print(f"  [OK] MCP servers configured: {list(config['mcpServers'].keys())}")
 
             # Validate each server config
-            for server_name, server_config in config['mcpServers'].items():
-                if 'command' in server_config:
+            for server_name, server_config in config["mcpServers"].items():
+                if "command" in server_config:
                     print(f"  [OK] {server_name}: Command configured")
                 else:
                     print(f"  [X] {server_name}: Missing command")
@@ -118,6 +122,7 @@ def test_claude_config():
 
     return True
 
+
 def main():
     """Main test execution."""
     print("=" * 60)
@@ -128,9 +133,9 @@ def main():
 
     # Test each server directory
     servers = {
-        'PRIMS': os.path.join(base_path, 'PRIMS'),
-        'JSExecutor': os.path.join(base_path, 'js-executor'),
-        'RepoMapper': os.path.join(base_path, 'RepoMapper'),
+        "PRIMS": os.path.join(base_path, "PRIMS"),
+        "JSExecutor": os.path.join(base_path, "js-executor"),
+        "RepoMapper": os.path.join(base_path, "RepoMapper"),
     }
 
     all_good = True
@@ -166,6 +171,7 @@ def main():
         print("3. Verify Python and Node.js are in your PATH")
 
     print("=" * 60)
+
 
 if __name__ == "__main__":
     main()

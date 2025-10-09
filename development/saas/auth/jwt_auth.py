@@ -30,10 +30,12 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 # ✅ PRODUCTION: Use Refactored Redis Connection Manager (clean architecture)
 # Import production-grade Redis Connection Manager with dependency injection
 import sys  # noqa: E402
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'security', 'application'))
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "security", "application"))
 
 try:
     from redis_connection_manager import get_default_redis_manager
+
     # Create production Redis connection with dependency injection support
     # Pool automatically configures based on DEPLOYMENT_ENV:
     # - development: 20 connections (1 worker)
@@ -45,7 +47,9 @@ try:
 
     if redis_pool.is_available:
         pool_status = redis_pool.get_pool_status()
-        print(f"[OK] Redis Connection Manager initialized: {redis_manager.connection_config.host}:{redis_manager.connection_config.port}")
+        print(
+            f"[OK] Redis Connection Manager initialized: {redis_manager.connection_config.host}:{redis_manager.connection_config.port}"
+        )
         print(f"[OK] Pool size: {pool_status['max_connections']} connections")
         print(f"[OK] Environment: {pool_status['environment']}")
         print(f"[OK] Utilization: {pool_status['utilization_percent']}%")
@@ -64,7 +68,7 @@ except ImportError as e:
             port=int(os.getenv("REDIS_PORT", "6379")),
             db=0,
             decode_responses=True,
-            password=os.getenv("REDIS_PASSWORD")
+            password=os.getenv("REDIS_PASSWORD"),
         )
         redis_client.ping()
         print("[OK] Redis connected (basic mode - upgrade to RedisConnectionManager recommended)")
@@ -72,6 +76,7 @@ except ImportError as e:
         print(f"[ERROR] Redis not available: {fallback_error}")
         print("[WARNING] Using in-memory storage (NOT recommended for production)")
         redis_client = None
+
 
 # RSA Key Management for production-grade security
 class RSAKeyManager:
@@ -91,21 +96,16 @@ class RSAKeyManager:
             # Load existing keys
             with open(private_key_path, "rb") as f:
                 self.private_key = serialization.load_pem_private_key(
-                    f.read(),
-                    password=None,
-                    backend=default_backend()
+                    f.read(), password=None, backend=default_backend()
                 )
             with open(public_key_path, "rb") as f:
                 self.public_key = serialization.load_pem_public_key(
-                    f.read(),
-                    backend=default_backend()
+                    f.read(), backend=default_backend()
                 )
         else:
             # Generate new RSA key pair
             self.private_key = rsa.generate_private_key(
-                public_exponent=65537,
-                key_size=2048,
-                backend=default_backend()
+                public_exponent=65537, key_size=2048, backend=default_backend()
             )
             self.public_key = self.private_key.public_key()
 
@@ -113,17 +113,21 @@ class RSAKeyManager:
             os.makedirs(os.path.dirname(private_key_path), exist_ok=True)
 
             with open(private_key_path, "wb") as f:
-                f.write(self.private_key.private_bytes(
-                    encoding=serialization.Encoding.PEM,
-                    format=serialization.PrivateFormat.PKCS8,
-                    encryption_algorithm=serialization.NoEncryption()
-                ))
+                f.write(
+                    self.private_key.private_bytes(
+                        encoding=serialization.Encoding.PEM,
+                        format=serialization.PrivateFormat.PKCS8,
+                        encryption_algorithm=serialization.NoEncryption(),
+                    )
+                )
 
             with open(public_key_path, "wb") as f:
-                f.write(self.public_key.public_bytes(
-                    encoding=serialization.Encoding.PEM,
-                    format=serialization.PublicFormat.SubjectPublicKeyInfo
-                ))
+                f.write(
+                    self.public_key.public_bytes(
+                        encoding=serialization.Encoding.PEM,
+                        format=serialization.PublicFormat.SubjectPublicKeyInfo,
+                    )
+                )
 
     def get_private_key(self):
         """Get private key for signing"""
@@ -137,6 +141,7 @@ class RSAKeyManager:
             return self.public_key
         return JWT_SECRET_KEY
 
+
 # Initialize key manager
 key_manager = RSAKeyManager() if JWT_ALGORITHM == "RS256" else None
 
@@ -144,8 +149,10 @@ key_manager = RSAKeyManager() if JWT_ALGORITHM == "RS256" else None
 # TOKEN MODELS
 # ============================================================================
 
+
 class TokenData(BaseModel):
     """JWT Token payload structure"""
+
     sub: str  # User ID
     tenant_id: str  # Tenant ID for isolation
     email: str
@@ -155,31 +162,33 @@ class TokenData(BaseModel):
     iat: Optional[datetime] = None
     exp: Optional[datetime] = None
 
+
 class TokenResponse(BaseModel):
     """Token response structure"""
+
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
     expires_in: int
 
+
 class ApiKeyData(BaseModel):
     """API Key structure"""
+
     key: str
     tenant_id: str
     name: str
     permissions: list = []
     expires_at: Optional[datetime] = None
 
+
 # ============================================================================
 # TOKEN GENERATION
 # ============================================================================
 
+
 def create_access_token(
-    user_id: str,
-    tenant_id: str,
-    email: str,
-    role: str,
-    expires_delta: Optional[timedelta] = None
+    user_id: str, tenant_id: str, email: str, role: str, expires_delta: Optional[timedelta] = None
 ) -> str:
     """Create JWT access token with tenant context"""
 
@@ -195,35 +204,30 @@ def create_access_token(
         role=role,
         type="access",
         iat=datetime.now(timezone.utc),
-        exp=expire
+        exp=expire,
     )
 
     # Get signing key
     signing_key = key_manager.get_private_key() if key_manager else JWT_SECRET_KEY
 
     # Create JWT
-    encoded_jwt = jwt.encode(
-        token_data.dict(),
-        signing_key,
-        algorithm=JWT_ALGORITHM
-    )
+    encoded_jwt = jwt.encode(token_data.dict(), signing_key, algorithm=JWT_ALGORITHM)
 
     # Store token metadata in Redis for tracking
     if redis_client:
         redis_client.setex(
             f"token:access:{token_data.jti}",
-            int(expires_delta.total_seconds() if expires_delta else ACCESS_TOKEN_EXPIRE_MINUTES * 60),
-            f"{user_id}:{tenant_id}"
+            int(
+                expires_delta.total_seconds() if expires_delta else ACCESS_TOKEN_EXPIRE_MINUTES * 60
+            ),
+            f"{user_id}:{tenant_id}",
         )
 
     return encoded_jwt
 
+
 def create_refresh_token(
-    user_id: str,
-    tenant_id: str,
-    email: str,
-    role: str,
-    expires_delta: Optional[timedelta] = None
+    user_id: str, tenant_id: str, email: str, role: str, expires_delta: Optional[timedelta] = None
 ) -> str:
     """Create JWT refresh token"""
 
@@ -239,35 +243,31 @@ def create_refresh_token(
         role=role,
         type="refresh",
         iat=datetime.now(timezone.utc),
-        exp=expire
+        exp=expire,
     )
 
     # Get signing key
     signing_key = key_manager.get_private_key() if key_manager else JWT_SECRET_KEY
 
     # Create JWT
-    encoded_jwt = jwt.encode(
-        token_data.dict(),
-        signing_key,
-        algorithm=JWT_ALGORITHM
-    )
+    encoded_jwt = jwt.encode(token_data.dict(), signing_key, algorithm=JWT_ALGORITHM)
 
     # Store refresh token in Redis with rotation tracking
     if redis_client:
         redis_client.setex(
             f"token:refresh:{token_data.jti}",
-            int(expires_delta.total_seconds() if expires_delta else REFRESH_TOKEN_EXPIRE_DAYS * 24 * 3600),
-            f"{user_id}:{tenant_id}:active"
+            int(
+                expires_delta.total_seconds()
+                if expires_delta
+                else REFRESH_TOKEN_EXPIRE_DAYS * 24 * 3600
+            ),
+            f"{user_id}:{tenant_id}:active",
         )
 
     return encoded_jwt
 
-def create_token_pair(
-    user_id: str,
-    tenant_id: str,
-    email: str,
-    role: str
-) -> TokenResponse:
+
+def create_token_pair(user_id: str, tenant_id: str, email: str, role: str) -> TokenResponse:
     """Create access and refresh token pair"""
 
     access_token = create_access_token(user_id, tenant_id, email, role)
@@ -277,12 +277,14 @@ def create_token_pair(
         access_token=access_token,
         refresh_token=refresh_token,
         token_type="bearer",
-        expires_in=ACCESS_TOKEN_EXPIRE_MINUTES * 60
+        expires_in=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
+
 
 # ============================================================================
 # TOKEN VALIDATION
 # ============================================================================
+
 
 def verify_token(token: str, token_type: str = "access") -> Optional[TokenData]:
     """Verify and decode JWT token"""
@@ -292,11 +294,7 @@ def verify_token(token: str, token_type: str = "access") -> Optional[TokenData]:
         verification_key = key_manager.get_public_key() if key_manager else JWT_SECRET_KEY
 
         # Decode token
-        payload = jwt.decode(
-            token,
-            verification_key,
-            algorithms=[JWT_ALGORITHM]
-        )
+        payload = jwt.decode(token, verification_key, algorithms=[JWT_ALGORITHM])
 
         # Validate token type
         if payload.get("type") != token_type:
@@ -324,6 +322,7 @@ def verify_token(token: str, token_type: str = "access") -> Optional[TokenData]:
     except ValidationError:
         return None
 
+
 def refresh_access_token(refresh_token: str) -> Optional[TokenResponse]:
     """Refresh access token using refresh token"""
 
@@ -347,7 +346,7 @@ def refresh_access_token(refresh_token: str) -> Optional[TokenResponse]:
         user_id=token_data.sub,
         tenant_id=token_data.tenant_id,
         email=token_data.email,
-        role=token_data.role
+        role=token_data.role,
     )
 
     # Mark old refresh token as rotated
@@ -355,10 +354,11 @@ def refresh_access_token(refresh_token: str) -> Optional[TokenResponse]:
         redis_client.setex(
             f"token:refresh:{token_data.jti}",
             3600,  # Keep for 1 hour for security tracking
-            f"{token_data.sub}:{token_data.tenant_id}:rotated"
+            f"{token_data.sub}:{token_data.tenant_id}:rotated",
         )
 
     return new_tokens
+
 
 def revoke_token(token: str):
     """Revoke a token by adding to blacklist"""
@@ -369,10 +369,7 @@ def revoke_token(token: str):
 
         # Decode token without verification (to get jti even if expired)
         payload = jwt.decode(
-            token,
-            verification_key,
-            algorithms=[JWT_ALGORITHM],
-            options={"verify_signature": False}
+            token, verification_key, algorithms=[JWT_ALGORITHM], options={"verify_signature": False}
         )
 
         jti = payload.get("jti")
@@ -384,6 +381,7 @@ def revoke_token(token: str):
                 redis_client.setex(f"blacklist:{jti}", int(ttl), "revoked")
     except Exception:
         pass
+
 
 def revoke_all_user_tokens(user_id: str, tenant_id: str):
     """Revoke all tokens for a user (security breach response)"""
@@ -399,9 +397,11 @@ def revoke_all_user_tokens(user_id: str, tenant_id: str):
                 redis_client.setex(f"blacklist:{jti}", 86400, "security_revoked")
                 redis_client.delete(key)
 
+
 # ============================================================================
 # API KEY MANAGEMENT
 # ============================================================================
+
 
 def generate_api_key(tenant_id: str, name: str, permissions: list = None) -> Tuple[str, str]:
     """Generate API key for programmatic access"""
@@ -421,11 +421,12 @@ def generate_api_key(tenant_id: str, name: str, permissions: list = None) -> Tup
                 "tenant_id": tenant_id,
                 "name": name,
                 "permissions": ",".join(permissions or []),
-                "created_at": datetime.now(timezone.utc).isoformat()
-            }
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            },
         )
 
     return api_key, key_hash
+
 
 def verify_api_key(api_key: str) -> Optional[Dict[str, Any]]:
     """Verify API key and return metadata"""
@@ -446,14 +447,16 @@ def verify_api_key(api_key: str) -> Optional[Dict[str, Any]]:
                     "tenant_id": metadata.get("tenant_id"),
                     "name": metadata.get("name"),
                     "permissions": metadata.get("permissions", "").split(","),
-                    "type": "api_key"
+                    "type": "api_key",
                 }
 
     return None
 
+
 # ============================================================================
 # TENANT CONTEXT
 # ============================================================================
+
 
 class TenantContext:
     """Manages tenant context for requests"""
@@ -467,9 +470,10 @@ class TenantContext:
         """Set tenant context for database queries"""
         # Store original settings
         import os
+
         self._original_settings = {
             "app.tenant_id": os.environ.get("app.tenant_id"),
-            "app.user_id": os.environ.get("app.user_id")
+            "app.user_id": os.environ.get("app.user_id"),
         }
 
         # Set new context
@@ -482,20 +486,23 @@ class TenantContext:
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Restore original context"""
         import os
+
         for key, value in self._original_settings.items():
             if value is None:
                 os.environ.pop(key, None)
             else:
                 os.environ[key] = value
 
+
 # ============================================================================
 # MIDDLEWARE HELPERS
 # ============================================================================
 
+
 def extract_tenant_from_request(
     authorization: Optional[str] = None,
     api_key: Optional[str] = None,
-    tenant_header: Optional[str] = None
+    tenant_header: Optional[str] = None,
 ) -> Optional[str]:
     """Extract tenant ID from various sources"""
 
@@ -519,9 +526,11 @@ def extract_tenant_from_request(
 
     return None
 
+
 def hash_password(password: str) -> str:
     """Hash password for storage"""
     return pwd_context.hash(password)
+
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify password against hash"""

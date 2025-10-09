@@ -41,30 +41,29 @@ try:
     output_path = args[1]
     found = False
 
-    response_dict['address'] = address
+    response_dict["address"] = address
 
     functionIterator = currentProgram.getFunctionManager().getFunctions(True)
     for function in functionIterator:
         if function.getEntryPoint().getOffset() == address:
-            decompileResults = decompInterface.decompileFunction(
-                function, 30, monitor)
+            decompileResults = decompInterface.decompileFunction(function, 30, monitor)
             if decompileResults.decompileCompleted():
                 decompiledFunction = decompileResults.getDecompiledFunction()
                 decompiled = decompiledFunction.getC()
-                response_dict['status'] = "completed"
-                response_dict['decompiled'] = decompiled
+                response_dict["status"] = "completed"
+                response_dict["decompiled"] = decompiled
             else:
-                response_dict['status'] = "error"
+                response_dict["status"] = "error"
             found = True
             break
 
     if not found:
-        response_dict['status'] = "error"
+        response_dict["status"] = "error"
 
     with open(output_path, "w") as f_out:
         json.dump(response_dict, f_out)
     print("Json saved to %s" % output_path)
 
 except Exception:
-    response_dict['status'] = "error"
+    response_dict["status"] = "error"
     print(json.dumps(response_dict))

@@ -50,32 +50,28 @@ class D3FENDOntologyExporter:
                 "status": {"@id": "d3f:status", "@type": "xsd:string"},
             },
             "@id": event_uri,
-            "@type": [
-                "d3f:DigitalEvent",
-                "d3f:NetworkTraffic",
-                "d3f:ServiceCall"
-            ],
-            "timestamp": datetime.fromtimestamp(webhook_metric['timestamp']).isoformat(),
-            "eventType": webhook_metric['event_type'],
-            "networkNode": webhook_metric['endpoint'],
-            "duration": webhook_metric['duration'],
-            "status": webhook_metric['status'],
+            "@type": ["d3f:DigitalEvent", "d3f:NetworkTraffic", "d3f:ServiceCall"],
+            "timestamp": datetime.fromtimestamp(webhook_metric["timestamp"]).isoformat(),
+            "eventType": webhook_metric["event_type"],
+            "networkNode": webhook_metric["endpoint"],
+            "duration": webhook_metric["duration"],
+            "status": webhook_metric["status"],
             "dc:creator": "Catalytic Computing Webhook Monitor",
             "rdfs:label": f"Webhook Event: {webhook_metric['event_type']}",
             "d3f:defendsTechnique": [
                 {"@id": f"{self.D3FEND_NS}D3-NTA"},  # Network Traffic Analysis
-                {"@id": f"{self.D3FEND_NS}D3-SCA"}   # System Call Analysis
-            ]
+                {"@id": f"{self.D3FEND_NS}D3-SCA"},  # System Call Analysis
+            ],
         }
 
         # Add error information if present
-        if webhook_metric.get('error_message'):
-            jsonld["d3f:errorMessage"] = webhook_metric['error_message']
+        if webhook_metric.get("error_message"):
+            jsonld["d3f:errorMessage"] = webhook_metric["error_message"]
             jsonld["d3f:severity"] = "high"
 
         # Add retry information
-        if webhook_metric.get('retry_count', 0) > 0:
-            jsonld["d3f:retryCount"] = webhook_metric['retry_count']
+        if webhook_metric.get("retry_count", 0) > 0:
+            jsonld["d3f:retryCount"] = webhook_metric["retry_count"]
 
         return jsonld
 
@@ -84,7 +80,7 @@ class D3FENDOntologyExporter:
         event_type: str,
         event_data: Dict[str, Any],
         techniques: List[D3FENDTechnique],
-        artifact_type: str = "DigitalEvent"
+        artifact_type: str = "DigitalEvent",
     ) -> Dict[str, Any]:
         """
         Export generic security event as D3FEND JSON-LD
@@ -95,9 +91,10 @@ class D3FENDOntologyExporter:
             techniques: List of D3FEND techniques this event relates to
             artifact_type: D3FEND artifact type (DigitalEvent, File, Process, etc.)
         """
-        event_id = event_data.get('event_id') or hashlib.sha256(
-            f"{event_type}{datetime.now().isoformat()}".encode()
-        ).hexdigest()[:16]
+        event_id = (
+            event_data.get("event_id")
+            or hashlib.sha256(f"{event_type}{datetime.now().isoformat()}".encode()).hexdigest()[:16]
+        )
         event_uri = f"{self.base_uri}events/{event_id}"
 
         jsonld = {
@@ -115,12 +112,12 @@ class D3FENDOntologyExporter:
             "dc:creator": "Catalytic Computing Security System",
             "d3f:defendsTechnique": [
                 {"@id": f"{self.D3FEND_NS}{tech.value}"} for tech in techniques
-            ]
+            ],
         }
 
         # Add event-specific data
         for key, value in event_data.items():
-            if key not in ['event_id']:
+            if key not in ["event_id"]:
                 # Convert to appropriate XSD type
                 if isinstance(value, bool):
                     jsonld[f"d3f:{key}"] = {"@value": value, "@type": "xsd:boolean"}
@@ -139,7 +136,7 @@ class D3FENDOntologyExporter:
         control_id: str,
         status: str,
         techniques: List[D3FENDTechnique],
-        evidence: List[str]
+        evidence: List[str],
     ) -> Dict[str, Any]:
         """
         Export compliance check as D3FEND JSON-LD
@@ -157,10 +154,7 @@ class D3FENDOntologyExporter:
                 "dc": self.DC_NS,
             },
             "@id": check_uri,
-            "@type": [
-                "d3f:SecurityControl",
-                "d3f:ComplianceCheck"
-            ],
+            "@type": ["d3f:SecurityControl", "d3f:ComplianceCheck"],
             "rdfs:label": f"Compliance Check: {control_id}",
             "d3f:controlId": control_id,
             "d3f:status": status,
@@ -168,7 +162,7 @@ class D3FENDOntologyExporter:
             "d3f:defendsTechnique": [
                 {"@id": f"{self.D3FEND_NS}{tech.value}"} for tech in techniques
             ],
-            "d3f:evidence": evidence
+            "d3f:evidence": evidence,
         }
 
         return jsonld
@@ -186,7 +180,7 @@ class D3FENDOntologyExporter:
         rdf_types = [rdf_type] if isinstance(rdf_type, str) else rdf_type
 
         xml_parts = ['<?xml version="1.0" encoding="UTF-8"?>']
-        xml_parts.append('<rdf:RDF')
+        xml_parts.append("<rdf:RDF")
         xml_parts.append('  xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"')
         xml_parts.append('  xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"')
         xml_parts.append('  xmlns:d3f="http://d3fend.mitre.org/ontologies/d3fend.owl#"')
@@ -216,12 +210,12 @@ class D3FENDOntologyExporter:
                         if isinstance(item, dict) and "@id" in item:
                             xml_parts.append(f'    <{key} rdf:resource="{item["@id"]}"/>')
                 else:
-                    xml_parts.append(f'    <{key}>{value}</{key}>')
+                    xml_parts.append(f"    <{key}>{value}</{key}>")
 
-        xml_parts.append('  </rdf:Description>')
-        xml_parts.append('</rdf:RDF>')
+        xml_parts.append("  </rdf:Description>")
+        xml_parts.append("</rdf:RDF>")
 
-        return '\n'.join(xml_parts)
+        return "\n".join(xml_parts)
 
     def export_to_turtle(self, jsonld_data: Dict[str, Any]) -> str:
         """
@@ -240,7 +234,7 @@ class D3FENDOntologyExporter:
             "@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .",
             "@prefix dc: <http://purl.org/dc/elements/1.1/> .",
             "",
-            f"<{rdf_id}>"
+            f"<{rdf_id}>",
         ]
 
         # Types
@@ -269,12 +263,10 @@ class D3FENDOntologyExporter:
             else:
                 turtle_parts.append(f'  {key} "{value}"{suffix}')
 
-        return '\n'.join(turtle_parts)
+        return "\n".join(turtle_parts)
 
     def export_system_inventory_jsonld(
-        self,
-        assets: List[Dict[str, Any]],
-        network_map: Dict[str, Any]
+        self, assets: List[Dict[str, Any]], network_map: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
         Export system inventory as D3FEND JSON-LD
@@ -297,9 +289,9 @@ class D3FENDOntologyExporter:
             "d3f:defendsTechnique": [
                 {"@id": f"{self.D3FEND_NS}D3-AI"},  # Asset Inventory
                 {"@id": f"{self.D3FEND_NS}D3-NM"},  # Network Mapping
-                {"@id": f"{self.D3FEND_NS}D3-SM"}   # System Mapping
+                {"@id": f"{self.D3FEND_NS}D3-SM"},  # System Mapping
             ],
-            "d3f:assets": []
+            "d3f:assets": [],
         }
 
         # Add assets
@@ -307,9 +299,9 @@ class D3FENDOntologyExporter:
             asset_data = {
                 "@id": f"{self.base_uri}assets/{asset.get('id', 'unknown')}",
                 "@type": f"d3f:{asset.get('type', 'DigitalAsset')}",
-                "rdfs:label": asset.get('name', 'Unknown Asset'),
-                "d3f:ipAddress": asset.get('ip_address'),
-                "d3f:hostname": asset.get('hostname'),
+                "rdfs:label": asset.get("name", "Unknown Asset"),
+                "d3f:ipAddress": asset.get("ip_address"),
+                "d3f:hostname": asset.get("hostname"),
             }
             jsonld["d3f:assets"].append(asset_data)
 
@@ -317,8 +309,8 @@ class D3FENDOntologyExporter:
         if network_map:
             jsonld["d3f:networkTopology"] = {
                 "@type": "d3f:NetworkTopology",
-                "d3f:nodes": network_map.get('nodes', []),
-                "d3f:connections": network_map.get('connections', [])
+                "d3f:nodes": network_map.get("nodes", []),
+                "d3f:connections": network_map.get("connections", []),
             }
 
         return jsonld
@@ -327,7 +319,7 @@ class D3FENDOntologyExporter:
         self,
         webhook_events: List[Dict[str, Any]],
         compliance_checks: List[Dict[str, Any]],
-        security_events: List[Dict[str, Any]]
+        security_events: List[Dict[str, Any]],
     ) -> Dict[str, Any]:
         """
         Create comprehensive D3FEND dataset from multiple sources
@@ -342,7 +334,7 @@ class D3FENDOntologyExporter:
                 "xsd": self.XSD_NS,
                 "dc": self.DC_NS,
             },
-            "@graph": []
+            "@graph": [],
         }
 
         # Export webhook events
@@ -351,29 +343,26 @@ class D3FENDOntologyExporter:
 
         # Export compliance checks
         for check in compliance_checks:
-            techniques = [
-                D3FENDTechnique.ASSET_INVENTORY,
-                D3FENDTechnique.SYSTEM_MAPPING
-            ]
+            techniques = [D3FENDTechnique.ASSET_INVENTORY, D3FENDTechnique.SYSTEM_MAPPING]
             graph["@graph"].append(
                 self.export_compliance_check_jsonld(
-                    check_id=check['check_id'],
-                    control_id=check['control_id'],
-                    status=check['status'],
+                    check_id=check["check_id"],
+                    control_id=check["control_id"],
+                    status=check["status"],
                     techniques=techniques,
-                    evidence=check.get('evidence', [])
+                    evidence=check.get("evidence", []),
                 )
             )
 
         # Export security events
         for event in security_events:
-            techniques = event.get('d3fend_techniques', [D3FENDTechnique.NETWORK_TRAFFIC_ANALYSIS])
+            techniques = event.get("d3fend_techniques", [D3FENDTechnique.NETWORK_TRAFFIC_ANALYSIS])
             graph["@graph"].append(
                 self.export_security_event_jsonld(
-                    event_type=event['type'],
-                    event_data=event['data'],
+                    event_type=event["type"],
+                    event_data=event["data"],
                     techniques=techniques,
-                    artifact_type=event.get('artifact_type', 'DigitalEvent')
+                    artifact_type=event.get("artifact_type", "DigitalEvent"),
                 )
             )
 
@@ -391,7 +380,7 @@ if __name__ == "__main__":
         "event_type": "api.request.completed",
         "endpoint": "https://api.catalytic-computing.com/v1/data",
         "duration": 0.145,
-        "status": "success"
+        "status": "success",
     }
 
     # Export as JSON-LD
@@ -399,14 +388,14 @@ if __name__ == "__main__":
     print("JSON-LD Export:")
     print(json.dumps(jsonld, indent=2))
 
-    print("\n" + "="*70 + "\n")
+    print("\n" + "=" * 70 + "\n")
 
     # Export as RDF/XML
     rdf_xml = exporter.export_to_rdf_xml(jsonld)
     print("RDF/XML Export:")
     print(rdf_xml)
 
-    print("\n" + "="*70 + "\n")
+    print("\n" + "=" * 70 + "\n")
 
     # Export as Turtle
     turtle = exporter.export_to_turtle(jsonld)

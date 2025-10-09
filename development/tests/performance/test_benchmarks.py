@@ -24,7 +24,7 @@ class TestGPUPerformanceBenchmarks:
         if not torch.cuda.is_available():
             pytest.skip("GPU not available")
 
-        device = torch.device('cuda:0')
+        device = torch.device("cuda:0")
 
         def matrix_operations():
             a = torch.randn(2048, 2048, device=device)
@@ -68,7 +68,7 @@ class TestGPUPerformanceBenchmarks:
         if not torch.cuda.is_available():
             pytest.skip("GPU not available")
 
-        device = torch.device('cuda:0')
+        device = torch.device("cuda:0")
         cpu_data = torch.randn(1000, 1000)
 
         def memory_transfer():
@@ -131,7 +131,9 @@ class TestCatalyticPerformanceBenchmarks:
             efficiency_ratio = benchmark(measure_memory_efficiency)
 
             # Should achieve significant memory reduction
-            assert efficiency_ratio > 100, f"Memory efficiency should be >100x, got {efficiency_ratio:.1f}x"
+            assert efficiency_ratio > 100, (
+                f"Memory efficiency should be >100x, got {efficiency_ratio:.1f}x"
+            )
 
         except ImportError:
             pytest.skip("Catalytic module not available")
@@ -151,10 +153,11 @@ class TestScalabilityBenchmarks:
             times = []
 
             for size in sizes:
+
                 def create_and_process():
                     lattice = CatalyticLattice(dimensions=3, size=size)
                     start = (0, 0, 0)
-                    end = (size-1, size-1, size-1)
+                    end = (size - 1, size - 1, size - 1)
                     return lattice.find_shortest_path(start, end)
 
                 # Time the operation
@@ -168,8 +171,10 @@ class TestScalabilityBenchmarks:
             # Check that scaling is reasonable (not exponential)
             # Time should not increase exponentially with size
             for i in range(1, len(times)):
-                scaling_factor = times[i] / times[i-1]
-                assert scaling_factor < 10, f"Scaling factor {scaling_factor:.2f} too high between sizes {sizes[i-1]} and {sizes[i]}"
+                scaling_factor = times[i] / times[i - 1]
+                assert scaling_factor < 10, (
+                    f"Scaling factor {scaling_factor:.2f} too high between sizes {sizes[i - 1]} and {sizes[i]}"
+                )
 
         except ImportError:
             pytest.skip("Catalytic module not available")
@@ -184,7 +189,7 @@ class TestScalabilityBenchmarks:
         if not torch.cuda.is_available():
             pytest.skip("GPU not available")
 
-        device = torch.device('cuda:0')
+        device = torch.device("cuda:0")
 
         def test_large_matrices():
             # Test progressively larger matrices
@@ -210,7 +215,9 @@ class TestScalabilityBenchmarks:
         max_size = benchmark(test_large_matrices)
 
         # Should handle at least 1024x1024 matrices
-        assert max_size >= 1024, f"Should handle at least 1024x1024 matrices, max was {max_size}x{max_size}"
+        assert max_size >= 1024, (
+            f"Should handle at least 1024x1024 matrices, max was {max_size}x{max_size}"
+        )
 
 
 class TestComparisonBenchmarks:
@@ -230,10 +237,10 @@ class TestComparisonBenchmarks:
 
         # Benchmark CPU operation
         cpu_result = benchmark(cpu_operation)
-        cpu_time = benchmark.stats.get('mean', 0)
+        cpu_time = benchmark.stats.get("mean", 0)
 
         if torch.cuda.is_available():
-            device = torch.device('cuda:0')
+            device = torch.device("cuda:0")
             a_gpu = a_cpu.to(device)
             b_gpu = b_cpu.to(device)
 
@@ -268,7 +275,7 @@ class TestComparisonBenchmarks:
                 return lattice.find_shortest_path(start, end)
 
             catalytic_result = benchmark(catalytic_approach)
-            catalytic_time = benchmark.stats.get('mean', 0)
+            catalytic_time = benchmark.stats.get("mean", 0)
 
             # Compare with traditional approach (if available)
             try:
@@ -290,7 +297,9 @@ class TestComparisonBenchmarks:
                 if traditional_time > 0:
                     speedup = traditional_time / catalytic_time
                     # Note: For small problems, speedup might not be dramatic
-                    assert speedup > 0.1, f"Catalytic approach should be competitive, got {speedup:.2f}x"
+                    assert speedup > 0.1, (
+                        f"Catalytic approach should be competitive, got {speedup:.2f}x"
+                    )
 
             except ImportError:
                 pass  # NetworkX not available for comparison

@@ -5,11 +5,12 @@ Setup CUDA environment and test GPU acceleration
 
 import os
 
+
 def setup_cuda_environment():
     """Configure CUDA environment for CuPy"""
-    print("="*60)
+    print("=" * 60)
     print("    CUDA ENVIRONMENT SETUP")
-    print("="*60)
+    print("=" * 60)
 
     # Common CUDA installation paths
     cuda_paths = [
@@ -17,7 +18,7 @@ def setup_cuda_environment():
         r"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.7",
         r"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.0",
         r"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.8",
-        r"C:\Program Files\NVIDIA Corporation\CUDA"
+        r"C:\Program Files\NVIDIA Corporation\CUDA",
     ]
 
     # Find installed CUDA version
@@ -37,25 +38,25 @@ def setup_cuda_environment():
     lib_path = os.path.join(cuda_path, "lib", "x64")
 
     # Update PATH
-    current_path = os.environ.get('PATH', '')
+    current_path = os.environ.get("PATH", "")
     if bin_path not in current_path:
-        os.environ['PATH'] = f"{bin_path};{lib_path};{current_path}"
+        os.environ["PATH"] = f"{bin_path};{lib_path};{current_path}"
         print(f"Added to PATH: {bin_path}")
         print(f"Added to PATH: {lib_path}")
 
     # Set CUDA environment variables
-    os.environ['CUDA_PATH'] = cuda_path
-    os.environ['CUDA_HOME'] = cuda_path
-    os.environ['CUDNN_PATH'] = cuda_path
+    os.environ["CUDA_PATH"] = cuda_path
+    os.environ["CUDA_HOME"] = cuda_path
+    os.environ["CUDNN_PATH"] = cuda_path
 
     print(f"Set CUDA_PATH: {cuda_path}")
 
     # List available CUDA libraries
     print("\nAvailable CUDA libraries:")
     if os.path.exists(bin_path):
-        dll_files = [f for f in os.listdir(bin_path) if f.endswith('.dll')]
-        nvrtc_files = [f for f in dll_files if 'nvrtc' in f.lower()]
-        cudart_files = [f for f in dll_files if 'cudart' in f.lower()]
+        dll_files = [f for f in os.listdir(bin_path) if f.endswith(".dll")]
+        nvrtc_files = [f for f in dll_files if "nvrtc" in f.lower()]
+        cudart_files = [f for f in dll_files if "cudart" in f.lower()]
 
         if nvrtc_files:
             print(f"  NVRTC: {', '.join(nvrtc_files[:3])}")
@@ -64,11 +65,12 @@ def setup_cuda_environment():
 
     return True
 
+
 def test_gpu_with_numba():
     """Test GPU using Numba instead of CuPy"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("    NUMBA GPU TEST")
-    print("="*60)
+    print("=" * 60)
 
     try:
         from numba import cuda
@@ -127,7 +129,7 @@ def test_gpu_with_numba():
         print(f"\nVector addition ({size:,} elements):")
         print(f"  GPU: {gpu_time:.3f}ms")
         print(f"  CPU: {cpu_time:.3f}ms")
-        print(f"  Speedup: {cpu_time/gpu_time:.2f}x")
+        print(f"  Speedup: {cpu_time / gpu_time:.2f}x")
         print(f"  Result verified: {np.allclose(c, c_cpu)}")
 
         # Test XOR transform with Numba
@@ -167,7 +169,7 @@ def test_gpu_with_numba():
         print("\nCatalytic XOR Transform:")
         print(f"  GPU: {gpu_xor_time:.3f}ms")
         print(f"  CPU: {cpu_xor_time:.3f}ms")
-        print(f"  Speedup: {cpu_xor_time/gpu_xor_time:.2f}x")
+        print(f"  Speedup: {cpu_xor_time / gpu_xor_time:.2f}x")
         print(f"  Results match: {np.array_equal(result_gpu, result_cpu)}")
 
         print("\nGPU Acceleration with Numba: SUCCESSFUL")
@@ -176,8 +178,10 @@ def test_gpu_with_numba():
     except Exception as e:
         print(f"Numba GPU test failed: {e}")
         import traceback
+
         traceback.print_exc()
         return False
+
 
 def main():
     """Main setup and test"""
@@ -189,9 +193,9 @@ def main():
 
     # Test with Numba (more reliable than CuPy for version mismatches)
     if test_gpu_with_numba():
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("    GPU ACCELERATION STATUS")
-        print("="*60)
+        print("=" * 60)
         print("✅ CUDA Environment: CONFIGURED")
         print("✅ GPU Device: DETECTED")
         print("✅ Numba CUDA: OPERATIONAL")
@@ -204,6 +208,7 @@ def main():
     else:
         print("\nGPU acceleration needs additional configuration")
         return False
+
 
 if __name__ == "__main__":
     success = main()

@@ -14,8 +14,9 @@ from datetime import datetime
 app = FastAPI(
     title="GhidraSimilarity API",
     description="GPU-accelerated binary function similarity analysis",
-    version="1.0.0"
+    version="1.0.0",
 )
+
 
 # Simple similarity model (demo version)
 class SimpleSimilarityEncoder(nn.Module):
@@ -33,10 +34,12 @@ class SimpleSimilarityEncoder(nn.Module):
         projected = self.projection(hidden.squeeze(0))
         return nn.functional.normalize(projected, p=2, dim=1)
 
+
 # Global model (loaded on startup)
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = SimpleSimilarityEncoder().to(device)
 model.eval()
+
 
 # Request/Response models
 class SimilarityRequest(BaseModel):
@@ -44,15 +47,18 @@ class SimilarityRequest(BaseModel):
     instructions: List[str]
     top_k: int = 10
 
+
 class SimilarityMatch(BaseModel):
     function_name: str
     similarity_score: float
+
 
 class SimilarityResponse(BaseModel):
     query_function: str
     similar_functions: List[SimilarityMatch]
     gpu_used: bool
     inference_time_ms: float
+
 
 @app.get("/")
 async def root():
@@ -61,8 +67,9 @@ async def root():
         "version": "1.0.0",
         "gpu_available": torch.cuda.is_available(),
         "gpu_name": torch.cuda.get_device_name(0) if torch.cuda.is_available() else "N/A",
-        "cuda_version": torch.version.cuda if torch.cuda.is_available() else "N/A"
+        "cuda_version": torch.version.cuda if torch.cuda.is_available() else "N/A",
     }
+
 
 @app.get("/health")
 async def health():
@@ -71,8 +78,9 @@ async def health():
     return {
         "status": "healthy" if gpu_ok else "degraded",
         "gpu_available": gpu_ok,
-        "timestamp": datetime.now().isoformat()
+        "timestamp": datetime.now().isoformat(),
     }
+
 
 @app.get("/metrics")
 async def metrics():
@@ -100,12 +108,14 @@ ghidra_similarity_gpu_memory_total_gb {gpu_memory_total:.2f}
 
     return metrics_text
 
+
 @app.post("/api/similarity", response_model=SimilarityResponse)
 async def compute_similarity(request: SimilarityRequest):
     """Compute function similarity using GPU acceleration."""
 
     try:
         import time
+
         start_time = time.time()
 
         # Simple tokenization (demo - in production use proper assembly tokenizer)
@@ -122,7 +132,7 @@ async def compute_similarity(request: SimilarityRequest):
 
         # Mock database lookup (in production, compare against real function database)
         mock_results = [
-            SimilarityMatch(function_name=f"similar_func_{i}", similarity_score=0.95 - i*0.05)
+            SimilarityMatch(function_name=f"similar_func_{i}", similarity_score=0.95 - i * 0.05)
             for i in range(request.top_k)
         ]
 
@@ -132,11 +142,12 @@ async def compute_similarity(request: SimilarityRequest):
             query_function=request.function_name,
             similar_functions=mock_results,
             gpu_used=torch.cuda.is_available(),
-            inference_time_ms=inference_time
+            inference_time_ms=inference_time,
         )
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Inference error: {str(e)}")
+
 
 if __name__ == "__main__":
     import uvicorn

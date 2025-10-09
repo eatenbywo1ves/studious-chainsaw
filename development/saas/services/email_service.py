@@ -25,8 +25,10 @@ class EmailService:
         self.aws_ses_available = self._check_aws_ses()
         self.smtp_available = self._check_smtp()
 
-        logger.info(f"Email service initialized: SendGrid={self.sendgrid_available}, "
-                   f"AWS SES={self.aws_ses_available}, SMTP={self.smtp_available}")
+        logger.info(
+            f"Email service initialized: SendGrid={self.sendgrid_available}, "
+            f"AWS SES={self.aws_ses_available}, SMTP={self.smtp_available}"
+        )
 
     def _check_sendgrid(self) -> bool:
         """Check if SendGrid is configured"""
@@ -51,7 +53,7 @@ class EmailService:
         to_emails: List[str],
         subject: str,
         html_content: str,
-        text_content: Optional[str] = None
+        text_content: Optional[str] = None,
     ) -> bool:
         """
         Send email using first available provider with automatic failover
@@ -96,11 +98,7 @@ class EmailService:
         return False
 
     def _send_via_sendgrid(
-        self,
-        to_emails: List[str],
-        subject: str,
-        html_content: str,
-        text_content: Optional[str]
+        self, to_emails: List[str], subject: str, html_content: str, text_content: Optional[str]
     ) -> bool:
         """Send email via SendGrid"""
         try:
@@ -113,7 +111,7 @@ class EmailService:
                 from_email=(self.from_email, self.from_name),
                 to_emails=to_emails,
                 subject=subject,
-                html_content=html_content
+                html_content=html_content,
             )
 
             if text_content:
@@ -130,11 +128,7 @@ class EmailService:
             raise
 
     def _send_via_aws_ses(
-        self,
-        to_emails: List[str],
-        subject: str,
-        html_content: str,
-        text_content: Optional[str]
+        self, to_emails: List[str], subject: str, html_content: str, text_content: Optional[str]
     ) -> bool:
         """Send email via AWS SES"""
         try:
@@ -146,38 +140,24 @@ class EmailService:
             region = os.getenv("AWS_REGION", "us-east-1")
 
             ses_client = boto3.client(
-                'ses',
+                "ses",
                 region_name=region,
                 aws_access_key_id=access_key,
-                aws_secret_access_key=secret_key
+                aws_secret_access_key=secret_key,
             )
 
-            body_config = {
-                'Html': {
-                    'Data': html_content,
-                    'Charset': 'UTF-8'
-                }
-            }
+            body_config = {"Html": {"Data": html_content, "Charset": "UTF-8"}}
 
             if text_content:
-                body_config['Text'] = {
-                    'Data': text_content,
-                    'Charset': 'UTF-8'
-                }
+                body_config["Text"] = {"Data": text_content, "Charset": "UTF-8"}
 
             response = ses_client.send_email(
                 Source=self.from_email,
-                Destination={'ToAddresses': to_emails},
-                Message={
-                    'Subject': {
-                        'Data': subject,
-                        'Charset': 'UTF-8'
-                    },
-                    'Body': body_config
-                }
+                Destination={"ToAddresses": to_emails},
+                Message={"Subject": {"Data": subject, "Charset": "UTF-8"}, "Body": body_config},
             )
 
-            return 'MessageId' in response
+            return "MessageId" in response
 
         except ImportError:
             logger.error("Boto3 package not installed: pip install boto3")
@@ -188,11 +168,7 @@ class EmailService:
             raise
 
     def _send_via_smtp(
-        self,
-        to_emails: List[str],
-        subject: str,
-        html_content: str,
-        text_content: Optional[str]
+        self, to_emails: List[str], subject: str, html_content: str, text_content: Optional[str]
     ) -> bool:
         """Send email via SMTP (Gmail, etc.)"""
         import smtplib
@@ -204,14 +180,14 @@ class EmailService:
         smtp_username = os.getenv("SMTP_USERNAME")
         smtp_password = os.getenv("SMTP_PASSWORD")
 
-        msg = MIMEMultipart('alternative')
-        msg['Subject'] = subject
-        msg['From'] = f"{self.from_name} <{self.from_email}>"
-        msg['To'] = ", ".join(to_emails)
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject
+        msg["From"] = f"{self.from_name} <{self.from_email}>"
+        msg["To"] = ", ".join(to_emails)
 
         if text_content:
-            msg.attach(MIMEText(text_content, 'plain'))
-        msg.attach(MIMEText(html_content, 'html'))
+            msg.attach(MIMEText(text_content, "plain"))
+        msg.attach(MIMEText(html_content, "html"))
 
         with smtplib.SMTP(smtp_host, smtp_port) as server:
             server.starttls()

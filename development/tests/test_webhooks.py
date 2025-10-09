@@ -6,11 +6,12 @@ Verifies basic functionality
 import time
 from webhook_system import WebhookManager
 
+
 def test_basic_webhook():
     """Test basic webhook functionality"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("WEBHOOK SYSTEM TEST")
-    print("="*60)
+    print("=" * 60)
 
     # Initialize webhook manager
     manager = WebhookManager(db_path="test_webhooks.db")
@@ -24,7 +25,7 @@ def test_basic_webhook():
             url="https://httpbin.org/post",
             events=["test.event", "data.created"],
             secret="test-secret-key",
-            headers={"X-Test-Header": "test-value"}
+            headers={"X-Test-Header": "test-value"},
         )
 
         print(f"   [OK] Registered webhook: {webhook_id}")
@@ -39,6 +40,7 @@ def test_basic_webhook():
 
         # Add local event handler to track events
         received_events = []
+
         def track_event(payload):
             received_events.append(payload)
             print(f"   [OK] Local handler received: {payload.event}")
@@ -49,7 +51,7 @@ def test_basic_webhook():
         manager.trigger_event(
             event="test.event",
             data={"message": "Hello, webhooks!", "id": 123},
-            metadata={"test": True}
+            metadata={"test": True},
         )
 
         # Wait for processing
@@ -75,10 +77,9 @@ def test_basic_webhook():
         print("\n[4] Testing webhook update...")
 
         # Update webhook
-        manager.registry.update_webhook(webhook_id, {
-            "events": ["test.event", "data.created", "data.updated"],
-            "retry_count": 5
-        })
+        manager.registry.update_webhook(
+            webhook_id, {"events": ["test.event", "data.created", "data.updated"], "retry_count": 5}
+        )
 
         updated_webhook = manager.registry.webhooks[webhook_id]
         assert len(updated_webhook.events) == 3
@@ -89,16 +90,11 @@ def test_basic_webhook():
 
         # Register second webhook
         manager.register_webhook(
-            url="https://httpbin.org/status/200",
-            events=["data.created"],
-            retry_count=1
+            url="https://httpbin.org/status/200", events=["data.created"], retry_count=1
         )
 
         # Trigger event that both webhooks listen to
-        manager.trigger_event(
-            event="data.created",
-            data={"item": "test", "value": 42}
-        )
+        manager.trigger_event(event="data.created", data={"item": "test", "value": 42})
 
         # Check both webhooks received event
         matching_webhooks = manager.registry.get_webhooks_for_event("data.created")
@@ -122,7 +118,7 @@ def test_basic_webhook():
         webhook_id3 = manager.register_webhook(
             url="https://httpbin.org/anything",
             events=["*"],  # Subscribe to all events
-            metadata={"type": "catch-all"}
+            metadata={"type": "catch-all"},
         )
 
         # Trigger various events
@@ -133,9 +129,9 @@ def test_basic_webhook():
 
         print("   [OK] Wildcard subscription working")
 
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("ALL TESTS PASSED [OK]")
-        print("="*60)
+        print("=" * 60)
 
         return True
 
@@ -146,6 +142,7 @@ def test_basic_webhook():
     except Exception as e:
         print(f"\n[ERROR] Unexpected error: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
@@ -163,9 +160,7 @@ def test_webhook_persistence():
     manager1.start()
 
     webhook_id = manager1.register_webhook(
-        url="https://example.com/webhook",
-        events=["persistent.event"],
-        secret="persistent-secret"
+        url="https://example.com/webhook", events=["persistent.event"], secret="persistent-secret"
     )
 
     print(f"   Registered webhook: {webhook_id}")
@@ -187,6 +182,7 @@ def test_webhook_persistence():
 
     # Clean up
     import os
+
     if os.path.exists("test_persist.db"):
         os.remove("test_persist.db")
 
@@ -202,6 +198,7 @@ if __name__ == "__main__":
 
     # Clean up test databases
     import os
+
     for db_file in ["test_webhooks.db", "test_persist.db"]:
         if os.path.exists(db_file):
             os.remove(db_file)

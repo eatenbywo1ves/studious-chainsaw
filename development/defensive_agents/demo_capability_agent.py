@@ -4,7 +4,8 @@ Tests actual NVIDIA Container Toolkit deployment
 """
 
 import sys
-sys.path.append('C:/Users/Corbin/development/defensive_agents')
+
+sys.path.append("C:/Users/Corbin/development/defensive_agents")
 
 from agent_framework import CapabilityMonitorAgent, AgentAction
 import docker
@@ -32,7 +33,7 @@ def main():
 
     # Test each container
     for container in containers:
-        if 'ghidra-ml' not in container.name:
+        if "ghidra-ml" not in container.name:
             continue  # Only test our containers
 
         print("-" * 70)
@@ -73,7 +74,7 @@ def main():
 
     print("\n[Test 1] Checking ML Container Capabilities")
     try:
-        ml_container = client.containers.get('ghidra-ml-similarity')
+        ml_container = client.containers.get("ghidra-ml-similarity")
         state = agent.perceive(ml_container.id)
 
         print(f"  Capabilities Added: {state.data['cap_add']}")
@@ -95,7 +96,7 @@ def main():
 
     print("\n[Test 2] Checking GPU Exporter Capabilities")
     try:
-        gpu_container = client.containers.get('ghidra-ml-gpu-exporter')
+        gpu_container = client.containers.get("ghidra-ml-gpu-exporter")
         state = agent.perceive(gpu_container.id)
 
         print(f"  Capabilities Added: {state.data['cap_add']}")

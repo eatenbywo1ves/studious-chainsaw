@@ -19,16 +19,18 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 # Initialize CUDA first
 from libs.gpu.cuda_init import initialize_cuda_environment
+
 initialize_cuda_environment(verbose=True)
 
 from apps.catalytic.core.unified_lattice import UnifiedCatalyticLattice
 
+
 def test_lattice_with_mode(enable_gpu: bool, iterations: int = 5):
     """Test lattice operations with or without GPU"""
     mode = "GPU" if enable_gpu else "CPU"
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print(f"TESTING {mode} MODE")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
 
     # Test 1: Lattice Creation
     print(f"\n[Test 1] Lattice Creation ({mode})")
@@ -73,15 +75,16 @@ def test_lattice_with_mode(enable_gpu: bool, iterations: int = 5):
     print(f"  Path length: {len(path)} vertices")
 
     return {
-        'lattice_creation_ms': sum(lattice_times) / len(lattice_times),
-        'xor_transform_ms': avg_xor,
-        'shortest_path_ms': avg_path
+        "lattice_creation_ms": sum(lattice_times) / len(lattice_times),
+        "xor_transform_ms": avg_xor,
+        "shortest_path_ms": avg_path,
     }
 
+
 def main():
-    print("="*70)
+    print("=" * 70)
     print("KA LATTICE GPU-ACCELERATED TEST SUITE")
-    print("="*70)
+    print("=" * 70)
 
     # Run CPU tests
     cpu_results = test_lattice_with_mode(enable_gpu=False, iterations=5)
@@ -90,14 +93,14 @@ def main():
     gpu_results = test_lattice_with_mode(enable_gpu=True, iterations=5)
 
     # Calculate speedups
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("PERFORMANCE COMPARISON SUMMARY")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
 
     operations = [
-        ('Lattice Creation', 'lattice_creation_ms'),
-        ('XOR Transform', 'xor_transform_ms'),
-        ('Shortest Path', 'shortest_path_ms')
+        ("Lattice Creation", "lattice_creation_ms"),
+        ("XOR Transform", "xor_transform_ms"),
+        ("Shortest Path", "shortest_path_ms"),
     ]
 
     print(f"\n{'Operation':<20} {'CPU (ms)':<12} {'GPU (ms)':<12} {'Speedup':<10}")
@@ -110,9 +113,10 @@ def main():
 
         print(f"{op_name:<20} {cpu_time:>10.2f}  {gpu_time:>10.2f}  {speedup:>8.2f}x")
 
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("[OK] ALL GPU TESTS PASSED - GPU ACCELERATION ENABLED!")
-    print("="*70)
+    print("=" * 70)
+
 
 if __name__ == "__main__":
     try:
@@ -120,5 +124,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\n[FAIL] Test failed: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)

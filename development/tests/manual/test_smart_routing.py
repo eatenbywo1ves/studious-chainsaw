@@ -20,21 +20,22 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 # Initialize CUDA first
 from libs.gpu.cuda_init import initialize_cuda_environment
+
 initialize_cuda_environment(verbose=True)
 
 from apps.catalytic.core.unified_lattice import UnifiedCatalyticLattice
 from apps.catalytic.gpu.operation_router import get_operation_analyzer, OperationType
 
 # Set up logging to see routing decisions
-logging.basicConfig(level=logging.DEBUG, format='%(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.DEBUG, format="%(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 
 def test_operation_analyzer():
     """Test the operation analyzer routing logic"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 1: Operation Analyzer Routing Logic")
-    print("="*70)
+    print("=" * 70)
 
     analyzer = get_operation_analyzer()
 
@@ -45,13 +46,20 @@ def test_operation_analyzer():
         (OperationType.TRANSFORM, 5, False, "Small transform CPU (high overhead)"),
         (OperationType.TRANSFORM, 10000, False, "Medium transform still CPU (poor speedup)"),
         (OperationType.MATRIX_MULTIPLY, 100, False, "Small matrix CPU"),
-        (OperationType.MATRIX_MULTIPLY, 1024*1024, True, "Large matrix GPU (21x speedup)"),
-        (OperationType.RANDOM_GENERATION, 10000*10000, True, "Large random gen GPU"),
+        (OperationType.MATRIX_MULTIPLY, 1024 * 1024, True, "Large matrix GPU (21x speedup)"),
+        (OperationType.RANDOM_GENERATION, 10000 * 10000, True, "Large random gen GPU"),
         (OperationType.LATTICE_CREATION, 1000, False, "Small lattice CPU"),
-        (OperationType.LATTICE_CREATION, 100000, False, "Large lattice CPU (marginal 1.19x speedup)"),
+        (
+            OperationType.LATTICE_CREATION,
+            100000,
+            False,
+            "Large lattice CPU (marginal 1.19x speedup)",
+        ),
     ]
 
-    print(f"\n{'Operation':<25} {'Elements':<12} {'Expected':<10} {'Actual':<10} {'Status':<8} Reason")
+    print(
+        f"\n{'Operation':<25} {'Elements':<12} {'Expected':<10} {'Actual':<10} {'Status':<8} Reason"
+    )
     print("-" * 120)
 
     passed = 0
@@ -59,9 +67,7 @@ def test_operation_analyzer():
 
     for op_type, element_count, expected_gpu, description in test_cases:
         use_gpu, reason = analyzer.route_operation(
-            operation_type=op_type,
-            element_count=element_count,
-            gpu_available=True
+            operation_type=op_type, element_count=element_count, gpu_available=True
         )
 
         status = "PASS" if use_gpu == expected_gpu else "FAIL"
@@ -73,7 +79,9 @@ def test_operation_analyzer():
         expected_str = "GPU" if expected_gpu else "CPU"
         actual_str = "GPU" if use_gpu else "CPU"
 
-        print(f"{description:<25} {element_count:>10}  {expected_str:<10} {actual_str:<10} {status:<8} {reason[:60]}")
+        print(
+            f"{description:<25} {element_count:>10}  {expected_str:<10} {actual_str:<10} {status:<8} {reason[:60]}"
+        )
 
     print("-" * 120)
     print(f"Results: {passed} passed, {failed} failed")
@@ -83,17 +91,14 @@ def test_operation_analyzer():
 
 def test_smart_routing_integration():
     """Test smart routing integration in UnifiedCatalyticLattice"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 2: Smart Routing Integration")
-    print("="*70)
+    print("=" * 70)
 
     # Create lattice WITH smart routing
     print("\nCreating lattice with smart routing enabled...")
     lattice_smart = UnifiedCatalyticLattice(
-        dimensions=4,
-        size=10,
-        enable_gpu=True,
-        enable_smart_routing=True
+        dimensions=4, size=10, enable_gpu=True, enable_smart_routing=True
     )
     lattice_smart.build_lattice()
 
@@ -132,25 +137,24 @@ def test_smart_routing_integration():
 
 def test_routing_performance_comparison():
     """Compare performance with and without smart routing"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 3: Performance Comparison (Smart Routing vs Naive)")
-    print("="*70)
+    print("=" * 70)
 
     iterations = 5
 
     # Create two lattices: one with smart routing, one without
     print("\nCreating lattices...")
     lattice_smart = UnifiedCatalyticLattice(
-        dimensions=4, size=10,
-        enable_gpu=True,
-        enable_smart_routing=True
+        dimensions=4, size=10, enable_gpu=True, enable_smart_routing=True
     )
     lattice_smart.build_lattice()
 
     lattice_naive = UnifiedCatalyticLattice(
-        dimensions=4, size=10,
+        dimensions=4,
+        size=10,
         enable_gpu=True,
-        enable_smart_routing=False  # Always tries GPU first
+        enable_smart_routing=False,  # Always tries GPU first
     )
     lattice_naive.build_lattice()
 
@@ -183,7 +187,7 @@ def test_routing_performance_comparison():
         print("  Result: Similar performance (both use CPU)")
     else:
         print(f"  Improvement: {improvement:.1f}% {'faster' if improvement > 0 else 'slower'}")
-    results['xor_small'] = improvement
+    results["xor_small"] = improvement
 
     # Test 2: Shortest Path (Graph algorithm)
     print("\n[Test 3.2] Shortest Path (10K vertices)")
@@ -216,7 +220,7 @@ def test_routing_performance_comparison():
     print(f"  Smart routing: {avg_smart:.2f}ms")
     print(f"  Naive routing: {avg_naive:.2f}ms")
     print(f"  Improvement: {improvement:.1f}% (routing overhead < 1ms)")
-    results['path_finding'] = improvement
+    results["path_finding"] = improvement
 
     # Summary
     print("\n" + "-" * 70)
@@ -231,16 +235,16 @@ def test_routing_performance_comparison():
 
 def test_routing_overhead():
     """Measure routing decision overhead"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 4: Routing Decision Overhead")
-    print("="*70)
+    print("=" * 70)
 
     analyzer = get_operation_analyzer()
     iterations = 1000
 
     test_operations = [
         (OperationType.TRANSFORM, 100),
-        (OperationType.MATRIX_MULTIPLY, 1024*1024),
+        (OperationType.MATRIX_MULTIPLY, 1024 * 1024),
         (OperationType.GRAPH_ALGORITHM, 10000),
     ]
 
@@ -252,23 +256,23 @@ def test_routing_overhead():
         start = time.time()
         for _ in range(iterations):
             _, _ = analyzer.route_operation(
-                operation_type=op_type,
-                element_count=element_count,
-                gpu_available=True
+                operation_type=op_type, element_count=element_count, gpu_available=True
             )
         total_time_ms = (time.time() - start) * 1000
         per_call_us = (total_time_ms / iterations) * 1000
 
-        print(f"{op_type.value:<30} {element_count:>13}  {total_time_ms:>13.2f}  {per_call_us:>13.2f}")
+        print(
+            f"{op_type.value:<30} {element_count:>13}  {total_time_ms:>13.2f}  {per_call_us:>13.2f}"
+        )
 
     print("\n[OK] Routing overhead is negligible (<0.01ms per decision)")
     return True
 
 
 def main():
-    print("="*70)
+    print("=" * 70)
     print("SMART OPERATION ROUTING TEST SUITE")
-    print("="*70)
+    print("=" * 70)
 
     all_passed = True
 
@@ -293,9 +297,9 @@ def main():
         all_passed = all_passed and test4
 
         # Final summary
-        print("\n" + "="*70)
+        print("\n" + "=" * 70)
         print("TEST SUITE SUMMARY")
-        print("="*70)
+        print("=" * 70)
         if all_passed:
             print("[SUCCESS] ALL TESTS PASSED - Smart routing working correctly!")
             print("\nKey Benefits:")
@@ -305,13 +309,14 @@ def main():
             print("  - Routing overhead negligible (<0.01ms)")
         else:
             print("[FAILURE] SOME TESTS FAILED - Review output above")
-        print("="*70)
+        print("=" * 70)
 
         return 0 if all_passed else 1
 
     except Exception as e:
         print(f"\n[FAILURE] Test suite failed with error: {e}")
         import traceback
+
         traceback.print_exc()
         return 1
 

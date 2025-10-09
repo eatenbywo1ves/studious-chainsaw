@@ -12,12 +12,9 @@ from security.application.database_encryption import (
     get_encryption_manager,
     encrypt_sensitive_metadata,
     decrypt_sensitive_metadata,
-    generate_encryption_key
+    generate_encryption_key,
 )
-from security.application.encrypted_types import (
-    EncryptedString,
-    EncryptedJSON
-)
+from security.application.encrypted_types import EncryptedString, EncryptedJSON
 
 
 class TestDatabaseEncryption:
@@ -54,7 +51,7 @@ class TestDatabaseEncryption:
         encrypted = encryption.encrypt_field(plaintext)
 
         assert encrypted != plaintext
-        assert encrypted.startswith('gAAAAA')  # Fernet token format
+        assert encrypted.startswith("gAAAAA")  # Fernet token format
 
         # Test decryption
         decrypted = encryption.decrypt_field(encrypted)
@@ -80,7 +77,7 @@ class TestDatabaseEncryption:
         data = {
             "public_field": "visible",
             "sensitive_field": "secret_123",
-            "another_public": "data"
+            "another_public": "data",
         }
 
         # Encrypt only sensitive_field
@@ -89,7 +86,7 @@ class TestDatabaseEncryption:
         assert encrypted_data["public_field"] == "visible"
         assert encrypted_data["another_public"] == "data"
         assert encrypted_data["sensitive_field"] != "secret_123"
-        assert encrypted_data["sensitive_field"].startswith('gAAAAA')
+        assert encrypted_data["sensitive_field"].startswith("gAAAAA")
 
     def test_decrypt_dict_selective_fields(self, tmp_path):
         """Test decrypting specific fields in a dictionary"""
@@ -98,10 +95,7 @@ class TestDatabaseEncryption:
 
         encryption = DatabaseEncryption(key_path=str(key_path))
 
-        data = {
-            "public": "visible",
-            "secret": "password123"
-        }
+        data = {"public": "visible", "secret": "password123"}
 
         # Encrypt
         encrypted = encryption.encrypt_dict(data, ["secret"])
@@ -133,6 +127,7 @@ class TestEncryptedTypes:
 
         # Initialize encryption manager (reset singleton)
         import security.application.database_encryption as db_enc
+
         db_enc._encryption_manager = None
         get_encryption_manager(key_path=str(key_path))
 
@@ -143,7 +138,7 @@ class TestEncryptedTypes:
         encrypted = encrypted_type.process_bind_param(plaintext, None)
 
         assert encrypted != plaintext
-        assert encrypted.startswith('gAAAAA')
+        assert encrypted.startswith("gAAAAA")
 
         # Test result value (decryption)
         decrypted = encrypted_type.process_result_value(encrypted, None)
@@ -155,6 +150,7 @@ class TestEncryptedTypes:
         generate_encryption_key(str(key_path))
 
         import security.application.database_encryption as db_enc
+
         db_enc._encryption_manager = None
         get_encryption_manager(key_path=str(key_path))
 
@@ -170,16 +166,17 @@ class TestEncryptedTypes:
 
         # Initialize encryption manager (reset singleton)
         import security.application.database_encryption as db_enc
+
         db_enc._encryption_manager = None
         get_encryption_manager(key_path=str(key_path))
 
-        encrypted_type = EncryptedJSON(sensitive_fields=['ssn', 'credit_card'])
+        encrypted_type = EncryptedJSON(sensitive_fields=["ssn", "credit_card"])
 
         data = {
             "name": "John Doe",
             "ssn": "123-45-6789",
             "credit_card": "4111111111111111",
-            "preference": "dark_mode"
+            "preference": "dark_mode",
         }
 
         # Encrypt
@@ -211,6 +208,7 @@ class TestSensitiveMetadata:
         generate_encryption_key(str(key_path))
 
         import security.application.database_encryption as db_enc
+
         db_enc._encryption_manager = None
         get_encryption_manager(key_path=str(key_path))
 
@@ -218,7 +216,7 @@ class TestSensitiveMetadata:
             "user_preference": "dark",
             "payment_method_token": "tok_123456",
             "credit_card_last4": "1234",
-            "feature_flags": {"new_ui": True}
+            "feature_flags": {"new_ui": True},
         }
 
         encrypted = encrypt_sensitive_metadata(metadata)
@@ -237,13 +235,11 @@ class TestSensitiveMetadata:
         generate_encryption_key(str(key_path))
 
         import security.application.database_encryption as db_enc
+
         db_enc._encryption_manager = None
         get_encryption_manager(key_path=str(key_path))
 
-        metadata = {
-            "setting": "value",
-            "payment_method_token": "tok_secret"
-        }
+        metadata = {"setting": "value", "payment_method_token": "tok_secret"}
 
         encrypted = encrypt_sensitive_metadata(metadata)
         decrypted = decrypt_sensitive_metadata(encrypted)
@@ -269,7 +265,7 @@ class TestKeyGeneration:
         assert key_path.exists()
 
         # Verify key can be used for encryption
-        with open(key_path, 'rb') as f:
+        with open(key_path, "rb") as f:
             loaded_key = f.read().strip()
 
         fernet = Fernet(loaded_key)
@@ -301,6 +297,7 @@ class TestSingletonPattern:
 
         # Reset singleton
         from security.application import database_encryption
+
         database_encryption._encryption_manager = None
 
         # Get instance

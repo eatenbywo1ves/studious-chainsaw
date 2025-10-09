@@ -27,24 +27,41 @@ digraph {
 from .dot import Graph, Digraph
 from .files import Source
 from .lang import nohtml
-from .backend import (render, pipe, version, view,
-                      ENGINES, FORMATS, RENDERERS, FORMATTERS,
-                      ExecutableNotFound, RequiredArgumentError)
+from .backend import (
+    render,
+    pipe,
+    version,
+    view,
+    ENGINES,
+    FORMATS,
+    RENDERERS,
+    FORMATTERS,
+    ExecutableNotFound,
+    RequiredArgumentError,
+)
 
 __all__ = [
-    'Graph', 'Digraph',
-    'Source',
-    'nohtml',
-    'render', 'pipe', 'version', 'view',
-    'ENGINES', 'FORMATS', 'RENDERERS', 'FORMATTERS',
-    'ExecutableNotFound', 'RequiredArgumentError',
+    "Graph",
+    "Digraph",
+    "Source",
+    "nohtml",
+    "render",
+    "pipe",
+    "version",
+    "view",
+    "ENGINES",
+    "FORMATS",
+    "RENDERERS",
+    "FORMATTERS",
+    "ExecutableNotFound",
+    "RequiredArgumentError",
 ]
 
-__title__ = 'graphviz'
-__version__ = '0.12'
-__author__ = 'Sebastian Bank <sebastian.bank@uni-leipzig.de>'
-__license__ = 'MIT, see LICENSE.txt'
-__copyright__ = 'Copyright (c) 2013-2019 Sebastian Bank'
+__title__ = "graphviz"
+__version__ = "0.12"
+__author__ = "Sebastian Bank <sebastian.bank@uni-leipzig.de>"
+__license__ = "MIT, see LICENSE.txt"
+__copyright__ = "Copyright (c) 2013-2019 Sebastian Bank"
 
 #: Set of known layout commands used for rendering (``'dot'``, ``'neato'``, ...)
 ENGINES = ENGINES

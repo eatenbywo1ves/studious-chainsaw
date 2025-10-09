@@ -11,10 +11,11 @@ import time
 # Check for CUDA availability
 if not torch.cuda.is_available():
     print("WARNING: CUDA not available, falling back to CPU")
-    device = torch.device('cpu')
+    device = torch.device("cpu")
 else:
-    device = torch.device('cuda')
+    device = torch.device("cuda")
     print(f"Using GPU: {torch.cuda.get_device_name()}")
+
 
 class PyTorchCatalyticAccelerator:
     """PyTorch-based GPU acceleration for Catalytic Computing"""
@@ -201,20 +202,20 @@ class PyTorchCatalyticAccelerator:
         else:
             center_of_mass = torch.mean(points, dim=0)
 
-        results['center_of_mass'] = center_of_mass.cpu().numpy()
+        results["center_of_mass"] = center_of_mass.cpu().numpy()
 
         # Pairwise distances (efficient computation)
         distances = torch.cdist(points, points, p=2)
-        results['max_distance'] = torch.max(distances).item()
-        results['min_nonzero_distance'] = torch.min(distances[distances > 0]).item()
-        results['mean_distance'] = torch.mean(distances).item()
+        results["max_distance"] = torch.max(distances).item()
+        results["min_nonzero_distance"] = torch.min(distances[distances > 0]).item()
+        results["mean_distance"] = torch.mean(distances).item()
 
         # Lattice volume (convex hull approximation using covariance)
         centered_points = points - center_of_mass.unsqueeze(0)
         covariance = torch.mm(centered_points.T, centered_points) / (points.size(0) - 1)
         eigenvalues = torch.linalg.eigvals(covariance).real
         volume_estimate = torch.sqrt(torch.prod(eigenvalues)).item()
-        results['volume_estimate'] = volume_estimate
+        results["volume_estimate"] = volume_estimate
 
         return results
 
@@ -267,7 +268,7 @@ class PyTorchCatalyticAccelerator:
             smoothness_loss = torch.mean(torch.sum(path_diffs**2, dim=1))
 
             # End point constraint
-            endpoint_loss = torch.sum((path[-1] - end)**2)
+            endpoint_loss = torch.sum((path[-1] - end) ** 2)
 
             # Total loss
             total_loss = attraction_loss + 0.1 * smoothness_loss + 10.0 * endpoint_loss
@@ -284,9 +285,9 @@ class PyTorchCatalyticAccelerator:
 
     def benchmark(self):
         """Run comprehensive PyTorch GPU benchmark"""
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("    PYTORCH GPU ACCELERATION BENCHMARK")
-        print("="*60)
+        print("=" * 60)
 
         results = {}
 
@@ -311,9 +312,11 @@ class PyTorchCatalyticAccelerator:
             cpu_time = (time.perf_counter() - start) * 1000
 
             speedup = cpu_time / gpu_time if gpu_time > 0 else 1
-            results[f'xor_{size}'] = speedup
+            results[f"xor_{size}"] = speedup
 
-            print(f"   {size:,} elements: GPU={gpu_time:.2f}ms, CPU={cpu_time:.2f}ms, Speedup={speedup:.1f}x")
+            print(
+                f"   {size:,} elements: GPU={gpu_time:.2f}ms, CPU={cpu_time:.2f}ms, Speedup={speedup:.1f}x"
+            )
 
         # Test 2: Matrix Multiplication
         print("\n2. Matrix Multiplication:")
@@ -334,12 +337,14 @@ class PyTorchCatalyticAccelerator:
             cpu_time = (time.perf_counter() - start) * 1000
 
             speedup = cpu_time / gpu_time if gpu_time > 0 else 1
-            results[f'matmul_{size}'] = speedup
+            results[f"matmul_{size}"] = speedup
 
             # Verify correctness
             error = np.max(np.abs(C_gpu - C_cpu))
 
-            print(f"   {size}x{size}: GPU={gpu_time:.2f}ms, CPU={cpu_time:.2f}ms, Speedup={speedup:.1f}x, Error={error:.2e}")
+            print(
+                f"   {size}x{size}: GPU={gpu_time:.2f}ms, CPU={cpu_time:.2f}ms, Speedup={speedup:.1f}x, Error={error:.2e}"
+            )
 
         # Test 3: Lattice Distance Computation
         print("\n3. Lattice Distance Computation:")
@@ -357,13 +362,15 @@ class PyTorchCatalyticAccelerator:
 
             # CPU NumPy
             start = time.perf_counter()
-            np.sqrt(np.sum((coords1 - coords2)**2, axis=1))
+            np.sqrt(np.sum((coords1 - coords2) ** 2, axis=1))
             cpu_time = (time.perf_counter() - start) * 1000
 
             speedup = cpu_time / gpu_time if gpu_time > 0 else 1
-            results[f'distance_{n_points}'] = speedup
+            results[f"distance_{n_points}"] = speedup
 
-            print(f"   {n_points:,} points: GPU={gpu_time:.2f}ms, CPU={cpu_time:.2f}ms, Speedup={speedup:.1f}x")
+            print(
+                f"   {n_points:,} points: GPU={gpu_time:.2f}ms, CPU={cpu_time:.2f}ms, Speedup={speedup:.1f}x"
+            )
 
         # Test 4: Advanced Lattice Operations
         print("\n4. Advanced Lattice Operations:")
@@ -386,15 +393,16 @@ class PyTorchCatalyticAccelerator:
         else:
             avg_speedup = max_speedup = min_speedup = 1.0
 
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("    PYTORCH BENCHMARK SUMMARY")
-        print("="*60)
+        print("=" * 60)
         print(f"Average Speedup: {avg_speedup:.1f}x")
         print(f"Max Speedup: {max_speedup:.1f}x")
         print(f"Min Speedup: {min_speedup:.1f}x")
         print(f"Device: {self.device}")
 
         return results
+
 
 def main():
     """Main test function"""
@@ -429,7 +437,9 @@ def main():
         lattice_points = np.random.randn(100, 3).astype(np.float32) * 5
 
         start = time.perf_counter()
-        path = accelerator.catalytic_pathfinding(start_coords, end_coords, lattice_points, num_steps=50)
+        path = accelerator.catalytic_pathfinding(
+            start_coords, end_coords, lattice_points, num_steps=50
+        )
         pathfind_time = (time.perf_counter() - start) * 1000
 
         print(f"   Pathfinding time: {pathfind_time:.2f}ms")
@@ -437,15 +447,15 @@ def main():
         print(f"   Start: {path[0]}")
         print(f"   End: {path[-1]}")
 
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("    PYTORCH GPU ACCELERATION STATUS")
-        print("="*60)
+        print("=" * 60)
         print("✅ PyTorch: OPERATIONAL")
         print("✅ GPU Device: DETECTED" if torch.cuda.is_available() else "⚠️  CPU Mode: ACTIVE")
         print("✅ JIT Compilation: WORKING")
         print("✅ Performance: VERIFIED")
         if results:
-            print(f"✅ Average Speedup: {sum(results.values())/len(results):.1f}x")
+            print(f"✅ Average Speedup: {sum(results.values()) / len(results):.1f}x")
 
         print("\nPyTorch GPU acceleration is fully operational and ready for production!")
         return True
@@ -453,8 +463,10 @@ def main():
     except Exception as e:
         print(f"PyTorch GPU acceleration test failed: {e}")
         import traceback
+
         traceback.print_exc()
         return False
+
 
 if __name__ == "__main__":
     success = main()

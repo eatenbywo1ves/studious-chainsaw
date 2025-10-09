@@ -13,7 +13,7 @@ import requests
 import time
 
 # Add parent directories to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
 # Configuration
 PRODUCTION_URL = os.getenv("PRODUCTION_URL", "http://localhost:8000")
@@ -44,7 +44,9 @@ class TestProductionHealth:
                     print(f"Health check attempt {attempt + 1} failed: {e}")
                     time.sleep(RETRY_DELAY)
                 else:
-                    pytest.fail(f"API server health check failed after {HEALTH_CHECK_RETRIES} attempts: {e}")
+                    pytest.fail(
+                        f"API server health check failed after {HEALTH_CHECK_RETRIES} attempts: {e}"
+                    )
 
     def test_database_connection(self):
         """Verify database is accessible"""
@@ -52,7 +54,9 @@ class TestProductionHealth:
 
         try:
             response = requests.get(url, timeout=API_TIMEOUT)
-            assert response.status_code == 200, f"Database health check failed: {response.status_code}"
+            assert response.status_code == 200, (
+                f"Database health check failed: {response.status_code}"
+            )
 
             data = response.json()
             assert data.get("database") == "connected", f"Database not connected: {data}"
@@ -125,7 +129,9 @@ class TestProductionHealth:
         assert avg_response_time < 100, f"Average response time too high: {avg_response_time:.2f}ms"
         assert max_response_time < 200, f"Max response time too high: {max_response_time:.2f}ms"
 
-        print(f"✓ Response times acceptable: avg={avg_response_time:.2f}ms, max={max_response_time:.2f}ms")
+        print(
+            f"✓ Response times acceptable: avg={avg_response_time:.2f}ms, max={max_response_time:.2f}ms"
+        )
 
     def test_authentication_endpoint(self):
         """Verify authentication endpoint is accessible"""
@@ -152,7 +158,7 @@ class TestProductionHealth:
             try:
                 response = requests.get(url, timeout=1)
                 responses.append(response.status_code)
-            except:
+            except requests.exceptions.RequestException:
                 pass
 
         # Should have at least one 429 (Too Many Requests) response
@@ -161,7 +167,9 @@ class TestProductionHealth:
         if rate_limited:
             print("✓ Rate limiting active (received 429 responses)")
         else:
-            print(f"⚠ Rate limiting may not be active (no 429 responses in {len(responses)} requests)")
+            print(
+                f"⚠ Rate limiting may not be active (no 429 responses in {len(responses)} requests)"
+            )
             # Don't fail, as this might be environment-specific
 
     def test_cors_headers(self):
@@ -176,7 +184,7 @@ class TestProductionHealth:
             cors_headers = {
                 "Access-Control-Allow-Origin",
                 "Access-Control-Allow-Methods",
-                "Access-Control-Allow-Headers"
+                "Access-Control-Allow-Headers",
             }
 
             present_cors = {h for h in cors_headers if h in response.headers}
@@ -199,7 +207,7 @@ class TestProductionHealth:
                 "X-Content-Type-Options": "nosniff",
                 "X-Frame-Options": "DENY",
                 "Strict-Transport-Security": "max-age=31536000",
-                "Content-Security-Policy": None  # Just check if present
+                "Content-Security-Policy": None,  # Just check if present
             }
 
             present_headers = {}
@@ -231,8 +239,9 @@ class TestProductionHealth:
             # Should return JSON error response
             try:
                 data = response.json()
-                assert "detail" in data or "error" in data or "message" in data, \
+                assert "detail" in data or "error" in data or "message" in data, (
                     "Error response missing detail field"
+                )
                 print(f"✓ Error handling working correctly: {data}")
             except ValueError:
                 pytest.fail("Error response is not valid JSON")

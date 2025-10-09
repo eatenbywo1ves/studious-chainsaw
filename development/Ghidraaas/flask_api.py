@@ -36,6 +36,7 @@ from werkzeug.exceptions import HTTPException
 
 import coloredlogs
 import logging
+
 log = None
 
 app = Flask(__name__)
@@ -43,12 +44,12 @@ app = Flask(__name__)
 # Load configuration
 with open("config/config.json") as f_in:
     j = json.load(f_in)
-    SAMPLES_DIR = j['SAMPLES_DIR']
-    IDA_SAMPLES_DIR = j['IDA_SAMPLES_DIR']
-    GHIDRA_SCRIPT = j['GHIDRA_SCRIPT']
-    GHIDRA_OUTPUT = j['GHIDRA_OUTPUT']
-    GHIDRA_PROJECT = j['GHIDRA_PROJECT']
-    GHIDRA_PATH = j['GHIDRA_PATH']
+    SAMPLES_DIR = j["SAMPLES_DIR"]
+    IDA_SAMPLES_DIR = j["IDA_SAMPLES_DIR"]
+    GHIDRA_SCRIPT = j["GHIDRA_SCRIPT"]
+    GHIDRA_OUTPUT = j["GHIDRA_OUTPUT"]
+    GHIDRA_PROJECT = j["GHIDRA_PROJECT"]
+    GHIDRA_PATH = j["GHIDRA_PATH"]
     GHIDRA_HEADLESS = os.path.join(GHIDRA_PATH, "support/analyzeHeadless")
 
 
@@ -56,18 +57,23 @@ with open("config/config.json") as f_in:
 #       UTILS                               #
 #############################################
 
+
 def set_logger(debug):
     """
     Set logger level and syntax
     """
     global log
-    log = logging.getLogger('ghidraaas')
+    log = logging.getLogger("ghidraaas")
     if debug:
-        loglevel = 'DEBUG'
+        loglevel = "DEBUG"
     else:
-        loglevel = 'INFO'
-    coloredlogs.install(fmt='%(asctime)s %(levelname)s:: %(message)s',
-                        datefmt='%H:%M:%S', level=loglevel, logger=log)
+        loglevel = "INFO"
+    coloredlogs.install(
+        fmt="%(asctime)s %(levelname)s:: %(message)s",
+        datefmt="%H:%M:%S",
+        level=loglevel,
+        logger=log,
+    )
 
 
 def sha256_hash(stream):
@@ -116,6 +122,7 @@ def server_init():
 #       GHIDRAAAS APIs                      #
 #############################################
 
+
 @app.route("/")
 def index():
     """
@@ -157,15 +164,10 @@ def analyze_sample():
             log.debug("Ghidra analysis started")
 
             # Import the sample in Ghidra and perform the analysis
-            command = [GHIDRA_HEADLESS,
-                       GHIDRA_PROJECT,
-                       sha256,
-                       "-import",
-                       sample_path]
-            p = subprocess.Popen(command, stdout=subprocess.PIPE,
-                                 stderr=subprocess.STDOUT)
+            command = [GHIDRA_HEADLESS, GHIDRA_PROJECT, sha256, "-import", sample_path]
+            p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             p.wait()
-            print(''.join(s.decode("utf-8") for s in list(p.stdout)))
+            print("".join(s.decode("utf-8") for s in list(p.stdout)))
             log.debug("Ghidra analysis completed")
 
         os.remove(sample_path)
@@ -189,28 +191,28 @@ def get_functions_list_detailed(sha256):
         project_path = os.path.join(GHIDRA_PROJECT, sha256 + ".gpr")
         # Check if the sample has been analyzed
         if os.path.isfile(project_path):
-            output_path = os.path.join(
-                GHIDRA_OUTPUT, sha256 + "functions_list_a.json")
+            output_path = os.path.join(GHIDRA_OUTPUT, sha256 + "functions_list_a.json")
 
-            command = [GHIDRA_HEADLESS,
-                       GHIDRA_PROJECT,
-                       sha256,
-                       "-process",
-                       sha256,
-                       "-noanalysis",
-                       "-scriptPath",
-                       GHIDRA_SCRIPT,
-                       "-postScript",
-                       "FunctionsListA.py",
-                       output_path,
-                       "-log",
-                       "ghidra_log.txt"]
+            command = [
+                GHIDRA_HEADLESS,
+                GHIDRA_PROJECT,
+                sha256,
+                "-process",
+                sha256,
+                "-noanalysis",
+                "-scriptPath",
+                GHIDRA_SCRIPT,
+                "-postScript",
+                "FunctionsListA.py",
+                output_path,
+                "-log",
+                "ghidra_log.txt",
+            ]
             # Execute Ghidra plugin
             log.debug("Ghidra analysis started")
-            p = subprocess.Popen(command, stdout=subprocess.PIPE,
-                                 stderr=subprocess.STDOUT)
+            p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             p.wait()
-            print(''.join(s.decode("utf-8") for s in list(p.stdout)))
+            print("".join(s.decode("utf-8") for s in list(p.stdout)))
             log.debug("Ghidra analysis completed")
 
             # Check if JSON response is available
@@ -239,27 +241,27 @@ def get_functions_list(sha256):
         project_path = os.path.join(GHIDRA_PROJECT, sha256 + ".gpr")
         # Check if the sample has been analyzed
         if os.path.isfile(project_path):
-            output_path = os.path.join(
-                GHIDRA_OUTPUT, sha256 + "functions_list.json")
-            command = [GHIDRA_HEADLESS,
-                       GHIDRA_PROJECT,
-                       sha256,
-                       "-process",
-                       sha256,
-                       "-noanalysis",
-                       "-scriptPath",
-                       GHIDRA_SCRIPT,
-                       "-postScript",
-                       "FunctionsList.py",
-                       output_path,
-                       "-log",
-                       "ghidra_log.txt"]
+            output_path = os.path.join(GHIDRA_OUTPUT, sha256 + "functions_list.json")
+            command = [
+                GHIDRA_HEADLESS,
+                GHIDRA_PROJECT,
+                sha256,
+                "-process",
+                sha256,
+                "-noanalysis",
+                "-scriptPath",
+                GHIDRA_SCRIPT,
+                "-postScript",
+                "FunctionsList.py",
+                output_path,
+                "-log",
+                "ghidra_log.txt",
+            ]
             # Execute Ghidra plugin
             log.debug("Ghidra analysis started")
-            p = subprocess.Popen(command, stdout=subprocess.PIPE,
-                                 stderr=subprocess.STDOUT)
+            p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             p.wait()
-            print(''.join(s.decode("utf-8") for s in list(p.stdout)))
+            print("".join(s.decode("utf-8") for s in list(p.stdout)))
             log.debug("Ghidra analysis completed")
 
             # Check if JSON response is available
@@ -289,29 +291,29 @@ def get_decompiled_function(sha256, offset):
         project_path = os.path.join(GHIDRA_PROJECT, sha256 + ".gpr")
         # Check if the sample has been analyzed
         if os.path.isfile(project_path):
-            output_path = os.path.join(
-                GHIDRA_OUTPUT, sha256 + "function_decompiled.json")
+            output_path = os.path.join(GHIDRA_OUTPUT, sha256 + "function_decompiled.json")
             # Call the DecompileFunction Ghidra plugin
-            command = [GHIDRA_HEADLESS,
-                       GHIDRA_PROJECT,
-                       sha256,
-                       "-process",
-                       sha256,
-                       "-noanalysis",
-                       "-scriptPath",
-                       GHIDRA_SCRIPT,
-                       "-postScript",
-                       "FunctionDecompile.py",
-                       offset,
-                       output_path,
-                       "-log",
-                       "ghidra_log.txt"]
+            command = [
+                GHIDRA_HEADLESS,
+                GHIDRA_PROJECT,
+                sha256,
+                "-process",
+                sha256,
+                "-noanalysis",
+                "-scriptPath",
+                GHIDRA_SCRIPT,
+                "-postScript",
+                "FunctionDecompile.py",
+                offset,
+                output_path,
+                "-log",
+                "ghidra_log.txt",
+            ]
             # Execute Ghidra plugin
             log.debug("Ghidra analysis started")
-            p = subprocess.Popen(command, stdout=subprocess.PIPE,
-                                 stderr=subprocess.STDOUT)
+            p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             p.wait()
-            print(''.join(s.decode("utf-8") for s in list(p.stdout)))
+            print("".join(s.decode("utf-8") for s in list(p.stdout)))
             log.debug("Ghidra analysis completed")
 
             # Check if the JSON response is available
@@ -361,6 +363,7 @@ def analysis_terminated(sha256):
 #       GHIDRAAAS APIs for IDA plugin       #
 #############################################
 
+
 @app.route("/ghidra/api/ida_plugin_checkin/", methods=["POST"])
 def ida_plugin_checkin():
     """
@@ -378,10 +381,10 @@ def ida_plugin_checkin():
         # Process metadata associated to the bytes file
         if not request.files.get("data"):
             raise BadRequest("data is required")
-        data = json.loads(request.files['data'].stream.read().decode('utf-8'))
+        data = json.loads(request.files["data"].stream.read().decode("utf-8"))
 
         # Using md5, since IDA stores it in the IDB
-        md5 = data.get('md5', None)
+        md5 = data.get("md5", None)
         if not md5:
             raise BadRequest("md5 hash is required")
         filename = data.get("filename", None)
@@ -398,9 +401,7 @@ def ida_plugin_checkin():
             raise BadRequest("File saving failure")
 
         log.debug("New binary file saved (filename: %s)" % filename)
-        return (json.dumps({
-            "status": "ok"
-        }), 200)
+        return (json.dumps({"status": "ok"}), 200)
 
     except BadRequest:
         raise
@@ -428,16 +429,16 @@ def ida_plugin_get_decompiled_function():
         # Process metadata associated with the request
         if not request.files.get("data"):
             raise BadRequest("data is required")
-        data = json.loads(request.files['data'].stream.read().decode('utf-8'))
+        data = json.loads(request.files["data"].stream.read().decode("utf-8"))
 
         # Using md5, since IDA stores it in the IDB
-        md5 = data.get('md5', None)
+        md5 = data.get("md5", None)
         if not md5:
             raise BadRequest("md5 hash is required")
         filename = data.get("filename", None)
         if not filename:
             raise BadRequest("filename is required")
-        address = data.get('address', None)
+        address = data.get("address", None)
         if not address:
             raise BadRequest("address is required")
 
@@ -456,31 +457,31 @@ def ida_plugin_get_decompiled_function():
         if not os.path.isfile(os.path.join(IDA_SAMPLES_DIR, b_filename)):
             raise BadRequest("Bytes file not exist")
 
-        output_path = os.path.join(
-            GHIDRA_OUTPUT, "%s_dec_%s.json" % (md5, address))
+        output_path = os.path.join(GHIDRA_OUTPUT, "%s_dec_%s.json" % (md5, address))
 
-        cmd = [GHIDRA_HEADLESS,
-               ".",
-               "Temp",
-               "-import",
-               xml_file_path,
-               '-scriptPath',
-               GHIDRA_SCRIPT,
-               '-postScript',
-               'FunctionDecompile.py',
-               address,
-               output_path,
-               "-noanalysis",
-               "-deleteProject",
-               "-log",
-               "ghidra_log.txt"]
+        cmd = [
+            GHIDRA_HEADLESS,
+            ".",
+            "Temp",
+            "-import",
+            xml_file_path,
+            "-scriptPath",
+            GHIDRA_SCRIPT,
+            "-postScript",
+            "FunctionDecompile.py",
+            address,
+            output_path,
+            "-noanalysis",
+            "-deleteProject",
+            "-log",
+            "ghidra_log.txt",
+        ]
 
         # Execute Ghidra plugin
         log.debug("Ghidra analysis started")
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                             stderr=subprocess.STDOUT)
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         p.wait()
-        print(''.join(s.decode("utf-8") for s in list(p.stdout)))
+        print("".join(s.decode("utf-8") for s in list(p.stdout)))
         log.debug("Ghidra analysis completed")
 
         # Check if the JSON response is available

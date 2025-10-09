@@ -46,35 +46,40 @@ API_HOST = os.getenv("API_HOST", "http://localhost:8000")
 
 # Load test configuration
 LOAD_TEST_CONFIG = {
-    "ramp_up_time": 300,        # 5 minutes to reach target users
-    "test_duration": 900,        # 15 minutes sustained load
-    "wait_time_min": 1,          # Min wait between requests (seconds)
-    "wait_time_max": 3,          # Max wait between requests (seconds)
+    "ramp_up_time": 300,  # 5 minutes to reach target users
+    "test_duration": 900,  # 15 minutes sustained load
+    "wait_time_min": 1,  # Min wait between requests (seconds)
+    "wait_time_max": 3,  # Max wait between requests (seconds)
 }
 
 # Test data configuration
-TEST_USER_POOL_SIZE = 1000      # Number of unique test users
+TEST_USER_POOL_SIZE = 1000  # Number of unique test users
 TEST_PASSWORDS = ["SecurePassword123!", "TestPass456!", "LoadTest789!"]
 
 # ============================================================================
 # TEST DATA GENERATION
 # ============================================================================
 
+
 def generate_test_email(user_id: int) -> str:
     """Generate deterministic test user email"""
     return f"loadtest_user_{user_id}@example.com"
+
 
 def generate_random_password() -> str:
     """Generate random password for testing"""
     return random.choice(TEST_PASSWORDS)
 
+
 def generate_random_ip() -> str:
     """Generate random IP address for rate limiting tests"""
     return f"{random.randint(1, 255)}.{random.randint(0, 255)}.{random.randint(0, 255)}.{random.randint(1, 255)}"
 
+
 # ============================================================================
 # METRICS TRACKING
 # ============================================================================
+
 
 class LoadTestMetrics:
     """Track custom metrics during load testing"""
@@ -134,23 +139,19 @@ class LoadTestMetrics:
                 "total": self.total_logins,
                 "successful": self.successful_logins,
                 "failed": self.failed_logins,
-                "success_rate": self.successful_logins / max(self.total_logins, 1)
+                "success_rate": self.successful_logins / max(self.total_logins, 1),
             },
             "verifications": {
                 "total": self.total_verifications,
                 "successful": self.successful_verifications,
                 "failed": self.failed_verifications,
-                "success_rate": self.successful_verifications / max(self.total_verifications, 1)
+                "success_rate": self.successful_verifications / max(self.total_verifications, 1),
             },
-            "logouts": {
-                "total": self.total_logouts,
-                "successful": self.successful_logouts
-            },
-            "rate_limiting": {
-                "blocks": self.rate_limit_blocks
-            },
-            "errors": self.errors_by_type
+            "logouts": {"total": self.total_logouts, "successful": self.successful_logouts},
+            "rate_limiting": {"blocks": self.rate_limit_blocks},
+            "errors": self.errors_by_type,
         }
+
 
 # Global metrics instance
 load_test_metrics = LoadTestMetrics()
@@ -158,6 +159,7 @@ load_test_metrics = LoadTestMetrics()
 # ============================================================================
 # EVENT HANDLERS
 # ============================================================================
+
 
 @events.test_start.add_listener
 def on_test_start(environment, **kwargs):
@@ -172,6 +174,7 @@ def on_test_start(environment, **kwargs):
 
     # Reset metrics
     load_test_metrics.reset()
+
 
 @events.test_stop.add_listener
 def on_test_stop(environment, **kwargs):
@@ -202,9 +205,9 @@ def on_test_stop(environment, **kwargs):
     print("\nRate Limiting Metrics:")
     print(f"  Total Blocks: {summary['rate_limiting']['blocks']}")
 
-    if summary['errors']:
+    if summary["errors"]:
         print("\nErrors by Type:")
-        for error_type, count in summary['errors'].items():
+        for error_type, count in summary["errors"].items():
             print(f"  {error_type}: {count}")
 
     print("\n" + "=" * 80)
@@ -213,15 +216,17 @@ def on_test_stop(environment, **kwargs):
 
     # Export metrics to JSON
     metrics_file = f"load_test_metrics_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-    with open(metrics_file, 'w') as f:
+    with open(metrics_file, "w") as f:
         json.dump(summary, f, indent=2)
     print(f"Metrics exported to: {metrics_file}\n")
+
 
 # ============================================================================
 # SCENARIO 1: AUTHENTICATION LOAD TEST
 # ============================================================================
 
-@tag('authentication', 'login')
+
+@tag("authentication", "login")
 class AuthenticationLoadTest(HttpUser):
     """
     Scenario 1: Authentication Load Test
@@ -234,10 +239,7 @@ class AuthenticationLoadTest(HttpUser):
     Target: 10,000 concurrent users
     """
 
-    wait_time = between(
-        LOAD_TEST_CONFIG["wait_time_min"],
-        LOAD_TEST_CONFIG["wait_time_max"]
-    )
+    wait_time = between(LOAD_TEST_CONFIG["wait_time_min"], LOAD_TEST_CONFIG["wait_time_max"])
 
     def on_start(self):
         """Called when user starts - generate user credentials"""
@@ -252,11 +254,8 @@ class AuthenticationLoadTest(HttpUser):
         """Task: User login"""
         with self.client.post(
             "/auth/login",
-            json={
-                "email": self.email,
-                "password": self.password
-            },
-            catch_response=True
+            json={"email": self.email, "password": self.password},
+            catch_response=True,
         ) as response:
             if response.status_code == 200:
                 data = response.json()
@@ -282,7 +281,7 @@ class AuthenticationLoadTest(HttpUser):
         with self.client.get(
             "/api/protected",
             headers={"Authorization": f"Bearer {self.access_token}"},
-            catch_response=True
+            catch_response=True,
         ) as response:
             if response.status_code == 200:
                 load_test_metrics.record_verification(success=True)
@@ -301,7 +300,7 @@ class AuthenticationLoadTest(HttpUser):
         with self.client.post(
             "/auth/logout",
             headers={"Authorization": f"Bearer {self.access_token}"},
-            catch_response=True
+            catch_response=True,
         ) as response:
             if response.status_code == 200:
                 load_test_metrics.record_logout(success=True)
@@ -312,11 +311,13 @@ class AuthenticationLoadTest(HttpUser):
                 load_test_metrics.record_error(f"logout_{response.status_code}")
                 response.failure(f"Logout failed: {response.status_code}")
 
+
 # ============================================================================
 # SCENARIO 2: TOKEN VERIFICATION LOAD TEST
 # ============================================================================
 
-@tag('verification', 'performance')
+
+@tag("verification", "performance")
 class TokenVerificationLoadTest(HttpUser):
     """
     Scenario 2: Token Verification Load Test
@@ -339,11 +340,7 @@ class TokenVerificationLoadTest(HttpUser):
 
         # Login to get token
         response = self.client.post(
-            "/auth/login",
-            json={
-                "email": self.email,
-                "password": self.password
-            }
+            "/auth/login", json={"email": self.email, "password": self.password}
         )
 
         if response.status_code == 200:
@@ -362,7 +359,7 @@ class TokenVerificationLoadTest(HttpUser):
             "/api/protected",
             headers={"Authorization": f"Bearer {self.access_token}"},
             catch_response=True,
-            name="/api/protected [verification-load]"  # Custom name for stats
+            name="/api/protected [verification-load]",  # Custom name for stats
         ) as response:
             if response.status_code == 200:
                 load_test_metrics.record_verification(success=True)
@@ -371,11 +368,13 @@ class TokenVerificationLoadTest(HttpUser):
                 load_test_metrics.record_verification(success=False)
                 response.failure(f"Verification failed: {response.status_code}")
 
+
 # ============================================================================
 # SCENARIO 3: RATE LIMITING STRESS TEST
 # ============================================================================
 
-@tag('rate-limiting', 'ddos', 'stress')
+
+@tag("rate-limiting", "ddos", "stress")
 class RateLimitingStressTest(HttpUser):
     """
     Scenario 3: Rate Limiting Stress Test
@@ -405,13 +404,10 @@ class RateLimitingStressTest(HttpUser):
 
         with self.client.post(
             "/auth/login",
-            json={
-                "email": self.email,
-                "password": self.password
-            },
+            json={"email": self.email, "password": self.password},
             headers={"X-Forwarded-For": self.attack_ip},  # Simulate IP
             catch_response=True,
-            name="/auth/login [brute-force-attack]"
+            name="/auth/login [brute-force-attack]",
         ) as response:
             if response.status_code == 429:
                 # Rate limited - success for this test
@@ -428,11 +424,13 @@ class RateLimitingStressTest(HttpUser):
             else:
                 response.failure(f"Unexpected response: {response.status_code}")
 
+
 # ============================================================================
 # SCENARIO 4: TOKEN REVOCATION LOAD TEST
 # ============================================================================
 
-@tag('revocation', 'blacklist')
+
+@tag("revocation", "blacklist")
 class TokenRevocationLoadTest(HttpUser):
     """
     Scenario 4: Token Revocation Load Test
@@ -458,11 +456,7 @@ class TokenRevocationLoadTest(HttpUser):
         """Task: Login then immediately revoke"""
         # Step 1: Login
         response = self.client.post(
-            "/auth/login",
-            json={
-                "email": self.email,
-                "password": self.password
-            }
+            "/auth/login", json={"email": self.email, "password": self.password}
         )
 
         if response.status_code != 200:
@@ -473,9 +467,7 @@ class TokenRevocationLoadTest(HttpUser):
 
         # Step 2: Revoke (logout)
         with self.client.post(
-            "/auth/logout",
-            headers={"Authorization": f"Bearer {access_token}"},
-            catch_response=True
+            "/auth/logout", headers={"Authorization": f"Bearer {access_token}"}, catch_response=True
         ) as logout_response:
             if logout_response.status_code == 200:
                 load_test_metrics.record_logout(success=True)
@@ -486,7 +478,7 @@ class TokenRevocationLoadTest(HttpUser):
                 verify_response = self.client.get(
                     "/api/protected",
                     headers={"Authorization": f"Bearer {access_token}"},
-                    catch_response=True
+                    catch_response=True,
                 )
 
                 if verify_response.status_code == 401:
@@ -497,11 +489,13 @@ class TokenRevocationLoadTest(HttpUser):
             else:
                 logout_response.failure("Logout failed")
 
+
 # ============================================================================
 # SCENARIO 5: MIXED WORKLOAD TEST (REALISTIC PRODUCTION)
 # ============================================================================
 
-@tag('mixed', 'production', 'realistic')
+
+@tag("mixed", "production", "realistic")
 class MixedWorkloadTest(HttpUser):
     """
     Scenario 5: Mixed Workload Test
@@ -531,11 +525,7 @@ class MixedWorkloadTest(HttpUser):
     def _perform_login(self):
         """Helper: Perform login"""
         response = self.client.post(
-            "/auth/login",
-            json={
-                "email": self.email,
-                "password": self.password
-            }
+            "/auth/login", json={"email": self.email, "password": self.password}
         )
 
         if response.status_code == 200:
@@ -559,7 +549,7 @@ class MixedWorkloadTest(HttpUser):
             "/api/protected",
             headers={"Authorization": f"Bearer {self.access_token}"},
             catch_response=True,
-            name="/api/protected [mixed-workload]"
+            name="/api/protected [mixed-workload]",
         ) as response:
             if response.status_code == 200:
                 load_test_metrics.record_verification(success=True)
@@ -575,9 +565,7 @@ class MixedWorkloadTest(HttpUser):
             return
 
         with self.client.post(
-            "/auth/refresh",
-            json={"refresh_token": self.refresh_token},
-            catch_response=True
+            "/auth/refresh", json={"refresh_token": self.refresh_token}, catch_response=True
         ) as response:
             if response.status_code == 200:
                 data = response.json()
@@ -595,7 +583,7 @@ class MixedWorkloadTest(HttpUser):
         with self.client.post(
             "/auth/logout",
             headers={"Authorization": f"Bearer {self.access_token}"},
-            catch_response=True
+            catch_response=True,
         ) as response:
             if response.status_code == 200:
                 load_test_metrics.record_logout(success=True)
@@ -604,6 +592,7 @@ class MixedWorkloadTest(HttpUser):
                 response.success()
             else:
                 response.failure(f"Logout failed: {response.status_code}")
+
 
 # ============================================================================
 # MAIN ENTRY POINT

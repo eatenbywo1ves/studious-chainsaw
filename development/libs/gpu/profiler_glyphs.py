@@ -14,12 +14,13 @@ logger = logging.getLogger(__name__)
 
 class GlyphShape(Enum):
     """Base glyph shapes representing operation categories"""
-    CIRCLE = "circle"      # Compute-intensive operations (matrix multiply, etc.)
+
+    CIRCLE = "circle"  # Compute-intensive operations (matrix multiply, etc.)
     TRIANGLE = "triangle"  # Memory operations (allocation, transfer)
-    SQUARE = "square"      # Control flow operations (routing, scheduling)
-    DIAMOND = "diamond"    # Transform operations (XOR, conversions)
-    HEXAGON = "hexagon"    # Graph algorithms (path finding, search)
-    STAR = "star"          # Random generation operations
+    SQUARE = "square"  # Control flow operations (routing, scheduling)
+    DIAMOND = "diamond"  # Transform operations (XOR, conversions)
+    HEXAGON = "hexagon"  # Graph algorithms (path finding, search)
+    STAR = "star"  # Random generation operations
 
 
 class IterationMarker(Enum):
@@ -27,40 +28,45 @@ class IterationMarker(Enum):
     Iteration markers showing optimization level
     Inspired by Mernithian: Base(+) -> Routed(/) -> Batched(x) -> Optimized(o)
     """
-    BASE = "base"          # Level 0: No optimization (symbol: +)
-    ROUTED = "routed"      # Level 1: Smart routing applied (symbol: /)
-    BATCHED = "batched"    # Level 2: Batch processing applied (symbol: x)
+
+    BASE = "base"  # Level 0: No optimization (symbol: +)
+    ROUTED = "routed"  # Level 1: Smart routing applied (symbol: /)
+    BATCHED = "batched"  # Level 2: Batch processing applied (symbol: x)
     OPTIMIZED = "optimized"  # Level 3: Full optimization (symbol: o)
 
 
 class PerformanceColor(Enum):
     """Color encoding for performance characteristics"""
+
     EXCELLENT = "#00ff00"  # Green: <1ms operations
-    GOOD = "#7fff00"       # Yellow-green: 1-10ms operations
-    MODERATE = "#ffff00"   # Yellow: 10-50ms operations
-    SLOW = "#ffa500"       # Orange: 50-100ms operations
-    CRITICAL = "#ff0000"   # Red: >100ms operations
+    GOOD = "#7fff00"  # Yellow-green: 1-10ms operations
+    MODERATE = "#ffff00"  # Yellow: 10-50ms operations
+    SLOW = "#ffa500"  # Orange: 50-100ms operations
+    CRITICAL = "#ff0000"  # Red: >100ms operations
 
 
 class SizeCategory(Enum):
     """Size encoding for memory usage"""
-    TINY = "tiny"          # <1MB
-    SMALL = "small"        # 1-10MB
-    MEDIUM = "medium"      # 10-100MB
-    LARGE = "large"        # 100-1000MB
-    HUGE = "huge"          # >1000MB
+
+    TINY = "tiny"  # <1MB
+    SMALL = "small"  # 1-10MB
+    MEDIUM = "medium"  # 10-100MB
+    LARGE = "large"  # 100-1000MB
+    HUGE = "huge"  # >1000MB
 
 
 class DeviceStyle(Enum):
     """Border style encoding for device routing"""
-    CPU = "solid"          # Solid border: CPU execution
-    GPU = "dashed"         # Dashed border: GPU execution
-    HYBRID = "dotted"      # Dotted border: Hybrid execution
+
+    CPU = "solid"  # Solid border: CPU execution
+    GPU = "dashed"  # Dashed border: GPU execution
+    HYBRID = "dotted"  # Dotted border: Hybrid execution
 
 
 @dataclass
 class GlyphDescriptor:
     """Complete glyph description for an operation"""
+
     # Core identity
     operation_name: str
     shape: GlyphShape
@@ -83,18 +89,18 @@ class GlyphDescriptor:
     def to_dict(self) -> Dict:
         """Convert to dictionary for JSON export"""
         return {
-            'operation': self.operation_name,
-            'shape': self.shape.value,
-            'iteration': self.iteration_marker.value,
-            'color': self.color,
-            'size': self.size.value,
-            'border': self.border_style.value,
-            'duration_ms': self.duration_ms,
-            'memory_mb': self.memory_mb,
-            'device': self.device,
-            'optimization_level': self.optimization_level,
-            'speedup': self.speedup,
-            'glyph_notation': self.get_notation()
+            "operation": self.operation_name,
+            "shape": self.shape.value,
+            "iteration": self.iteration_marker.value,
+            "color": self.color,
+            "size": self.size.value,
+            "border": self.border_style.value,
+            "duration_ms": self.duration_ms,
+            "memory_mb": self.memory_mb,
+            "device": self.device,
+            "optimization_level": self.optimization_level,
+            "speedup": self.speedup,
+            "glyph_notation": self.get_notation(),
         }
 
     def get_notation(self) -> str:
@@ -104,23 +110,22 @@ class GlyphDescriptor:
         Example: "circle+" (base compute), "triangle/" (routed memory)
         """
         shape_symbols = {
-            GlyphShape.CIRCLE: 'O',
-            GlyphShape.TRIANGLE: '^',
-            GlyphShape.SQUARE: '[]',
-            GlyphShape.DIAMOND: '<>',
-            GlyphShape.HEXAGON: '#',
-            GlyphShape.STAR: '*'
+            GlyphShape.CIRCLE: "O",
+            GlyphShape.TRIANGLE: "^",
+            GlyphShape.SQUARE: "[]",
+            GlyphShape.DIAMOND: "<>",
+            GlyphShape.HEXAGON: "#",
+            GlyphShape.STAR: "*",
         }
 
         iteration_symbols = {
-            IterationMarker.BASE: '+',
-            IterationMarker.ROUTED: '/',
-            IterationMarker.BATCHED: 'x',
-            IterationMarker.OPTIMIZED: 'o'
+            IterationMarker.BASE: "+",
+            IterationMarker.ROUTED: "/",
+            IterationMarker.BATCHED: "x",
+            IterationMarker.OPTIMIZED: "o",
         }
 
-        return (f"{shape_symbols[self.shape]}"
-                f"{iteration_symbols[self.iteration_marker]}")
+        return f"{shape_symbols[self.shape]}{iteration_symbols[self.iteration_marker]}"
 
 
 class GlyphAnalyzer:
@@ -131,19 +136,19 @@ class GlyphAnalyzer:
 
     # Operation type to glyph shape mapping
     OPERATION_SHAPE_MAP = {
-        'matrix_multiply': GlyphShape.CIRCLE,
-        'matrix_add': GlyphShape.CIRCLE,
-        'random_generation': GlyphShape.STAR,
-        'xor_transform': GlyphShape.DIAMOND,
-        'transform': GlyphShape.DIAMOND,
-        'graph_search': GlyphShape.HEXAGON,
-        'path_finding': GlyphShape.HEXAGON,
-        'graph_algorithm': GlyphShape.HEXAGON,
-        'memory_allocation': GlyphShape.TRIANGLE,
-        'memory_transfer': GlyphShape.TRIANGLE,
-        'batch_process': GlyphShape.CIRCLE,
-        'routing': GlyphShape.SQUARE,
-        'lattice_creation': GlyphShape.CIRCLE
+        "matrix_multiply": GlyphShape.CIRCLE,
+        "matrix_add": GlyphShape.CIRCLE,
+        "random_generation": GlyphShape.STAR,
+        "xor_transform": GlyphShape.DIAMOND,
+        "transform": GlyphShape.DIAMOND,
+        "graph_search": GlyphShape.HEXAGON,
+        "path_finding": GlyphShape.HEXAGON,
+        "graph_algorithm": GlyphShape.HEXAGON,
+        "memory_allocation": GlyphShape.TRIANGLE,
+        "memory_transfer": GlyphShape.TRIANGLE,
+        "batch_process": GlyphShape.CIRCLE,
+        "routing": GlyphShape.SQUARE,
+        "lattice_creation": GlyphShape.CIRCLE,
     }
 
     def __init__(self):
@@ -227,16 +232,15 @@ class GlyphAnalyzer:
             DeviceStyle
         """
         device_lower = device.lower()
-        if 'gpu' in device_lower:
+        if "gpu" in device_lower:
             return DeviceStyle.GPU
-        elif 'hybrid' in device_lower or 'mixed' in device_lower:
+        elif "hybrid" in device_lower or "mixed" in device_lower:
             return DeviceStyle.HYBRID
         else:
             return DeviceStyle.CPU
 
     def determine_iteration_marker(
-        self,
-        metadata: Optional[Dict] = None
+        self, metadata: Optional[Dict] = None
     ) -> Tuple[IterationMarker, int]:
         """
         Determine iteration marker based on optimization metadata
@@ -251,9 +255,9 @@ class GlyphAnalyzer:
             return IterationMarker.BASE, 0
 
         # Check for optimization flags
-        is_routed = metadata.get('smart_routed', False)
-        is_batched = metadata.get('batched', False)
-        is_optimized = metadata.get('fully_optimized', False)
+        is_routed = metadata.get("smart_routed", False)
+        is_batched = metadata.get("batched", False)
+        is_optimized = metadata.get("fully_optimized", False)
 
         if is_optimized or (is_routed and is_batched):
             return IterationMarker.OPTIMIZED, 3
@@ -270,7 +274,7 @@ class GlyphAnalyzer:
         duration_ms: float,
         memory_mb: float,
         device: str,
-        metadata: Optional[Dict] = None
+        metadata: Optional[Dict] = None,
     ) -> GlyphDescriptor:
         """
         Create complete glyph descriptor for an operation
@@ -292,7 +296,7 @@ class GlyphAnalyzer:
         iteration_marker, opt_level = self.determine_iteration_marker(metadata)
 
         # Extract speedup if available
-        speedup = metadata.get('speedup') if metadata else None
+        speedup = metadata.get("speedup") if metadata else None
 
         return GlyphDescriptor(
             operation_name=operation_name,
@@ -305,7 +309,7 @@ class GlyphAnalyzer:
             memory_mb=memory_mb,
             device=device,
             optimization_level=opt_level,
-            speedup=speedup
+            speedup=speedup,
         )
 
     def analyze_profiling_data(self, profiling_data: Dict) -> List[GlyphDescriptor]:
@@ -319,15 +323,15 @@ class GlyphAnalyzer:
             List of GlyphDescriptor objects
         """
         glyphs = []
-        entries = profiling_data.get('entries', [])
+        entries = profiling_data.get("entries", [])
 
         for entry in entries:
             glyph = self.create_glyph(
-                operation_name=entry['operation'],
-                duration_ms=entry['duration_ms'],
-                memory_mb=entry.get('memory_allocated_mb', 0.0),
-                device=entry['device'],
-                metadata=entry.get('metadata', {})
+                operation_name=entry["operation"],
+                duration_ms=entry["duration_ms"],
+                memory_mb=entry.get("memory_allocated_mb", 0.0),
+                device=entry["device"],
+                metadata=entry.get("metadata", {}),
             )
             glyphs.append(glyph)
 
@@ -342,12 +346,9 @@ class GlyphAnalyzer:
             glyphs: List of glyph descriptors
             filepath: Output file path
         """
-        data = {
-            'glyph_count': len(glyphs),
-            'glyphs': [g.to_dict() for g in glyphs]
-        }
+        data = {"glyph_count": len(glyphs), "glyphs": [g.to_dict() for g in glyphs]}
 
-        with open(filepath, 'w') as f:
+        with open(filepath, "w") as f:
             json.dump(data, f, indent=2)
 
         logger.info(f"Exported {len(glyphs)} glyphs to {filepath}")
@@ -364,7 +365,7 @@ class GlyphRenderer:
         SizeCategory.SMALL: 0.8,
         SizeCategory.MEDIUM: 1.0,
         SizeCategory.LARGE: 1.3,
-        SizeCategory.HUGE: 1.6
+        SizeCategory.HUGE: 1.6,
     }
 
     BASE_SIZE = 30  # Base size in pixels
@@ -374,11 +375,7 @@ class GlyphRenderer:
         logger.info("GlyphRenderer initialized")
 
     def render_shape_svg(
-        self,
-        shape: GlyphShape,
-        size: float,
-        color: str,
-        border_style: DeviceStyle
+        self, shape: GlyphShape, size: float, color: str, border_style: DeviceStyle
     ) -> str:
         """
         Render shape as SVG path
@@ -401,74 +398,81 @@ class GlyphRenderer:
         cx, cy = size, size  # Center
 
         if shape == GlyphShape.CIRCLE:
-            return (f'<circle cx="{cx}" cy="{cy}" r="{size*0.4}" '
-                   f'fill="{color}" stroke="#333" stroke-width="2" '
-                   f'{stroke_dasharray}/>')
+            return (
+                f'<circle cx="{cx}" cy="{cy}" r="{size * 0.4}" '
+                f'fill="{color}" stroke="#333" stroke-width="2" '
+                f"{stroke_dasharray}/>"
+            )
 
         elif shape == GlyphShape.TRIANGLE:
             points = [
-                (cx, cy - size*0.4),
-                (cx - size*0.35, cy + size*0.3),
-                (cx + size*0.35, cy + size*0.3)
+                (cx, cy - size * 0.4),
+                (cx - size * 0.35, cy + size * 0.3),
+                (cx + size * 0.35, cy + size * 0.3),
             ]
-            points_str = ' '.join(f'{x},{y}' for x, y in points)
-            return (f'<polygon points="{points_str}" '
-                   f'fill="{color}" stroke="#333" stroke-width="2" '
-                   f'{stroke_dasharray}/>')
+            points_str = " ".join(f"{x},{y}" for x, y in points)
+            return (
+                f'<polygon points="{points_str}" '
+                f'fill="{color}" stroke="#333" stroke-width="2" '
+                f"{stroke_dasharray}/>"
+            )
 
         elif shape == GlyphShape.SQUARE:
-            x, y = cx - size*0.35, cy - size*0.35
-            w = size*0.7
-            return (f'<rect x="{x}" y="{y}" width="{w}" height="{w}" '
-                   f'fill="{color}" stroke="#333" stroke-width="2" '
-                   f'{stroke_dasharray}/>')
+            x, y = cx - size * 0.35, cy - size * 0.35
+            w = size * 0.7
+            return (
+                f'<rect x="{x}" y="{y}" width="{w}" height="{w}" '
+                f'fill="{color}" stroke="#333" stroke-width="2" '
+                f"{stroke_dasharray}/>"
+            )
 
         elif shape == GlyphShape.DIAMOND:
             points = [
-                (cx, cy - size*0.4),
-                (cx + size*0.4, cy),
-                (cx, cy + size*0.4),
-                (cx - size*0.4, cy)
+                (cx, cy - size * 0.4),
+                (cx + size * 0.4, cy),
+                (cx, cy + size * 0.4),
+                (cx - size * 0.4, cy),
             ]
-            points_str = ' '.join(f'{x},{y}' for x, y in points)
-            return (f'<polygon points="{points_str}" '
-                   f'fill="{color}" stroke="#333" stroke-width="2" '
-                   f'{stroke_dasharray}/>')
+            points_str = " ".join(f"{x},{y}" for x, y in points)
+            return (
+                f'<polygon points="{points_str}" '
+                f'fill="{color}" stroke="#333" stroke-width="2" '
+                f"{stroke_dasharray}/>"
+            )
 
         elif shape == GlyphShape.HEXAGON:
             angles = [0, 60, 120, 180, 240, 300]
             points = [
-                (cx + size*0.4*np.cos(np.radians(a)),
-                 cy + size*0.4*np.sin(np.radians(a)))
+                (cx + size * 0.4 * np.cos(np.radians(a)), cy + size * 0.4 * np.sin(np.radians(a)))
                 for a in angles
             ]
-            points_str = ' '.join(f'{x},{y}' for x, y in points)
-            return (f'<polygon points="{points_str}" '
-                   f'fill="{color}" stroke="#333" stroke-width="2" '
-                   f'{stroke_dasharray}/>')
+            points_str = " ".join(f"{x},{y}" for x, y in points)
+            return (
+                f'<polygon points="{points_str}" '
+                f'fill="{color}" stroke="#333" stroke-width="2" '
+                f"{stroke_dasharray}/>"
+            )
 
         elif shape == GlyphShape.STAR:
             # 5-pointed star
             points = []
             for i in range(10):
                 angle = (i * 36 - 90) * (3.14159 / 180)
-                r = size*0.4 if i % 2 == 0 else size*0.2
+                r = size * 0.4 if i % 2 == 0 else size * 0.2
                 x = cx + r * np.cos(angle)
                 y = cy + r * np.sin(angle)
                 points.append((x, y))
-            points_str = ' '.join(f'{x},{y}' for x, y in points)
-            return (f'<polygon points="{points_str}" '
-                   f'fill="{color}" stroke="#333" stroke-width="2" '
-                   f'{stroke_dasharray}/>')
+            points_str = " ".join(f"{x},{y}" for x, y in points)
+            return (
+                f'<polygon points="{points_str}" '
+                f'fill="{color}" stroke="#333" stroke-width="2" '
+                f"{stroke_dasharray}/>"
+            )
 
         return ""
 
     def render_iteration_marker_svg(
-        self,
-        marker: IterationMarker,
-        x: float,
-        y: float,
-        size: float
+        self, marker: IterationMarker, x: float, y: float, size: float
     ) -> str:
         """
         Render iteration marker as SVG
@@ -487,20 +491,28 @@ class GlyphRenderer:
 
         if marker == IterationMarker.BASE:
             # Plus symbol (+)
-            return (f'<text x="{marker_x}" y="{marker_y}" '
-                   f'font-size="{marker_size}" fill="#333" font-weight="bold">+</text>')
+            return (
+                f'<text x="{marker_x}" y="{marker_y}" '
+                f'font-size="{marker_size}" fill="#333" font-weight="bold">+</text>'
+            )
         elif marker == IterationMarker.ROUTED:
             # Slash (/)
-            return (f'<text x="{marker_x}" y="{marker_y}" '
-                   f'font-size="{marker_size}" fill="#333" font-weight="bold">/</text>')
+            return (
+                f'<text x="{marker_x}" y="{marker_y}" '
+                f'font-size="{marker_size}" fill="#333" font-weight="bold">/</text>'
+            )
         elif marker == IterationMarker.BATCHED:
             # X symbol (x)
-            return (f'<text x="{marker_x}" y="{marker_y}" '
-                   f'font-size="{marker_size}" fill="#333" font-weight="bold">x</text>')
+            return (
+                f'<text x="{marker_x}" y="{marker_y}" '
+                f'font-size="{marker_size}" fill="#333" font-weight="bold">x</text>'
+            )
         elif marker == IterationMarker.OPTIMIZED:
             # Circle (o)
-            return (f'<text x="{marker_x}" y="{marker_y}" '
-                   f'font-size="{marker_size}" fill="#333" font-weight="bold">o</text>')
+            return (
+                f'<text x="{marker_x}" y="{marker_y}" '
+                f'font-size="{marker_size}" fill="#333" font-weight="bold">o</text>'
+            )
 
         return ""
 
@@ -523,31 +535,22 @@ class GlyphRenderer:
         svg_height = actual_size * 2
 
         svg_parts = [
-            f'<svg width="{svg_width}" height="{svg_height}" '
-            f'xmlns="http://www.w3.org/2000/svg">'
+            f'<svg width="{svg_width}" height="{svg_height}" xmlns="http://www.w3.org/2000/svg">'
         ]
 
         # Render shape
-        shape_svg = self.render_shape_svg(
-            glyph.shape,
-            actual_size,
-            glyph.color,
-            glyph.border_style
-        )
+        shape_svg = self.render_shape_svg(glyph.shape, actual_size, glyph.color, glyph.border_style)
         svg_parts.append(shape_svg)
 
         # Render iteration marker
         marker_svg = self.render_iteration_marker_svg(
-            glyph.iteration_marker,
-            actual_size,
-            actual_size,
-            actual_size
+            glyph.iteration_marker, actual_size, actual_size, actual_size
         )
         svg_parts.append(marker_svg)
 
-        svg_parts.append('</svg>')
+        svg_parts.append("</svg>")
 
-        return '\n'.join(svg_parts)
+        return "\n".join(svg_parts)
 
 
 # Global instance
@@ -575,13 +578,16 @@ try:
 except ImportError:
     # Fallback: use math module
     import math
+
     class np:
         @staticmethod
         def cos(x):
             return math.cos(x)
+
         @staticmethod
         def sin(x):
             return math.sin(x)
+
         @staticmethod
         def radians(x):
             return math.radians(x)

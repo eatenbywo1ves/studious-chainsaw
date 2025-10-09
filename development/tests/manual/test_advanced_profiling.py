@@ -36,7 +36,7 @@ def create_sample_baseline():
                 "memory_allocated_mb": 16.0,
                 "memory_peak_mb": 18.0,
                 "gpu_utilization": 85.0,
-                "metadata": {}
+                "metadata": {},
             },
             {
                 "operation": "matrix_multiply",
@@ -50,7 +50,7 @@ def create_sample_baseline():
                 "memory_allocated_mb": 16.0,
                 "memory_peak_mb": 18.0,
                 "gpu_utilization": 85.0,
-                "metadata": {}
+                "metadata": {},
             },
             {
                 "operation": "xor_transform",
@@ -64,8 +64,8 @@ def create_sample_baseline():
                 "memory_allocated_mb": 0.5,
                 "memory_peak_mb": 0.5,
                 "gpu_utilization": 30.0,
-                "metadata": {}
-            }
+                "metadata": {},
+            },
         ],
         "summary": {
             "matrix_multiply": {
@@ -76,7 +76,7 @@ def create_sample_baseline():
                 "max_time_ms": 50.0,
                 "total_gpu_time_ms": 83.3,
                 "avg_memory_mb": 16.0,
-                "avg_gpu_utilization": 85.0
+                "avg_gpu_utilization": 85.0,
             },
             "xor_transform": {
                 "call_count": 1,
@@ -86,9 +86,9 @@ def create_sample_baseline():
                 "max_time_ms": 35.0,
                 "total_gpu_time_ms": 29.75,
                 "avg_memory_mb": 0.5,
-                "avg_gpu_utilization": 30.0
-            }
-        }
+                "avg_gpu_utilization": 30.0,
+            },
+        },
     }
 
 
@@ -108,7 +108,7 @@ def create_sample_current():
                 "memory_allocated_mb": 20.0,  # More memory
                 "memory_peak_mb": 22.0,
                 "gpu_utilization": 85.0,
-                "metadata": {}
+                "metadata": {},
             },
             {
                 "operation": "matrix_multiply",
@@ -122,7 +122,7 @@ def create_sample_current():
                 "memory_allocated_mb": 20.0,
                 "memory_peak_mb": 22.0,
                 "gpu_utilization": 85.0,
-                "metadata": {}
+                "metadata": {},
             },
             {
                 "operation": "xor_transform",
@@ -136,7 +136,7 @@ def create_sample_current():
                 "memory_allocated_mb": 0.1,
                 "memory_peak_mb": 0.1,
                 "gpu_utilization": 0,
-                "metadata": {}
+                "metadata": {},
             },
             {
                 "operation": "new_operation",
@@ -150,8 +150,8 @@ def create_sample_current():
                 "memory_allocated_mb": 1.0,
                 "memory_peak_mb": 1.0,
                 "gpu_utilization": 0,
-                "metadata": {}
-            }
+                "metadata": {},
+            },
         ],
         "summary": {
             "matrix_multiply": {
@@ -162,7 +162,7 @@ def create_sample_current():
                 "max_time_ms": 70.0,
                 "total_gpu_time_ms": 117.3,
                 "avg_memory_mb": 20.0,
-                "avg_gpu_utilization": 85.0
+                "avg_gpu_utilization": 85.0,
             },
             "xor_transform": {
                 "call_count": 1,
@@ -172,7 +172,7 @@ def create_sample_current():
                 "max_time_ms": 0.25,
                 "total_gpu_time_ms": 0,
                 "avg_memory_mb": 0.1,
-                "avg_gpu_utilization": 0
+                "avg_gpu_utilization": 0,
             },
             "new_operation": {
                 "call_count": 1,
@@ -182,17 +182,17 @@ def create_sample_current():
                 "max_time_ms": 10.0,
                 "total_gpu_time_ms": 0,
                 "avg_memory_mb": 1.0,
-                "avg_gpu_utilization": 0
-            }
-        }
+                "avg_gpu_utilization": 0,
+            },
+        },
     }
 
 
 def test_comparison():
     """Test profiling comparison functionality"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 1: Profiling Comparison")
-    print("="*70)
+    print("=" * 70)
 
     baseline = create_sample_baseline()
     current = create_sample_current()
@@ -225,8 +225,10 @@ def test_comparison():
     if regressions:
         reg = regressions[0]
         print(f"  Worst regression: {reg.operation}")
-        print(f"    {reg.baseline_time_ms:.2f}ms -> {reg.current_time_ms:.2f}ms "
-              f"({reg.change_percent:+.1f}%)")
+        print(
+            f"    {reg.baseline_time_ms:.2f}ms -> {reg.current_time_ms:.2f}ms "
+            f"({reg.change_percent:+.1f}%)"
+        )
         assert reg.operation == "matrix_multiply", "matrix_multiply should be the regression"
         assert reg.change_percent > 0, "Should be slower"
     print("  Status: PASS")
@@ -239,8 +241,10 @@ def test_comparison():
     if improvements:
         imp = improvements[0]
         print(f"  Best improvement: {imp.operation}")
-        print(f"    {imp.baseline_time_ms:.2f}ms -> {imp.current_time_ms:.2f}ms "
-              f"({imp.change_percent:+.1f}%)")
+        print(
+            f"    {imp.baseline_time_ms:.2f}ms -> {imp.current_time_ms:.2f}ms "
+            f"({imp.change_percent:+.1f}%)"
+        )
         assert imp.operation == "xor_transform", "xor_transform should be the improvement"
         assert imp.change_percent < 0, "Should be faster"
     print("  Status: PASS")
@@ -256,9 +260,9 @@ def test_comparison():
 
 def test_optimizer():
     """Test optimization suggestions"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 2: Optimization Suggestions")
-    print("="*70)
+    print("=" * 70)
 
     # Create profiling data with optimization opportunities
     data = {
@@ -276,23 +280,26 @@ def test_optimizer():
                 "memory_allocated_mb": 0.1,
                 "memory_peak_mb": 0.1,
                 "gpu_utilization": 30.0,
-                "metadata": {}
+                "metadata": {},
             },
             # Repeated operation (should suggest batching)
-            *[{
-                "operation": "repeated_op",
-                "duration_ms": 5.0,
-                "device": "cpu",
-                "backend": "cpu",
-                "gpu_time_ms": 0,
-                "cpu_time_ms": 5.0,
-                "transfer_time_ms": 0,
-                "overhead_ms": 0,
-                "memory_allocated_mb": 1.0,
-                "memory_peak_mb": 1.0,
-                "gpu_utilization": 0,
-                "metadata": {}
-            } for _ in range(20)]
+            *[
+                {
+                    "operation": "repeated_op",
+                    "duration_ms": 5.0,
+                    "device": "cpu",
+                    "backend": "cpu",
+                    "gpu_time_ms": 0,
+                    "cpu_time_ms": 5.0,
+                    "transfer_time_ms": 0,
+                    "overhead_ms": 0,
+                    "memory_allocated_mb": 1.0,
+                    "memory_peak_mb": 1.0,
+                    "gpu_utilization": 0,
+                    "metadata": {},
+                }
+                for _ in range(20)
+            ],
         ],
         "summary": {
             "small_gpu_op": {
@@ -303,7 +310,7 @@ def test_optimizer():
                 "max_time_ms": 0.5,
                 "total_gpu_time_ms": 0.425,
                 "avg_memory_mb": 0.1,
-                "avg_gpu_utilization": 30.0
+                "avg_gpu_utilization": 30.0,
             },
             "repeated_op": {
                 "call_count": 20,
@@ -313,9 +320,9 @@ def test_optimizer():
                 "max_time_ms": 5.0,
                 "total_gpu_time_ms": 0,
                 "avg_memory_mb": 1.0,
-                "avg_gpu_utilization": 0
-            }
-        }
+                "avg_gpu_utilization": 0,
+            },
+        },
     }
 
     # Test 2.1: Create optimizer
@@ -358,9 +365,9 @@ def test_optimizer():
 
 def test_file_comparison():
     """Test file-based comparison"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 3: File-Based Comparison")
-    print("="*70)
+    print("=" * 70)
 
     baseline = create_sample_baseline()
     current = create_sample_current()
@@ -368,11 +375,11 @@ def test_file_comparison():
     # Test 3.1: Export and compare files
     print("\n[Test 3.1] Export and Compare Files")
 
-    with tempfile.NamedTemporaryFile(mode='w', suffix='_baseline.json', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix="_baseline.json", delete=False) as f:
         baseline_file = f.name
         json.dump(baseline, f)
 
-    with tempfile.NamedTemporaryFile(mode='w', suffix='_current.json', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix="_current.json", delete=False) as f:
         current_file = f.name
         json.dump(current, f)
 
@@ -386,18 +393,18 @@ def test_file_comparison():
 
     # Test 3.2: Export comparison
     print("\n[Test 3.2] Export Comparison")
-    with tempfile.NamedTemporaryFile(mode='w', suffix='_comparison.json', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix="_comparison.json", delete=False) as f:
         comparison_file = f.name
 
     comparison.export_comparison(comparison_file)
     print(f"  Exported to: {comparison_file}")
 
     # Verify export
-    with open(comparison_file, 'r') as f:
+    with open(comparison_file, "r") as f:
         data = json.load(f)
 
-    assert 'summary' in data, "Should have summary"
-    assert 'comparisons' in data, "Should have comparisons"
+    assert "summary" in data, "Should have summary"
+    assert "comparisons" in data, "Should have comparisons"
     print("  Status: PASS")
 
     # Cleanup
@@ -410,9 +417,9 @@ def test_file_comparison():
 
 
 def main():
-    print("="*70)
+    print("=" * 70)
     print("ADVANCED PROFILER TEST SUITE")
-    print("="*70)
+    print("=" * 70)
 
     all_passed = True
 
@@ -430,9 +437,9 @@ def main():
         all_passed = all_passed and test3
 
         # Final summary
-        print("\n" + "="*70)
+        print("\n" + "=" * 70)
         print("TEST SUITE SUMMARY")
-        print("="*70)
+        print("=" * 70)
         if all_passed:
             print("[SUCCESS] ALL TESTS PASSED - Advanced profiling working!")
             print("\nKey Features Validated:")
@@ -444,17 +451,17 @@ def main():
             print("  - Priority-based filtering (critical/high/medium/low)")
         else:
             print("[FAILURE] SOME TESTS FAILED - Review output above")
-        print("="*70)
+        print("=" * 70)
 
         return 0 if all_passed else 1
 
     except Exception as e:
         print(f"\n[FAILURE] Test suite failed: {e}")
         import traceback
+
         traceback.print_exc()
         return 1
 
 
 if __name__ == "__main__":
     sys.exit(main())
-

@@ -28,6 +28,7 @@ print("\n" + "=" * 70)
 print("PERFORMANCE BENCHMARKS")
 print("=" * 70)
 
+
 def benchmark_operation(name, cpu_func, gpu_func, size, iterations=10):
     """Run benchmark comparing CPU and GPU operations"""
     print(f"\n[{name}] Size: {size}")
@@ -53,11 +54,12 @@ def benchmark_operation(name, cpu_func, gpu_func, size, iterations=10):
     gpu_avg = np.mean(gpu_times)
 
     speedup = cpu_avg / gpu_avg
-    print(f"  CPU (NumPy): {cpu_avg*1000:.2f} ms")
-    print(f"  GPU (CuPy):  {gpu_avg*1000:.2f} ms")
+    print(f"  CPU (NumPy): {cpu_avg * 1000:.2f} ms")
+    print(f"  GPU (CuPy):  {gpu_avg * 1000:.2f} ms")
     print(f"  Speedup:     {speedup:.2f}x")
 
     return speedup
+
 
 # Test 1: Matrix Multiplication
 print("\n1. MATRIX MULTIPLICATION")
@@ -71,7 +73,7 @@ for size in [1000, 2000, 4000]:
         "Matrix Multiply",
         lambda: np.dot(A_cpu, B_cpu),
         lambda: cp.dot(A_gpu, B_gpu),
-        f"{size}x{size}"
+        f"{size}x{size}",
     )
 
 # Test 2: Element-wise Operations
@@ -86,7 +88,7 @@ benchmark_operation(
     "Sqrt + Exp + Log",
     lambda: np.log(np.exp(np.sqrt(np.abs(X_cpu))) + 1),
     lambda: cp.log(cp.exp(cp.sqrt(cp.abs(X_gpu))) + 1),
-    f"{size:,} elements"
+    f"{size:,} elements",
 )
 
 # Test 3: FFT (Fast Fourier Transform)
@@ -96,11 +98,8 @@ for size in [1000000, 10000000]:
     signal_gpu = cp.asarray(signal_cpu)
 
     benchmark_operation(
-        "FFT",
-        lambda: np.fft.fft(signal_cpu),
-        lambda: cp.fft.fft(signal_gpu),
-        f"{size:,} points"
-)
+        "FFT", lambda: np.fft.fft(signal_cpu), lambda: cp.fft.fft(signal_gpu), f"{size:,} points"
+    )
 
 # Test 4: Reduction Operations
 print("\n4. REDUCTION OPERATIONS")
@@ -112,12 +111,13 @@ benchmark_operation(
     "Sum + Mean + Std",
     lambda: (data_cpu.sum(), data_cpu.mean(), data_cpu.std()),
     lambda: (data_gpu.sum(), data_gpu.mean(), data_gpu.std()),
-    f"{size:,} elements"
+    f"{size:,} elements",
 )
 
 # Test 5: Catalytic Computing Simulation
 print("\n5. CATALYTIC COMPUTING SIMULATION")
 print("Simulating XOR-based lattice operations...")
+
 
 def catalytic_xor_cpu(data, catalyst):
     """CPU version of catalytic XOR operation"""
@@ -125,11 +125,13 @@ def catalytic_xor_cpu(data, catalyst):
     result = temp * 2.5 + np.sqrt(np.abs(temp))
     return result ^ catalyst
 
+
 def catalytic_xor_gpu(data, catalyst):
     """GPU version of catalytic XOR operation"""
     temp = data ^ catalyst
     result = temp * 2.5 + cp.sqrt(cp.abs(temp))
     return result ^ catalyst
+
 
 # Test with different sizes
 for size in [1_000_000, 10_000_000, 50_000_000]:
@@ -142,7 +144,7 @@ for size in [1_000_000, 10_000_000, 50_000_000]:
         "Catalytic XOR",
         lambda: catalytic_xor_cpu(data_cpu, catalyst_cpu),
         lambda: catalytic_xor_gpu(data_gpu, catalyst_gpu),
-        f"{size:,} elements"
+        f"{size:,} elements",
     )
 
 print("\n" + "=" * 70)
@@ -169,8 +171,8 @@ for size in sizes:
     bandwidth_down = (size * 4) / (download_time * 1024**3)  # GB/s
 
     print(f"\nSize: {size:,} float32 elements")
-    print(f"  CPU->GPU: {upload_time*1000:.2f} ms ({bandwidth_up:.1f} GB/s)")
-    print(f"  GPU->CPU: {download_time*1000:.2f} ms ({bandwidth_down:.1f} GB/s)")
+    print(f"  CPU->GPU: {upload_time * 1000:.2f} ms ({bandwidth_up:.1f} GB/s)")
+    print(f"  GPU->CPU: {download_time * 1000:.2f} ms ({bandwidth_down:.1f} GB/s)")
 
 print("\n" + "=" * 70)
 print("CUPY FOR CATALYTIC COMPUTING - RECOMMENDATIONS")

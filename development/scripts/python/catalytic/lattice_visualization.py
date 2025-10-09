@@ -12,16 +12,20 @@ from dataclasses import dataclass
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 import warnings
-warnings.filterwarnings('ignore')
+
+warnings.filterwarnings("ignore")
+
 
 @dataclass
 class LatticeConfig:
     """Configuration for lattice generation"""
+
     dimensions: int
     points_per_dim: int
-    lattice_type: str = 'hypercubic'  # hypercubic, triangular, hexagonal
+    lattice_type: str = "hypercubic"  # hypercubic, triangular, hexagonal
     spacing: float = 1.0
     noise: float = 0.0
+
 
 class HighDimensionalLatticeVisualizer:
     """
@@ -39,6 +43,7 @@ class HighDimensionalLatticeVisualizer:
         if use_gpu:
             try:
                 import cupy as cp
+
                 self.xp = cp
                 print("[GPU] Using CuPy for accelerated computations")
             except ImportError:
@@ -57,28 +62,30 @@ class HighDimensionalLatticeVisualizer:
         Returns:
             Array of shape (n_points, dimensions)
         """
-        if config.lattice_type == 'hypercubic':
+        if config.lattice_type == "hypercubic":
             # Create regular grid
-            coords = [np.arange(config.points_per_dim) * config.spacing
-                     for _ in range(config.dimensions)]
-            grid = np.meshgrid(*coords, indexing='ij')
+            coords = [
+                np.arange(config.points_per_dim) * config.spacing for _ in range(config.dimensions)
+            ]
+            grid = np.meshgrid(*coords, indexing="ij")
             points = np.column_stack([g.ravel() for g in grid])
 
-        elif config.lattice_type == 'random':
+        elif config.lattice_type == "random":
             # Random points in hypercube
-            n_points = config.points_per_dim ** config.dimensions
-            points = np.random.rand(min(n_points, 100000), config.dimensions) * \
-                    (config.points_per_dim * config.spacing)
+            n_points = config.points_per_dim**config.dimensions
+            points = np.random.rand(min(n_points, 100000), config.dimensions) * (
+                config.points_per_dim * config.spacing
+            )
 
-        elif config.lattice_type == 'fibonacci':
+        elif config.lattice_type == "fibonacci":
             # Fibonacci lattice (quasi-random)
-            n_points = config.points_per_dim ** 2
+            n_points = config.points_per_dim**2
             golden_ratio = (1 + np.sqrt(5)) / 2
             points = []
             for i in range(n_points):
                 point = []
                 for d in range(config.dimensions):
-                    val = (i * golden_ratio ** (d+1)) % (config.points_per_dim * config.spacing)
+                    val = (i * golden_ratio ** (d + 1)) % (config.points_per_dim * config.spacing)
                     point.append(val)
                 points.append(point)
             points = np.array(points)
@@ -92,9 +99,9 @@ class HighDimensionalLatticeVisualizer:
 
         return points
 
-    def reduce_dimensions(self, points: np.ndarray,
-                         method: str = 'pca',
-                         target_dim: int = 3) -> np.ndarray:
+    def reduce_dimensions(
+        self, points: np.ndarray, method: str = "pca", target_dim: int = 3
+    ) -> np.ndarray:
         """
         Reduce dimensionality for visualization
 
@@ -115,12 +122,12 @@ class HighDimensionalLatticeVisualizer:
                 return np.hstack([points, padding])
             return points
 
-        if method == 'pca':
+        if method == "pca":
             pca = PCA(n_components=target_dim)
             reduced = pca.fit_transform(points)
             print(f"  PCA explained variance: {pca.explained_variance_ratio_.sum():.2%}")
 
-        elif method == 'tsne':
+        elif method == "tsne":
             # t-SNE for up to 5000 points
             if n_points > 5000:
                 indices = np.random.choice(n_points, 5000, replace=False)
@@ -134,9 +141,9 @@ class HighDimensionalLatticeVisualizer:
             if n_points > 5000:
                 # Interpolate remaining points
                 print(f"  t-SNE: Sampled {len(sample)} of {n_points} points")
-                return reduced[:len(indices)]
+                return reduced[: len(indices)]
 
-        elif method == 'random':
+        elif method == "random":
             # Random projection
             projection = np.random.randn(n_dims, target_dim)
             projection /= np.linalg.norm(projection, axis=0)
@@ -147,9 +154,12 @@ class HighDimensionalLatticeVisualizer:
 
         return reduced
 
-    def create_3d_scatter(self, points: np.ndarray,
-                         colors: Optional[np.ndarray] = None,
-                         title: str = "3D Lattice Visualization") -> go.Figure:
+    def create_3d_scatter(
+        self,
+        points: np.ndarray,
+        colors: Optional[np.ndarray] = None,
+        title: str = "3D Lattice Visualization",
+    ) -> go.Figure:
         """
         Create interactive 3D scatter plot
 
@@ -168,26 +178,30 @@ class HighDimensionalLatticeVisualizer:
         if colors is None:
             colors = np.linalg.norm(points, axis=1)
 
-        fig = go.Figure(data=[go.Scatter3d(
-            x=points[:, 0],
-            y=points[:, 1],
-            z=points[:, 2],
-            mode='markers',
-            marker=dict(
-                size=3,
-                color=colors,
-                colorscale='Viridis',
-                showscale=True,
-                colorbar=dict(title="Value"),
-                opacity=0.8
-            ),
-            text=[f"Point {i}" for i in range(len(points))],
-            hovertemplate='<b>Point %{text}</b><br>' +
-                         'X: %{x:.2f}<br>' +
-                         'Y: %{y:.2f}<br>' +
-                         'Z: %{z:.2f}<br>' +
-                         'Value: %{marker.color:.2f}'
-        )])
+        fig = go.Figure(
+            data=[
+                go.Scatter3d(
+                    x=points[:, 0],
+                    y=points[:, 1],
+                    z=points[:, 2],
+                    mode="markers",
+                    marker=dict(
+                        size=3,
+                        color=colors,
+                        colorscale="Viridis",
+                        showscale=True,
+                        colorbar=dict(title="Value"),
+                        opacity=0.8,
+                    ),
+                    text=[f"Point {i}" for i in range(len(points))],
+                    hovertemplate="<b>Point %{text}</b><br>"
+                    + "X: %{x:.2f}<br>"
+                    + "Y: %{y:.2f}<br>"
+                    + "Z: %{z:.2f}<br>"
+                    + "Value: %{marker.color:.2f}",
+                )
+            ]
+        )
 
         fig.update_layout(
             title=title,
@@ -195,18 +209,15 @@ class HighDimensionalLatticeVisualizer:
                 xaxis_title="Dimension 1",
                 yaxis_title="Dimension 2",
                 zaxis_title="Dimension 3",
-                camera=dict(
-                    eye=dict(x=1.5, y=1.5, z=1.5)
-                )
+                camera=dict(eye=dict(x=1.5, y=1.5, z=1.5)),
             ),
             width=900,
-            height=700
+            height=700,
         )
 
         return fig
 
-    def create_parallel_coordinates(self, points: np.ndarray,
-                                   max_dims: int = 10) -> go.Figure:
+    def create_parallel_coordinates(self, points: np.ndarray, max_dims: int = 10) -> go.Figure:
         """
         Create parallel coordinates plot for high-dimensional data
 
@@ -235,30 +246,21 @@ class HighDimensionalLatticeVisualizer:
         # Create dimension dict for parallel coordinates
         dimensions = []
         for i in range(dims_to_show):
-            dimensions.append(
-                dict(
-                    label=f'Dim {i+1}',
-                    values=data_norm[:, i],
-                    range=[0, 1]
-                )
-            )
+            dimensions.append(dict(label=f"Dim {i + 1}", values=data_norm[:, i], range=[0, 1]))
 
         # Color by first dimension
         colors = data_norm[:, 0]
 
-        fig = go.Figure(data=go.Parcoords(
-            line=dict(
-                color=colors,
-                colorscale='Viridis',
-                showscale=True
-            ),
-            dimensions=dimensions
-        ))
+        fig = go.Figure(
+            data=go.Parcoords(
+                line=dict(color=colors, colorscale="Viridis", showscale=True), dimensions=dimensions
+            )
+        )
 
         fig.update_layout(
             title=f"Parallel Coordinates ({points_to_show} points, {dims_to_show} dims)",
             width=1200,
-            height=600
+            height=600,
         )
 
         return fig
@@ -285,15 +287,17 @@ class HighDimensionalLatticeVisualizer:
         fig = make_subplots(
             rows=n_rows,
             cols=n_cols,
-            subplot_titles=[f"Dims {i+1} vs {j+1}"
-                          for i in range(n_dims)
-                          for j in range(i+1, min(i+2, n_dims))
-                          if (i * n_dims + j) < max_projections]
+            subplot_titles=[
+                f"Dims {i + 1} vs {j + 1}"
+                for i in range(n_dims)
+                for j in range(i + 1, min(i + 2, n_dims))
+                if (i * n_dims + j) < max_projections
+            ],
         )
 
         plot_idx = 0
         for i in range(n_dims):
-            for j in range(i+1, n_dims):
+            for j in range(i + 1, n_dims):
                 if plot_idx >= max_projections:
                     break
 
@@ -301,19 +305,14 @@ class HighDimensionalLatticeVisualizer:
                 col = plot_idx % n_cols + 1
 
                 # Create 2D histogram
-                hist, xedges, yedges = np.histogram2d(
-                    points[:, i], points[:, j], bins=30
-                )
+                hist, xedges, yedges = np.histogram2d(points[:, i], points[:, j], bins=30)
 
                 fig.add_trace(
                     go.Heatmap(
-                        z=hist.T,
-                        x=xedges,
-                        y=yedges,
-                        colorscale='Viridis',
-                        showscale=plot_idx == 0
+                        z=hist.T, x=xedges, y=yedges, colorscale="Viridis", showscale=plot_idx == 0
                     ),
-                    row=row, col=col
+                    row=row,
+                    col=col,
                 )
 
                 plot_idx += 1
@@ -322,16 +321,12 @@ class HighDimensionalLatticeVisualizer:
                 break
 
         fig.update_layout(
-            title="2D Projections Heatmap",
-            height=300 * n_rows,
-            width=1200,
-            showlegend=False
+            title="2D Projections Heatmap", height=300 * n_rows, width=1200, showlegend=False
         )
 
         return fig
 
-    def create_animated_rotation(self, points: np.ndarray,
-                                duration: int = 50) -> go.Figure:
+    def create_animated_rotation(self, points: np.ndarray, duration: int = 50) -> go.Figure:
         """
         Create animated 3D rotation of lattice
 
@@ -343,7 +338,7 @@ class HighDimensionalLatticeVisualizer:
             Animated Plotly figure
         """
         if points.shape[1] != 3:
-            points_3d = self.reduce_dimensions(points, method='pca', target_dim=3)
+            points_3d = self.reduce_dimensions(points, method="pca", target_dim=3)
         else:
             points_3d = points
 
@@ -353,88 +348,92 @@ class HighDimensionalLatticeVisualizer:
             angle = 2 * np.pi * i / duration
 
             # Rotation matrix around y-axis
-            rotation = np.array([
-                [np.cos(angle), 0, np.sin(angle)],
-                [0, 1, 0],
-                [-np.sin(angle), 0, np.cos(angle)]
-            ])
+            rotation = np.array(
+                [[np.cos(angle), 0, np.sin(angle)], [0, 1, 0], [-np.sin(angle), 0, np.cos(angle)]]
+            )
 
             rotated = points_3d @ rotation.T
 
-            frames.append(go.Frame(
-                data=[go.Scatter3d(
-                    x=rotated[:, 0],
-                    y=rotated[:, 1],
-                    z=rotated[:, 2],
-                    mode='markers',
-                    marker=dict(
-                        size=3,
-                        color=np.linalg.norm(rotated, axis=1),
-                        colorscale='Viridis',
-                        opacity=0.7
-                    )
-                )],
-                name=str(i)
-            ))
+            frames.append(
+                go.Frame(
+                    data=[
+                        go.Scatter3d(
+                            x=rotated[:, 0],
+                            y=rotated[:, 1],
+                            z=rotated[:, 2],
+                            mode="markers",
+                            marker=dict(
+                                size=3,
+                                color=np.linalg.norm(rotated, axis=1),
+                                colorscale="Viridis",
+                                opacity=0.7,
+                            ),
+                        )
+                    ],
+                    name=str(i),
+                )
+            )
 
         # Initial frame
         fig = go.Figure(
-            data=[go.Scatter3d(
-                x=points_3d[:, 0],
-                y=points_3d[:, 1],
-                z=points_3d[:, 2],
-                mode='markers',
-                marker=dict(
-                    size=3,
-                    color=np.linalg.norm(points_3d, axis=1),
-                    colorscale='Viridis',
-                    opacity=0.7
+            data=[
+                go.Scatter3d(
+                    x=points_3d[:, 0],
+                    y=points_3d[:, 1],
+                    z=points_3d[:, 2],
+                    mode="markers",
+                    marker=dict(
+                        size=3,
+                        color=np.linalg.norm(points_3d, axis=1),
+                        colorscale="Viridis",
+                        opacity=0.7,
+                    ),
                 )
-            )],
-            frames=frames
+            ],
+            frames=frames,
         )
 
         # Add animation controls
         fig.update_layout(
             title="Rotating Lattice View",
-            scene=dict(
-                xaxis_title="X",
-                yaxis_title="Y",
-                zaxis_title="Z"
-            ),
-            updatemenus=[{
-                'type': 'buttons',
-                'showactive': False,
-                'buttons': [
-                    {
-                        'label': 'Play',
-                        'method': 'animate',
-                        'args': [None, {
-                            'frame': {'duration': 50, 'redraw': True},
-                            'fromcurrent': True,
-                            'mode': 'immediate'
-                        }]
-                    },
-                    {
-                        'label': 'Pause',
-                        'method': 'animate',
-                        'args': [[None], {
-                            'frame': {'duration': 0, 'redraw': False},
-                            'mode': 'immediate'
-                        }]
-                    }
-                ]
-            }],
+            scene=dict(xaxis_title="X", yaxis_title="Y", zaxis_title="Z"),
+            updatemenus=[
+                {
+                    "type": "buttons",
+                    "showactive": False,
+                    "buttons": [
+                        {
+                            "label": "Play",
+                            "method": "animate",
+                            "args": [
+                                None,
+                                {
+                                    "frame": {"duration": 50, "redraw": True},
+                                    "fromcurrent": True,
+                                    "mode": "immediate",
+                                },
+                            ],
+                        },
+                        {
+                            "label": "Pause",
+                            "method": "animate",
+                            "args": [
+                                [None],
+                                {"frame": {"duration": 0, "redraw": False}, "mode": "immediate"},
+                            ],
+                        },
+                    ],
+                }
+            ],
             width=900,
-            height=700
+            height=700,
         )
 
         return fig
 
-    def visualize_catalytic_transformation(self,
-                                          initial_lattice: np.ndarray,
-                                          catalyst: np.ndarray,
-                                          steps: int = 10) -> go.Figure:
+    def visualize_catalytic_transformation(
+        self, initial_lattice: np.ndarray, catalyst: np.ndarray, steps: int = 10
+    ) -> go.Figure:
         """
         Visualize catalytic transformation process
 
@@ -454,106 +453,120 @@ class HighDimensionalLatticeVisualizer:
             # Apply catalytic transformation (simplified XOR-like operation)
             if current.shape == catalyst.shape:
                 # Direct XOR if same shape
-                transformed = current * np.cos(catalyst * step / steps) + \
-                            catalyst * np.sin(current * step / steps)
+                transformed = current * np.cos(catalyst * step / steps) + catalyst * np.sin(
+                    current * step / steps
+                )
             else:
                 # Broadcast transformation
                 transformed = current * (1 + 0.1 * np.sin(step / steps * np.pi))
 
             # Reduce to 3D for visualization
-            points_3d = self.reduce_dimensions(transformed, method='pca', target_dim=3)
+            points_3d = self.reduce_dimensions(transformed, method="pca", target_dim=3)
 
-            frames.append(go.Frame(
-                data=[go.Scatter3d(
-                    x=points_3d[:, 0],
-                    y=points_3d[:, 1],
-                    z=points_3d[:, 2],
-                    mode='markers',
-                    marker=dict(
-                        size=4,
-                        color=np.linalg.norm(points_3d, axis=1),
-                        colorscale='Plasma',
-                        opacity=0.8
-                    )
-                )],
-                name=f"Step {step}"
-            ))
+            frames.append(
+                go.Frame(
+                    data=[
+                        go.Scatter3d(
+                            x=points_3d[:, 0],
+                            y=points_3d[:, 1],
+                            z=points_3d[:, 2],
+                            mode="markers",
+                            marker=dict(
+                                size=4,
+                                color=np.linalg.norm(points_3d, axis=1),
+                                colorscale="Plasma",
+                                opacity=0.8,
+                            ),
+                        )
+                    ],
+                    name=f"Step {step}",
+                )
+            )
 
             current = transformed
 
         # Create figure with first frame
-        points_3d_init = self.reduce_dimensions(initial_lattice, method='pca', target_dim=3)
+        points_3d_init = self.reduce_dimensions(initial_lattice, method="pca", target_dim=3)
 
         fig = go.Figure(
-            data=[go.Scatter3d(
-                x=points_3d_init[:, 0],
-                y=points_3d_init[:, 1],
-                z=points_3d_init[:, 2],
-                mode='markers',
-                marker=dict(
-                    size=4,
-                    color=np.linalg.norm(points_3d_init, axis=1),
-                    colorscale='Plasma',
-                    opacity=0.8
+            data=[
+                go.Scatter3d(
+                    x=points_3d_init[:, 0],
+                    y=points_3d_init[:, 1],
+                    z=points_3d_init[:, 2],
+                    mode="markers",
+                    marker=dict(
+                        size=4,
+                        color=np.linalg.norm(points_3d_init, axis=1),
+                        colorscale="Plasma",
+                        opacity=0.8,
+                    ),
                 )
-            )],
-            frames=frames
+            ],
+            frames=frames,
         )
 
         # Add slider and buttons
         fig.update_layout(
             title="Catalytic Transformation Visualization",
-            scene=dict(
-                xaxis_title="PC1",
-                yaxis_title="PC2",
-                zaxis_title="PC3"
-            ),
-            updatemenus=[{
-                'type': 'buttons',
-                'showactive': False,
-                'x': 0.1,
-                'y': 1.1,
-                'buttons': [
-                    {
-                        'label': 'Play',
-                        'method': 'animate',
-                        'args': [None, {
-                            'frame': {'duration': 500, 'redraw': True},
-                            'fromcurrent': True,
-                            'transition': {'duration': 300, 'easing': 'cubic-in-out'}
-                        }]
-                    },
-                    {
-                        'label': 'Pause',
-                        'method': 'animate',
-                        'args': [[None], {
-                            'frame': {'duration': 0, 'redraw': False},
-                            'mode': 'immediate'
-                        }]
-                    }
-                ]
-            }],
-            sliders=[{
-                'steps': [{
-                    'args': [[f'Step {i}'], {
-                        'frame': {'duration': 300, 'redraw': True},
-                        'mode': 'immediate'
-                    }],
-                    'label': f'{i}',
-                    'method': 'animate'
-                } for i in range(steps)],
-                'active': 0,
-                'y': 0,
-                'len': 0.9,
-                'x': 0.1,
-                'xanchor': 'left',
-                'yanchor': 'top'
-            }],
+            scene=dict(xaxis_title="PC1", yaxis_title="PC2", zaxis_title="PC3"),
+            updatemenus=[
+                {
+                    "type": "buttons",
+                    "showactive": False,
+                    "x": 0.1,
+                    "y": 1.1,
+                    "buttons": [
+                        {
+                            "label": "Play",
+                            "method": "animate",
+                            "args": [
+                                None,
+                                {
+                                    "frame": {"duration": 500, "redraw": True},
+                                    "fromcurrent": True,
+                                    "transition": {"duration": 300, "easing": "cubic-in-out"},
+                                },
+                            ],
+                        },
+                        {
+                            "label": "Pause",
+                            "method": "animate",
+                            "args": [
+                                [None],
+                                {"frame": {"duration": 0, "redraw": False}, "mode": "immediate"},
+                            ],
+                        },
+                    ],
+                }
+            ],
+            sliders=[
+                {
+                    "steps": [
+                        {
+                            "args": [
+                                [f"Step {i}"],
+                                {"frame": {"duration": 300, "redraw": True}, "mode": "immediate"},
+                            ],
+                            "label": f"{i}",
+                            "method": "animate",
+                        }
+                        for i in range(steps)
+                    ],
+                    "active": 0,
+                    "y": 0,
+                    "len": 0.9,
+                    "x": 0.1,
+                    "xanchor": "left",
+                    "yanchor": "top",
+                }
+            ],
             width=1000,
-            height=800
+            height=800,
         )
 
         return fig
+
 
 def main():
     """Demo of lattice visualization capabilities"""
@@ -567,11 +580,7 @@ def main():
     # Test 1: 5D Hypercubic Lattice
     print("\n[1] Generating 5D Hypercubic Lattice...")
     config = LatticeConfig(
-        dimensions=5,
-        points_per_dim=10,
-        lattice_type='hypercubic',
-        spacing=1.0,
-        noise=0.1
+        dimensions=5, points_per_dim=10, lattice_type="hypercubic", spacing=1.0, noise=0.1
     )
 
     lattice = viz.generate_lattice(config)
@@ -582,7 +591,7 @@ def main():
 
     # 3D PCA projection
     print("  - PCA projection to 3D")
-    points_3d = viz.reduce_dimensions(lattice, method='pca', target_dim=3)
+    points_3d = viz.reduce_dimensions(lattice, method="pca", target_dim=3)
     fig1 = viz.create_3d_scatter(points_3d, title="5D Lattice - PCA Projection")
     fig1.write_html("lattice_3d_pca.html")
     print("    Saved: lattice_3d_pca.html")
@@ -610,7 +619,7 @@ def main():
     config_10d = LatticeConfig(
         dimensions=10,
         points_per_dim=3,  # Reduced from 5 to avoid too many points
-        lattice_type='hypercubic'
+        lattice_type="hypercubic",
     )
 
     lattice_10d = viz.generate_lattice(config_10d)
@@ -618,7 +627,7 @@ def main():
 
     # t-SNE visualization
     print("  - Computing t-SNE embedding...")
-    points_tsne = viz.reduce_dimensions(lattice_10d, method='tsne', target_dim=3)
+    points_tsne = viz.reduce_dimensions(lattice_10d, method="tsne", target_dim=3)
     fig5 = viz.create_3d_scatter(points_tsne, title="10D Lattice - t-SNE Projection")
     fig5.write_html("lattice_tsne.html")
     print("    Saved: lattice_tsne.html")
@@ -641,6 +650,7 @@ def main():
     print("  5. lattice_tsne.html        - t-SNE embedding")
     print("  6. lattice_catalytic.html   - Catalytic transformation")
     print("\nOpen these files in a web browser to interact with the visualizations!")
+
 
 if __name__ == "__main__":
     main()

@@ -5,7 +5,9 @@ Tests security system integration without requiring full server startup
 
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
+
 
 def test_security_manager_import():
     """Test that security manager can be imported"""
@@ -29,7 +31,7 @@ def test_security_manager_initialization():
             public_key_path="../keys/jwt_development_public.pem",
             security_level=SecurityLevel.ENHANCED,
             redis_host="localhost",
-            redis_port=6379
+            redis_port=6379,
         )
 
         print("✓ Security manager initialized")
@@ -42,6 +44,7 @@ def test_security_manager_initialization():
     except Exception as e:
         print(f"✗ Failed to initialize security manager: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
@@ -81,7 +84,7 @@ def test_jwt_token_creation():
             subject="test_user",
             user_id="user_test_123",
             roles=["user"],
-            permissions=["read", "write"]
+            permissions=["read", "write"],
         )
 
         print("✓ Token created successfully")
@@ -96,6 +99,7 @@ def test_jwt_token_creation():
     except Exception as e:
         print(f"✗ Token creation/verification failed: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
@@ -142,15 +146,16 @@ def test_application_imports():
     except Exception as e:
         print(f"✗ Application imports failed: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
 
 def main():
     """Run all integration tests"""
-    print("="*60)
+    print("=" * 60)
     print("Application Integration Tests")
-    print("="*60)
+    print("=" * 60)
     print()
 
     tests = [
@@ -175,9 +180,9 @@ def main():
         print()
 
     # Summary
-    print("="*60)
+    print("=" * 60)
     print("Test Summary")
-    print("="*60)
+    print("=" * 60)
 
     passed = sum(1 for _, result in results if result)
     total = len(results)

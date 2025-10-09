@@ -27,11 +27,7 @@ class TestRunner:
         if self.verbose:
             print(f"Running: {' '.join(cmd)}")
 
-        result = subprocess.run(
-            cmd,
-            cwd=cwd or self.project_root,
-            capture_output=not self.verbose
-        )
+        result = subprocess.run(cmd, cwd=cwd or self.project_root, capture_output=not self.verbose)
 
         if not self.verbose and result.returncode != 0:
             print(f"Command failed: {' '.join(cmd)}")
@@ -48,12 +44,14 @@ class TestRunner:
         cmd = ["pytest", "-v"]
 
         if coverage:
-            cmd.extend([
-                "--cov=.",
-                "--cov-report=term-missing",
-                "--cov-report=html",
-                "--cov-config=.coveragerc"
-            ])
+            cmd.extend(
+                [
+                    "--cov=.",
+                    "--cov-report=term-missing",
+                    "--cov-report=html",
+                    "--cov-config=.coveragerc",
+                ]
+            )
 
         return self.run_command(cmd)
 
@@ -140,14 +138,7 @@ class TestRunner:
     def run_quick_check(self) -> int:
         """Run quick checks (fast unit tests only)"""
         print("Running quick checks...")
-        cmd = [
-            "pytest",
-            "tests/unit",
-            "-v",
-            "-m", "not slow",
-            "--maxfail=1",
-            "-x"
-        ]
+        cmd = ["pytest", "tests/unit", "-v", "-m", "not slow", "--maxfail=1", "-x"]
         return self.run_command(cmd)
 
     def run_ci_suite(self) -> int:
@@ -196,7 +187,7 @@ Examples:
   python run_tests.py -t tests/unit/test_validation.py  # Run specific test file
   python run_tests.py quick             # Run quick checks
   python run_tests.py ci                # Run full CI suite
-        """
+        """,
     )
 
     parser.add_argument(
@@ -204,34 +195,27 @@ Examples:
         nargs="?",
         default="all",
         choices=[
-            "all", "unit", "integration", "performance",
-            "coverage", "type", "lint", "security", "quick", "ci"
+            "all",
+            "unit",
+            "integration",
+            "performance",
+            "coverage",
+            "type",
+            "lint",
+            "security",
+            "quick",
+            "ci",
         ],
-        help="Test suite to run (default: all)"
+        help="Test suite to run (default: all)",
     )
 
-    parser.add_argument(
-        "-t", "--test",
-        help="Run specific test file or test"
-    )
+    parser.add_argument("-t", "--test", help="Run specific test file or test")
 
-    parser.add_argument(
-        "-m", "--markers",
-        nargs="+",
-        help="Run tests with specific markers"
-    )
+    parser.add_argument("-m", "--markers", nargs="+", help="Run tests with specific markers")
 
-    parser.add_argument(
-        "--no-coverage",
-        action="store_true",
-        help="Skip coverage reporting"
-    )
+    parser.add_argument("--no-coverage", action="store_true", help="Skip coverage reporting")
 
-    parser.add_argument(
-        "-v", "--verbose",
-        action="store_true",
-        help="Verbose output"
-    )
+    parser.add_argument("-v", "--verbose", action="store_true", help="Verbose output")
 
     args = parser.parse_args()
 

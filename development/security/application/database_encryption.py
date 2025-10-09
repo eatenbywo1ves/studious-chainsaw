@@ -41,7 +41,7 @@ class DatabaseEncryption:
                 logger.warning(f"Encryption key not found at {self.key_path}")
                 return
 
-            with open(key_file, 'rb') as f:
+            with open(key_file, "rb") as f:
                 key = f.read().strip()
 
             self._fernet = Fernet(key)
@@ -76,7 +76,7 @@ class DatabaseEncryption:
 
         try:
             encrypted = self._fernet.encrypt(value.encode())
-            return encrypted.decode('utf-8')
+            return encrypted.decode("utf-8")
         except Exception as e:
             logger.error(f"Encryption failed: {e}")
             raise
@@ -100,7 +100,7 @@ class DatabaseEncryption:
 
         try:
             decrypted = self._fernet.decrypt(encrypted_value.encode())
-            return decrypted.decode('utf-8')
+            return decrypted.decode("utf-8")
         except InvalidToken:
             # Value might not be encrypted (migration scenario)
             logger.warning("Failed to decrypt value - may be plaintext")
@@ -212,15 +212,15 @@ def encrypt_sensitive_metadata(metadata: dict) -> dict:
 
     # Define sensitive metadata fields that should be encrypted
     sensitive_fields = [
-        'payment_method_token',
-        'credit_card_last4',
-        'bank_account_number',
-        'ssn',
-        'tax_id',
-        'api_secret',
-        'webhook_secret',
-        'internal_notes',
-        'phone_number'
+        "payment_method_token",
+        "credit_card_last4",
+        "bank_account_number",
+        "ssn",
+        "tax_id",
+        "api_secret",
+        "webhook_secret",
+        "internal_notes",
+        "phone_number",
     ]
 
     return encryption.encrypt_dict(metadata, sensitive_fields)
@@ -239,15 +239,15 @@ def decrypt_sensitive_metadata(encrypted_metadata: dict) -> dict:
     encryption = get_encryption_manager()
 
     sensitive_fields = [
-        'payment_method_token',
-        'credit_card_last4',
-        'bank_account_number',
-        'ssn',
-        'tax_id',
-        'api_secret',
-        'webhook_secret',
-        'internal_notes',
-        'phone_number'
+        "payment_method_token",
+        "credit_card_last4",
+        "bank_account_number",
+        "ssn",
+        "tax_id",
+        "api_secret",
+        "webhook_secret",
+        "internal_notes",
+        "phone_number",
     ]
 
     return encryption.decrypt_dict(encrypted_metadata, sensitive_fields)
@@ -280,11 +280,11 @@ def generate_encryption_key(output_path: Optional[str] = None) -> bytes:
         key_file = Path(output_path)
         key_file.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(key_file, 'wb') as f:
+        with open(key_file, "wb") as f:
             f.write(key)
 
         # Set restrictive permissions (owner read/write only)
-        if os.name != 'nt':  # Unix/Linux
+        if os.name != "nt":  # Unix/Linux
             os.chmod(key_file, 0o600)
 
         logger.info(f"Encryption key generated and saved to {output_path}")

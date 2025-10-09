@@ -4,7 +4,7 @@ import os
 
 from . import _compat
 
-__all__ = ['attach', 'mkdirs', 'mapping_items']
+__all__ = ["attach", "mkdirs", "mapping_items"]
 
 
 def attach(object, name):
@@ -17,9 +17,11 @@ def attach(object, name):
     >>> spam.eggs  # doctest: +ELLIPSIS
     <function func at 0x...>
     """
+
     def decorator(func):
         setattr(object, name, func)
         return func
+
     return decorator
 
 

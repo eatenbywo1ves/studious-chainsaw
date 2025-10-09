@@ -9,6 +9,7 @@ import numpy as np
 
 try:
     import cupy as cp
+
     CUPY_AVAILABLE = True
 except ImportError:
     CUPY_AVAILABLE = False
@@ -38,7 +39,9 @@ class CuPyLatticeGPU(BaseLatticeGPU):
             # Check if device exists
             device_count = cp.cuda.runtime.getDeviceCount()
             if self.device_id >= device_count:
-                raise GPUNotAvailableError(f"Device {self.device_id} not found (only {device_count} devices available)")
+                raise GPUNotAvailableError(
+                    f"Device {self.device_id} not found (only {device_count} devices available)"
+                )
 
             # Set device
             self.device = cp.cuda.Device(self.device_id)
@@ -55,7 +58,9 @@ class CuPyLatticeGPU(BaseLatticeGPU):
             if not self.allocate_memory(aux_size_mb):
                 raise GPUMemoryError(aux_size_mb, self._capabilities.available_memory_mb)
 
-            logger.info(f"Initialized CuPy device {self.device_id}: {self._capabilities.device_name}")
+            logger.info(
+                f"Initialized CuPy device {self.device_id}: {self._capabilities.device_name}"
+            )
             return True
 
         except Exception as e:
@@ -68,20 +73,20 @@ class CuPyLatticeGPU(BaseLatticeGPU):
             props = cp.cuda.runtime.getDeviceProperties(self.device_id)
             mem_info = cp.cuda.runtime.memGetInfo()
 
-            name = props['name']
+            name = props["name"]
             if isinstance(name, bytes):
-                name = name.decode('utf-8')
+                name = name.decode("utf-8")
 
             return GPUCapabilities(
                 device_name=name,
                 device_id=self.device_id,
-                total_memory_mb=mem_info[1] / (1024 ** 2),
-                available_memory_mb=mem_info[0] / (1024 ** 2),
-                compute_capability=(props['major'], props['minor']),
-                max_threads_per_block=props['maxThreadsPerBlock'],
-                max_blocks=props['multiProcessorCount'],
-                warp_size=props['warpSize'],
-                backend_name="cupy"
+                total_memory_mb=mem_info[1] / (1024**2),
+                available_memory_mb=mem_info[0] / (1024**2),
+                compute_capability=(props["major"], props["minor"]),
+                max_threads_per_block=props["maxThreadsPerBlock"],
+                max_blocks=props["multiProcessorCount"],
+                warp_size=props["warpSize"],
+                backend_name="cupy",
             )
 
     def allocate_memory(self, size_mb: float) -> bool:
@@ -157,7 +162,9 @@ class CuPyLatticeGPU(BaseLatticeGPU):
             self.adjacency_data = (row, col, data)
 
             build_time = (time.perf_counter() - start_time) * 1000
-            logger.info(f"Built lattice on GPU: {self.n_points} vertices, {len(edges)} edges in {build_time:.2f}ms")
+            logger.info(
+                f"Built lattice on GPU: {self.n_points} vertices, {len(edges)} edges in {build_time:.2f}ms"
+            )
 
             return self.adjacency_data
 

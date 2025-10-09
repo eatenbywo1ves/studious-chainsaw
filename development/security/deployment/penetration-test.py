@@ -10,11 +10,11 @@ import sys
 from urllib.parse import urljoin
 
 # Color codes
-GREEN = '\033[0;32m'
-YELLOW = '\033[1;33m'
-BLUE = '\033[0;34m'
-RED = '\033[0;31m'
-NC = '\033[0m'
+GREEN = "\033[0;32m"
+YELLOW = "\033[1;33m"
+BLUE = "\033[0;34m"
+RED = "\033[0;31m"
+NC = "\033[0m"
 
 
 class PenetrationTester:
@@ -23,13 +23,7 @@ class PenetrationTester:
     def __init__(self, base_url: str, verbose: bool = False):
         self.base_url = base_url
         self.verbose = verbose
-        self.results = {
-            'critical': [],
-            'high': [],
-            'medium': [],
-            'low': [],
-            'info': []
-        }
+        self.results = {"critical": [], "high": [], "medium": [], "low": [], "info": []}
         self.session = requests.Session()
 
     def print_header(self, message: str):
@@ -43,8 +37,8 @@ class PenetrationTester:
     def print_pass(self, message: str):
         print(f"{GREEN}[PASS] {message}{NC}")
 
-    def print_fail(self, message: str, severity: str = 'medium'):
-        color = RED if severity in ['critical', 'high'] else YELLOW
+    def print_fail(self, message: str, severity: str = "medium"):
+        color = RED if severity in ["critical", "high"] else YELLOW
         print(f"{color}[FAIL] {message} (Severity: {severity.upper()}){NC}")
         self.results[severity].append(message)
 
@@ -62,9 +56,9 @@ class PenetrationTester:
         # Test 1: Access protected endpoint without token
         self.print_test("Testing access to protected endpoint without authentication")
         try:
-            response = self.session.get(urljoin(self.base_url, '/api/protected'))
+            response = self.session.get(urljoin(self.base_url, "/api/protected"))
             if response.status_code == 200:
-                self.print_fail("Protected endpoint accessible without authentication", 'critical')
+                self.print_fail("Protected endpoint accessible without authentication", "critical")
             else:
                 self.print_pass("Protected endpoint properly secured")
         except Exception as e:
@@ -72,22 +66,18 @@ class PenetrationTester:
 
         # Test 2: SQL injection in login
         self.print_test("Testing SQL injection in login endpoint")
-        payloads = [
-            "' OR '1'='1",
-            "admin'--",
-            "' OR 1=1--",
-            "admin' OR '1'='1'/*"
-        ]
+        payloads = ["' OR '1'='1", "admin'--", "' OR 1=1--", "admin' OR '1'='1'/*"]
         for payload in payloads:
             try:
                 response = self.session.post(
-                    urljoin(self.base_url, '/auth/login'),
-                    json={'username': payload, 'password': payload}
+                    urljoin(self.base_url, "/auth/login"),
+                    json={"username": payload, "password": payload},
                 )
-                if response.status_code == 200 and 'token' in response.text.lower():
-                    self.print_fail(f"SQL injection successful with payload: {payload}", 'critical')
+                if response.status_code == 200 and "token" in response.text.lower():
+                    self.print_fail(f"SQL injection successful with payload: {payload}", "critical")
                     break
-            except:
+            except Exception:
+                # Endpoint unavailable or request failed - continue testing
                 pass
         else:
             self.print_pass("SQL injection attempts blocked")
@@ -130,17 +120,20 @@ class PenetrationTester:
         # Test 2: Path traversal
         self.print_test("Testing path traversal attacks")
         payloads = [
-            '../../../etc/passwd',
-            '..\\..\\..\\windows\\system32\\config\\sam',
-            '....//....//....//etc/passwd'
+            "../../../etc/passwd",
+            "..\\..\\..\\windows\\system32\\config\\sam",
+            "....//....//....//etc/passwd",
         ]
         for payload in payloads:
             try:
-                response = self.session.get(urljoin(self.base_url, f'/api/files/{payload}'))
-                if response.status_code == 200 and ('root:' in response.text or 'Administrator' in response.text):
-                    self.print_fail(f"Path traversal successful: {payload}", 'critical')
+                response = self.session.get(urljoin(self.base_url, f"/api/files/{payload}"))
+                if response.status_code == 200 and (
+                    "root:" in response.text or "Administrator" in response.text
+                ):
+                    self.print_fail(f"Path traversal successful: {payload}", "critical")
                     break
-            except:
+            except Exception:
+                # Endpoint unavailable or request failed - continue testing
                 pass
         else:
             self.print_pass("Path traversal attempts blocked")
@@ -159,20 +152,19 @@ class PenetrationTester:
             '<script>alert("XSS")</script>',
             '<img src=x onerror=alert("XSS")>',
             'javascript:alert("XSS")',
-            '<svg onload=alert("XSS")>'
+            '<svg onload=alert("XSS")>',
         ]
 
         # Test input fields
         try:
             response = self.session.post(
-                urljoin(self.base_url, '/api/test-input'),
-                json={'text': xss_payloads[0]}
+                urljoin(self.base_url, "/api/test-input"), json={"text": xss_payloads[0]}
             )
             if xss_payloads[0] in response.text:
-                self.print_fail("XSS payload not sanitized", 'high')
+                self.print_fail("XSS payload not sanitized", "high")
             else:
                 self.print_pass("XSS payloads properly sanitized")
-        except:
+        except Exception:
             self.print_info("XSS test endpoint not available")
 
         # Test 2: Command Injection
@@ -193,7 +185,7 @@ class PenetrationTester:
 
         # Test 1: Basic rate limiting
         self.print_test("Testing rate limiting (sending 100 requests)")
-        endpoint = urljoin(self.base_url, '/api/health')
+        endpoint = urljoin(self.base_url, "/api/health")
         blocked_count = 0
 
         for i in range(100):
@@ -201,24 +193,25 @@ class PenetrationTester:
                 response = self.session.get(endpoint, timeout=1)
                 if response.status_code == 429:  # Too Many Requests
                     blocked_count += 1
-            except:
+            except Exception:
+                # Request failed (timeout/connection error) - continue
                 pass
 
         if blocked_count > 0:
             self.print_pass(f"Rate limiting working ({blocked_count}/100 requests blocked)")
         else:
-            self.print_fail("No rate limiting detected after 100 requests", 'medium')
+            self.print_fail("No rate limiting detected after 100 requests", "medium")
 
         # Test 2: Rate limit headers
         self.print_test("Checking for rate limit headers")
         try:
             response = self.session.get(endpoint)
             headers = response.headers
-            if 'X-RateLimit-Limit' in headers or 'X-RateLimit-Remaining' in headers:
+            if "X-RateLimit-Limit" in headers or "X-RateLimit-Remaining" in headers:
                 self.print_pass("Rate limit headers present")
             else:
-                self.print_fail("Rate limit headers missing", 'low')
-        except:
+                self.print_fail("Rate limit headers missing", "low")
+        except Exception:
             self.print_info("Could not check rate limit headers")
 
     # ========================================================================
@@ -231,10 +224,10 @@ class PenetrationTester:
 
         # Test 1: HTTPS enforcement
         self.print_test("Testing HTTPS enforcement")
-        if self.base_url.startswith('https://'):
+        if self.base_url.startswith("https://"):
             self.print_pass("Using HTTPS")
         else:
-            self.print_fail("Not using HTTPS", 'critical')
+            self.print_fail("Not using HTTPS", "critical")
 
         # Test 2: Security headers
         self.print_test("Checking security headers")
@@ -243,11 +236,11 @@ class PenetrationTester:
             headers = response.headers
 
             required_headers = {
-                'Strict-Transport-Security': 'high',
-                'X-Content-Type-Options': 'medium',
-                'X-Frame-Options': 'medium',
-                'X-XSS-Protection': 'low',
-                'Content-Security-Policy': 'medium'
+                "Strict-Transport-Security": "high",
+                "X-Content-Type-Options": "medium",
+                "X-Frame-Options": "medium",
+                "X-XSS-Protection": "low",
+                "Content-Security-Policy": "medium",
             }
 
             for header, severity in required_headers.items():
@@ -255,7 +248,7 @@ class PenetrationTester:
                     self.print_pass(f"{header} header present: {headers[header]}")
                 else:
                     self.print_fail(f"{header} header missing", severity)
-        except:
+        except Exception:
             self.print_info("Could not check security headers")
 
     # ========================================================================
@@ -269,23 +262,20 @@ class PenetrationTester:
         # Test 1: CORS misconfiguration
         self.print_test("Testing CORS configuration")
         try:
-            response = self.session.options(
-                self.base_url,
-                headers={'Origin': 'https://evil.com'}
-            )
-            cors_header = response.headers.get('Access-Control-Allow-Origin', '')
-            if cors_header == '*':
-                self.print_fail("CORS allows all origins (*)", 'medium')
-            elif 'evil.com' in cors_header:
-                self.print_fail("CORS allows arbitrary origins", 'high')
+            response = self.session.options(self.base_url, headers={"Origin": "https://evil.com"})
+            cors_header = response.headers.get("Access-Control-Allow-Origin", "")
+            if cors_header == "*":
+                self.print_fail("CORS allows all origins (*)", "medium")
+            elif "evil.com" in cors_header:
+                self.print_fail("CORS allows arbitrary origins", "high")
             else:
                 self.print_pass("CORS properly configured")
-        except:
+        except Exception:
             self.print_info("Could not test CORS")
 
         # Test 2: HTTP methods
         self.print_test("Testing allowed HTTP methods")
-        methods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD', 'TRACE']
+        methods = ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD", "TRACE"]
         allowed = []
 
         for method in methods:
@@ -293,23 +283,25 @@ class PenetrationTester:
                 response = requests.request(method, self.base_url, timeout=2)
                 if response.status_code != 405:  # Method Not Allowed
                     allowed.append(method)
-            except:
+            except Exception:
+                # Method test failed - continue
                 pass
 
-        if 'TRACE' in allowed:
-            self.print_fail("TRACE method enabled (XST vulnerability)", 'medium')
+        if "TRACE" in allowed:
+            self.print_fail("TRACE method enabled (XST vulnerability)", "medium")
         else:
             self.print_pass("Dangerous HTTP methods disabled")
 
         # Test 3: Error message information disclosure
         self.print_test("Testing error message information disclosure")
         try:
-            response = self.session.get(urljoin(self.base_url, '/nonexistent'))
-            if 'traceback' in response.text.lower() or 'stack trace' in response.text.lower():
-                self.print_fail("Error messages reveal stack traces", 'medium')
+            response = self.session.get(urljoin(self.base_url, "/nonexistent"))
+            if "traceback" in response.text.lower() or "stack trace" in response.text.lower():
+                self.print_fail("Error messages reveal stack traces", "medium")
             else:
                 self.print_pass("Error messages don't leak sensitive information")
-        except:
+        except Exception:
+            # Error page test failed - skip
             pass
 
     # ========================================================================
@@ -344,25 +336,27 @@ class PenetrationTester:
 
         print(f"Total Issues Found: {total_issues}\n")
 
-        for severity in ['critical', 'high', 'medium', 'low', 'info']:
+        for severity in ["critical", "high", "medium", "low", "info"]:
             count = len(self.results[severity])
             if count > 0:
-                color = RED if severity in ['critical', 'high'] else YELLOW
+                color = RED if severity in ["critical", "high"] else YELLOW
                 print(f"{color}{severity.upper()}: {count}{NC}")
                 for issue in self.results[severity]:
                     print(f"  - {issue}")
                 print()
 
         # Risk assessment
-        critical_count = len(self.results['critical'])
-        high_count = len(self.results['high'])
+        critical_count = len(self.results["critical"])
+        high_count = len(self.results["high"])
 
         print(f"\n{BLUE}{'=' * 70}{NC}")
         print(f"{BLUE}PRODUCTION READINESS ASSESSMENT{NC}")
         print(f"{BLUE}{'=' * 70}{NC}\n")
 
         if critical_count > 0:
-            print(f"{RED}[BLOCKED] {critical_count} CRITICAL issues must be fixed before production{NC}")
+            print(
+                f"{RED}[BLOCKED] {critical_count} CRITICAL issues must be fixed before production{NC}"
+            )
             return False
         elif high_count > 5:
             print(f"{RED}[BLOCKED] Too many HIGH severity issues ({high_count}){NC}")
@@ -404,6 +398,7 @@ class PenetrationTester:
         except Exception as e:
             print(f"\n{RED}Error during testing: {e}{NC}")
             import traceback
+
             traceback.print_exc()
             return False
 

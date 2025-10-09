@@ -24,6 +24,7 @@ def _get_glyph_analyzer():
     if _glyph_analyzer is None:
         try:
             from .profiler_glyphs import get_glyph_analyzer
+
             _glyph_analyzer = get_glyph_analyzer()
         except ImportError:
             logger.warning("Glyph analyzer not available")
@@ -40,6 +41,7 @@ def _get_complexity_analyzer():
     if _complexity_analyzer is None:
         try:
             from .profiler_complexity import get_complexity_analyzer
+
             _complexity_analyzer = get_complexity_analyzer()
         except ImportError:
             logger.warning("Complexity analyzer not available")
@@ -49,6 +51,7 @@ def _get_complexity_analyzer():
 @dataclass
 class ProfileEntry:
     """Single profiling entry"""
+
     operation: str
     start_time: float
     end_time: float
@@ -74,12 +77,13 @@ class ProfileEntry:
     # Phase 3: Complexity tracking
     algorithmic_complexity: Optional[Any] = None  # AlgorithmicComplexity
     operational_complexity: Optional[Any] = None  # OperationalComplexity
-    complexity_score: Optional[Any] = None        # ComplexityScore
+    complexity_score: Optional[Any] = None  # ComplexityScore
 
 
 @dataclass
 class ProfileSummary:
     """Aggregated profiling statistics"""
+
     operation: str
     call_count: int
     total_time_ms: float
@@ -109,10 +113,7 @@ class GPUProfiler:
     """
 
     def __init__(
-        self,
-        enabled: bool = True,
-        device_id: int = 0,
-        enable_detailed_metrics: bool = True
+        self, enabled: bool = True, device_id: int = 0, enable_detailed_metrics: bool = True
     ):
         """
         Initialize GPU profiler
@@ -145,6 +146,7 @@ class GPUProfiler:
         """Detect available GPU backends"""
         try:
             import torch
+
             if torch.cuda.is_available():
                 self.pytorch_available = True
         except ImportError:
@@ -152,6 +154,7 @@ class GPUProfiler:
 
         try:
             import cupy as cp
+
             if cp.cuda.is_available():
                 self.cupy_available = True
         except ImportError:
@@ -206,7 +209,7 @@ class GPUProfiler:
                 backend=self._detect_backend(),
                 metadata=metadata,
                 memory_allocated_mb=memory_allocated,
-                memory_peak_mb=self._get_memory_peak()
+                memory_peak_mb=self._get_memory_peak(),
             )
 
             # Collect detailed metrics if enabled
@@ -236,6 +239,7 @@ class GPUProfiler:
             def my_function(x):
                 return x * 2
         """
+
         def decorator(func: Callable) -> Callable:
             op_name = operation or func.__name__
 
@@ -248,6 +252,7 @@ class GPUProfiler:
                     return func(*args, **kwargs)
 
             return wrapper
+
         return decorator
 
     def _detect_backend(self) -> str:
@@ -266,8 +271,9 @@ class GPUProfiler:
 
         try:
             import torch
+
             allocated = torch.cuda.memory_allocated(self.device_id)
-            return allocated / (1024 ** 2)
+            return allocated / (1024**2)
         except Exception:
             return 0.0
 
@@ -278,8 +284,9 @@ class GPUProfiler:
 
         try:
             import torch
+
             peak = torch.cuda.max_memory_allocated(self.device_id)
-            return peak / (1024 ** 2)
+            return peak / (1024**2)
         except Exception:
             return 0.0
 
@@ -323,26 +330,17 @@ class GPUProfiler:
 
         try:
             # Classify algorithmic complexity
-            algorithmic = analyzer.classify_algorithm(
-                entry.operation,
-                entry.metadata
-            )
+            algorithmic = analyzer.classify_algorithm(entry.operation, entry.metadata)
             entry.algorithmic_complexity = algorithmic
 
             # Compute operational complexity
             operational = analyzer.compute_operational_complexity(
-                entry.duration_ms,
-                entry.memory_allocated_mb,
-                entry.device,
-                entry.metadata
+                entry.duration_ms, entry.memory_allocated_mb, entry.device, entry.metadata
             )
             entry.operational_complexity = operational
 
             # Compute complexity score
-            complexity_score = analyzer.compute_complexity_score(
-                algorithmic,
-                operational
-            )
+            complexity_score = analyzer.compute_complexity_score(algorithmic, operational)
             entry.complexity_score = complexity_score
 
         except Exception as e:
@@ -384,7 +382,7 @@ class GPUProfiler:
                 total_overhead_ms=sum(e.overhead_ms for e in entries),
                 avg_memory_mb=sum(e.memory_allocated_mb for e in entries) / len(entries),
                 peak_memory_mb=max(e.memory_peak_mb for e in entries),
-                avg_gpu_utilization=sum(e.gpu_utilization for e in entries) / len(entries)
+                avg_gpu_utilization=sum(e.gpu_utilization for e in entries) / len(entries),
             )
 
         return summaries
@@ -396,7 +394,7 @@ class GPUProfiler:
 
         mean = sum(values) / len(values)
         variance = sum((x - mean) ** 2 for x in values) / len(values)
-        return variance ** 0.5
+        return variance**0.5
 
     def get_bottlenecks(self, top_n: int = 5) -> List[ProfileSummary]:
         """
@@ -420,9 +418,9 @@ class GPUProfiler:
             print("\nNo profiling data collected")
             return
 
-        print(f"\n{'='*80}")
+        print(f"\n{'=' * 80}")
         print("GPU PROFILING SUMMARY")
-        print(f"{'='*80}")
+        print(f"{'=' * 80}")
         print(f"Total Operations: {len(self._entries)}")
         print(f"Unique Operations: {len(summaries)}")
         print(f"Total Time: {sum(s.total_time_ms for s in summaries.values()):.2f}ms")
@@ -437,11 +435,13 @@ class GPUProfiler:
 
         for i, summary in enumerate(sorted_ops[:top_n]):
             pct = (summary.total_time_ms / total_time * 100) if total_time > 0 else 0
-            print(f"{summary.operation:<30} {summary.call_count:<8} "
-                  f"{summary.total_time_ms:>10.2f}  {summary.avg_time_ms:>10.2f}  "
-                  f"{pct:>6.1f}%")
+            print(
+                f"{summary.operation:<30} {summary.call_count:<8} "
+                f"{summary.total_time_ms:>10.2f}  {summary.avg_time_ms:>10.2f}  "
+                f"{pct:>6.1f}%"
+            )
 
-        print(f"{'='*80}\n")
+        print(f"{'=' * 80}\n")
 
     def print_bottlenecks(self, top_n: int = 5):
         """Print top bottlenecks with detailed breakdown"""
@@ -451,70 +451,80 @@ class GPUProfiler:
             print("\nNo bottlenecks identified")
             return
 
-        print(f"\n{'='*80}")
+        print(f"\n{'=' * 80}")
         print(f"TOP {len(bottlenecks)} BOTTLENECKS")
-        print(f"{'='*80}")
+        print(f"{'=' * 80}")
 
         for i, summary in enumerate(bottlenecks, 1):
             print(f"\n[{i}] {summary.operation}")
             print(f"  Total Time: {summary.total_time_ms:.2f}ms ({summary.call_count} calls)")
-            print(f"  Avg Time: {summary.avg_time_ms:.2f}ms (min: {summary.min_time_ms:.2f}ms, "
-                  f"max: {summary.max_time_ms:.2f}ms)")
+            print(
+                f"  Avg Time: {summary.avg_time_ms:.2f}ms (min: {summary.min_time_ms:.2f}ms, "
+                f"max: {summary.max_time_ms:.2f}ms)"
+            )
 
             if summary.total_gpu_time_ms > 0:
                 print("  Breakdown:")
-                print(f"    GPU Compute: {summary.total_gpu_time_ms:.2f}ms "
-                      f"({summary.total_gpu_time_ms/summary.total_time_ms*100:.1f}%)")
-                print(f"    Transfer: {summary.total_transfer_time_ms:.2f}ms "
-                      f"({summary.total_transfer_time_ms/summary.total_time_ms*100:.1f}%)")
-                print(f"    Overhead: {summary.total_overhead_ms:.2f}ms "
-                      f"({summary.total_overhead_ms/summary.total_time_ms*100:.1f}%)")
+                print(
+                    f"    GPU Compute: {summary.total_gpu_time_ms:.2f}ms "
+                    f"({summary.total_gpu_time_ms / summary.total_time_ms * 100:.1f}%)"
+                )
+                print(
+                    f"    Transfer: {summary.total_transfer_time_ms:.2f}ms "
+                    f"({summary.total_transfer_time_ms / summary.total_time_ms * 100:.1f}%)"
+                )
+                print(
+                    f"    Overhead: {summary.total_overhead_ms:.2f}ms "
+                    f"({summary.total_overhead_ms / summary.total_time_ms * 100:.1f}%)"
+                )
 
             if summary.avg_memory_mb > 0:
-                print(f"  Memory: {summary.avg_memory_mb:.1f}MB avg, "
-                      f"{summary.peak_memory_mb:.1f}MB peak")
+                print(
+                    f"  Memory: {summary.avg_memory_mb:.1f}MB avg, "
+                    f"{summary.peak_memory_mb:.1f}MB peak"
+                )
 
             if summary.avg_gpu_utilization > 0:
                 print(f"  GPU Utilization: {summary.avg_gpu_utilization:.1f}%")
 
-        print(f"\n{'='*80}\n")
+        print(f"\n{'=' * 80}\n")
 
     def export_json(self, filepath: str):
         """Export profiling data to JSON"""
         data = {
-            'entries': [
+            "entries": [
                 {
-                    'operation': e.operation,
-                    'duration_ms': e.duration_ms,
-                    'device': e.device,
-                    'backend': e.backend,
-                    'gpu_time_ms': e.gpu_time_ms,
-                    'cpu_time_ms': e.cpu_time_ms,
-                    'transfer_time_ms': e.transfer_time_ms,
-                    'overhead_ms': e.overhead_ms,
-                    'memory_allocated_mb': e.memory_allocated_mb,
-                    'memory_peak_mb': e.memory_peak_mb,
-                    'gpu_utilization': e.gpu_utilization,
-                    'metadata': e.metadata
+                    "operation": e.operation,
+                    "duration_ms": e.duration_ms,
+                    "device": e.device,
+                    "backend": e.backend,
+                    "gpu_time_ms": e.gpu_time_ms,
+                    "cpu_time_ms": e.cpu_time_ms,
+                    "transfer_time_ms": e.transfer_time_ms,
+                    "overhead_ms": e.overhead_ms,
+                    "memory_allocated_mb": e.memory_allocated_mb,
+                    "memory_peak_mb": e.memory_peak_mb,
+                    "gpu_utilization": e.gpu_utilization,
+                    "metadata": e.metadata,
                 }
                 for e in self._entries
             ],
-            'summary': {
+            "summary": {
                 op: {
-                    'call_count': s.call_count,
-                    'total_time_ms': s.total_time_ms,
-                    'avg_time_ms': s.avg_time_ms,
-                    'min_time_ms': s.min_time_ms,
-                    'max_time_ms': s.max_time_ms,
-                    'total_gpu_time_ms': s.total_gpu_time_ms,
-                    'avg_memory_mb': s.avg_memory_mb,
-                    'avg_gpu_utilization': s.avg_gpu_utilization
+                    "call_count": s.call_count,
+                    "total_time_ms": s.total_time_ms,
+                    "avg_time_ms": s.avg_time_ms,
+                    "min_time_ms": s.min_time_ms,
+                    "max_time_ms": s.max_time_ms,
+                    "total_gpu_time_ms": s.total_gpu_time_ms,
+                    "avg_memory_mb": s.avg_memory_mb,
+                    "avg_gpu_utilization": s.avg_gpu_utilization,
                 }
                 for op, s in self.get_summary().items()
-            }
+            },
         }
 
-        with open(filepath, 'w') as f:
+        with open(filepath, "w") as f:
             json.dump(data, f, indent=2)
 
         logger.info(f"Exported profiling data to {filepath}")
@@ -533,46 +543,46 @@ class GPUProfiler:
 
         # First export standard profiling data
         data = {
-            'entries': [
+            "entries": [
                 {
-                    'operation': e.operation,
-                    'duration_ms': e.duration_ms,
-                    'device': e.device,
-                    'backend': e.backend,
-                    'gpu_time_ms': e.gpu_time_ms,
-                    'cpu_time_ms': e.cpu_time_ms,
-                    'transfer_time_ms': e.transfer_time_ms,
-                    'overhead_ms': e.overhead_ms,
-                    'memory_allocated_mb': e.memory_allocated_mb,
-                    'memory_peak_mb': e.memory_peak_mb,
-                    'gpu_utilization': e.gpu_utilization,
-                    'metadata': e.metadata
+                    "operation": e.operation,
+                    "duration_ms": e.duration_ms,
+                    "device": e.device,
+                    "backend": e.backend,
+                    "gpu_time_ms": e.gpu_time_ms,
+                    "cpu_time_ms": e.cpu_time_ms,
+                    "transfer_time_ms": e.transfer_time_ms,
+                    "overhead_ms": e.overhead_ms,
+                    "memory_allocated_mb": e.memory_allocated_mb,
+                    "memory_peak_mb": e.memory_peak_mb,
+                    "gpu_utilization": e.gpu_utilization,
+                    "metadata": e.metadata,
                 }
                 for e in self._entries
             ],
-            'summary': {
+            "summary": {
                 op: {
-                    'call_count': s.call_count,
-                    'total_time_ms': s.total_time_ms,
-                    'avg_time_ms': s.avg_time_ms,
-                    'min_time_ms': s.min_time_ms,
-                    'max_time_ms': s.max_time_ms,
-                    'total_gpu_time_ms': s.total_gpu_time_ms,
-                    'avg_memory_mb': s.avg_memory_mb,
-                    'avg_gpu_utilization': s.avg_gpu_utilization
+                    "call_count": s.call_count,
+                    "total_time_ms": s.total_time_ms,
+                    "avg_time_ms": s.avg_time_ms,
+                    "min_time_ms": s.min_time_ms,
+                    "max_time_ms": s.max_time_ms,
+                    "total_gpu_time_ms": s.total_gpu_time_ms,
+                    "avg_memory_mb": s.avg_memory_mb,
+                    "avg_gpu_utilization": s.avg_gpu_utilization,
                 }
                 for op, s in self.get_summary().items()
-            }
+            },
         }
 
         # Generate glyphs
         glyphs = analyzer.analyze_profiling_data(data)
 
         # Add glyph data
-        data['glyphs'] = [g.to_dict() for g in glyphs]
-        data['glyph_count'] = len(glyphs)
+        data["glyphs"] = [g.to_dict() for g in glyphs]
+        data["glyph_count"] = len(glyphs)
 
-        with open(filepath, 'w') as f:
+        with open(filepath, "w") as f:
             json.dump(data, f, indent=2)
 
         logger.info(f"Exported profiling data with {len(glyphs)} glyphs to {filepath}")
@@ -591,13 +601,13 @@ class GPUProfiler:
 
         # Create minimal profiling data structure
         data = {
-            'entries': [
+            "entries": [
                 {
-                    'operation': e.operation,
-                    'duration_ms': e.duration_ms,
-                    'device': e.device,
-                    'memory_allocated_mb': e.memory_allocated_mb,
-                    'metadata': e.metadata
+                    "operation": e.operation,
+                    "duration_ms": e.duration_ms,
+                    "device": e.device,
+                    "memory_allocated_mb": e.memory_allocated_mb,
+                    "metadata": e.metadata,
                 }
                 for e in self._entries
             ]
@@ -612,9 +622,9 @@ class GPUProfiler:
             print("\nCannot generate glyph summary: analyzer not available")
             return
 
-        print(f"\n{'='*80}")
+        print(f"\n{'=' * 80}")
         print("GLYPH SUMMARY")
-        print(f"{'='*80}")
+        print(f"{'=' * 80}")
         print(f"Total Operations: {len(glyphs)}")
 
         # Group by optimization level
@@ -629,7 +639,7 @@ class GPUProfiler:
             0: "Base (no optimization)",
             1: "Routed (smart routing)",
             2: "Batched (batch processing)",
-            3: "Optimized (fully optimized)"
+            3: "Optimized (fully optimized)",
         }
 
         for level in sorted(by_level.keys()):
@@ -638,13 +648,15 @@ class GPUProfiler:
                 speedup_str = ""
                 if glyph.speedup:
                     speedup_str = f" ({glyph.speedup}x faster)"
-                print(f"  {glyph.get_notation():<10} {glyph.operation_name:<30} "
-                      f"{glyph.duration_ms:>8.2f}ms{speedup_str}")
+                print(
+                    f"  {glyph.get_notation():<10} {glyph.operation_name:<30} "
+                    f"{glyph.duration_ms:>8.2f}ms{speedup_str}"
+                )
 
             if len(by_level[level]) > 5:
                 print(f"  ... and {len(by_level[level]) - 5} more")
 
-        print(f"{'='*80}\n")
+        print(f"{'=' * 80}\n")
 
     def get_complexity_analysis(self) -> Optional[Dict]:
         """
@@ -663,10 +675,14 @@ class GPUProfiler:
         ops_data = []
         for entry in self._entries:
             if entry.complexity_score:
-                ops_data.append({
-                    'operation': entry.operation,
-                    'complexity_score': entry.complexity_score.to_dict() if hasattr(entry.complexity_score, 'to_dict') else {}
-                })
+                ops_data.append(
+                    {
+                        "operation": entry.operation,
+                        "complexity_score": entry.complexity_score.to_dict()
+                        if hasattr(entry.complexity_score, "to_dict")
+                        else {},
+                    }
+                )
 
         if not ops_data:
             return None
@@ -687,34 +703,36 @@ class GPUProfiler:
 
         hierarchy_mgr = ComplexityHierarchy(analyzer)
 
-        print(f"\n{'='*80}")
+        print(f"\n{'=' * 80}")
         print("COMPLEXITY HIERARCHY")
-        print(f"{'='*80}\n")
+        print(f"{'=' * 80}\n")
 
         # Print tier summary
         tier_names = {
             ComplexityTier.EXPONENTIAL.value: "Tier 3 (Exponential)",
             ComplexityTier.POLYNOMIAL.value: "Tier 2 (Polynomial)",
             ComplexityTier.LINEAR.value: "Tier 1 (Linear)",
-            ComplexityTier.TRIVIAL.value: "Tier 0 (Trivial)"
+            ComplexityTier.TRIVIAL.value: "Tier 0 (Trivial)",
         }
 
         tier_symbols = {
             ComplexityTier.EXPONENTIAL.value: "⊙",
             ComplexityTier.POLYNOMIAL.value: "⊗",
             ComplexityTier.LINEAR.value: "⊘",
-            ComplexityTier.TRIVIAL.value: "⊕"
+            ComplexityTier.TRIVIAL.value: "⊕",
         }
 
         for tier_val in [3, 2, 1, 0]:  # Descending order
             tier_name = tier_names[tier_val]
             tier_symbol = tier_symbols[tier_val]
-            tier_ops = hierarchy['tiers'][tier_val]
+            tier_ops = hierarchy["tiers"][tier_val]
 
             print(f"{tier_name}: {len(tier_ops)} operation(s)")
             for op in tier_ops[:5]:  # Show first 5
-                print(f"  {tier_symbol}  {op['operation']:<30} Score: {op['score']:>8.2f}   "
-                      f"Grade: {op['grade']}   Bottleneck: {op['bottleneck']}")
+                print(
+                    f"  {tier_symbol}  {op['operation']:<30} Score: {op['score']:>8.2f}   "
+                    f"Grade: {op['grade']}   Bottleneck: {op['bottleneck']}"
+                )
             if len(tier_ops) > 5:
                 print(f"  ... and {len(tier_ops) - 5} more")
             print()
@@ -724,13 +742,15 @@ class GPUProfiler:
         if bottlenecks:
             print("Complexity Bottlenecks (Score > 100):")
             for i, bottleneck in enumerate(bottlenecks[:5], 1):
-                print(f"  {i}. {bottleneck['operation']} (Score: {bottleneck['score']:.2f}, "
-                      f"Grade: {bottleneck['grade']})")
+                print(
+                    f"  {i}. {bottleneck['operation']} (Score: {bottleneck['score']:.2f}, "
+                    f"Grade: {bottleneck['grade']})"
+                )
 
                 # Get suggestions
                 suggestions = hierarchy_mgr.suggest_complexity_reductions(
-                    bottleneck['operation'],
-                    None  # We don't have the full ComplexityScore object here
+                    bottleneck["operation"],
+                    None,  # We don't have the full ComplexityScore object here
                 )
                 if suggestions:
                     print("     Suggestions:")
@@ -741,7 +761,7 @@ class GPUProfiler:
         # Summary statistics
         print(f"Total Complexity Score: {hierarchy['total_complexity_score']:.2f}")
         print(f"Average Complexity Score: {hierarchy['average_complexity_score']:.2f}")
-        print(f"{'='*80}\n")
+        print(f"{'=' * 80}\n")
 
     def export_complexity_json(self, filepath: str):
         """Export profiling data with complexity metrics to JSON"""
@@ -752,43 +772,43 @@ class GPUProfiler:
 
         # Build data structure
         data = {
-            'entries': [],
-            'summary': {},
-            'complexity_hierarchy': self.get_complexity_analysis()
+            "entries": [],
+            "summary": {},
+            "complexity_hierarchy": self.get_complexity_analysis(),
         }
 
         # Add entries with complexity
         for entry in self._entries:
             entry_dict = {
-                'operation': entry.operation,
-                'duration_ms': entry.duration_ms,
-                'device': entry.device,
-                'backend': entry.backend,
-                'memory_allocated_mb': entry.memory_allocated_mb,
-                'memory_peak_mb': entry.memory_peak_mb
+                "operation": entry.operation,
+                "duration_ms": entry.duration_ms,
+                "device": entry.device,
+                "backend": entry.backend,
+                "memory_allocated_mb": entry.memory_allocated_mb,
+                "memory_peak_mb": entry.memory_peak_mb,
             }
 
             # Add complexity data if available
             if entry.algorithmic_complexity:
-                entry_dict['algorithmic_complexity'] = entry.algorithmic_complexity.to_dict()
+                entry_dict["algorithmic_complexity"] = entry.algorithmic_complexity.to_dict()
             if entry.operational_complexity:
-                entry_dict['operational_complexity'] = entry.operational_complexity.to_dict()
+                entry_dict["operational_complexity"] = entry.operational_complexity.to_dict()
             if entry.complexity_score:
-                entry_dict['complexity_score'] = entry.complexity_score.to_dict()
+                entry_dict["complexity_score"] = entry.complexity_score.to_dict()
 
-            data['entries'].append(entry_dict)
+            data["entries"].append(entry_dict)
 
         # Add summary
         summary = self.get_summary()
         for op_name, op_summary in summary.items():
-            data['summary'][op_name] = {
-                'call_count': op_summary.call_count,
-                'total_time_ms': op_summary.total_time_ms,
-                'avg_time_ms': op_summary.avg_time_ms
+            data["summary"][op_name] = {
+                "call_count": op_summary.call_count,
+                "total_time_ms": op_summary.total_time_ms,
+                "avg_time_ms": op_summary.avg_time_ms,
             }
 
         # Write to file
-        with open(filepath, 'w') as f:
+        with open(filepath, "w") as f:
             json.dump(data, f, indent=2)
 
         logger.info(f"Exported complexity data to {filepath}")
@@ -802,6 +822,7 @@ class GPUProfiler:
         if self.pytorch_available:
             try:
                 import torch
+
                 torch.cuda.reset_peak_memory_stats(self.device_id)
             except Exception:
                 pass
@@ -822,9 +843,7 @@ _global_profiler: Optional[GPUProfiler] = None
 
 
 def get_profiler(
-    enabled: bool = True,
-    device_id: int = 0,
-    enable_detailed_metrics: bool = True
+    enabled: bool = True, device_id: int = 0, enable_detailed_metrics: bool = True
 ) -> GPUProfiler:
     """
     Get global profiler instance (singleton)
@@ -841,9 +860,7 @@ def get_profiler(
 
     if _global_profiler is None:
         _global_profiler = GPUProfiler(
-            enabled=enabled,
-            device_id=device_id,
-            enable_detailed_metrics=enable_detailed_metrics
+            enabled=enabled, device_id=device_id, enable_detailed_metrics=enable_detailed_metrics
         )
 
     return _global_profiler

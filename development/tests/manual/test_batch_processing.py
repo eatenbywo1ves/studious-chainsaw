@@ -20,6 +20,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 # Initialize CUDA first
 from libs.gpu.cuda_init import initialize_cuda_environment
+
 initialize_cuda_environment(verbose=True)
 
 from apps.catalytic.core.batch_processor import create_batch
@@ -27,15 +28,15 @@ from apps.catalytic.gpu.batch_operations import GPUBatchOperations
 from apps.catalytic.core.unified_lattice import UnifiedCatalyticLattice
 
 # Set up logging
-logging.basicConfig(level=logging.INFO, format='%(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format="%(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 
 def test_batch_operations():
     """Test GPU batch operations primitives"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 1: Batch Operations Primitives")
-    print("="*70)
+    print("=" * 70)
 
     batch_ops = GPUBatchOperations(device_id=0, backend="pytorch")
 
@@ -44,7 +45,7 @@ def test_batch_operations():
     data_list = [
         np.array([1, 2, 3, 4, 5], dtype=np.int32),
         np.array([10, 20, 30, 40, 50], dtype=np.int32),
-        np.array([100, 200, 300, 400, 500], dtype=np.int32)
+        np.array([100, 200, 300, 400, 500], dtype=np.int32),
     ]
 
     start = time.time()
@@ -66,7 +67,7 @@ def test_batch_operations():
     elapsed = (time.time() - start) * 1000
 
     print(f"  Processed {len(a_list)} {size}x{size} matrix multiplications")
-    print(f"  Time: {elapsed:.2f}ms ({elapsed/len(a_list):.2f}ms per operation)")
+    print(f"  Time: {elapsed:.2f}ms ({elapsed / len(a_list):.2f}ms per operation)")
     print(f"  Status: {'PASS' if len(results) == len(a_list) else 'FAIL'}")
 
     # Test 1.3: Batch Element-wise
@@ -93,9 +94,9 @@ def test_batch_operations():
 
 def test_lattice_batch():
     """Test LatticeBatch processor"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 2: Lattice Batch Processor")
-    print("="*70)
+    print("=" * 70)
 
     # Create multiple lattices
     print("\n[Test 2.1] Creating 5 lattices")
@@ -105,7 +106,7 @@ def test_lattice_batch():
             dimensions=4,
             size=8,  # Smaller size for faster testing
             enable_gpu=True,
-            enable_smart_routing=True
+            enable_smart_routing=True,
         )
         lattice.build_lattice()
         lattices.append(lattice)
@@ -118,7 +119,7 @@ def test_lattice_batch():
 
     # Test 2.2: Batch XOR Transform
     print("\n[Test 2.2] Batch XOR Transform")
-    data_list = [np.array([i, i+1, i+2, i+3, i+4], dtype=np.int32) for i in range(5)]
+    data_list = [np.array([i, i + 1, i + 2, i + 3, i + 4], dtype=np.int32) for i in range(5)]
 
     start = time.time()
     results = batch.batch_xor_transform(data_list)
@@ -132,11 +133,11 @@ def test_lattice_batch():
 
     # Define operations for each lattice
     operations = [
-        lambda l: l.analyze_structure(),
-        lambda l: l.analyze_structure(),
-        lambda l: l.analyze_structure(),
-        lambda l: l.analyze_structure(),
-        lambda l: l.analyze_structure()
+        lambda lattice: lattice.analyze_structure(),
+        lambda lattice: lattice.analyze_structure(),
+        lambda lattice: lattice.analyze_structure(),
+        lambda lattice: lattice.analyze_structure(),
+        lambda lattice: lattice.analyze_structure(),
     ]
 
     start = time.time()
@@ -144,7 +145,7 @@ def test_lattice_batch():
     elapsed = (time.time() - start) * 1000
 
     print(f"  Executed {len(results)} parallel operations in {elapsed:.2f}ms")
-    print(f"  Avg per operation: {elapsed/len(results):.2f}ms")
+    print(f"  Avg per operation: {elapsed / len(results):.2f}ms")
     print(f"  Status: {'PASS' if len(results) == 5 else 'FAIL'}")
 
     # Get stats
@@ -156,9 +157,9 @@ def test_lattice_batch():
 
 def test_batch_vs_sequential():
     """Compare batch vs sequential performance"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 3: Batch vs Sequential Performance")
-    print("="*70)
+    print("=" * 70)
 
     num_operations = 10
     print(f"\nTesting with {num_operations} operations")
@@ -167,8 +168,9 @@ def test_batch_vs_sequential():
     print("\n[Test 3.1] XOR Transform: Batch vs Sequential")
 
     # Generate test data
-    data_list = [np.random.randint(0, 256, size=10000, dtype=np.int32)
-                 for _ in range(num_operations)]
+    data_list = [
+        np.random.randint(0, 256, size=10000, dtype=np.int32) for _ in range(num_operations)
+    ]
 
     # Sequential execution
     print("  Sequential execution...")
@@ -225,7 +227,7 @@ def test_batch_vs_sequential():
     matmul_speedup = speedup
 
     # Summary
-    print("\n" + "-"*70)
+    print("\n" + "-" * 70)
     print("Performance Summary:")
     print(f"  XOR Transform: {xor_speedup:.2f}x speedup")
     print(f"  Matrix Multiply: {matmul_speedup:.2f}x speedup")
@@ -246,16 +248,15 @@ def test_batch_vs_sequential():
 
 def test_batch_size_optimization():
     """Test automatic batch size optimization"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 4: Batch Size Optimization")
-    print("="*70)
+    print("=" * 70)
 
     # Create lattices
     num_lattices = 20
     print(f"\n[Test 4.1] Creating {num_lattices} lattices")
     lattices = [
-        UnifiedCatalyticLattice(dimensions=4, size=8, enable_gpu=True)
-        for _ in range(num_lattices)
+        UnifiedCatalyticLattice(dimensions=4, size=8, enable_gpu=True) for _ in range(num_lattices)
     ]
 
     # Test different batch sizes
@@ -288,9 +289,9 @@ def test_batch_size_optimization():
 
 
 def main():
-    print("="*70)
+    print("=" * 70)
     print("BATCH PROCESSING TEST SUITE")
-    print("="*70)
+    print("=" * 70)
 
     all_passed = True
 
@@ -312,9 +313,9 @@ def main():
         all_passed = all_passed and test4
 
         # Final summary
-        print("\n" + "="*70)
+        print("\n" + "=" * 70)
         print("TEST SUITE SUMMARY")
-        print("="*70)
+        print("=" * 70)
         if all_passed:
             print("[SUCCESS] ALL TESTS PASSED - Batch processing working!")
             print("\nKey Features Validated:")
@@ -325,13 +326,14 @@ def main():
             print("  - Memory-aware batching")
         else:
             print("[FAILURE] SOME TESTS FAILED - Review output above")
-        print("="*70)
+        print("=" * 70)
 
         return 0 if all_passed else 1
 
     except Exception as e:
         print(f"\n[FAILURE] Test suite failed: {e}")
         import traceback
+
         traceback.print_exc()
         return 1
 

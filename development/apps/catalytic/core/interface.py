@@ -12,6 +12,7 @@ from abc import ABC, abstractmethod
 @dataclass
 class LatticeMetrics:
     """Metrics for lattice performance and structure"""
+
     vertices: int
     edges: int
     dimensions: int
@@ -68,10 +69,7 @@ class IPathFinder(Protocol):
         ...
 
     def find_all_paths(
-        self,
-        start: int,
-        end: int,
-        max_length: Optional[int] = None
+        self, start: int, end: int, max_length: Optional[int] = None
     ) -> List[List[int]]:
         """
         Find all paths between two vertices
@@ -87,10 +85,7 @@ class IPathFinder(Protocol):
         ...
 
     def find_path_catalytic(
-        self,
-        start: int,
-        end: int,
-        auxiliary_memory: Optional[np.ndarray] = None
+        self, start: int, end: int, auxiliary_memory: Optional[np.ndarray] = None
     ) -> Tuple[List[int], float]:
         """
         Find path using catalytic algorithm
@@ -109,11 +104,7 @@ class IPathFinder(Protocol):
 class ITransformer(Protocol):
     """Protocol for data transformation operations"""
 
-    def xor_transform(
-        self,
-        data: np.ndarray,
-        key: Optional[np.ndarray] = None
-    ) -> np.ndarray:
+    def xor_transform(self, data: np.ndarray, key: Optional[np.ndarray] = None) -> np.ndarray:
         """
         Apply XOR transformation
 
@@ -126,12 +117,7 @@ class ITransformer(Protocol):
         """
         ...
 
-    def apply_transformation(
-        self,
-        data: np.ndarray,
-        transformation: str,
-        **kwargs
-    ) -> np.ndarray:
+    def apply_transformation(self, data: np.ndarray, transformation: str, **kwargs) -> np.ndarray:
         """
         Apply a named transformation
 
@@ -170,10 +156,7 @@ class IAnalyzer(Protocol):
         """
         ...
 
-    def calculate_centrality(
-        self,
-        method: str = "betweenness"
-    ) -> np.ndarray:
+    def calculate_centrality(self, method: str = "betweenness") -> np.ndarray:
         """
         Calculate vertex centrality
 
@@ -214,7 +197,7 @@ class BaseLatticeComputer(ABC):
         """
         self.dimensions = dimensions
         self.size = size
-        self.n_points = size ** dimensions
+        self.n_points = size**dimensions
         self._metrics: Optional[LatticeMetrics] = None
 
     @abstractmethod
@@ -241,9 +224,9 @@ class BaseLatticeComputer(ABC):
         """Validate coordinates are within bounds"""
         coords_array = np.asarray(coords)
         return (
-            len(coords_array) == self.dimensions and
-            np.all(coords_array >= 0) and
-            np.all(coords_array < self.size)
+            len(coords_array) == self.dimensions
+            and np.all(coords_array >= 0)
+            and np.all(coords_array < self.size)
         )
 
     def get_neighbors(self, index: int) -> List[int]:
@@ -273,7 +256,7 @@ class BaseLatticeComputer(ABC):
             Reduction factor
         """
         current_memory = self.estimate_memory_usage()
-        current_total = current_memory.get('total_mb', 1.0)
+        current_total = current_memory.get("total_mb", 1.0)
 
         if current_total > 0:
             return traditional_memory_mb / current_total

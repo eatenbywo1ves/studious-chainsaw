@@ -16,15 +16,19 @@ import ipaddress
 
 logger = logging.getLogger(__name__)
 
+
 class ValidationError(Exception):
     """Custom exception for validation errors"""
+
     pass
+
 
 class SeverityLevel(Enum):
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
     CRITICAL = "critical"
+
 
 @dataclass
 class ValidationRule:
@@ -34,6 +38,7 @@ class ValidationRule:
     severity: SeverityLevel = SeverityLevel.MEDIUM
     description: str = ""
 
+
 @dataclass
 class ValidationResult:
     is_valid: bool
@@ -41,6 +46,7 @@ class ValidationResult:
     errors: List[str]
     warnings: List[str]
     severity: SeverityLevel = SeverityLevel.LOW
+
 
 class SecurityInputValidator:
     """
@@ -50,19 +56,26 @@ class SecurityInputValidator:
     def __init__(self):
         # Common regex patterns
         self.patterns = {
-            'email': re.compile(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'),
-            'phone': re.compile(r'^\+?1?[-.\s]?\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4}$'),
-            'username': re.compile(r'^[a-zA-Z0-9_-]{3,20}$'),
-            'password': re.compile(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$'),
-            'uuid': re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'),
-            'hex': re.compile(r'^[0-9a-fA-F]+$'),
-            'alphanumeric': re.compile(r'^[a-zA-Z0-9]+$'),
-            'slug': re.compile(r'^[a-z0-9]+(?:-[a-z0-9]+)*$'),
+            "email": re.compile(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"),
+            "phone": re.compile(r"^\+?1?[-.\s]?\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4}$"),
+            "username": re.compile(r"^[a-zA-Z0-9_-]{3,20}$"),
+            "password": re.compile(
+                r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$"
+            ),
+            "uuid": re.compile(
+                r"^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            ),
+            "hex": re.compile(r"^[0-9a-fA-F]+$"),
+            "alphanumeric": re.compile(r"^[a-zA-Z0-9]+$"),
+            "slug": re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$"),
         }
 
         # SQL injection patterns
         self.sql_injection_patterns = [
-            re.compile(r"(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|UNION|SCRIPT)\b)", re.IGNORECASE),
+            re.compile(
+                r"(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|UNION|SCRIPT)\b)",
+                re.IGNORECASE,
+            ),
             re.compile(r"(--|#|/\*|\*/)", re.IGNORECASE),
             re.compile(r"(\b(OR|AND)\b\s+\d+\s*=\s*\d+)", re.IGNORECASE),
             re.compile(r"('|(\\'))+.*(OR|AND)", re.IGNORECASE),
@@ -111,19 +124,19 @@ class SecurityInputValidator:
             errors.append("Email too long (max 254 characters)")
 
         # Format validation
-        if not self.patterns['email'].match(sanitized):
+        if not self.patterns["email"].match(sanitized):
             errors.append("Invalid email format")
 
         # Check for suspicious patterns
-        if any(pattern in sanitized for pattern in ['..', '@@', '++']):
+        if any(pattern in sanitized for pattern in ["..", "@@", "++"]):
             warnings.append("Suspicious email pattern detected")
 
         # Domain validation
         try:
-            domain = sanitized.split('@')[1]
+            domain = sanitized.split("@")[1]
             if len(domain) > 253:
                 errors.append("Domain name too long")
-            if domain.startswith('.') or domain.endswith('.'):
+            if domain.startswith(".") or domain.endswith("."):
                 errors.append("Invalid domain format")
         except IndexError:
             errors.append("Invalid email format")
@@ -149,17 +162,17 @@ class SecurityInputValidator:
             errors.append("Password too long (max 128 characters)")
 
         # Complexity checks
-        if not re.search(r'[a-z]', password):
+        if not re.search(r"[a-z]", password):
             errors.append("Password must contain at least one lowercase letter")
-        if not re.search(r'[A-Z]', password):
+        if not re.search(r"[A-Z]", password):
             errors.append("Password must contain at least one uppercase letter")
-        if not re.search(r'\d', password):
+        if not re.search(r"\d", password):
             errors.append("Password must contain at least one digit")
-        if not re.search(r'[@$!%*?&]', password):
+        if not re.search(r"[@$!%*?&]", password):
             errors.append("Password must contain at least one special character")
 
         # Common password checks
-        common_passwords = ['password', '123456', 'qwerty', 'admin', 'root']
+        common_passwords = ["password", "123456", "qwerty", "admin", "root"]
         if password.lower() in common_passwords:
             errors.append("Password is too common")
 
@@ -191,16 +204,16 @@ class SecurityInputValidator:
         if len(sanitized) > 20:
             errors.append("Username too long (max 20 characters)")
 
-        if not self.patterns['username'].match(sanitized):
+        if not self.patterns["username"].match(sanitized):
             errors.append("Username can only contain letters, numbers, hyphens, and underscores")
 
         # Reserved words check
-        reserved_words = ['admin', 'root', 'administrator', 'user', 'guest', 'api', 'system']
+        reserved_words = ["admin", "root", "administrator", "user", "guest", "api", "system"]
         if sanitized.lower() in reserved_words:
             errors.append("Username is reserved")
 
         # Sequential character check
-        if sanitized.lower() in ['123456', 'abcdef', 'qwerty']:
+        if sanitized.lower() in ["123456", "abcdef", "qwerty"]:
             warnings.append("Username contains sequential characters")
 
         is_valid = len(errors) == 0
@@ -208,7 +221,9 @@ class SecurityInputValidator:
 
         return ValidationResult(is_valid, sanitized, errors, warnings, severity)
 
-    def validate_and_sanitize_text(self, text: str, max_length: int = 1000, allow_html: bool = False) -> ValidationResult:
+    def validate_and_sanitize_text(
+        self, text: str, max_length: int = 1000, allow_html: bool = False
+    ) -> ValidationResult:
         """Validate and sanitize text input"""
         errors = []
         warnings = []
@@ -244,7 +259,11 @@ class SecurityInputValidator:
         sanitized = self._normalize_whitespace(sanitized)
 
         is_valid = len(errors) == 0
-        severity = SeverityLevel.HIGH if any("injection" in error for error in errors) else SeverityLevel.LOW
+        severity = (
+            SeverityLevel.HIGH
+            if any("injection" in error for error in errors)
+            else SeverityLevel.LOW
+        )
 
         return ValidationResult(is_valid, sanitized, errors, warnings, severity)
 
@@ -268,7 +287,7 @@ class SecurityInputValidator:
             parsed = urlparse(sanitized)
 
             # Scheme validation
-            if parsed.scheme not in ['http', 'https']:
+            if parsed.scheme not in ["http", "https"]:
                 errors.append("Only HTTP and HTTPS URLs are allowed")
 
             # Hostname validation
@@ -276,7 +295,9 @@ class SecurityInputValidator:
                 errors.append("Invalid URL format")
 
             # Check for suspicious patterns
-            if any(pattern in sanitized.lower() for pattern in ['javascript:', 'vbscript:', 'data:']):
+            if any(
+                pattern in sanitized.lower() for pattern in ["javascript:", "vbscript:", "data:"]
+            ):
                 errors.append("Potentially dangerous URL scheme")
 
             # Check for SSRF attempts
@@ -287,11 +308,17 @@ class SecurityInputValidator:
             errors.append(f"Invalid URL format: {str(e)}")
 
         is_valid = len(errors) == 0
-        severity = SeverityLevel.HIGH if any("dangerous" in error for error in errors) else SeverityLevel.LOW
+        severity = (
+            SeverityLevel.HIGH
+            if any("dangerous" in error for error in errors)
+            else SeverityLevel.LOW
+        )
 
         return ValidationResult(is_valid, sanitized, errors, warnings, severity)
 
-    def validate_json(self, json_str: str, max_depth: int = 10, max_size: int = 1000000) -> ValidationResult:
+    def validate_json(
+        self, json_str: str, max_depth: int = 10, max_size: int = 1000000
+    ) -> ValidationResult:
         """Validate JSON input"""
         errors = []
         warnings = []
@@ -311,7 +338,7 @@ class SecurityInputValidator:
                 errors.append(f"JSON too deep (max depth {max_depth})")
 
             # Check for suspicious keys
-            suspicious_keys = ['__proto__', 'constructor', 'prototype']
+            suspicious_keys = ["__proto__", "constructor", "prototype"]
             if self._contains_suspicious_keys(parsed_json, suspicious_keys):
                 warnings.append("JSON contains suspicious keys")
 
@@ -326,7 +353,9 @@ class SecurityInputValidator:
 
         return ValidationResult(is_valid, sanitized, errors, warnings, severity)
 
-    def validate_file_upload(self, filename: str, content_type: str, file_size: int) -> ValidationResult:
+    def validate_file_upload(
+        self, filename: str, content_type: str, file_size: int
+    ) -> ValidationResult:
         """Validate file upload security"""
         errors = []
         warnings = []
@@ -339,10 +368,20 @@ class SecurityInputValidator:
         sanitized = self._sanitize_filename(filename)
 
         # Extension validation
-        allowed_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.pdf', '.txt', '.csv', '.json']
-        dangerous_extensions = ['.exe', '.bat', '.cmd', '.scr', '.pif', '.com', '.jsp', '.php', '.asp']
+        allowed_extensions = [".jpg", ".jpeg", ".png", ".gif", ".pdf", ".txt", ".csv", ".json"]
+        dangerous_extensions = [
+            ".exe",
+            ".bat",
+            ".cmd",
+            ".scr",
+            ".pif",
+            ".com",
+            ".jsp",
+            ".php",
+            ".asp",
+        ]
 
-        extension = '.' + filename.lower().split('.')[-1] if '.' in filename else ''
+        extension = "." + filename.lower().split(".")[-1] if "." in filename else ""
 
         if extension in dangerous_extensions:
             errors.append("File type not allowed")
@@ -356,14 +395,14 @@ class SecurityInputValidator:
 
         # Content type validation
         expected_content_types = {
-            '.jpg': 'image/jpeg',
-            '.jpeg': 'image/jpeg',
-            '.png': 'image/png',
-            '.gif': 'image/gif',
-            '.pdf': 'application/pdf',
-            '.txt': 'text/plain',
-            '.csv': 'text/csv',
-            '.json': 'application/json'
+            ".jpg": "image/jpeg",
+            ".jpeg": "image/jpeg",
+            ".png": "image/png",
+            ".gif": "image/gif",
+            ".pdf": "application/pdf",
+            ".txt": "text/plain",
+            ".csv": "text/csv",
+            ".json": "application/json",
         }
 
         if extension in expected_content_types:
@@ -371,7 +410,11 @@ class SecurityInputValidator:
                 warnings.append("Content type doesn't match file extension")
 
         is_valid = len(errors) == 0
-        severity = SeverityLevel.HIGH if any("not allowed" in error for error in errors) else SeverityLevel.LOW
+        severity = (
+            SeverityLevel.HIGH
+            if any("not allowed" in error for error in errors)
+            else SeverityLevel.LOW
+        )
 
         return ValidationResult(is_valid, sanitized, errors, warnings, severity)
 
@@ -389,29 +432,44 @@ class SecurityInputValidator:
 
     def _sanitize_html(self, html_content: str) -> str:
         """Sanitize HTML content"""
-        allowed_tags = ['p', 'br', 'strong', 'em', 'u', 'ol', 'ul', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']
-        allowed_attributes = {'a': ['href'], 'img': ['src', 'alt']}
+        allowed_tags = [
+            "p",
+            "br",
+            "strong",
+            "em",
+            "u",
+            "ol",
+            "ul",
+            "li",
+            "h1",
+            "h2",
+            "h3",
+            "h4",
+            "h5",
+            "h6",
+        ]
+        allowed_attributes = {"a": ["href"], "img": ["src", "alt"]}
 
         return bleach.clean(html_content, tags=allowed_tags, attributes=allowed_attributes)
 
     def _remove_null_bytes(self, text: str) -> str:
         """Remove null bytes from text"""
-        return text.replace('\x00', '')
+        return text.replace("\x00", "")
 
     def _normalize_whitespace(self, text: str) -> str:
         """Normalize whitespace in text"""
-        return ' '.join(text.split())
+        return " ".join(text.split())
 
     def _has_sequential_chars(self, text: str) -> bool:
         """Check for sequential characters"""
-        sequences = ['123456', 'abcdef', 'qwerty', '098765', 'fedcba']
+        sequences = ["123456", "abcdef", "qwerty", "098765", "fedcba"]
         return any(seq in text.lower() for seq in sequences)
 
     def _is_private_ip(self, hostname: str) -> bool:
         """Check if hostname resolves to private IP"""
         try:
             # Extract hostname if port is included
-            hostname = hostname.split(':')[0]
+            hostname = hostname.split(":")[0]
             ip = ipaddress.ip_address(hostname)
             return ip.is_private
         except (ValueError, ipaddress.AddressValueError):
@@ -447,21 +505,23 @@ class SecurityInputValidator:
     def _sanitize_filename(self, filename: str) -> str:
         """Sanitize filename for safe storage"""
         # Remove path separators and dangerous characters
-        sanitized = re.sub(r'[<>:"/\\|?*]', '_', filename)
-        sanitized = re.sub(r'\.{2,}', '.', sanitized)  # Remove multiple dots
-        sanitized = sanitized.strip('. ')  # Remove leading/trailing dots and spaces
+        sanitized = re.sub(r'[<>:"/\\|?*]', "_", filename)
+        sanitized = re.sub(r"\.{2,}", ".", sanitized)  # Remove multiple dots
+        sanitized = sanitized.strip(". ")  # Remove leading/trailing dots and spaces
 
         # Limit length
         if len(sanitized) > 255:
-            name, ext = sanitized.rsplit('.', 1) if '.' in sanitized else (sanitized, '')
+            name, ext = sanitized.rsplit(".", 1) if "." in sanitized else (sanitized, "")
             max_name_length = 255 - len(ext) - 1 if ext else 255
-            sanitized = name[:max_name_length] + ('.' + ext if ext else '')
+            sanitized = name[:max_name_length] + ("." + ext if ext else "")
 
         return sanitized
+
 
 # Decorator for automatic validation
 def validate_input(validation_rules: Dict[str, ValidationRule]):
     """Decorator for automatic input validation"""
+
     def decorator(func):
         def wrapper(*args, **kwargs):
             # Validate kwargs based on rules
@@ -471,7 +531,9 @@ def validate_input(validation_rules: Dict[str, ValidationRule]):
                     result = rule.validator(value)
 
                     if not result.is_valid:
-                        error_msg = f"Validation failed for {param_name}: {'; '.join(result.errors)}"
+                        error_msg = (
+                            f"Validation failed for {param_name}: {'; '.join(result.errors)}"
+                        )
                         logger.error(error_msg)
                         raise ValidationError(error_msg)
 
@@ -486,8 +548,11 @@ def validate_input(validation_rules: Dict[str, ValidationRule]):
                         logger.warning(f"Validation warning for {param_name}: {warning}")
 
             return func(*args, **kwargs)
+
         return wrapper
+
     return decorator
+
 
 # Example usage
 if __name__ == "__main__":

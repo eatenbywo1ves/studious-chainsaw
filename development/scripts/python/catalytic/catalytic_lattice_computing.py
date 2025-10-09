@@ -11,6 +11,7 @@ from typing import List
 import os
 from time import time
 
+
 class CatalyticLatticeComputer:
     """
     Implements catalytic computing principles for lattice operations.
@@ -20,24 +21,24 @@ class CatalyticLatticeComputer:
     def __init__(self, dimensions: int, lattice_size: int, aux_memory_mb: int = 100):
         self.dimensions = dimensions
         self.lattice_size = lattice_size
-        self.n_points = lattice_size ** dimensions
+        self.n_points = lattice_size**dimensions
 
         # Create auxiliary memory (simulated as memory-mapped file for efficiency)
         self.aux_size = aux_memory_mb * 1024 * 1024  # Convert to bytes
         self.aux_file = f"aux_memory_{os.getpid()}.tmp"
 
         # Initialize with random data (simulating "full" memory)
-        with open(self.aux_file, 'wb') as f:
+        with open(self.aux_file, "wb") as f:
             f.write(np.random.bytes(self.aux_size))
 
         # Memory-map for efficient access
-        self.aux_memory = np.memmap(self.aux_file, dtype='uint8', mode='r+', shape=(self.aux_size,))
+        self.aux_memory = np.memmap(self.aux_file, dtype="uint8", mode="r+", shape=(self.aux_size,))
 
     def __del__(self):
         # Cleanup
-        if hasattr(self, 'aux_memory'):
+        if hasattr(self, "aux_memory"):
             del self.aux_memory
-        if hasattr(self, 'aux_file') and os.path.exists(self.aux_file):
+        if hasattr(self, "aux_file") and os.path.exists(self.aux_file):
             os.remove(self.aux_file)
 
     @staticmethod
@@ -85,7 +86,7 @@ class CatalyticLatticeComputer:
         (np.arange(self.n_points) % 256).astype(np.uint8)
 
         # Apply reversible transformation to auxiliary memory
-        section = self.aux_memory[:work_size].reshape(-1, 8)[:self.n_points]
+        section = self.aux_memory[:work_size].reshape(-1, 8)[: self.n_points]
 
         # Store neighbor information using XOR (reversible)
         for point_id in range(min(self.n_points, len(section))):
@@ -145,7 +146,7 @@ class CatalyticLatticeComputer:
 
             # Catalyst provides heuristic via encoded information
             best_neighbor = None
-            best_score = float('inf')
+            best_score = float("inf")
 
             for neighbor in neighbors:
                 if neighbor not in visited and neighbor < len(catalyst):
@@ -166,6 +167,7 @@ class CatalyticLatticeComputer:
 
         return path
 
+
 @numba.jit(nopython=True)
 def reversible_lattice_rotation(lattice_points: np.ndarray, angle_index: int) -> np.ndarray:
     """
@@ -178,7 +180,7 @@ def reversible_lattice_rotation(lattice_points: np.ndarray, angle_index: int) ->
     # Simple reversible rotation in first two dimensions
     if dims >= 2:
         # Use discrete angles for perfect reversibility
-        angles = np.array([0, np.pi/2, np.pi, 3*np.pi/2])
+        angles = np.array([0, np.pi / 2, np.pi, 3 * np.pi / 2])
         angle = angles[angle_index % 4]
 
         cos_a = np.cos(angle)
@@ -190,6 +192,7 @@ def reversible_lattice_rotation(lattice_points: np.ndarray, angle_index: int) ->
             rotated[i, 1] = sin_a * x + cos_a * y
 
     return rotated
+
 
 def demonstrate_catalytic_lattice():
     """Demonstration of catalytic computing principles for lattices."""
@@ -214,7 +217,7 @@ def demonstrate_catalytic_lattice():
     path = computer.catalytic_lattice_traversal(start, end)
     t2 = time()
 
-    print(f"Found path of length {len(path)} in {(t2-t1)*1000:.2f}ms")
+    print(f"Found path of length {len(path)} in {(t2 - t1) * 1000:.2f}ms")
     print(f"Path (first 10 points): {path[:10]}")
 
     # Verify auxiliary memory was restored
@@ -261,6 +264,7 @@ def demonstrate_catalytic_lattice():
 
     # Cleanup
     del computer
+
 
 if __name__ == "__main__":
     demonstrate_catalytic_lattice()

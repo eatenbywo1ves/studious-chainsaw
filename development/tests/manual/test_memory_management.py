@@ -19,23 +19,22 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 # Initialize CUDA first
 from libs.gpu.cuda_init import initialize_cuda_environment
+
 initialize_cuda_environment(verbose=True)
 
-from libs.gpu.memory_manager import (
-    GPUMemoryMonitor
-)
+from libs.gpu.memory_manager import GPUMemoryMonitor
 from libs.gpu.memory_pool import GPUMemoryPool
 
 # Set up logging
-logging.basicConfig(level=logging.INFO, format='%(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format="%(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 
 def test_memory_monitor():
     """Test GPU memory monitoring"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 1: GPU Memory Monitor")
-    print("="*70)
+    print("=" * 70)
 
     monitor = GPUMemoryMonitor(device_id=0, enable_auto_cleanup=False)
 
@@ -57,8 +56,10 @@ def test_memory_monitor():
 
     history = monitor.get_snapshot_history(last_n=5)
     print(f"  Recorded {len(history)} snapshots")
-    print(f"  Utilization range: {min(s.utilization for s in history):.1f}% - "
-          f"{max(s.utilization for s in history):.1f}%")
+    print(
+        f"  Utilization range: {min(s.utilization for s in history):.1f}% - "
+        f"{max(s.utilization for s in history):.1f}%"
+    )
 
     # Get statistics
     print("\n[Test 1.3] Memory Statistics")
@@ -87,9 +88,9 @@ def test_memory_monitor():
 
 def test_memory_cleanup():
     """Test memory cleanup functionality"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 2: Memory Cleanup")
-    print("="*70)
+    print("=" * 70)
 
     monitor = GPUMemoryMonitor(device_id=0, enable_auto_cleanup=False)
 
@@ -118,21 +119,16 @@ def test_memory_cleanup():
 
 def test_memory_pool():
     """Test memory pool functionality"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 3: Memory Pool")
-    print("="*70)
+    print("=" * 70)
 
-    pool = GPUMemoryPool(
-        device_id=0,
-        max_pool_size_mb=1024.0,
-        enable_size_rounding=True
-    )
+    pool = GPUMemoryPool(device_id=0, max_pool_size_mb=1024.0, enable_size_rounding=True)
 
     print("\n[Test 3.1] Pool Allocation - PyTorch")
 
     # Test PyTorch allocation
     try:
-
         # Allocate from pool
         print("  Allocating 10MB...")
         data1 = pool.allocate(size_mb=10.0, backend="pytorch")
@@ -176,16 +172,12 @@ def test_memory_pool():
 
 def test_auto_cleanup():
     """Test automatic cleanup on high memory pressure"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 4: Automatic Cleanup on High Pressure")
-    print("="*70)
+    print("=" * 70)
 
     # Create monitor with auto-cleanup enabled at 85% threshold
-    monitor = GPUMemoryMonitor(
-        device_id=0,
-        enable_auto_cleanup=True,
-        cleanup_threshold=0.85
-    )
+    monitor = GPUMemoryMonitor(device_id=0, enable_auto_cleanup=True, cleanup_threshold=0.85)
 
     print("\n[Test 4.1] Monitor current state")
     initial = monitor.get_memory_snapshot()
@@ -214,9 +206,9 @@ def test_auto_cleanup():
 
 def test_pressure_events():
     """Test memory pressure event tracking"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 5: Memory Pressure Event Tracking")
-    print("="*70)
+    print("=" * 70)
 
     monitor = GPUMemoryMonitor(device_id=0)
 
@@ -238,14 +230,11 @@ def test_pressure_events():
 
 def test_leak_detection():
     """Test memory leak detection"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 6: Memory Leak Detection")
-    print("="*70)
+    print("=" * 70)
 
-    monitor = GPUMemoryMonitor(
-        device_id=0,
-        enable_leak_detection=True
-    )
+    monitor = GPUMemoryMonitor(device_id=0, enable_leak_detection=True)
 
     print("\n[Test 6.1] Simulating steady memory usage")
     # Record snapshots over time
@@ -262,9 +251,9 @@ def test_leak_detection():
 
 
 def main():
-    print("="*70)
+    print("=" * 70)
     print("GPU MEMORY MANAGEMENT TEST SUITE")
-    print("="*70)
+    print("=" * 70)
 
     all_passed = True
 
@@ -294,9 +283,9 @@ def main():
         all_passed = all_passed and test6
 
         # Final summary
-        print("\n" + "="*70)
+        print("\n" + "=" * 70)
         print("TEST SUITE SUMMARY")
-        print("="*70)
+        print("=" * 70)
         if all_passed:
             print("[SUCCESS] ALL TESTS PASSED - Memory management working!")
             print("\nKey Features Validated:")
@@ -308,13 +297,14 @@ def main():
             print("  - Comprehensive statistics tracking")
         else:
             print("[FAILURE] SOME TESTS FAILED - Review output above")
-        print("="*70)
+        print("=" * 70)
 
         return 0 if all_passed else 1
 
     except Exception as e:
         print(f"\n[FAILURE] Test suite failed: {e}")
         import traceback
+
         traceback.print_exc()
         return 1
 

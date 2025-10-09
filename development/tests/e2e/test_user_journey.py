@@ -33,13 +33,10 @@ class TestCompleteUserJourney:
             "password": "JourneyTest123!",
             "first_name": "Journey",
             "last_name": "Tester",
-            "plan_code": "pro"
+            "plan_code": "pro",
         }
 
-        register_response = await e2e_client.post(
-            "/api/auth/register",
-            json=registration_data
-        )
+        register_response = await e2e_client.post("/api/auth/register", json=registration_data)
         assert register_response.status_code == 201
 
         registration_result = register_response.json()
@@ -66,10 +63,7 @@ class TestCompleteUserJourney:
 
         login_response = await e2e_client.post(
             "/api/auth/login",
-            json={
-                "email": registration_data["email"],
-                "password": registration_data["password"]
-            }
+            json={"email": registration_data["email"], "password": registration_data["password"]},
         )
         assert login_response.status_code == 200
 
@@ -93,13 +87,11 @@ class TestCompleteUserJourney:
             "size": 500,
             "field_type": "complex",
             "geometry": "euclidean",
-            "enable_gpu": False
+            "enable_gpu": False,
         }
 
         create1_response = await e2e_client.post(
-            "/api/lattices",
-            json=lattice1_data,
-            headers=headers
+            "/api/lattices", json=lattice1_data, headers=headers
         )
         assert create1_response.status_code == 201
 
@@ -123,13 +115,11 @@ class TestCompleteUserJourney:
             "size": 1500,
             "field_type": "complex",
             "geometry": "euclidean",
-            "enable_gpu": True
+            "enable_gpu": True,
         }
 
         create2_response = await e2e_client.post(
-            "/api/lattices",
-            json=lattice2_data,
-            headers=headers
+            "/api/lattices", json=lattice2_data, headers=headers
         )
         assert create2_response.status_code == 201
 
@@ -160,10 +150,7 @@ class TestCompleteUserJourney:
         # ================================================================
         print("\n[STEP 7] Getting lattice details...")
 
-        detail_response = await e2e_client.get(
-            f"/api/lattices/{lattice1_id}",
-            headers=headers
-        )
+        detail_response = await e2e_client.get(f"/api/lattices/{lattice1_id}", headers=headers)
         assert detail_response.status_code == 200
 
         lattice_detail = detail_response.json()
@@ -185,17 +172,11 @@ class TestCompleteUserJourney:
         # ================================================================
         print("\n[STEP 9] Deleting first lattice...")
 
-        delete_response = await e2e_client.delete(
-            f"/api/lattices/{lattice1_id}",
-            headers=headers
-        )
+        delete_response = await e2e_client.delete(f"/api/lattices/{lattice1_id}", headers=headers)
         assert delete_response.status_code in [200, 204]
 
         # Verify deletion
-        verify_delete = await e2e_client.get(
-            f"/api/lattices/{lattice1_id}",
-            headers=headers
-        )
+        verify_delete = await e2e_client.get(f"/api/lattices/{lattice1_id}", headers=headers)
         assert verify_delete.status_code == 404
 
         print(f"✓ Lattice {lattice1_id} deleted")
@@ -222,10 +203,7 @@ class TestCompleteUserJourney:
         print("\n[STEP 11] Cleaning up remaining lattices...")
 
         for lattice in remaining_lattices:
-            await e2e_client.delete(
-                f"/api/lattices/{lattice['id']}",
-                headers=headers
-            )
+            await e2e_client.delete(f"/api/lattices/{lattice['id']}", headers=headers)
 
         # Verify all deleted
         final_list = await e2e_client.get("/api/lattices", headers=headers)
@@ -238,10 +216,7 @@ class TestCompleteUserJourney:
         # ================================================================
         print("\n[STEP 12] Logging out...")
 
-        logout_response = await e2e_client.post(
-            "/api/auth/logout",
-            headers=headers
-        )
+        logout_response = await e2e_client.post("/api/auth/logout", headers=headers)
         assert logout_response.status_code == 200
 
         # Verify token is blacklisted
@@ -250,9 +225,9 @@ class TestCompleteUserJourney:
 
         print("✓ Logout successful, token blacklisted")
 
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("✓ COMPLETE USER JOURNEY TEST PASSED")
-        print("="*60)
+        print("=" * 60)
 
     @pytest.mark.asyncio
     async def test_new_user_onboarding_flow(self, e2e_client: AsyncClient):
@@ -266,13 +241,10 @@ class TestCompleteUserJourney:
             "password": "Onboard123!",
             "first_name": "New",
             "last_name": "User",
-            "plan_code": "free"
+            "plan_code": "free",
         }
 
-        register_response = await e2e_client.post(
-            "/api/auth/register",
-            json=registration_data
-        )
+        register_response = await e2e_client.post("/api/auth/register", json=registration_data)
         assert register_response.status_code == 201
 
         result = register_response.json()
@@ -285,22 +257,17 @@ class TestCompleteUserJourney:
             "size": 10,  # Small size for tutorial
             "field_type": "complex",
             "geometry": "euclidean",
-            "enable_gpu": False
+            "enable_gpu": False,
         }
 
         create_response = await e2e_client.post(
-            "/api/lattices",
-            json=tutorial_lattice,
-            headers=headers
+            "/api/lattices", json=tutorial_lattice, headers=headers
         )
         assert create_response.status_code == 201
 
         # Step 3: Explore lattice
         lattice_id = create_response.json()["id"]
-        explore_response = await e2e_client.get(
-            f"/api/lattices/{lattice_id}",
-            headers=headers
-        )
+        explore_response = await e2e_client.get(f"/api/lattices/{lattice_id}", headers=headers)
         assert explore_response.status_code == 200
 
         # Step 4: Cleanup tutorial lattice
@@ -308,9 +275,7 @@ class TestCompleteUserJourney:
 
     @pytest.mark.asyncio
     async def test_power_user_workflow(
-        self,
-        authenticated_e2e_client: AsyncClient,
-        cleanup_lattices
+        self, authenticated_e2e_client: AsyncClient, cleanup_lattices
     ):
         """Test power user creating multiple lattices efficiently."""
 
@@ -320,18 +285,15 @@ class TestCompleteUserJourney:
 
         for i in range(lattice_count):
             lattice_data = {
-                "name": f"Power User Lattice {i+1}",
+                "name": f"Power User Lattice {i + 1}",
                 "dimensions": 2 + (i % 3),  # Vary dimensions 2-4
-                "size": 100 * (i + 1),      # Increasing sizes
+                "size": 100 * (i + 1),  # Increasing sizes
                 "field_type": "complex",
                 "geometry": "euclidean",
-                "enable_gpu": False
+                "enable_gpu": False,
             }
 
-            response = await authenticated_e2e_client.post(
-                "/api/lattices",
-                json=lattice_data
-            )
+            response = await authenticated_e2e_client.post("/api/lattices", json=lattice_data)
             assert response.status_code == 201
 
             lattice = response.json()
@@ -347,9 +309,7 @@ class TestCompleteUserJourney:
 
         # Verify each lattice is accessible
         for lattice in created_lattices:
-            detail_response = await authenticated_e2e_client.get(
-                f"/api/lattices/{lattice['id']}"
-            )
+            detail_response = await authenticated_e2e_client.get(f"/api/lattices/{lattice['id']}")
             assert detail_response.status_code == 200
 
     @pytest.mark.asyncio
@@ -364,13 +324,10 @@ class TestCompleteUserJourney:
             "password": "Session123!",
             "first_name": "Session",
             "last_name": "Tester",
-            "plan_code": "pro"
+            "plan_code": "pro",
         }
 
-        register_response = await e2e_client.post(
-            "/api/auth/register",
-            json=registration_data
-        )
+        register_response = await e2e_client.post("/api/auth/register", json=registration_data)
         assert register_response.status_code == 201
 
         access_token = register_response.json()["access_token"]
@@ -389,9 +346,9 @@ class TestCompleteUserJourney:
                     "dimensions": 2,
                     "size": 50,
                     "field_type": "complex",
-                    "geometry": "euclidean"
+                    "geometry": "euclidean",
                 },
-                headers=headers
+                headers=headers,
             )
             assert create_response.status_code == 201
             lattice_ids.append(create_response.json()["id"])

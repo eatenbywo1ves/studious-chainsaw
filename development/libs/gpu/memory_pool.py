@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class PooledAllocation:
     """Represents a pooled memory allocation"""
+
     size_mb: float
     allocated_time: float
     last_used_time: float
@@ -37,7 +38,7 @@ class GPUMemoryPool:
         device_id: int = 0,
         max_pool_size_mb: float = 2048.0,
         max_unused_time: float = 300.0,  # 5 minutes
-        enable_size_rounding: bool = True
+        enable_size_rounding: bool = True,
     ):
         """
         Initialize memory pool
@@ -70,13 +71,16 @@ class GPUMemoryPool:
         self.cupy_available = False
         self._detect_backends()
 
-        logger.info(f"GPUMemoryPool initialized: device={device_id}, "
-                   f"max_size={max_pool_size_mb}MB, max_unused={max_unused_time}s")
+        logger.info(
+            f"GPUMemoryPool initialized: device={device_id}, "
+            f"max_size={max_pool_size_mb}MB, max_unused={max_unused_time}s"
+        )
 
     def _detect_backends(self):
         """Detect available GPU backends"""
         try:
             import torch
+
             if torch.cuda.is_available():
                 self.pytorch_available = True
         except ImportError:
@@ -84,6 +88,7 @@ class GPUMemoryPool:
 
         try:
             import cupy as cp
+
             if cp.cuda.is_available():
                 self.cupy_available = True
         except ImportError:
@@ -118,10 +123,7 @@ class GPUMemoryPool:
             return np.ceil(size_mb / 50) * 50
 
     def allocate(
-        self,
-        size_mb: float,
-        backend: str = "pytorch",
-        dtype: Any = None
+        self, size_mb: float, backend: str = "pytorch", dtype: Any = None
     ) -> Optional[Any]:
         """
         Allocate memory from pool or create new allocation
@@ -147,8 +149,10 @@ class GPUMemoryPool:
                         allocation.use_count += 1
                         self._pool_hits += 1
 
-                        logger.debug(f"Pool HIT: {rounded_size}MB from {backend} pool "
-                                   f"(use_count={allocation.use_count})")
+                        logger.debug(
+                            f"Pool HIT: {rounded_size}MB from {backend} pool "
+                            f"(use_count={allocation.use_count})"
+                        )
                         return allocation.data
 
             # Pool miss - create new allocation
@@ -156,8 +160,10 @@ class GPUMemoryPool:
 
             # Check if we have room in pool
             if self._total_size_mb + rounded_size > self.max_pool_size_mb:
-                logger.warning(f"Pool full ({self._total_size_mb:.1f}MB / {self.max_pool_size_mb:.1f}MB), "
-                             f"cleaning up unused allocations")
+                logger.warning(
+                    f"Pool full ({self._total_size_mb:.1f}MB / {self.max_pool_size_mb:.1f}MB), "
+                    f"cleaning up unused allocations"
+                )
                 self._cleanup_unused()
 
                 # Still no room? Fail
@@ -176,15 +182,17 @@ class GPUMemoryPool:
                     use_count=1,
                     backend=backend,
                     data=data,
-                    in_use=True
+                    in_use=True,
                 )
 
                 self._pool[rounded_size].append(allocation)
                 self._total_allocations += 1
                 self._total_size_mb += rounded_size
 
-                logger.debug(f"Pool MISS: allocated {rounded_size}MB from {backend} "
-                           f"(total pool: {self._total_size_mb:.1f}MB)")
+                logger.debug(
+                    f"Pool MISS: allocated {rounded_size}MB from {backend} "
+                    f"(total pool: {self._total_size_mb:.1f}MB)"
+                )
 
                 return data
 
@@ -198,15 +206,21 @@ class GPUMemoryPool:
 
         if backend == "pytorch" and self.pytorch_available:
             import torch
+
             if dtype is None:
                 dtype = torch.float32
             # Calculate number of elements based on dtype
-            element_size = torch.finfo(dtype).bits // 8 if torch.is_floating_point(torch.tensor(0, dtype=dtype)) else 4
+            element_size = (
+                torch.finfo(dtype).bits // 8
+                if torch.is_floating_point(torch.tensor(0, dtype=dtype))
+                else 4
+            )
             num_elements = size_bytes // element_size
-            return torch.zeros(num_elements, dtype=dtype, device=f'cuda:{self.device_id}')
+            return torch.zeros(num_elements, dtype=dtype, device=f"cuda:{self.device_id}")
 
         elif backend == "cupy" and self.cupy_available:
             import cupy as cp
+
             if dtype is None:
                 dtype = cp.float32
             # Calculate number of elements
@@ -305,42 +319,49 @@ class GPUMemoryPool:
         with self._lock:
             total_allocations = sum(len(allocs) for allocs in self._pool.values())
             in_use_count = sum(
-                1 for allocs in self._pool.values()
-                for alloc in allocs if alloc.in_use
+                1 for allocs in self._pool.values() for alloc in allocs if alloc.in_use
             )
 
-            hit_rate = (self._pool_hits / (self._pool_hits + self._pool_misses) * 100
-                       if (self._pool_hits + self._pool_misses) > 0 else 0)
+            hit_rate = (
+                self._pool_hits / (self._pool_hits + self._pool_misses) * 100
+                if (self._pool_hits + self._pool_misses) > 0
+                else 0
+            )
 
             return {
-                'total_allocations': total_allocations,
-                'in_use_count': in_use_count,
-                'available_count': total_allocations - in_use_count,
-                'total_size_mb': self._total_size_mb,
-                'max_size_mb': self.max_pool_size_mb,
-                'utilization': (self._total_size_mb / self.max_pool_size_mb * 100
-                               if self.max_pool_size_mb > 0 else 0),
-                'pool_hits': self._pool_hits,
-                'pool_misses': self._pool_misses,
-                'hit_rate': hit_rate,
-                'unique_sizes': len(self._pool)
+                "total_allocations": total_allocations,
+                "in_use_count": in_use_count,
+                "available_count": total_allocations - in_use_count,
+                "total_size_mb": self._total_size_mb,
+                "max_size_mb": self.max_pool_size_mb,
+                "utilization": (
+                    self._total_size_mb / self.max_pool_size_mb * 100
+                    if self.max_pool_size_mb > 0
+                    else 0
+                ),
+                "pool_hits": self._pool_hits,
+                "pool_misses": self._pool_misses,
+                "hit_rate": hit_rate,
+                "unique_sizes": len(self._pool),
             }
 
     def print_stats(self):
         """Print pool statistics"""
         stats = self.get_stats()
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("GPU MEMORY POOL STATISTICS")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         print(f"Total Allocations: {stats['total_allocations']}")
         print(f"In Use: {stats['in_use_count']}")
         print(f"Available: {stats['available_count']}")
-        print(f"Total Size: {stats['total_size_mb']:.1f}MB / {stats['max_size_mb']:.1f}MB ({stats['utilization']:.1f}%)")
+        print(
+            f"Total Size: {stats['total_size_mb']:.1f}MB / {stats['max_size_mb']:.1f}MB ({stats['utilization']:.1f}%)"
+        )
         print(f"Pool Hits: {stats['pool_hits']}")
         print(f"Pool Misses: {stats['pool_misses']}")
         print(f"Hit Rate: {stats['hit_rate']:.1f}%")
         print(f"Unique Sizes: {stats['unique_sizes']}")
-        print(f"{'='*60}\n")
+        print(f"{'=' * 60}\n")
 
 
 # Global singleton
@@ -348,10 +369,7 @@ _global_memory_pool: Optional[GPUMemoryPool] = None
 _pool_lock = Lock()
 
 
-def get_memory_pool(
-    device_id: int = 0,
-    max_pool_size_mb: float = 2048.0
-) -> GPUMemoryPool:
+def get_memory_pool(device_id: int = 0, max_pool_size_mb: float = 2048.0) -> GPUMemoryPool:
     """
     Get global memory pool instance (singleton)
 
@@ -367,8 +385,7 @@ def get_memory_pool(
     with _pool_lock:
         if _global_memory_pool is None:
             _global_memory_pool = GPUMemoryPool(
-                device_id=device_id,
-                max_pool_size_mb=max_pool_size_mb
+                device_id=device_id, max_pool_size_mb=max_pool_size_mb
             )
 
         return _global_memory_pool

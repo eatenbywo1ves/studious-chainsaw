@@ -33,7 +33,7 @@ class CatalyticLatticeGraph:
         """
         self.dimensions = dimensions
         self.lattice_size = lattice_size
-        self.n_points = lattice_size ** dimensions
+        self.n_points = lattice_size**dimensions
 
         # Create igraph lattice
         self.graph = None
@@ -93,8 +93,10 @@ class CatalyticLatticeGraph:
         self.graph.es["weight"] = weights
 
         build_time = time.time() - start_time
-        self.operation_times['build_lattice'] = build_time
-        print(f"[OK] Built {self.dimensions}D lattice with {self.n_points} vertices in {build_time:.3f}s")
+        self.operation_times["build_lattice"] = build_time
+        print(
+            f"[OK] Built {self.dimensions}D lattice with {self.n_points} vertices in {build_time:.3f}s"
+        )
 
     @lru_cache(maxsize=10000)
     def find_shortest_path(self, start: int, end: int) -> Tuple[List[int], float]:
@@ -110,18 +112,20 @@ class CatalyticLatticeGraph:
         # Calculate path length
         if len(path) > 1:
             path_length = sum(
-                self.graph.es[self.graph.get_eid(path[i], path[i+1])]["weight"]
+                self.graph.es[self.graph.get_eid(path[i], path[i + 1])]["weight"]
                 for i in range(len(path) - 1)
             )
         else:
             path_length = 0.0
 
         elapsed = time.time() - start_time
-        self.operation_times['shortest_path'] = elapsed
+        self.operation_times["shortest_path"] = elapsed
 
         return path, path_length
 
-    def find_all_paths(self, start: int, end: int, max_length: Optional[int] = None) -> List[List[int]]:
+    def find_all_paths(
+        self, start: int, end: int, max_length: Optional[int] = None
+    ) -> List[List[int]]:
         """
         Find all paths between two vertices up to max_length
         Uses igraph's efficient path enumeration
@@ -135,7 +139,7 @@ class CatalyticLatticeGraph:
         paths = self.graph.get_all_simple_paths(start, to=end, cutoff=max_length)
 
         elapsed = time.time() - start_time
-        self.operation_times['all_paths'] = elapsed
+        self.operation_times["all_paths"] = elapsed
 
         return paths
 
@@ -150,7 +154,7 @@ class CatalyticLatticeGraph:
         neighbors = set(self.graph.neighborhood(vertex, order=radius)) - {vertex}
 
         elapsed = time.time() - start_time
-        self.operation_times['get_neighbors'] = elapsed
+        self.operation_times["get_neighbors"] = elapsed
 
         return neighbors
 
@@ -175,7 +179,7 @@ class CatalyticLatticeGraph:
             adj_matrix = np.array(self.graph.get_adjacency().data)
 
         elapsed = time.time() - start_time
-        self.operation_times['connectivity_matrix'] = elapsed
+        self.operation_times["connectivity_matrix"] = elapsed
 
         return adj_matrix
 
@@ -191,55 +195,55 @@ class CatalyticLatticeGraph:
         color_map = {i: coloring[i] for i in range(self.n_points)}
 
         elapsed = time.time() - start_time
-        self.operation_times['graph_coloring'] = elapsed
+        self.operation_times["graph_coloring"] = elapsed
 
         print(f"[OK] Colored graph with {len(set(coloring))} colors")
         return color_map
 
-    def find_communities(self, method: str = 'fast_greedy') -> List[List[int]]:
+    def find_communities(self, method: str = "fast_greedy") -> List[List[int]]:
         """
         Detect communities/clusters in the lattice
         Useful for partitioning work in parallel algorithms
         """
         start_time = time.time()
 
-        if method == 'fast_greedy':
+        if method == "fast_greedy":
             communities = self.graph.community_fastgreedy(weights="weight")
             clusters = communities.as_clustering()
-        elif method == 'leiden':
+        elif method == "leiden":
             clusters = self.graph.community_leiden(weights="weight")
-        elif method == 'walktrap':
+        elif method == "walktrap":
             communities = self.graph.community_walktrap(weights="weight")
             clusters = communities.as_clustering()
         else:
             clusters = self.graph.community_multilevel(weights="weight")
 
         elapsed = time.time() - start_time
-        self.operation_times['find_communities'] = elapsed
+        self.operation_times["find_communities"] = elapsed
 
         print(f"[OK] Found {len(clusters)} communities using {method}")
         return list(clusters)
 
-    def compute_centrality(self, method: str = 'betweenness') -> np.ndarray:
+    def compute_centrality(self, method: str = "betweenness") -> np.ndarray:
         """
         Compute vertex centrality scores
         Identifies important nodes in the lattice
         """
         start_time = time.time()
 
-        if method == 'betweenness':
+        if method == "betweenness":
             scores = self.graph.betweenness()
-        elif method == 'closeness':
+        elif method == "closeness":
             scores = self.graph.closeness()
-        elif method == 'eigenvector':
+        elif method == "eigenvector":
             scores = self.graph.eigenvector_centrality()
-        elif method == 'pagerank':
+        elif method == "pagerank":
             scores = self.graph.pagerank()
         else:
             scores = self.graph.degree()
 
         elapsed = time.time() - start_time
-        self.operation_times[f'{method}_centrality'] = elapsed
+        self.operation_times[f"{method}_centrality"] = elapsed
 
         return np.array(scores)
 
@@ -253,7 +257,7 @@ class CatalyticLatticeGraph:
         mst = self.graph.spanning_tree(weights="weight")
 
         elapsed = time.time() - start_time
-        self.operation_times['mst'] = elapsed
+        self.operation_times["mst"] = elapsed
 
         print(f"[OK] Found MST with {len(mst.es)} edges")
         return mst
@@ -267,10 +271,10 @@ class CatalyticLatticeGraph:
 
         # Get shortest path lengths from start to all vertices
         distances = self.graph.distances(source=start, weights=None)[0]
-        distance_map = {i: int(d) if d != float('inf') else -1 for i, d in enumerate(distances)}
+        distance_map = {i: int(d) if d != float("inf") else -1 for i, d in enumerate(distances)}
 
         elapsed = time.time() - start_time
-        self.operation_times['parallel_bfs'] = elapsed
+        self.operation_times["parallel_bfs"] = elapsed
 
         return distance_map
 
@@ -286,7 +290,7 @@ class CatalyticLatticeGraph:
             laplacian = np.array(self.graph.laplacian(normalized=False))
 
         elapsed = time.time() - start_time
-        self.operation_times['laplacian'] = elapsed
+        self.operation_times["laplacian"] = elapsed
 
         return laplacian
 
@@ -318,10 +322,10 @@ class CatalyticLatticeGraph:
         self.apply_graph_coloring()
 
         # Communities
-        self.find_communities('fast_greedy')
+        self.find_communities("fast_greedy")
 
         # Centrality
-        centrality = self.compute_centrality('betweenness')
+        centrality = self.compute_centrality("betweenness")
         print(f"  Centrality scores computed (max={centrality.max():.4f})")
 
         # MST
@@ -375,8 +379,8 @@ class GraphAcceleratedCatalyticComputer:
         try:
             # Use auxiliary memory to encode path constraints
             # Handle larger indices by using multiple bytes if needed
-            start_bytes = start.to_bytes(4, 'little')
-            end_bytes = end.to_bytes(4, 'little')
+            start_bytes = start.to_bytes(4, "little")
+            end_bytes = end.to_bytes(4, "little")
             self.aux_memory[:4] = np.frombuffer(start_bytes, dtype=np.uint8)
             self.aux_memory[4:8] = np.frombuffer(end_bytes, dtype=np.uint8)
 
@@ -386,9 +390,11 @@ class GraphAcceleratedCatalyticComputer:
             # Encode path in auxiliary memory (space-efficient)
             if len(path) * 4 <= len(self.aux_memory) - 8:
                 for i, vertex in enumerate(path):
-                    vertex_bytes = vertex.to_bytes(4, 'little')
+                    vertex_bytes = vertex.to_bytes(4, "little")
                     start_idx = 8 + i * 4
-                    self.aux_memory[start_idx:start_idx + 4] ^= np.frombuffer(vertex_bytes, dtype=np.uint8)
+                    self.aux_memory[start_idx : start_idx + 4] ^= np.frombuffer(
+                        vertex_bytes, dtype=np.uint8
+                    )
 
             return path, length
 
@@ -424,12 +430,12 @@ class GraphAcceleratedCatalyticComputer:
         """
         Process a group of non-interfering vertices
         """
-        if operation == 'transform':
+        if operation == "transform":
             # Apply transformation to all vertices in parallel
             coords = np.array([self.graph._idx_to_coord[v] for v in vertices])
             # Transformation logic here
             return coords
-        elif operation == 'compute':
+        elif operation == "compute":
             # Perform computation on vertices
             return [v * 2 for v in vertices]
         else:
@@ -455,12 +461,12 @@ def compare_with_networkx():
     # NetworkX comparison (simulated times based on known performance)
     print("\n[2] NetworkX typical times (estimated):")
     nx_times = {
-        'build_lattice': ig_times['build_lattice'] * 15,
-        'shortest_path': ig_times.get('shortest_path', 0.001) * 25,
-        'get_neighbors': ig_times.get('get_neighbors', 0.001) * 10,
-        'connectivity_matrix': ig_times.get('connectivity_matrix', 0.001) * 20,
-        'graph_coloring': ig_times.get('graph_coloring', 0.001) * 30,
-        'find_communities': ig_times.get('find_communities', 0.001) * 40,
+        "build_lattice": ig_times["build_lattice"] * 15,
+        "shortest_path": ig_times.get("shortest_path", 0.001) * 25,
+        "get_neighbors": ig_times.get("get_neighbors", 0.001) * 10,
+        "connectivity_matrix": ig_times.get("connectivity_matrix", 0.001) * 20,
+        "graph_coloring": ig_times.get("graph_coloring", 0.001) * 30,
+        "find_communities": ig_times.get("find_communities", 0.001) * 40,
     }
 
     print("\n[3] Performance Summary:")
@@ -473,8 +479,9 @@ def compare_with_networkx():
         speedup = nx_ms / ig_ms if ig_ms > 0 else 0
         print(f"{op:<25} {ig_ms:<15.3f} {nx_ms:<15.3f} {speedup:<10.1f}x")
 
-    avg_speedup = np.mean([nx_times.get(op, ig_times[op] * 20) / ig_times[op]
-                           for op in ig_times if ig_times[op] > 0])
+    avg_speedup = np.mean(
+        [nx_times.get(op, ig_times[op] * 20) / ig_times[op] for op in ig_times if ig_times[op] > 0]
+    )
     print(f"\nAverage speedup: {avg_speedup:.1f}x")
 
 
@@ -485,11 +492,7 @@ def test_integration_with_catalytic():
     print("\n[INFO] Testing Graph-Accelerated Catalytic Computing")
     print("-" * 60)
 
-    computer = GraphAcceleratedCatalyticComputer(
-        dimensions=4,
-        lattice_size=5,
-        aux_memory_mb=10
-    )
+    computer = GraphAcceleratedCatalyticComputer(dimensions=4, lattice_size=5, aux_memory_mb=10)
 
     # Test catalytic graph traversal
     start, end = 0, computer.graph.n_points - 1
@@ -497,7 +500,7 @@ def test_integration_with_catalytic():
     print(f"[OK] Catalytic traversal: {len(path)} steps, distance={length:.2f}")
 
     # Test parallel operations
-    results = computer.parallel_lattice_operation('compute')
+    results = computer.parallel_lattice_operation("compute")
     print(f"[OK] Parallel operation processed {len(results)} groups")
 
     # Memory usage

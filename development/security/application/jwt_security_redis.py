@@ -17,16 +17,19 @@ import redis.asyncio as redis
 
 logger = logging.getLogger(__name__)
 
+
 class TokenType(Enum):
     ACCESS = "access"
     REFRESH = "refresh"
     API_KEY = "api_key"
     RESET = "reset"
 
+
 class SecurityLevel(Enum):
     BASIC = "basic"
     ENHANCED = "enhanced"
     STRICT = "strict"
+
 
 class JWTSecurityManager:
     """
@@ -46,7 +49,7 @@ class JWTSecurityManager:
         algorithm: str = "RS256",
         access_token_expire_minutes: int = 15,
         refresh_token_expire_days: int = 7,
-        security_level: SecurityLevel = SecurityLevel.ENHANCED
+        security_level: SecurityLevel = SecurityLevel.ENHANCED,
     ):
         self.algorithm = algorithm
         self.access_token_expire_minutes = access_token_expire_minutes
@@ -63,16 +66,16 @@ class JWTSecurityManager:
         # Rate limiting storage (also Redis-backed)
         # Format: failed_attempts:{user_id} -> list of timestamps
 
-        logger.info(f"JWT Security Manager initialized with {security_level.value} security level (Redis-backed)")
+        logger.info(
+            f"JWT Security Manager initialized with {security_level.value} security level (Redis-backed)"
+        )
 
     def _load_private_key(self, key_path: str):
         """Load RSA private key from file"""
         try:
-            with open(key_path, 'rb') as key_file:
+            with open(key_path, "rb") as key_file:
                 private_key = serialization.load_pem_private_key(
-                    key_file.read(),
-                    password=None,
-                    backend=default_backend()
+                    key_file.read(), password=None, backend=default_backend()
                 )
             return private_key
         except Exception as e:
@@ -82,10 +85,9 @@ class JWTSecurityManager:
     def _load_public_key(self, key_path: str):
         """Load RSA public key from file"""
         try:
-            with open(key_path, 'rb') as key_file:
+            with open(key_path, "rb") as key_file:
                 public_key = serialization.load_pem_public_key(
-                    key_file.read(),
-                    backend=default_backend()
+                    key_file.read(), backend=default_backend()
                 )
             return public_key
         except Exception as e:
@@ -98,7 +100,7 @@ class JWTSecurityManager:
         user_id: str,
         roles: List[str],
         permissions: List[str],
-        additional_claims: Optional[Dict[str, Any]] = None
+        additional_claims: Optional[Dict[str, Any]] = None,
     ) -> str:
         """
         Create a secure access token with comprehensive claims
@@ -120,7 +122,7 @@ class JWTSecurityManager:
             "nbf": int(now.timestamp()),
             "jti": jti,  # ✅ Unique token ID for revocation
             "iss": "catalytic-computing-api",
-            "aud": "catalytic-computing-services"
+            "aud": "catalytic-computing-services",
         }
 
         if additional_claims:
@@ -135,11 +137,7 @@ class JWTSecurityManager:
 
         return token
 
-    def create_refresh_token(
-        self,
-        user_id: str,
-        device_id: Optional[str] = None
-    ) -> str:
+    def create_refresh_token(self, user_id: str, device_id: Optional[str] = None) -> str:
         """Create a refresh token"""
         now = datetime.now(timezone.utc)
         expire = now + timedelta(days=self.refresh_token_expire_days)
@@ -152,7 +150,7 @@ class JWTSecurityManager:
             "iat": int(now.timestamp()),
             "exp": int(expire.timestamp()),
             "jti": jti,
-            "device_id": device_id or "unknown"
+            "device_id": device_id or "unknown",
         }
 
         token = jwt.encode(claims, self.private_key, algorithm=self.algorithm)
@@ -160,7 +158,9 @@ class JWTSecurityManager:
 
         return token
 
-    async def verify_token(self, token: str, expected_type: TokenType = TokenType.ACCESS) -> Dict[str, Any]:
+    async def verify_token(
+        self, token: str, expected_type: TokenType = TokenType.ACCESS
+    ) -> Dict[str, Any]:
         """
         Verify and decode token with comprehensive checks
 
@@ -177,8 +177,8 @@ class JWTSecurityManager:
                     "verify_exp": True,
                     "verify_nbf": True,
                     "verify_iat": True,
-                    "require": ["exp", "iat", "jti"]
-                }
+                    "require": ["exp", "iat", "jti"],
+                },
             )
 
             # ✅ FIXED: Check Redis blacklist (distributed across all servers)
@@ -190,7 +190,9 @@ class JWTSecurityManager:
             # Verify token type
             token_type = payload.get("type")
             if token_type != expected_type.value:
-                raise jwt.InvalidTokenError(f"Invalid token type. Expected {expected_type.value}, got {token_type}")
+                raise jwt.InvalidTokenError(
+                    f"Invalid token type. Expected {expected_type.value}, got {token_type}"
+                )
 
             # Verify issuer and audience (STRICT mode)
             if self.security_level == SecurityLevel.STRICT:
@@ -224,7 +226,7 @@ class JWTSecurityManager:
                 token,
                 self.public_key,
                 algorithms=[self.algorithm],
-                options={"verify_signature": False}  # Just need JTI and exp
+                options={"verify_signature": False},  # Just need JTI and exp
             )
 
             jti = payload.get("jti")
@@ -239,11 +241,7 @@ class JWTSecurityManager:
 
             # ✅ Store in Redis with TTL matching token expiry
             # After expiry, blacklist entry automatically deleted
-            await self.redis_client.setex(
-                f"token:blacklist:{jti}",
-                ttl_seconds,
-                "revoked"
-            )
+            await self.redis_client.setex(f"token:blacklist:{jti}", ttl_seconds, "revoked")
 
             logger.info(f"Token {jti} revoked and added to Redis blacklist (TTL: {ttl_seconds}s)")
             return True
@@ -279,9 +277,7 @@ class JWTSecurityManager:
             # Store in Redis (expires after max token lifetime)
             max_lifetime_seconds = self.refresh_token_expire_days * 24 * 60 * 60
             await self.redis_client.setex(
-                f"user:revoked:{user_id}",
-                max_lifetime_seconds,
-                revocation_time
+                f"user:revoked:{user_id}", max_lifetime_seconds, revocation_time
             )
 
             logger.info(f"All tokens revoked for user {user_id}")
@@ -348,7 +344,9 @@ class JWTSecurityManager:
 
             # Lock account after 5 failed attempts in 15 minutes
             if recent_attempts >= 5:
-                logger.warning(f"Account locked for user {user_id} due to {recent_attempts} failed attempts")
+                logger.warning(
+                    f"Account locked for user {user_id} due to {recent_attempts} failed attempts"
+                )
                 return True
 
             return False
@@ -382,7 +380,7 @@ async def example_usage():
         private_key_path="security/keys/private_key.pem",
         public_key_path="security/keys/public_key.pem",
         redis_client=redis_client,  # ✅ Pass Redis client
-        security_level=SecurityLevel.STRICT
+        security_level=SecurityLevel.STRICT,
     )
 
     # Create token
@@ -390,7 +388,7 @@ async def example_usage():
         subject="john.doe@example.com",
         user_id="user_12345",
         roles=["admin"],
-        permissions=["read", "write", "delete"]
+        permissions=["read", "write", "delete"],
     )
     print(f"Token created: {token[:50]}...")
 
@@ -414,4 +412,5 @@ async def example_usage():
 
 if __name__ == "__main__":
     import asyncio
+
     asyncio.run(example_usage())

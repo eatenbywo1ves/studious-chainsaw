@@ -43,9 +43,7 @@ from ghidrago.type_recovery_service import TypeRecoveryService
 from ghidrago.struct_field_parser import StructFieldParser
 from ghidrago.interface_method_parser import InterfaceMethodParser
 from ghidrago.type_resolver import TypeResolver
-from ghidrago.exceptions import (
-    MemoryAccessError
-)
+from ghidrago.exceptions import MemoryAccessError
 
 # Import v1.0 classes (from RecoverGoFunctions.py)
 from ghidra.program.model.symbol import SourceType
@@ -57,9 +55,9 @@ import struct
 # Go Version Detection and PCLNTAB Parsing (from v1.0 MVP)
 # ============================================================================
 
-MAGIC_12 = 0xfffffffb    # Go 1.2-1.15
-MAGIC_116 = 0xfffffff0   # Go 1.16-1.17
-MAGIC_118 = 0xfffffff1   # Go 1.18+
+MAGIC_12 = 0xFFFFFFFB  # Go 1.2-1.15
+MAGIC_116 = 0xFFFFFFF0  # Go 1.16-1.17
+MAGIC_118 = 0xFFFFFFF1  # Go 1.18+
 
 
 class GoVersionDetector:
@@ -135,7 +133,11 @@ class GoVersionDetector:
                 return False
 
             if version in ["1.16-1.17", "1.18+"]:
-                nfunc = self._read_uint32(addr.add(8)) if ptrsize == 4 else self._read_uint64(addr.add(8))
+                nfunc = (
+                    self._read_uint32(addr.add(8))
+                    if ptrsize == 4
+                    else self._read_uint64(addr.add(8))
+                )
                 if nfunc < 1 or nfunc > 100000:
                     return False
 
@@ -213,10 +215,7 @@ class PclntabParser:
                 func_name = self._read_string(name_addr)
 
                 if func_name and func_entry > 0:
-                    self.functions.append({
-                        'address': func_entry,
-                        'name': func_name
-                    })
+                    self.functions.append({"address": func_entry, "name": func_name})
             except (MemoryAccessError, struct.error) as e:
                 # Expected: some entries may be corrupted
                 print(f"[DEBUG] Skipping entry: {e}")
@@ -267,7 +266,7 @@ class PclntabParser:
                 else:
                     break
 
-            return ''.join(chars) if chars else None
+            return "".join(chars) if chars else None
         except (AttributeError, TypeError) as e:
             # Failed to read string
             raise MemoryAccessError(addr, f"Failed to read string: {e}")
@@ -293,8 +292,8 @@ class FunctionRecoveryService:
 
         for func_info in functions:
             try:
-                addr_value = func_info['address']
-                func_name = func_info['name']
+                addr_value = func_info["address"]
+                func_name = func_info["name"]
                 addr = toAddr(addr_value)
 
                 existing_func = self.func_mgr.getFunctionAt(addr)
@@ -327,11 +326,12 @@ class FunctionRecoveryService:
 # Main Script - Integrated v1.0 + v1.1
 # ============================================================================
 
+
 def main():
     """Main entry point for GhidraGo v1.1 analysis"""
-    print("="*70)
+    print("=" * 70)
     print("GhidraGo v1.1 - Go Function and Type Recovery")
-    print("="*70)
+    print("=" * 70)
 
     program = currentProgram
     if not program:
@@ -343,9 +343,9 @@ def main():
     # ========================================================================
     # Phase 1: Detect Go binary and locate PCLNTAB (v1.0 MVP)
     # ========================================================================
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("PHASE 1: Go Detection and PCLNTAB Location")
-    print("="*70)
+    print("=" * 70)
 
     detector = GoVersionDetector(program)
     if not detector.detect():
@@ -359,9 +359,9 @@ def main():
     # ========================================================================
     # Phase 2: Parse PCLNTAB and recover functions (v1.0 MVP)
     # ========================================================================
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("PHASE 2: Function Name Recovery")
-    print("="*70)
+    print("=" * 70)
 
     parser = PclntabParser(program, detector.pclntab_addr, detector.version)
     func_count = parser.parse()
@@ -378,9 +378,9 @@ def main():
     # ========================================================================
     # Phase 3: Locate moduledata structure (v1.1 NEW)
     # ========================================================================
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("PHASE 3: Moduledata Structure Location (v1.1)")
-    print("="*70)
+    print("=" * 70)
 
     scanner = ModuledataScanner(program, detector.pclntab_addr, detector.version)
     moduledata_addr = scanner.scan()
@@ -396,9 +396,9 @@ def main():
     # ========================================================================
     # Phase 4: Parse typelinks array (v1.1 NEW)
     # ========================================================================
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("PHASE 4: Typelinks Array Parsing (v1.1)")
-    print("="*70)
+    print("=" * 70)
 
     typelinks_parser = TypelinksParser(program, moduledata)
     type_offsets = typelinks_parser.parse()
@@ -413,9 +413,9 @@ def main():
     # ========================================================================
     # Phase 5: Parse rtype structures and extract types (v1.1 NEW)
     # ========================================================================
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("PHASE 5: Type Information Extraction (v1.1 Phase 2)")
-    print("="*70)
+    print("=" * 70)
 
     rtype_parser = RtypeParser(program, moduledata, detector.version)
     recovered_types = []
@@ -436,14 +436,14 @@ def main():
     # ========================================================================
     # Phase 5.5: Create Phase 2 Parsers and Resolver (v1.1 Phase 2 NEW)
     # ========================================================================
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("PHASE 5.5: Initialize Phase 2 Parsers and Resolver")
-    print("="*70)
+    print("=" * 70)
 
     # Create Phase 2 parsers for detailed struct/interface parsing
-    struct_field_parser = StructFieldParser(program, moduledata['types'])
-    interface_method_parser = InterfaceMethodParser(program, moduledata['types'])
-    type_resolver = TypeResolver(program, moduledata['types'], rtype_parser)
+    struct_field_parser = StructFieldParser(program, moduledata["types"])
+    interface_method_parser = InterfaceMethodParser(program, moduledata["types"])
+    type_resolver = TypeResolver(program, moduledata["types"], rtype_parser)
 
     print("[+] Struct field parser initialized")
     print("[+] Interface method parser initialized")
@@ -452,9 +452,9 @@ def main():
     # ========================================================================
     # Phase 6: Apply types to Ghidra (v1.1 NEW) with Dependency Ordering
     # ========================================================================
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("PHASE 6: Type Application to Ghidra (Phase 2)")
-    print("="*70)
+    print("=" * 70)
 
     type_service = TypeRecoveryService(program)
     type_service.begin_transaction()
@@ -463,10 +463,7 @@ def main():
 
     # Use the new high-level method that handles dependency ordering
     stats = type_service.apply_types_with_resolution(
-        recovered_types,
-        type_resolver,
-        struct_field_parser,
-        interface_method_parser
+        recovered_types, type_resolver, struct_field_parser, interface_method_parser
     )
 
     type_service.end_transaction()
@@ -474,16 +471,16 @@ def main():
     resolver_stats = type_resolver.get_resolution_statistics()
 
     print("\n[*] Type Recovery Summary:")
-    print("    Types created: {}".format(stats['types_created']))
-    print("    Types failed: {}".format(stats['types_failed']))
-    print("    Types resolved: {}".format(resolver_stats['types_cached']))
+    print("    Types created: {}".format(stats["types_created"]))
+    print("    Types failed: {}".format(stats["types_failed"]))
+    print("    Types resolved: {}".format(resolver_stats["types_cached"]))
 
     # ========================================================================
     # Final Summary
     # ========================================================================
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("ANALYSIS COMPLETE - GhidraGo v1.1 Phase 2")
-    print("="*70)
+    print("=" * 70)
 
     print("\n[+] GhidraGo v1.1 Phase 2 Results:")
     print(f"    Functions recovered: {func_count}")
@@ -498,7 +495,7 @@ def main():
     print("\n[+] Check the decompiler and Data Type Manager for improved type information!")
     print("[+] Check Data Type Manager for recovered Go types with field details")
 
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
 
 
 # Run the script

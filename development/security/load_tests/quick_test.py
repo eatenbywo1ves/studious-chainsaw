@@ -8,18 +8,20 @@ import statistics
 
 BASE_URL = "http://localhost:8002"
 
+
 async def make_request(session):
     start = time.time()
     try:
         async with session.post(
             f"{BASE_URL}/auth/login",
             json={"email": "test@example.com", "password": "testpass"},
-            timeout=aiohttp.ClientTimeout(total=10)
+            timeout=aiohttp.ClientTimeout(total=10),
         ) as response:
             latency = time.time() - start
             return response.status == 200, latency
     except Exception:
         return False, time.time() - start
+
 
 async def user(session, requests_per_user=10):
     results = []
@@ -28,6 +30,7 @@ async def user(session, requests_per_user=10):
         results.append((success, latency))
         await asyncio.sleep(0.1)
     return results
+
 
 async def main():
     users = 100
@@ -63,12 +66,13 @@ async def main():
     print(f"  Total Requests:  {total}")
     print(f"  Successful:      {successful}")
     print(f"  Failed:          {total - successful}")
-    print(f"  Success Rate:    {successful/total*100:.2f}%")
+    print(f"  Success Rate:    {successful / total * 100:.2f}%")
     print(f"  Duration:        {duration:.2f}s")
-    print(f"  Throughput:      {total/duration:.2f} req/s")
+    print(f"  Throughput:      {total / duration:.2f} req/s")
     print(f"  Avg Latency:     {avg_lat:.2f}ms")
     print(f"  p95 Latency:     {p95:.2f}ms")
     print("=" * 60)
+
 
 if __name__ == "__main__":
     asyncio.run(main())

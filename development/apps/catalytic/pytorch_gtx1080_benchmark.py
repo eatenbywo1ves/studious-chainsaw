@@ -21,19 +21,19 @@ class GPUBenchmark:
             print("[ERROR] No CUDA GPU detected!")
             sys.exit(1)
 
-        self.device = torch.device('cuda')
+        self.device = torch.device("cuda")
         self.gpu_properties = torch.cuda.get_device_properties(0)
 
-        print("="*70)
+        print("=" * 70)
         print("[PIRATE] GTX 1080 GPU BENCHMARK - LOCAL SYSTEM")
-        print("="*70)
+        print("=" * 70)
         print(f"[GPU] {self.gpu_properties.name}")
         print(f"[MEMORY] {self.gpu_properties.total_memory / (1024**3):.1f} GB total")
         print(f"[CUDA CORES] {self.gpu_properties.multi_processor_count * 128} (estimated)")
         print(f"[COMPUTE] {self.gpu_properties.major}.{self.gpu_properties.minor}")
         print(f"[PYTORCH] {torch.__version__}")
         print(f"[CUDA] {torch.version.cuda}")
-        print("="*70 + "\n")
+        print("=" * 70 + "\n")
 
     def memory_stress_test(self) -> Dict:
         """Test maximum memory allocation"""
@@ -130,7 +130,7 @@ class GPUBenchmark:
             "exp": lambda x: torch.exp(x),
             "sin": lambda x: torch.sin(x),
             "sqrt": lambda x: torch.sqrt(torch.abs(x)),
-            "tanh": lambda x: torch.tanh(x)
+            "tanh": lambda x: torch.tanh(x),
         }
 
         results = {}
@@ -149,7 +149,7 @@ class GPUBenchmark:
             elapsed = time.perf_counter() - start
 
             throughput = (size * size * iterations) / elapsed / 1e9  # Giga-ops/sec
-            print(f"  {op_name:6s}: {elapsed*1000:.1f}ms total, {throughput:.1f} Gops/s")
+            print(f"  {op_name:6s}: {elapsed * 1000:.1f}ms total, {throughput:.1f} Gops/s")
             results[op_name] = throughput
 
         return results
@@ -219,9 +219,9 @@ class GPUBenchmark:
         lattice_time, lattice_throughput = self.catalytic_lattice_3d()
 
         # Summary
-        print("\n" + "="*70)
+        print("\n" + "=" * 70)
         print("[SUMMARY] GTX 1080 Benchmark Results")
-        print("="*70)
+        print("=" * 70)
 
         print("\n[MEMORY] Maximum stable allocation:")
         for size, status in memory_results.items():
@@ -229,10 +229,7 @@ class GPUBenchmark:
                 print(f"  {size}: {status}")
 
         print("\n[COMPUTE] Peak performance:")
-        max_tflops = max(
-            r["tflops"] for r in compute_results.values()
-            if r["tflops"] is not None
-        )
+        max_tflops = max(r["tflops"] for r in compute_results.values() if r["tflops"] is not None)
         print(f"  Peak TFLOPS: {max_tflops:.2f}")
 
         print("\n[KERNELS] Throughput:")

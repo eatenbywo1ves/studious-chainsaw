@@ -22,10 +22,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Import webhook system
-from .webhook_system import (
-    WebhookManager,
-    WebhookEvent
-)
+from .webhook_system import WebhookManager, WebhookEvent
 
 # Global webhook manager
 webhook_manager = None
@@ -34,6 +31,7 @@ webhook_manager = None
 # Pydantic models for API
 class WebhookRegistration(BaseModel):
     """Model for webhook registration request"""
+
     url: HttpUrl
     events: List[str] = Field(..., min_items=1)
     secret: Optional[str] = None
@@ -47,6 +45,7 @@ class WebhookRegistration(BaseModel):
 
 class WebhookUpdate(BaseModel):
     """Model for webhook update request"""
+
     events: Optional[List[str]] = None
     active: Optional[bool] = None
     retry_count: Optional[int] = Field(None, ge=0, le=10)
@@ -58,6 +57,7 @@ class WebhookUpdate(BaseModel):
 
 class EventTrigger(BaseModel):
     """Model for triggering an event"""
+
     event: str
     data: Dict[str, Any]
     metadata: Optional[Dict[str, Any]] = {}
@@ -65,6 +65,7 @@ class EventTrigger(BaseModel):
 
 class WebhookTest(BaseModel):
     """Model for testing a webhook"""
+
     url: HttpUrl
     event: str = "test.ping"
     data: Dict[str, Any] = {"test": True}
@@ -90,7 +91,7 @@ app = FastAPI(
     title="Webhook Management System",
     description="Complete webhook management with monitoring and testing",
     version="1.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
 )
 
 # Add CORS middleware
@@ -123,7 +124,7 @@ async def register_webhook(webhook: WebhookRegistration):
             retry_count=webhook.retry_count,
             retry_delay=webhook.retry_delay,
             timeout=webhook.timeout,
-            metadata=webhook.metadata
+            metadata=webhook.metadata,
         )
         return {"webhook_id": webhook_id, "status": "registered"}
     except Exception as e:
@@ -135,14 +136,16 @@ async def list_webhooks():
     """List all registered webhooks"""
     webhooks = []
     for webhook_id, webhook in webhook_manager.registry.webhooks.items():
-        webhooks.append({
-            "id": webhook.id,
-            "url": webhook.url,
-            "events": webhook.events,
-            "active": webhook.active,
-            "created_at": webhook.created_at,
-            "updated_at": webhook.updated_at
-        })
+        webhooks.append(
+            {
+                "id": webhook.id,
+                "url": webhook.url,
+                "events": webhook.events,
+                "active": webhook.active,
+                "created_at": webhook.created_at,
+                "updated_at": webhook.updated_at,
+            }
+        )
     return {"webhooks": webhooks, "total": len(webhooks)}
 
 
@@ -168,9 +171,9 @@ async def get_webhook(webhook_id: str):
             "headers": webhook.headers,
             "metadata": webhook.metadata,
             "created_at": webhook.created_at,
-            "updated_at": webhook.updated_at
+            "updated_at": webhook.updated_at,
         },
-        "statistics": stats
+        "statistics": stats,
     }
 
 
@@ -200,20 +203,13 @@ async def delete_webhook(webhook_id: str):
 async def trigger_event(event: EventTrigger, background_tasks: BackgroundTasks):
     """Trigger a webhook event"""
     background_tasks.add_task(
-        webhook_manager.trigger_event,
-        event.event,
-        event.data,
-        event.metadata
+        webhook_manager.trigger_event, event.event, event.data, event.metadata
     )
 
     # Get count of webhooks that will receive this event
     webhooks = webhook_manager.registry.get_webhooks_for_event(event.event)
 
-    return {
-        "status": "triggered",
-        "event": event.event,
-        "webhook_count": len(webhooks)
-    }
+    return {"status": "triggered", "event": event.event, "webhook_count": len(webhooks)}
 
 
 @app.post("/api/webhooks/test")
@@ -222,31 +218,24 @@ async def test_webhook(test: WebhookTest):
     try:
         async with httpx.AsyncClient() as client:
             headers = test.headers.copy()
-            headers['Content-Type'] = 'application/json'
-            headers['X-Webhook-Event'] = test.event
-            headers['X-Webhook-Test'] = 'true'
+            headers["Content-Type"] = "application/json"
+            headers["X-Webhook-Event"] = test.event
+            headers["X-Webhook-Test"] = "true"
 
             # Add signature if secret provided
             if test.secret:
                 payload_json = json.dumps(test.data, sort_keys=True)
                 signature = hmac.new(
-                    test.secret.encode(),
-                    payload_json.encode(),
-                    hashlib.sha256
+                    test.secret.encode(), payload_json.encode(), hashlib.sha256
                 ).hexdigest()
-                headers['X-Webhook-Signature'] = f"sha256={signature}"
+                headers["X-Webhook-Signature"] = f"sha256={signature}"
 
-            response = await client.post(
-                str(test.url),
-                json=test.data,
-                headers=headers,
-                timeout=30
-            )
+            response = await client.post(str(test.url), json=test.data, headers=headers, timeout=30)
 
             return {
                 "status": "success",
                 "response_code": response.status_code,
-                "response_body": response.text[:500]  # Limit response size
+                "response_body": response.text[:500],  # Limit response size
             }
 
     except httpx.TimeoutException:
@@ -259,10 +248,7 @@ async def test_webhook(test: WebhookTest):
 async def list_events():
     """List all available webhook events"""
     events = [
-        {
-            "name": event.value,
-            "description": event.name.replace("_", " ").title()
-        }
+        {"name": event.value, "description": event.name.replace("_", " ").title()}
         for event in WebhookEvent
     ]
     return {"events": events, "total": len(events)}
@@ -274,7 +260,8 @@ async def get_recent_deliveries(limit: int = 50):
     conn = sqlite3.connect("webhooks.db")
     cursor = conn.cursor()
 
-    cursor.execute("""
+    cursor.execute(
+        """
         SELECT
             da.id,
             da.webhook_id,
@@ -289,24 +276,28 @@ async def get_recent_deliveries(limit: int = 50):
         JOIN webhooks w ON da.webhook_id = w.id
         ORDER BY da.timestamp DESC
         LIMIT ?
-    """, (limit,))
+    """,
+        (limit,),
+    )
 
     rows = cursor.fetchall()
     conn.close()
 
     deliveries = []
     for row in rows:
-        deliveries.append({
-            "id": row[0],
-            "webhook_id": row[1],
-            "url": row[2],
-            "attempt_number": row[3],
-            "status": row[4],
-            "response_code": row[5],
-            "error_message": row[6],
-            "timestamp": row[7],
-            "duration_ms": row[8]
-        })
+        deliveries.append(
+            {
+                "id": row[0],
+                "webhook_id": row[1],
+                "url": row[2],
+                "attempt_number": row[3],
+                "status": row[4],
+                "response_code": row[5],
+                "error_message": row[6],
+                "timestamp": row[7],
+                "duration_ms": row[8],
+            }
+        )
 
     return {"deliveries": deliveries, "total": len(deliveries)}
 
@@ -339,16 +330,13 @@ async def get_system_stats():
     conn.close()
 
     return {
-        "webhooks": {
-            "active": active_webhooks,
-            "total": total_webhooks
-        },
+        "webhooks": {"active": active_webhooks, "total": total_webhooks},
         "deliveries_24h": {
             "total": row[0] or 0,
             "successful": row[1] or 0,
             "failed": row[2] or 0,
-            "avg_duration_ms": row[3] or 0
-        }
+            "avg_duration_ms": row[3] or 0,
+        },
     }
 
 
@@ -704,13 +692,7 @@ DASHBOARD_HTML = """
 # Run server
 def run_server(host: str = "0.0.0.0", port: int = 8000):
     """Run the webhook server"""
-    uvicorn.run(
-        "webhook_server:app",
-        host=host,
-        port=port,
-        reload=True,
-        log_level="info"
-    )
+    uvicorn.run("webhook_server:app", host=host, port=port, reload=True, log_level="info")
 
 
 if __name__ == "__main__":

@@ -33,10 +33,10 @@ def redis_client():
 
     # Clean up test data before tests
     # Delete all rate limit and blacklist keys from previous test runs
-    if hasattr(redis, '_client') and redis._client:
+    if hasattr(redis, "_client") and redis._client:
         try:
             # Get all test-related keys
-            test_keys = redis._client.keys('ratelimit:*') + redis._client.keys('blacklist:*')
+            test_keys = redis._client.keys("ratelimit:*") + redis._client.keys("blacklist:*")
             if test_keys:
                 redis._client.delete(*test_keys)
         except Exception as e:
@@ -56,9 +56,7 @@ def jwt_keys(tmp_path):
     from cryptography.hazmat.backends import default_backend
 
     private_key = rsa.generate_private_key(
-        public_exponent=65537,
-        key_size=2048,
-        backend=default_backend()
+        public_exponent=65537, key_size=2048, backend=default_backend()
     )
 
     public_key = private_key.public_key()
@@ -70,14 +68,14 @@ def jwt_keys(tmp_path):
         private_key.private_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PrivateFormat.PKCS8,
-            encryption_algorithm=serialization.NoEncryption()
+            encryption_algorithm=serialization.NoEncryption(),
         )
     )
 
     public_key_path.write_bytes(
         public_key.public_bytes(
             encoding=serialization.Encoding.PEM,
-            format=serialization.PublicFormat.SubjectPublicKeyInfo
+            format=serialization.PublicFormat.SubjectPublicKeyInfo,
         )
     )
 
@@ -89,10 +87,7 @@ def security_manager(redis_client, jwt_keys):
     """Create SecurityManager instance for testing"""
     private_key_path, public_key_path = jwt_keys
 
-    manager = SecurityManager(
-        private_key_path=private_key_path,
-        public_key_path=public_key_path
-    )
+    manager = SecurityManager(private_key_path=private_key_path, public_key_path=public_key_path)
 
     return manager
 
@@ -119,23 +114,19 @@ class TestCompleteUserLifecycle:
         register_limit = RateLimit(
             requests=3,
             window_seconds=3600,  # 3 per hour
-            strategy=RateLimitStrategy.SLIDING_WINDOW
+            strategy=RateLimitStrategy.SLIDING_WINDOW,
         )
         security_manager.rate_limiter.set_rate_limit(
-            registration_endpoint,
-            LimitType.PER_IP,
-            register_limit
+            registration_endpoint, LimitType.PER_IP, register_limit
         )
 
         # Cleanup any previous test data
-        redis_client.delete(f'ratelimit:window:{user_ip}:{registration_endpoint}')
+        redis_client.delete(f"ratelimit:window:{user_ip}:{registration_endpoint}")
 
         # Check registration rate limit
         registration_allowed = asyncio.run(
             security_manager.rate_limiter.check_rate_limit(
-                identifier=user_ip,
-                endpoint=registration_endpoint,
-                limit_type=LimitType.PER_IP
+                identifier=user_ip, endpoint=registration_endpoint, limit_type=LimitType.PER_IP
             )
         )
 
@@ -146,23 +137,17 @@ class TestCompleteUserLifecycle:
         login_limit = RateLimit(
             requests=5,
             window_seconds=300,  # 5 per 5 minutes
-            strategy=RateLimitStrategy.SLIDING_WINDOW
+            strategy=RateLimitStrategy.SLIDING_WINDOW,
         )
-        security_manager.rate_limiter.set_rate_limit(
-            login_endpoint,
-            LimitType.PER_IP,
-            login_limit
-        )
+        security_manager.rate_limiter.set_rate_limit(login_endpoint, LimitType.PER_IP, login_limit)
 
         # Cleanup
-        redis_client.delete(f'ratelimit:window:{user_ip}:{login_endpoint}')
+        redis_client.delete(f"ratelimit:window:{user_ip}:{login_endpoint}")
 
         # Check login rate limit
         login_allowed = asyncio.run(
             security_manager.rate_limiter.check_rate_limit(
-                identifier=user_ip,
-                endpoint=login_endpoint,
-                limit_type=LimitType.PER_IP
+                identifier=user_ip, endpoint=login_endpoint, limit_type=LimitType.PER_IP
             )
         )
 
@@ -170,18 +155,14 @@ class TestCompleteUserLifecycle:
 
         # Create access token
         access_token = security_manager.jwt.create_access_token(
-            subject=user_id,
-            user_id=user_id,
-            roles=["user"],
-            permissions=["api:read", "api:write"]
+            subject=user_id, user_id=user_id, roles=["user"], permissions=["api:read", "api:write"]
         )
 
         assert access_token is not None, "Access token should be created"
 
         # Create refresh token
         refresh_token = security_manager.jwt.create_refresh_token(
-            user_id=user_id,
-            fingerprint="test_device_fingerprint"
+            user_id=user_id, fingerprint="test_device_fingerprint"
         )
 
         assert refresh_token is not None, "Refresh token should be created"
@@ -192,16 +173,12 @@ class TestCompleteUserLifecycle:
             requests=10,
             window_seconds=3600,  # 10 per hour
             strategy=RateLimitStrategy.TOKEN_BUCKET,
-            burst_allowance=3
+            burst_allowance=3,
         )
-        security_manager.rate_limiter.set_rate_limit(
-            api_endpoint,
-            LimitType.PER_USER,
-            api_limit
-        )
+        security_manager.rate_limiter.set_rate_limit(api_endpoint, LimitType.PER_USER, api_limit)
 
         # Cleanup
-        redis_client.delete(f'ratelimit:bucket:{user_id}:{api_endpoint}')
+        redis_client.delete(f"ratelimit:bucket:{user_id}:{api_endpoint}")
 
         # Verify token
         payload = security_manager.jwt.verify_token(access_token, TokenType.ACCESS)
@@ -212,12 +189,10 @@ class TestCompleteUserLifecycle:
         for i in range(3):
             api_allowed = asyncio.run(
                 security_manager.rate_limiter.check_rate_limit(
-                    identifier=user_id,
-                    endpoint=api_endpoint,
-                    limit_type=LimitType.PER_USER
+                    identifier=user_id, endpoint=api_endpoint, limit_type=LimitType.PER_USER
                 )
             )
-            assert api_allowed.allowed is True, f"API call {i+1} should be allowed"
+            assert api_allowed.allowed is True, f"API call {i + 1} should be allowed"
 
         # Step 4: Logout (revoke token)
         revoke_result = security_manager.jwt.revoke_token(access_token)
@@ -248,10 +223,7 @@ class TestCompleteUserLifecycle:
 
         # User logs in (gets valid token)
         access_token = security_manager.jwt.create_access_token(
-            subject=user_id,
-            user_id=user_id,
-            roles=["user"],
-            permissions=["data:export"]
+            subject=user_id, user_id=user_id, roles=["user"], permissions=["data:export"]
         )
 
         # Token initially valid
@@ -261,25 +233,19 @@ class TestCompleteUserLifecycle:
         # Attacker tries to use stolen token
         attacker_endpoint = "/api/data/export"
         attacker_limit = RateLimit(
-            requests=5,
-            window_seconds=60,
-            strategy=RateLimitStrategy.SLIDING_WINDOW
+            requests=5, window_seconds=60, strategy=RateLimitStrategy.SLIDING_WINDOW
         )
         security_manager.rate_limiter.set_rate_limit(
-            attacker_endpoint,
-            LimitType.PER_IP,
-            attacker_limit
+            attacker_endpoint, LimitType.PER_IP, attacker_limit
         )
 
         # Cleanup
-        redis_client.delete(f'ratelimit:window:{attacker_ip}:{attacker_endpoint}')
+        redis_client.delete(f"ratelimit:window:{attacker_ip}:{attacker_endpoint}")
 
         # Attacker's request allowed (token still valid)
         attacker_allowed = asyncio.run(
             security_manager.rate_limiter.check_rate_limit(
-                identifier=attacker_ip,
-                endpoint=attacker_endpoint,
-                limit_type=LimitType.PER_IP
+                identifier=attacker_ip, endpoint=attacker_endpoint, limit_type=LimitType.PER_IP
             )
         )
         assert attacker_allowed.allowed is True, "Attacker's first request allowed (token valid)"
@@ -314,16 +280,12 @@ class TestCompleteUserLifecycle:
         login_limit = RateLimit(
             requests=3,
             window_seconds=60,  # 3 attempts per minute
-            strategy=RateLimitStrategy.SLIDING_WINDOW
+            strategy=RateLimitStrategy.SLIDING_WINDOW,
         )
-        security_manager.rate_limiter.set_rate_limit(
-            login_endpoint,
-            LimitType.PER_IP,
-            login_limit
-        )
+        security_manager.rate_limiter.set_rate_limit(login_endpoint, LimitType.PER_IP, login_limit)
 
         # Cleanup any previous test data
-        redis_client.delete(f'ratelimit:window:{attacker_ip}:{login_endpoint}')
+        redis_client.delete(f"ratelimit:window:{attacker_ip}:{login_endpoint}")
 
         # Give Redis a moment to process the delete
         time.sleep(0.1)
@@ -332,19 +294,15 @@ class TestCompleteUserLifecycle:
         for i in range(3):
             allowed = asyncio.run(
                 security_manager.rate_limiter.check_rate_limit(
-                    identifier=attacker_ip,
-                    endpoint=login_endpoint,
-                    limit_type=LimitType.PER_IP
+                    identifier=attacker_ip, endpoint=login_endpoint, limit_type=LimitType.PER_IP
                 )
             )
-            assert allowed.allowed is True, f"Attempt {i+1} should be allowed"
+            assert allowed.allowed is True, f"Attempt {i + 1} should be allowed"
 
         # 4th attempt blocked
         blocked = asyncio.run(
             security_manager.rate_limiter.check_rate_limit(
-                identifier=attacker_ip,
-                endpoint=login_endpoint,
-                limit_type=LimitType.PER_IP
+                identifier=attacker_ip, endpoint=login_endpoint, limit_type=LimitType.PER_IP
             )
         )
         assert blocked.allowed is False, "4th attempt should be blocked"
@@ -352,9 +310,7 @@ class TestCompleteUserLifecycle:
         # Even legitimate user from same IP is blocked
         blocked_again = asyncio.run(
             security_manager.rate_limiter.check_rate_limit(
-                identifier=attacker_ip,
-                endpoint=login_endpoint,
-                limit_type=LimitType.PER_IP
+                identifier=attacker_ip, endpoint=login_endpoint, limit_type=LimitType.PER_IP
             )
         )
         assert blocked_again.allowed is False, "Still blocked during cooldown"
@@ -381,24 +337,21 @@ class TestMultiServerDistribution:
         server1 = JWTSecurityManager(
             private_key_path=private_key_path,
             public_key_path=public_key_path,
-            redis_client=redis_client
+            redis_client=redis_client,
         )
 
         # Simulate Server 2 (separate instance, same Redis)
         server2 = JWTSecurityManager(
             private_key_path=private_key_path,
             public_key_path=public_key_path,
-            redis_client=redis_client
+            redis_client=redis_client,
         )
 
         user_id = "test_user_multiserver"
 
         # Server 1: Create token
         token = server1.create_access_token(
-            subject=user_id,
-            user_id=user_id,
-            roles=["user"],
-            permissions=["read", "write"]
+            subject=user_id, user_id=user_id, roles=["user"], permissions=["read", "write"]
         )
 
         # Server 2: Verify token (should be valid)
@@ -439,34 +392,26 @@ class TestMultiServerDistribution:
 
         # Configure same rate limit on both servers
         rate_limit = RateLimit(
-            requests=5,
-            window_seconds=60,
-            strategy=RateLimitStrategy.SLIDING_WINDOW
+            requests=5, window_seconds=60, strategy=RateLimitStrategy.SLIDING_WINDOW
         )
         limiter1.set_rate_limit(endpoint, LimitType.PER_USER, rate_limit)
         limiter2.set_rate_limit(endpoint, LimitType.PER_USER, rate_limit)
 
         # Cleanup
-        redis_client.delete(f'ratelimit:window:{user_id}:{endpoint}')
+        redis_client.delete(f"ratelimit:window:{user_id}:{endpoint}")
 
         # User makes 3 requests to Server 1
         for i in range(3):
-            result = asyncio.run(
-                limiter1.check_rate_limit(user_id, endpoint, LimitType.PER_USER)
-            )
-            assert result.allowed is True, f"Server 1 request {i+1} should be allowed"
+            result = asyncio.run(limiter1.check_rate_limit(user_id, endpoint, LimitType.PER_USER))
+            assert result.allowed is True, f"Server 1 request {i + 1} should be allowed"
 
         # User makes 2 requests to Server 2
         for i in range(2):
-            result = asyncio.run(
-                limiter2.check_rate_limit(user_id, endpoint, LimitType.PER_USER)
-            )
-            assert result.allowed is True, f"Server 2 request {i+1} should be allowed"
+            result = asyncio.run(limiter2.check_rate_limit(user_id, endpoint, LimitType.PER_USER))
+            assert result.allowed is True, f"Server 2 request {i + 1} should be allowed"
 
         # User makes 6th request to Server 1 → BLOCKED (distributed count)
-        result = asyncio.run(
-            limiter1.check_rate_limit(user_id, endpoint, LimitType.PER_USER)
-        )
+        result = asyncio.run(limiter1.check_rate_limit(user_id, endpoint, LimitType.PER_USER))
         assert result.allowed is False, "6th request should be blocked (distributed limit)"
 
         print("\n[DISTRIBUTED TEST PASSED] Rate limiting synchronized across servers ✓")
@@ -492,34 +437,26 @@ class TestRealWorldScenarios:
         quota_limit = RateLimit(
             requests=10,  # Small quota for testing
             window_seconds=60,
-            strategy=RateLimitStrategy.SLIDING_WINDOW
+            strategy=RateLimitStrategy.SLIDING_WINDOW,
         )
-        security_manager.rate_limiter.set_rate_limit(
-            api_endpoint,
-            LimitType.PER_USER,
-            quota_limit
-        )
+        security_manager.rate_limiter.set_rate_limit(api_endpoint, LimitType.PER_USER, quota_limit)
 
         # Cleanup
-        redis_client.delete(f'ratelimit:window:{user_id}:{api_endpoint}')
+        redis_client.delete(f"ratelimit:window:{user_id}:{api_endpoint}")
 
         # User spam 10 requests (all allowed)
         for i in range(10):
             allowed = asyncio.run(
                 security_manager.rate_limiter.check_rate_limit(
-                    identifier=user_id,
-                    endpoint=api_endpoint,
-                    limit_type=LimitType.PER_USER
+                    identifier=user_id, endpoint=api_endpoint, limit_type=LimitType.PER_USER
                 )
             )
-            assert allowed.allowed is True, f"Request {i+1} should be allowed"
+            assert allowed.allowed is True, f"Request {i + 1} should be allowed"
 
         # 11th request blocked
         blocked = asyncio.run(
             security_manager.rate_limiter.check_rate_limit(
-                identifier=user_id,
-                endpoint=api_endpoint,
-                limit_type=LimitType.PER_USER
+                identifier=user_id, endpoint=api_endpoint, limit_type=LimitType.PER_USER
             )
         )
         assert blocked.allowed is False, "Request over quota should be blocked"
@@ -543,36 +480,28 @@ class TestRealWorldScenarios:
         ddos_limit = RateLimit(
             requests=20,  # Low threshold for testing
             window_seconds=60,
-            strategy=RateLimitStrategy.SLIDING_WINDOW
+            strategy=RateLimitStrategy.SLIDING_WINDOW,
         )
-        security_manager.rate_limiter.set_rate_limit(
-            endpoint,
-            LimitType.PER_IP,
-            ddos_limit
-        )
+        security_manager.rate_limiter.set_rate_limit(endpoint, LimitType.PER_IP, ddos_limit)
 
         # Cleanup
-        redis_client.delete(f'ratelimit:window:{attacker_ip}:{endpoint}')
-        redis_client.delete(f'ratelimit:window:{legitimate_ip}:{endpoint}')
+        redis_client.delete(f"ratelimit:window:{attacker_ip}:{endpoint}")
+        redis_client.delete(f"ratelimit:window:{legitimate_ip}:{endpoint}")
 
         # Attacker floods with requests
         for i in range(20):
             allowed = asyncio.run(
                 security_manager.rate_limiter.check_rate_limit(
-                    identifier=attacker_ip,
-                    endpoint=endpoint,
-                    limit_type=LimitType.PER_IP
+                    identifier=attacker_ip, endpoint=endpoint, limit_type=LimitType.PER_IP
                 )
             )
             if i < 20:
-                assert allowed.allowed is True, f"Attacker request {i+1} initially allowed"
+                assert allowed.allowed is True, f"Attacker request {i + 1} initially allowed"
 
         # 21st request blocked
         blocked = asyncio.run(
             security_manager.rate_limiter.check_rate_limit(
-                identifier=attacker_ip,
-                endpoint=endpoint,
-                limit_type=LimitType.PER_IP
+                identifier=attacker_ip, endpoint=endpoint, limit_type=LimitType.PER_IP
             )
         )
         assert blocked.allowed is False, "Attacker IP should be blocked"
@@ -580,9 +509,7 @@ class TestRealWorldScenarios:
         # Legitimate user unaffected
         legit_allowed = asyncio.run(
             security_manager.rate_limiter.check_rate_limit(
-                identifier=legitimate_ip,
-                endpoint=endpoint,
-                limit_type=LimitType.PER_IP
+                identifier=legitimate_ip, endpoint=endpoint, limit_type=LimitType.PER_IP
             )
         )
         assert legit_allowed.allowed is True, "Legitimate user should not be blocked"

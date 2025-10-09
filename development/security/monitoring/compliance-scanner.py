@@ -19,8 +19,9 @@ import ssl
 import socket
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
+
 
 class ComplianceFramework(Enum):
     SOC2 = "soc2"
@@ -30,17 +31,20 @@ class ComplianceFramework(Enum):
     HIPAA = "hipaa"
     NIST = "nist"
 
+
 class SeverityLevel(Enum):
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
     CRITICAL = "critical"
 
+
 class ComplianceStatus(Enum):
     COMPLIANT = "compliant"
     NON_COMPLIANT = "non_compliant"
     PARTIAL = "partial"
     NOT_APPLICABLE = "not_applicable"
+
 
 @dataclass
 class ComplianceCheck:
@@ -54,6 +58,7 @@ class ComplianceCheck:
     remediation: str
     references: List[str]
 
+
 @dataclass
 class CheckResult:
     check_id: str
@@ -63,6 +68,7 @@ class CheckResult:
     evidence: List[str]
     recommendations: List[str]
     timestamp: datetime
+
 
 @dataclass
 class ComplianceReport:
@@ -75,6 +81,7 @@ class ComplianceReport:
     failed_checks: int
     results: List[CheckResult]
     summary: Dict[str, Any]
+
 
 class ComplianceScanner:
     """
@@ -92,7 +99,7 @@ class ComplianceScanner:
     def _load_config(self) -> Dict[str, Any]:
         """Load scanner configuration"""
         try:
-            with open(self.config_path, 'r') as f:
+            with open(self.config_path, "r") as f:
                 return yaml.safe_load(f)
         except FileNotFoundError:
             logger.warning("Config file not found, using defaults")
@@ -101,23 +108,13 @@ class ComplianceScanner:
     def _get_default_config(self) -> Dict[str, Any]:
         """Default configuration"""
         return {
-            "kubernetes": {
-                "namespace": "catalytic-system",
-                "kubeconfig": None
-            },
+            "kubernetes": {"namespace": "catalytic-system", "kubeconfig": None},
             "docker": {
                 "registry": "ghcr.io/catalytic-computing",
-                "images": ["catalytic-api", "catalytic-saas"]
+                "images": ["catalytic-api", "catalytic-saas"],
             },
-            "thresholds": {
-                "overall_score": 85.0,
-                "critical_issues": 0,
-                "high_issues": 2
-            },
-            "notifications": {
-                "slack_webhook": None,
-                "email_recipients": []
-            }
+            "thresholds": {"overall_score": 85.0, "critical_issues": 0, "high_issues": 2},
+            "notifications": {"slack_webhook": None, "email_recipients": []},
         }
 
     def _load_compliance_checks(self) -> List[ComplianceCheck]:
@@ -135,7 +132,7 @@ class ComplianceScanner:
                 severity=SeverityLevel.HIGH,
                 check_function="check_access_controls",
                 remediation="Implement proper RBAC policies and network segmentation",
-                references=["SOC2 CC6.1", "NIST SP 800-53 AC-2"]
+                references=["SOC2 CC6.1", "NIST SP 800-53 AC-2"],
             ),
             ComplianceCheck(
                 id="soc2_cc6_7",
@@ -146,7 +143,7 @@ class ComplianceScanner:
                 severity=SeverityLevel.CRITICAL,
                 check_function="check_encryption_controls",
                 remediation="Ensure all data is encrypted in transit and at rest",
-                references=["SOC2 CC6.7", "NIST SP 800-53 SC-8"]
+                references=["SOC2 CC6.7", "NIST SP 800-53 SC-8"],
             ),
             ComplianceCheck(
                 id="soc2_cc7_1",
@@ -157,8 +154,8 @@ class ComplianceScanner:
                 severity=SeverityLevel.MEDIUM,
                 check_function="check_asset_management",
                 remediation="Implement comprehensive asset inventory and classification",
-                references=["SOC2 CC7.1"]
-            )
+                references=["SOC2 CC7.1"],
+            ),
         ]
 
         # ISO 27001 Controls
@@ -172,7 +169,7 @@ class ComplianceScanner:
                 severity=SeverityLevel.HIGH,
                 check_function="check_network_access_control",
                 remediation="Implement network segmentation and access controls",
-                references=["ISO 27001 A.9.1.2"]
+                references=["ISO 27001 A.9.1.2"],
             ),
             ComplianceCheck(
                 id="iso27001_a10_1_1",
@@ -183,7 +180,7 @@ class ComplianceScanner:
                 severity=SeverityLevel.HIGH,
                 check_function="check_cryptographic_policy",
                 remediation="Develop and implement cryptographic controls policy",
-                references=["ISO 27001 A.10.1.1"]
+                references=["ISO 27001 A.10.1.1"],
             ),
             ComplianceCheck(
                 id="iso27001_a12_6_1",
@@ -194,8 +191,8 @@ class ComplianceScanner:
                 severity=SeverityLevel.HIGH,
                 check_function="check_vulnerability_management",
                 remediation="Implement regular vulnerability scanning and management",
-                references=["ISO 27001 A.12.6.1"]
-            )
+                references=["ISO 27001 A.12.6.1"],
+            ),
         ]
 
         checks.extend(soc2_checks)
@@ -203,13 +200,17 @@ class ComplianceScanner:
 
         return checks
 
-    async def run_compliance_scan(self, frameworks: List[ComplianceFramework] = None) -> ComplianceReport:
+    async def run_compliance_scan(
+        self, frameworks: List[ComplianceFramework] = None
+    ) -> ComplianceReport:
         """Run comprehensive compliance scan"""
         if frameworks is None:
             frameworks = [ComplianceFramework.SOC2, ComplianceFramework.ISO27001]
 
         scan_id = hashlib.sha256(f"{datetime.now().isoformat()}".encode()).hexdigest()[:16]
-        logger.info(f"Starting compliance scan {scan_id} for frameworks: {[f.value for f in frameworks]}")
+        logger.info(
+            f"Starting compliance scan {scan_id} for frameworks: {[f.value for f in frameworks]}"
+        )
 
         results = []
 
@@ -223,15 +224,17 @@ class ComplianceScanner:
                     logger.info(f"Check {check.id}: {result.status.value} ({result.score:.1f}%)")
                 except Exception as e:
                     logger.error(f"Failed to run check {check.id}: {e}")
-                    results.append(CheckResult(
-                        check_id=check.id,
-                        status=ComplianceStatus.NON_COMPLIANT,
-                        score=0.0,
-                        details=f"Check failed: {str(e)}",
-                        evidence=[],
-                        recommendations=["Fix check execution error"],
-                        timestamp=datetime.now()
-                    ))
+                    results.append(
+                        CheckResult(
+                            check_id=check.id,
+                            status=ComplianceStatus.NON_COMPLIANT,
+                            score=0.0,
+                            details=f"Check failed: {str(e)}",
+                            evidence=[],
+                            recommendations=["Fix check execution error"],
+                            timestamp=datetime.now(),
+                        )
+                    )
 
         # Calculate overall metrics
         total_checks = len(results)
@@ -248,7 +251,7 @@ class ComplianceScanner:
             passed_checks=passed_checks,
             failed_checks=failed_checks,
             results=results,
-            summary=self._generate_summary(results)
+            summary=self._generate_summary(results),
         )
 
         logger.info(f"Compliance scan completed: {overall_score:.1f}% overall score")
@@ -312,7 +315,7 @@ class ComplianceScanner:
             details="; ".join(details) if details else "Access controls evaluated",
             evidence=evidence,
             recommendations=recommendations,
-            timestamp=datetime.now()
+            timestamp=datetime.now(),
         )
 
     async def check_encryption_controls(self, check: ComplianceCheck) -> CheckResult:
@@ -374,7 +377,7 @@ class ComplianceScanner:
             details="; ".join(details) if details else "Encryption controls evaluated",
             evidence=evidence,
             recommendations=recommendations,
-            timestamp=datetime.now()
+            timestamp=datetime.now(),
         )
 
     async def check_vulnerability_management(self, check: ComplianceCheck) -> CheckResult:
@@ -427,7 +430,7 @@ class ComplianceScanner:
             details="; ".join(details) if details else "Vulnerability management evaluated",
             evidence=evidence,
             recommendations=recommendations,
-            timestamp=datetime.now()
+            timestamp=datetime.now(),
         )
 
     async def _check_kubernetes_rbac(self) -> Dict[str, Any]:
@@ -436,54 +439,68 @@ class ComplianceScanner:
             # Check if RBAC is enabled
             result = subprocess.run(
                 ["kubectl", "auth", "can-i", "--list", "--as=system:unauthenticated"],
-                capture_output=True, text=True, timeout=30
+                capture_output=True,
+                text=True,
+                timeout=30,
             )
 
             if "error" in result.stderr.lower():
                 return {
                     "compliant": False,
-                    "recommendations": ["Enable RBAC in Kubernetes cluster"]
+                    "recommendations": ["Enable RBAC in Kubernetes cluster"],
                 }
 
             # Check for overly permissive roles
             roles_result = subprocess.run(
                 ["kubectl", "get", "clusterrolebindings", "-o", "json"],
-                capture_output=True, text=True, timeout=30
+                capture_output=True,
+                text=True,
+                timeout=30,
             )
 
             if roles_result.returncode == 0:
                 roles_data = json.loads(roles_result.stdout)
                 system_admin_bindings = [
-                    binding for binding in roles_data.get("items", [])
+                    binding
+                    for binding in roles_data.get("items", [])
                     if binding.get("roleRef", {}).get("name") == "cluster-admin"
                 ]
 
                 if len(system_admin_bindings) > 2:  # Allow for system components
                     return {
                         "compliant": False,
-                        "recommendations": ["Review cluster-admin role bindings for least privilege"]
+                        "recommendations": [
+                            "Review cluster-admin role bindings for least privilege"
+                        ],
                     }
 
             return {"compliant": True}
 
         except Exception as e:
-            return {
-                "compliant": False,
-                "recommendations": [f"Fix RBAC check: {str(e)}"]
-            }
+            return {"compliant": False, "recommendations": [f"Fix RBAC check: {str(e)}"]}
 
     async def _check_network_policies(self) -> Dict[str, Any]:
         """Check network policy implementation"""
         try:
             result = subprocess.run(
-                ["kubectl", "get", "networkpolicies", "-n", self.config["kubernetes"]["namespace"], "-o", "json"],
-                capture_output=True, text=True, timeout=30
+                [
+                    "kubectl",
+                    "get",
+                    "networkpolicies",
+                    "-n",
+                    self.config["kubernetes"]["namespace"],
+                    "-o",
+                    "json",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=30,
             )
 
             if result.returncode != 0:
                 return {
                     "compliant": False,
-                    "recommendations": ["Implement network policies for micro-segmentation"]
+                    "recommendations": ["Implement network policies for micro-segmentation"],
                 }
 
             policies_data = json.loads(result.stdout)
@@ -492,43 +509,44 @@ class ComplianceScanner:
             if len(policies) == 0:
                 return {
                     "compliant": False,
-                    "recommendations": ["Create network policies for application namespace"]
+                    "recommendations": ["Create network policies for application namespace"],
                 }
 
             # Check for default deny policy
             has_default_deny = any(
-                policy.get("spec", {}).get("podSelector", {}) == {} and
-                not policy.get("spec", {}).get("ingress") and
-                not policy.get("spec", {}).get("egress")
+                policy.get("spec", {}).get("podSelector", {}) == {}
+                and not policy.get("spec", {}).get("ingress")
+                and not policy.get("spec", {}).get("egress")
                 for policy in policies
             )
 
             if not has_default_deny:
                 return {
                     "compliant": False,
-                    "recommendations": ["Implement default deny network policy"]
+                    "recommendations": ["Implement default deny network policy"],
                 }
 
             return {"compliant": True}
 
         except Exception as e:
-            return {
-                "compliant": False,
-                "recommendations": [f"Fix network policy check: {str(e)}"]
-            }
+            return {"compliant": False, "recommendations": [f"Fix network policy check: {str(e)}"]}
 
     async def _check_pod_security_policies(self) -> Dict[str, Any]:
         """Check pod security policy implementation"""
         try:
             result = subprocess.run(
                 ["kubectl", "get", "podsecuritypolicies", "-o", "json"],
-                capture_output=True, text=True, timeout=30
+                capture_output=True,
+                text=True,
+                timeout=30,
             )
 
             if result.returncode != 0:
                 return {
                     "compliant": False,
-                    "recommendations": ["Implement Pod Security Policies or Pod Security Standards"]
+                    "recommendations": [
+                        "Implement Pod Security Policies or Pod Security Standards"
+                    ],
                 }
 
             psp_data = json.loads(result.stdout)
@@ -537,29 +555,29 @@ class ComplianceScanner:
             if len(policies) == 0:
                 return {
                     "compliant": False,
-                    "recommendations": ["Create restrictive Pod Security Policies"]
+                    "recommendations": ["Create restrictive Pod Security Policies"],
                 }
 
             # Check for restrictive policies
             restrictive_policies = [
-                policy for policy in policies
-                if not policy.get("spec", {}).get("privileged", True) and
-                   not policy.get("spec", {}).get("allowPrivilegeEscalation", True)
+                policy
+                for policy in policies
+                if not policy.get("spec", {}).get("privileged", True)
+                and not policy.get("spec", {}).get("allowPrivilegeEscalation", True)
             ]
 
             if len(restrictive_policies) == 0:
                 return {
                     "compliant": False,
-                    "recommendations": ["Create restrictive Pod Security Policies that deny privileged access"]
+                    "recommendations": [
+                        "Create restrictive Pod Security Policies that deny privileged access"
+                    ],
                 }
 
             return {"compliant": True}
 
         except Exception as e:
-            return {
-                "compliant": False,
-                "recommendations": [f"Fix PSP check: {str(e)}"]
-            }
+            return {"compliant": False, "recommendations": [f"Fix PSP check: {str(e)}"]}
 
     async def _check_tls_configuration(self) -> Dict[str, Any]:
         """Check TLS configuration"""
@@ -569,10 +587,7 @@ class ComplianceScanner:
             details = []
 
             # Test common endpoints
-            endpoints = [
-                ("api.catalytic-computing.com", 443),
-                ("app.catalytic-computing.com", 443)
-            ]
+            endpoints = [("api.catalytic-computing.com", 443), ("app.catalytic-computing.com", 443)]
 
             for host, port in endpoints:
                 try:
@@ -585,7 +600,9 @@ class ComplianceScanner:
                             if protocol not in ["TLSv1.2", "TLSv1.3"]:
                                 recommendations.append(f"Upgrade TLS version for {host}")
 
-                            details.append(f"{host}: {protocol}, {cipher[0] if cipher else 'Unknown cipher'}")
+                            details.append(
+                                f"{host}: {protocol}, {cipher[0] if cipher else 'Unknown cipher'}"
+                            )
 
                 except Exception as e:
                     details.append(f"Could not check {host}: {str(e)}")
@@ -594,14 +611,14 @@ class ComplianceScanner:
             return {
                 "compliant": compliant,
                 "recommendations": recommendations,
-                "details": "; ".join(details)
+                "details": "; ".join(details),
             }
 
         except Exception as e:
             return {
                 "compliant": False,
                 "recommendations": [f"Fix TLS check: {str(e)}"],
-                "details": ""
+                "details": "",
             }
 
     async def _check_secrets_encryption(self) -> Dict[str, Any]:
@@ -609,15 +626,22 @@ class ComplianceScanner:
         try:
             # Check if etcd encryption is enabled
             result = subprocess.run(
-                ["kubectl", "get", "secrets", "-n", self.config["kubernetes"]["namespace"], "-o", "json"],
-                capture_output=True, text=True, timeout=30
+                [
+                    "kubectl",
+                    "get",
+                    "secrets",
+                    "-n",
+                    self.config["kubernetes"]["namespace"],
+                    "-o",
+                    "json",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=30,
             )
 
             if result.returncode != 0:
-                return {
-                    "compliant": False,
-                    "recommendations": ["Enable access to check secrets"]
-                }
+                return {"compliant": False, "recommendations": ["Enable access to check secrets"]}
 
             secrets_data = json.loads(result.stdout)
             secrets = secrets_data.get("items", [])
@@ -634,7 +658,7 @@ class ComplianceScanner:
         except Exception as e:
             return {
                 "compliant": False,
-                "recommendations": [f"Fix secrets encryption check: {str(e)}"]
+                "recommendations": [f"Fix secrets encryption check: {str(e)}"],
             }
 
     async def _check_database_encryption(self) -> Dict[str, Any]:
@@ -646,13 +670,13 @@ class ComplianceScanner:
 
             return {
                 "compliant": True,  # Assume compliant for demo
-                "recommendations": []
+                "recommendations": [],
             }
 
         except Exception as e:
             return {
                 "compliant": False,
-                "recommendations": [f"Fix database encryption check: {str(e)}"]
+                "recommendations": [f"Fix database encryption check: {str(e)}"],
             }
 
     async def _check_data_in_transit(self) -> Dict[str, Any]:
@@ -660,15 +684,22 @@ class ComplianceScanner:
         try:
             # Check service configurations for TLS enforcement
             result = subprocess.run(
-                ["kubectl", "get", "services", "-n", self.config["kubernetes"]["namespace"], "-o", "json"],
-                capture_output=True, text=True, timeout=30
+                [
+                    "kubectl",
+                    "get",
+                    "services",
+                    "-n",
+                    self.config["kubernetes"]["namespace"],
+                    "-o",
+                    "json",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=30,
             )
 
             if result.returncode != 0:
-                return {
-                    "compliant": False,
-                    "recommendations": ["Enable access to check services"]
-                }
+                return {"compliant": False, "recommendations": ["Enable access to check services"]}
 
             # Check for HTTP services that should be HTTPS
             services_data = json.loads(result.stdout)
@@ -684,25 +715,33 @@ class ComplianceScanner:
             if http_services:
                 return {
                     "compliant": False,
-                    "recommendations": [f"Enforce HTTPS for services: {', '.join(http_services)}"]
+                    "recommendations": [f"Enforce HTTPS for services: {', '.join(http_services)}"],
                 }
 
             return {"compliant": True}
 
         except Exception as e:
-            return {
-                "compliant": False,
-                "recommendations": [f"Fix data in transit check: {str(e)}"]
-            }
+            return {"compliant": False, "recommendations": [f"Fix data in transit check: {str(e)}"]}
 
     async def _check_vulnerability_scanning(self) -> Dict[str, Any]:
         """Check vulnerability scanning implementation"""
         try:
             # Check if Trivy or similar scanner is deployed
             result = subprocess.run(
-                ["kubectl", "get", "pods", "-n", self.config["kubernetes"]["namespace"],
-                 "-l", "app=trivy-scanner", "-o", "json"],
-                capture_output=True, text=True, timeout=30
+                [
+                    "kubectl",
+                    "get",
+                    "pods",
+                    "-n",
+                    self.config["kubernetes"]["namespace"],
+                    "-l",
+                    "app=trivy-scanner",
+                    "-o",
+                    "json",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=30,
             )
 
             if result.returncode == 0:
@@ -714,13 +753,13 @@ class ComplianceScanner:
 
             return {
                 "compliant": False,
-                "recommendations": ["Deploy vulnerability scanner (Trivy, Aqua, etc.)"]
+                "recommendations": ["Deploy vulnerability scanner (Trivy, Aqua, etc.)"],
             }
 
         except Exception as e:
             return {
                 "compliant": False,
-                "recommendations": [f"Fix vulnerability scanning check: {str(e)}"]
+                "recommendations": [f"Fix vulnerability scanning check: {str(e)}"],
             }
 
     async def _check_patch_management(self) -> Dict[str, Any]:
@@ -728,8 +767,18 @@ class ComplianceScanner:
         try:
             # Check image update policies and base image age
             result = subprocess.run(
-                ["kubectl", "get", "deployments", "-n", self.config["kubernetes"]["namespace"], "-o", "json"],
-                capture_output=True, text=True, timeout=30
+                [
+                    "kubectl",
+                    "get",
+                    "deployments",
+                    "-n",
+                    self.config["kubernetes"]["namespace"],
+                    "-o",
+                    "json",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=30,
             )
 
             if result.returncode == 0:
@@ -738,7 +787,12 @@ class ComplianceScanner:
 
                 outdated_images = []
                 for deployment in deployments:
-                    containers = deployment.get("spec", {}).get("template", {}).get("spec", {}).get("containers", [])
+                    containers = (
+                        deployment.get("spec", {})
+                        .get("template", {})
+                        .get("spec", {})
+                        .get("containers", [])
+                    )
                     for container in containers:
                         image = container.get("image", "")
                         if ":latest" in image or ":" not in image:
@@ -747,20 +801,19 @@ class ComplianceScanner:
                 if outdated_images:
                     return {
                         "compliant": False,
-                        "recommendations": [f"Use specific image tags instead of 'latest': {', '.join(outdated_images)}"]
+                        "recommendations": [
+                            f"Use specific image tags instead of 'latest': {', '.join(outdated_images)}"
+                        ],
                     }
 
                 return {"compliant": True}
 
-            return {
-                "compliant": False,
-                "recommendations": ["Enable access to check deployments"]
-            }
+            return {"compliant": False, "recommendations": ["Enable access to check deployments"]}
 
         except Exception as e:
             return {
                 "compliant": False,
-                "recommendations": [f"Fix patch management check: {str(e)}"]
+                "recommendations": [f"Fix patch management check: {str(e)}"],
             }
 
     async def _check_security_monitoring(self) -> Dict[str, Any]:
@@ -768,9 +821,20 @@ class ComplianceScanner:
         try:
             # Check if Falco or similar monitoring is deployed
             result = subprocess.run(
-                ["kubectl", "get", "pods", "-n", self.config["kubernetes"]["namespace"],
-                 "-l", "app=falco", "-o", "json"],
-                capture_output=True, text=True, timeout=30
+                [
+                    "kubectl",
+                    "get",
+                    "pods",
+                    "-n",
+                    self.config["kubernetes"]["namespace"],
+                    "-l",
+                    "app=falco",
+                    "-o",
+                    "json",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=30,
             )
 
             if result.returncode == 0:
@@ -778,8 +842,7 @@ class ComplianceScanner:
                 pods = pods_data.get("items", [])
 
                 running_pods = [
-                    pod for pod in pods
-                    if pod.get("status", {}).get("phase") == "Running"
+                    pod for pod in pods if pod.get("status", {}).get("phase") == "Running"
                 ]
 
                 if len(running_pods) > 0:
@@ -787,22 +850,30 @@ class ComplianceScanner:
 
             return {
                 "compliant": False,
-                "recommendations": ["Deploy security monitoring tools (Falco, SIEM, etc.)"]
+                "recommendations": ["Deploy security monitoring tools (Falco, SIEM, etc.)"],
             }
 
         except Exception as e:
             return {
                 "compliant": False,
-                "recommendations": [f"Fix security monitoring check: {str(e)}"]
+                "recommendations": [f"Fix security monitoring check: {str(e)}"],
             }
 
     def _generate_summary(self, results: List[CheckResult]) -> Dict[str, Any]:
         """Generate compliance summary"""
         by_severity = {
-            "critical": [r for r in results if r.status == ComplianceStatus.NON_COMPLIANT and "critical" in r.check_id.lower()],
-            "high": [r for r in results if r.status == ComplianceStatus.NON_COMPLIANT and "high" in r.check_id.lower()],
+            "critical": [
+                r
+                for r in results
+                if r.status == ComplianceStatus.NON_COMPLIANT and "critical" in r.check_id.lower()
+            ],
+            "high": [
+                r
+                for r in results
+                if r.status == ComplianceStatus.NON_COMPLIANT and "high" in r.check_id.lower()
+            ],
             "medium": [r for r in results if r.status == ComplianceStatus.NON_COMPLIANT],
-            "low": []
+            "low": [],
         }
 
         return {
@@ -812,7 +883,7 @@ class ComplianceScanner:
             "medium_issues": len(by_severity["medium"]),
             "low_issues": len(by_severity["low"]),
             "top_recommendations": self._get_top_recommendations(results),
-            "frameworks_covered": list(set(r.check_id.split("_")[0] for r in results))
+            "frameworks_covered": list(set(r.check_id.split("_")[0] for r in results)),
         }
 
     def _get_top_recommendations(self, results: List[CheckResult]) -> List[str]:
@@ -824,6 +895,7 @@ class ComplianceScanner:
 
         # Count frequency and return top 5
         from collections import Counter
+
         rec_counts = Counter(all_recommendations)
         return [rec for rec, count in rec_counts.most_common(5)]
 
@@ -847,21 +919,23 @@ class ComplianceScanner:
                     "details": r.details,
                     "evidence": r.evidence,
                     "recommendations": r.recommendations,
-                    "timestamp": r.timestamp.isoformat()
+                    "timestamp": r.timestamp.isoformat(),
                 }
                 for r in report.results
-            ]
+            ],
         }
 
-        with open(f"{output_path}/compliance-report-{report.scan_id}.json", 'w') as f:
+        with open(f"{output_path}/compliance-report-{report.scan_id}.json", "w") as f:
             json.dump(json_report, f, indent=2)
 
         # Generate HTML report
         html_report = self._generate_html_report(report)
-        with open(f"{output_path}/compliance-report-{report.scan_id}.html", 'w') as f:
+        with open(f"{output_path}/compliance-report-{report.scan_id}.html", "w") as f:
             f.write(html_report)
 
-        logger.info(f"Compliance report generated: {output_path}/compliance-report-{report.scan_id}")
+        logger.info(
+            f"Compliance report generated: {output_path}/compliance-report-{report.scan_id}"
+        )
 
     def _generate_html_report(self, report: ComplianceReport) -> str:
         """Generate HTML compliance report"""
@@ -869,7 +943,7 @@ class ComplianceScanner:
             ComplianceStatus.COMPLIANT: "#28a745",
             ComplianceStatus.NON_COMPLIANT: "#dc3545",
             ComplianceStatus.PARTIAL: "#ffc107",
-            ComplianceStatus.NOT_APPLICABLE: "#6c757d"
+            ComplianceStatus.NOT_APPLICABLE: "#6c757d",
         }
 
         results_html = ""
@@ -881,7 +955,7 @@ class ComplianceScanner:
                 <td><span style="color: {color}; font-weight: bold">{result.status.value.upper()}</span></td>
                 <td>{result.score:.1f}%</td>
                 <td>{result.details}</td>
-                <td>{'<br>'.join(result.recommendations)}</td>
+                <td>{"<br>".join(result.recommendations)}</td>
             </tr>
             """
 
@@ -893,7 +967,7 @@ class ComplianceScanner:
             <style>
                 body {{ font-family: Arial, sans-serif; margin: 40px; }}
                 .header {{ background: #f8f9fa; padding: 20px; border-radius: 5px; margin-bottom: 20px; }}
-                .score {{ font-size: 24px; font-weight: bold; color: {'#28a745' if report.overall_score >= 80 else '#dc3545'}; }}
+                .score {{ font-size: 24px; font-weight: bold; color: {"#28a745" if report.overall_score >= 80 else "#dc3545"}; }}
                 table {{ width: 100%; border-collapse: collapse; margin-top: 20px; }}
                 th, td {{ border: 1px solid #dee2e6; padding: 12px; text-align: left; }}
                 th {{ background-color: #e9ecef; }}
@@ -905,7 +979,7 @@ class ComplianceScanner:
             <div class="header">
                 <h1>Security Compliance Report</h1>
                 <p><strong>Scan ID:</strong> {report.scan_id}</p>
-                <p><strong>Timestamp:</strong> {report.timestamp.strftime('%Y-%m-%d %H:%M:%S')}</p>
+                <p><strong>Timestamp:</strong> {report.timestamp.strftime("%Y-%m-%d %H:%M:%S")}</p>
                 <p><strong>Framework:</strong> {report.framework.value.upper()}</p>
                 <p class="score">Overall Score: {report.overall_score:.1f}%</p>
             </div>
@@ -924,7 +998,7 @@ class ComplianceScanner:
                     <p>Failed</p>
                 </div>
                 <div class="summary-item">
-                    <h3 style="color: #dc3545">{report.summary.get('critical_issues', 0)}</h3>
+                    <h3 style="color: #dc3545">{report.summary.get("critical_issues", 0)}</h3>
                     <p>Critical Issues</p>
                 </div>
             </div>
@@ -947,12 +1021,13 @@ class ComplianceScanner:
 
             <h2>Top Recommendations</h2>
             <ul>
-                {"".join(f"<li>{rec}</li>" for rec in report.summary.get('top_recommendations', []))}
+                {"".join(f"<li>{rec}</li>" for rec in report.summary.get("top_recommendations", []))}
             </ul>
         </body>
         </html>
         """
         return html
+
 
 # CLI interface
 async def main():
@@ -960,12 +1035,20 @@ async def main():
     import argparse
 
     parser = argparse.ArgumentParser(description="Compliance Scanner for Catalytic Computing")
-    parser.add_argument("--framework", choices=["soc2", "iso27001", "all"], default="all",
-                      help="Compliance framework to scan")
-    parser.add_argument("--output", default="./security/reports",
-                      help="Output directory for reports")
-    parser.add_argument("--config", default="./security/monitoring/compliance-config.yaml",
-                      help="Configuration file path")
+    parser.add_argument(
+        "--framework",
+        choices=["soc2", "iso27001", "all"],
+        default="all",
+        help="Compliance framework to scan",
+    )
+    parser.add_argument(
+        "--output", default="./security/reports", help="Output directory for reports"
+    )
+    parser.add_argument(
+        "--config",
+        default="./security/monitoring/compliance-config.yaml",
+        help="Configuration file path",
+    )
 
     args = parser.parse_args()
 
@@ -993,6 +1076,7 @@ async def main():
     print(f"Passed: {report.passed_checks}/{report.total_checks}")
     print(f"Critical Issues: {report.summary.get('critical_issues', 0)}")
     print(f"Report saved to: {args.output}/compliance-report-{report.scan_id}")
+
 
 if __name__ == "__main__":
     asyncio.run(main())

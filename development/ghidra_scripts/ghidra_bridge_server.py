@@ -14,17 +14,17 @@ import ghidra
 
 
 class GhidraBridgeServer(object):
-    """ Class mostly used to collect together functions and variables that we don't want contaminating the global namespace
-        variables set in remote clients
+    """Class mostly used to collect together functions and variables that we don't want contaminating the global namespace
+    variables set in remote clients
 
-        NOTE: this class needs to be excluded from ghidra_bridge - it doesn't need to be in the globals, if people want it and
-        know what they're doing, they can get it from the BridgedObject for the main module
+    NOTE: this class needs to be excluded from ghidra_bridge - it doesn't need to be in the globals, if people want it and
+    know what they're doing, they can get it from the BridgedObject for the main module
     """
 
     class PrintAccumulator(object):
-        """ Class to handle capturing print output so we can send it across the bridge, by hooking sys.stdout.write().
-            Not multithreading aware, it'll just capture whatever is printed from the moment it hooks to the moment
-            it stops.
+        """Class to handle capturing print output so we can send it across the bridge, by hooking sys.stdout.write().
+        Not multithreading aware, it'll just capture whatever is printed from the moment it hooks to the moment
+        it stops.
         """
 
         output = None
@@ -57,29 +57,29 @@ class GhidraBridgeServer(object):
 
     @staticmethod
     def ghidra_help(param=None):
-        """ call the ghidra help method, capturing the print output with PrintAccumulator, and return it as a string """
+        """call the ghidra help method, capturing the print output with PrintAccumulator, and return it as a string"""
         with GhidraBridgeServer.PrintAccumulator() as help_output:
             help(param)
 
             return help_output.get_output()
 
     class InteractiveListener(ghidra.framework.model.ToolListener):
-        """ Class to handle registering for plugin events associated with the GUI
-            environment, and sending them back to clients running in interactive mode
-            so they can update their variables
+        """Class to handle registering for plugin events associated with the GUI
+        environment, and sending them back to clients running in interactive mode
+        so they can update their variables
 
-            We define the interactive listener on the server end, so it can
-            cleanly recover from bridge failures when trying to send messages back. If we
-            let it propagate exceptions up into Ghidra, the GUI gets unhappy and can stop
-            sending tool events out
+        We define the interactive listener on the server end, so it can
+        cleanly recover from bridge failures when trying to send messages back. If we
+        let it propagate exceptions up into Ghidra, the GUI gets unhappy and can stop
+        sending tool events out
         """
 
         tool = None
         callback_fn = None
 
         def __init__(self, tool, callback_fn):
-            """ Create with the tool to listen to (from state.getTool() - won't change during execution)
-                and the callback function to notify on the client end (should be the update_vars function) """
+            """Create with the tool to listen to (from state.getTool() - won't change during execution)
+            and the callback function to notify on the client end (should be the update_vars function)"""
             self.tool = tool
             self.callback_fn = callback_fn
 
@@ -91,7 +91,7 @@ class GhidraBridgeServer(object):
             self.tool.removeToolListener(self)
 
         def processToolEvent(self, plugin_event):
-            """ Called by the ToolListener interface """
+            """Called by the ToolListener interface"""
             try:
                 self.callback_fn._bridge_conn.logger.debug(
                     "InteractiveListener got event: " + str(plugin_event)
@@ -128,11 +128,11 @@ class GhidraBridgeServer(object):
         response_timeout=bridge.DEFAULT_RESPONSE_TIMEOUT,
         background=True,
     ):
-        """ Run a ghidra_bridge_server (forever)
-            server_host - what address the server should listen on
-            server_port - what port the server should listen on
-            response_timeout - default timeout in seconds before a response is treated as "failed"
-            background - false to run the server in this thread (script popup will stay), true for a new thread (script popup disappears)
+        """Run a ghidra_bridge_server (forever)
+        server_host - what address the server should listen on
+        server_port - what port the server should listen on
+        response_timeout - default timeout in seconds before a response is treated as "failed"
+        background - false to run the server in this thread (script popup will stay), true for a new thread (script popup disappears)
         """
         server = bridge.BridgeServer(
             server_host=server_host,
@@ -151,21 +151,19 @@ class GhidraBridgeServer(object):
 
     @staticmethod
     def run_script_across_ghidra_bridge(script_file, python="python", argstring=""):
-        """ Spin up a ghidra_bridge_server and spawn the script in external python to connect back to it. Useful in scripts being triggered from
-            inside ghidra that need to use python3 or packages that don't work in jython
+        """Spin up a ghidra_bridge_server and spawn the script in external python to connect back to it. Useful in scripts being triggered from
+        inside ghidra that need to use python3 or packages that don't work in jython
 
-            The called script needs to handle the --connect_to_host and --connect_to_port command-line arguments and use them to start
-            a ghidra_bridge client to talk back to the server.
+        The called script needs to handle the --connect_to_host and --connect_to_port command-line arguments and use them to start
+        a ghidra_bridge client to talk back to the server.
 
-            Specify python to control what the script gets run with. Defaults to whatever python is in the shell - if changing, specify a path
-            or name the shell can find.
-            Specify argstring to pass further arguments to the script when it starts up.
+        Specify python to control what the script gets run with. Defaults to whatever python is in the shell - if changing, specify a path
+        or name the shell can find.
+        Specify argstring to pass further arguments to the script when it starts up.
         """
 
         # spawn a ghidra bridge server - use server port 0 to pick a random port
-        server = bridge.BridgeServer(
-            server_host="127.0.0.1", server_port=0, loglevel=logging.INFO
-        )
+        server = bridge.BridgeServer(server_host="127.0.0.1", server_port=0, loglevel=logging.INFO)
         # start it running in a background thread
         server.start()
 
@@ -205,4 +203,3 @@ if __name__ == "__main__":
     GhidraBridgeServer.run_server(
         response_timeout=bridge.DEFAULT_RESPONSE_TIMEOUT, background=False
     )
-

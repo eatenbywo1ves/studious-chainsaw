@@ -10,13 +10,14 @@ from dataclasses import dataclass
 
 class D3FENDCategory(Enum):
     """D3FEND top-level defensive categories"""
-    MODEL = "model"          # Asset inventory, system modeling
-    HARDEN = "harden"        # Strengthen system resilience
-    DETECT = "detect"        # Identify security breaches
-    ISOLATE = "isolate"      # Contain and segregate threats
-    DECEIVE = "deceive"      # Mislead adversaries
-    EVICT = "evict"          # Remove threats
-    RESTORE = "restore"      # Return to normal operations
+
+    MODEL = "model"  # Asset inventory, system modeling
+    HARDEN = "harden"  # Strengthen system resilience
+    DETECT = "detect"  # Identify security breaches
+    ISOLATE = "isolate"  # Contain and segregate threats
+    DECEIVE = "deceive"  # Mislead adversaries
+    EVICT = "evict"  # Remove threats
+    RESTORE = "restore"  # Return to normal operations
 
 
 class D3FENDTechnique(Enum):
@@ -71,6 +72,7 @@ class D3FENDTechnique(Enum):
 @dataclass
 class TechniqueMapping:
     """Mapping between component and D3FEND technique"""
+
     component_file: str
     component_name: str
     d3fend_techniques: List[D3FENDTechnique]
@@ -86,7 +88,6 @@ class TechniqueMapping:
 
 # Comprehensive mapping of Catalytic Computing components to D3FEND techniques
 COMPONENT_TECHNIQUE_MAPPING: List[TechniqueMapping] = [
-
     # Webhook Monitoring System
     TechniqueMapping(
         component_file="webhook_monitoring.py",
@@ -94,15 +95,14 @@ COMPONENT_TECHNIQUE_MAPPING: List[TechniqueMapping] = [
         d3fend_techniques=[
             D3FENDTechnique.NETWORK_TRAFFIC_ANALYSIS,
             D3FENDTechnique.SERVICE_BINARY_ANALYSIS,
-            D3FENDTechnique.SYSTEM_CALL_ANALYSIS
+            D3FENDTechnique.SYSTEM_CALL_ANALYSIS,
         ],
         category=D3FENDCategory.DETECT,
         coverage_percentage=95.0,
         implementation_notes="Real-time webhook event monitoring with Prometheus metrics, "
-                           "circuit breaker tracking, and anomaly detection. Maps to D3-NTA "
-                           "through endpoint health monitoring and request/response analysis."
+        "circuit breaker tracking, and anomaly detection. Maps to D3-NTA "
+        "through endpoint health monitoring and request/response analysis.",
     ),
-
     # Webhook Manager
     TechniqueMapping(
         component_file="webhook_manager.py",
@@ -110,15 +110,14 @@ COMPONENT_TECHNIQUE_MAPPING: List[TechniqueMapping] = [
         d3fend_techniques=[
             D3FENDTechnique.RESOURCE_ACCESS_CONTROL,
             D3FENDTechnique.EXECUTION_ISOLATION,
-            D3FENDTechnique.CREDENTIAL_HARDENING
+            D3FENDTechnique.CREDENTIAL_HARDENING,
         ],
         category=D3FENDCategory.ISOLATE,
         coverage_percentage=90.0,
         implementation_notes="Circuit breaker pattern implements D3-RAC by isolating failing "
-                           "endpoints. HMAC signature verification implements D3-CH. Implements "
-                           "priority-based queue isolation."
+        "endpoints. HMAC signature verification implements D3-CH. Implements "
+        "priority-based queue isolation.",
     ),
-
     # Input Validation System
     TechniqueMapping(
         component_file="input_validation.py",
@@ -129,10 +128,9 @@ COMPONENT_TECHNIQUE_MAPPING: List[TechniqueMapping] = [
         category=D3FENDCategory.HARDEN,
         coverage_percentage=98.0,
         implementation_notes="Comprehensive input validation with SQL injection, XSS, command "
-                           "injection, and LDAP injection prevention. Implements D3-IV through "
-                           "regex pattern matching and sanitization."
+        "injection, and LDAP injection prevention. Implements D3-IV through "
+        "regex pattern matching and sanitization.",
     ),
-
     # JWT Security Manager
     TechniqueMapping(
         component_file="jwt_security.py",
@@ -141,30 +139,28 @@ COMPONENT_TECHNIQUE_MAPPING: List[TechniqueMapping] = [
             D3FENDTechnique.STRONG_PASSWORD_POLICY,
             D3FENDTechnique.USER_ACCOUNT_CONTROL,
             D3FENDTechnique.SESSION_TIMEOUT,
-            D3FENDTechnique.CREDENTIAL_HARDENING
+            D3FENDTechnique.CREDENTIAL_HARDENING,
         ],
         category=D3FENDCategory.HARDEN,
         coverage_percentage=85.0,
         implementation_notes="JWT-based authentication with token expiry (D3-ST), claims "
-                           "validation (D3-UAC), and signature verification (D3-CH). "
-                           "NOTE: Token blacklist needs Redis for full D3-UAC compliance."
+        "validation (D3-UAC), and signature verification (D3-CH). "
+        "NOTE: Token blacklist needs Redis for full D3-UAC compliance.",
     ),
-
     # Rate Limiting System
     TechniqueMapping(
         component_file="rate_limiting.py",
         component_name="AdvancedRateLimiter",
         d3fend_techniques=[
             D3FENDTechnique.RESOURCE_ACCESS_CONTROL,
-            D3FENDTechnique.AUTHENTICATION_EVENT_THRESHOLDING
+            D3FENDTechnique.AUTHENTICATION_EVENT_THRESHOLDING,
         ],
         category=D3FENDCategory.ISOLATE,
         coverage_percentage=70.0,
         implementation_notes="Token bucket and sliding window rate limiting implements D3-RAC. "
-                           "Authentication attempt tracking implements D3-AET. "
-                           "NOTE: Needs Redis for distributed D3-RAC compliance."
+        "Authentication attempt tracking implements D3-AET. "
+        "NOTE: Needs Redis for distributed D3-RAC compliance.",
     ),
-
     # Compliance Scanner
     TechniqueMapping(
         component_file="compliance-scanner.py",
@@ -175,16 +171,15 @@ COMPONENT_TECHNIQUE_MAPPING: List[TechniqueMapping] = [
             D3FENDTechnique.NETWORK_MAPPING,
             D3FENDTechnique.ENCRYPTION_AT_REST,
             D3FENDTechnique.ENCRYPTION_IN_TRANSIT,
-            D3FENDTechnique.NETWORK_ISOLATION
+            D3FENDTechnique.NETWORK_ISOLATION,
         ],
         category=D3FENDCategory.MODEL,
         coverage_percentage=92.0,
         implementation_notes="SOC2/ISO27001 compliance checks implement D3-AI through asset "
-                           "discovery, D3-NM through network policy validation, and D3-EAR/D3-EAT "
-                           "through encryption verification. Implements D3-NI through network "
-                           "policy checks."
+        "discovery, D3-NM through network policy validation, and D3-EAR/D3-EAT "
+        "through encryption verification. Implements D3-NI through network "
+        "policy checks.",
     ),
-
     # Penetration Testing Suite
     TechniqueMapping(
         component_file="penetration-test.py",
@@ -192,13 +187,13 @@ COMPONENT_TECHNIQUE_MAPPING: List[TechniqueMapping] = [
         d3fend_techniques=[
             D3FENDTechnique.FILE_ANALYSIS,
             D3FENDTechnique.PROCESS_ANALYSIS,
-            D3FENDTechnique.CREDENTIAL_TRANSMISSION_SCOPING
+            D3FENDTechnique.CREDENTIAL_TRANSMISSION_SCOPING,
         ],
         category=D3FENDCategory.DETECT,
         coverage_percentage=85.0,
         implementation_notes="Automated security testing implements D3-FA through vulnerability "
-                           "scanning, D3-PA through exploitation attempt detection, and D3-CTS "
-                           "through credential security validation."
+        "scanning, D3-PA through exploitation attempt detection, and D3-CTS "
+        "through credential security validation.",
     ),
 ]
 
@@ -221,10 +216,7 @@ class TechniqueMapper:
 
     def get_components_by_technique(self, technique: D3FENDTechnique) -> List[TechniqueMapping]:
         """Get all components implementing a specific technique"""
-        return [
-            m for m in COMPONENT_TECHNIQUE_MAPPING
-            if technique in m.d3fend_techniques
-        ]
+        return [m for m in COMPONENT_TECHNIQUE_MAPPING if technique in m.d3fend_techniques]
 
     def get_all_implemented_techniques(self) -> Set[D3FENDTechnique]:
         """Get all D3FEND techniques implemented across components"""
@@ -265,10 +257,10 @@ class TechniqueMapper:
                     "category": m.category.value,
                     "techniques": m.technique_ids,
                     "coverage": m.coverage_percentage,
-                    "notes": m.implementation_notes
+                    "notes": m.implementation_notes,
                 }
                 for m in COMPONENT_TECHNIQUE_MAPPING
-            ]
+            ],
         }
 
     def get_missing_categories(self) -> List[D3FENDCategory]:
@@ -285,23 +277,27 @@ class TechniqueMapper:
 
         # Prioritize missing categories
         for category in missing_categories:
-            recommendations.append({
-                "category": category.value,
-                "reason": f"No implementation in {category.value} category",
-                "priority": "HIGH",
-                "example_technique": self._get_example_technique_for_category(category)
-            })
+            recommendations.append(
+                {
+                    "category": category.value,
+                    "reason": f"No implementation in {category.value} category",
+                    "priority": "HIGH",
+                    "example_technique": self._get_example_technique_for_category(category),
+                }
+            )
 
         # Add technique recommendations for implemented categories
         if len(recommendations) < limit:
             for technique in D3FENDTechnique:
                 if technique not in implemented and len(recommendations) < limit:
-                    recommendations.append({
-                        "technique": technique.value,
-                        "category": self._get_category_for_technique(technique).value,
-                        "reason": "Expand coverage in existing category",
-                        "priority": "MEDIUM"
-                    })
+                    recommendations.append(
+                        {
+                            "technique": technique.value,
+                            "category": self._get_category_for_technique(technique).value,
+                            "reason": "Expand coverage in existing category",
+                            "priority": "MEDIUM",
+                        }
+                    )
 
         return recommendations[:limit]
 
@@ -310,7 +306,7 @@ class TechniqueMapper:
         category_techniques = {
             D3FENDCategory.DECEIVE: "D3-DN (Decoy Network)",
             D3FENDCategory.EVICT: "D3-CE (Connection Eviction)",
-            D3FENDCategory.RESTORE: "D3-SCR (System Configuration Rollback)"
+            D3FENDCategory.RESTORE: "D3-SCR (System Configuration Rollback)",
         }
         return category_techniques.get(category, "Unknown")
 
@@ -354,4 +350,6 @@ if __name__ == "__main__":
     print("\nRecommended Next Steps:")
     recommendations = mapper.recommend_next_techniques(limit=5)
     for rec in recommendations:
-        print(f"- [{rec.get('priority', 'MEDIUM')}] {rec.get('category', rec.get('technique'))}: {rec['reason']}")
+        print(
+            f"- [{rec.get('priority', 'MEDIUM')}] {rec.get('category', rec.get('technique'))}: {rec['reason']}"
+        )

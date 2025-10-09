@@ -36,7 +36,7 @@ from gpu.profiler_verifier import (
     PerformanceGuarantee,
     get_proof_generator,
     get_proof_verifier,
-    get_proof_library
+    get_proof_library,
 )
 from gpu.profiler_transformations import get_transformation_catalog
 
@@ -82,8 +82,8 @@ def demo_1_basic_proof_generation():
         assumptions=[
             "All matrices have compatible dimensions",
             "Batch size > 1",
-            "GPU has sufficient memory for batching"
-        ]
+            "GPU has sufficient memory for batching",
+        ],
     )
 
     print_proof(proof)
@@ -105,8 +105,8 @@ def demo_2_performance_proofs():
         assumptions=[
             "Memory access patterns are initially uncoalesced",
             "GPU supports coalesced memory access",
-            "Workload is memory-bound"
-        ]
+            "Workload is memory-bound",
+        ],
     )
 
     print_proof(perf_proof)
@@ -115,11 +115,7 @@ def demo_2_performance_proofs():
     print("\n" + "-" * 80)
     print("Creating PerformanceGuarantee object...")
     guarantee = PerformanceGuarantee(
-        guarantee_type="speedup",
-        bound=2.5,
-        bound_type="minimum",
-        confidence=0.90,
-        proof=perf_proof
+        guarantee_type="speedup", bound=2.5, bound_type="minimum", confidence=0.90, proof=perf_proof
     )
 
     print(f"\nGuarantee Type: {guarantee.guarantee_type}")
@@ -145,8 +141,8 @@ def demo_3_complexity_proofs():
         assumptions=[
             "Loop bounds are identical",
             "No additional nested loops introduced",
-            "Fusion eliminates redundant iterations"
-        ]
+            "Fusion eliminates redundant iterations",
+        ],
     )
 
     print_proof(complexity_proof)
@@ -169,8 +165,8 @@ def demo_4_proof_verification():
         assumptions=[
             "Multiple GPUs available",
             "Workload characteristics known",
-            "Inter-GPU communication overhead acceptable"
-        ]
+            "Inter-GPU communication overhead acceptable",
+        ],
     )
 
     # Verify the proof
@@ -209,7 +205,7 @@ def demo_5_proof_library():
     transformations = [
         ("Kernel_Fusion", "Combine multiple GPU kernels into single kernel"),
         ("Memory_Pinning", "Pin host memory for faster GPU transfers"),
-        ("Stream_Parallelism", "Execute operations in parallel streams")
+        ("Stream_Parallelism", "Execute operations in parallel streams"),
     ]
 
     for name, desc in transformations:
@@ -264,7 +260,10 @@ def demo_6_transformation_integration():
     failed_count = total_transformations - verified_count
 
     if total_transformations > 0:
-        avg_confidence = sum(result.confidence_score for result in verification_results.values()) / total_transformations
+        avg_confidence = (
+            sum(result.confidence_score for result in verification_results.values())
+            / total_transformations
+        )
     else:
         avg_confidence = 0.0
 
@@ -282,11 +281,11 @@ def demo_6_transformation_integration():
     print(report)
 
     return {
-        'total_transformations': total_transformations,
-        'verified_count': verified_count,
-        'failed_count': failed_count,
-        'average_confidence': avg_confidence,
-        'results': verification_results
+        "total_transformations": total_transformations,
+        "verified_count": verified_count,
+        "failed_count": failed_count,
+        "average_confidence": avg_confidence,
+        "results": verification_results,
     }
 
 
@@ -301,15 +300,11 @@ def demo_7_performance_validation():
     perf_proof = generator.generate_performance_proof(
         transformation_name="Kernel_Fusion",
         speedup_bound=3.0,
-        assumptions=["Multiple kernels with compatible operations"]
+        assumptions=["Multiple kernels with compatible operations"],
     )
 
     guarantee = PerformanceGuarantee(
-        guarantee_type="speedup",
-        bound=3.0,
-        bound_type="minimum",
-        confidence=0.85,
-        proof=perf_proof
+        guarantee_type="speedup", bound=3.0, bound_type="minimum", confidence=0.85, proof=perf_proof
     )
 
     print(f"Guarantee: {guarantee.bound}x {guarantee.bound_type} {guarantee.guarantee_type}")
@@ -319,12 +314,12 @@ def demo_7_performance_validation():
     print("\n" + "-" * 80)
     print("Test Case 1: Runtime metrics MEET guarantee")
     metrics_success = {
-        'original_time_ms': 150.0,
-        'optimized_time_ms': 45.0  # 3.33x speedup
+        "original_time_ms": 150.0,
+        "optimized_time_ms": 45.0,  # 3.33x speedup
     }
 
     result = guarantee.verify_against_runtime(metrics_success)
-    actual_speedup = metrics_success['original_time_ms'] / metrics_success['optimized_time_ms']
+    actual_speedup = metrics_success["original_time_ms"] / metrics_success["optimized_time_ms"]
 
     print(f"  Original time: {metrics_success['original_time_ms']:.1f} ms")
     print(f"  Optimized time: {metrics_success['optimized_time_ms']:.1f} ms")
@@ -336,12 +331,12 @@ def demo_7_performance_validation():
     print("\n" + "-" * 80)
     print("Test Case 2: Runtime metrics FAIL guarantee")
     metrics_fail = {
-        'original_time_ms': 150.0,
-        'optimized_time_ms': 60.0  # 2.5x speedup (below 3.0x bound)
+        "original_time_ms": 150.0,
+        "optimized_time_ms": 60.0,  # 2.5x speedup (below 3.0x bound)
     }
 
     result = guarantee.verify_against_runtime(metrics_fail)
-    actual_speedup = metrics_fail['original_time_ms'] / metrics_fail['optimized_time_ms']
+    actual_speedup = metrics_fail["original_time_ms"] / metrics_fail["optimized_time_ms"]
 
     print(f"  Original time: {metrics_fail['original_time_ms']:.1f} ms")
     print(f"  Optimized time: {metrics_fail['optimized_time_ms']:.1f} ms")
@@ -365,7 +360,7 @@ def demo_8_inference_rules():
         InferenceRule.MONOTONICITY: "A<=B |- f(A)<=f(B) for monotone f",
         InferenceRule.ASSUMPTION: "Accept premise as given",
         InferenceRule.DEFINITION: "Apply mathematical definition",
-        InferenceRule.ARITHMETIC: "Apply arithmetic laws and properties"
+        InferenceRule.ARITHMETIC: "Apply arithmetic laws and properties",
     }
 
     for i, (rule, explanation) in enumerate(rules_explanation.items(), 1):
@@ -384,7 +379,7 @@ def demo_8_inference_rules():
         assumptions=[
             "Fixed overhead O per operation",
             "N operations with identical overhead",
-            "Batching combines overheads"
+            "Batching combines overheads",
         ],
         steps=[
             ProofStep(
@@ -392,25 +387,25 @@ def demo_8_inference_rules():
                 statement="Individual operations: N × O total overhead",
                 justification="Each of N operations incurs overhead O",
                 rule=InferenceRule.ARITHMETIC,
-                references=[]
+                references=[],
             ),
             ProofStep(
                 step_number=2,
                 statement="Batched operations: 1 × O total overhead",
                 justification="Single batched operation with single overhead",
                 rule=InferenceRule.DEFINITION,
-                references=[]
+                references=[],
             ),
             ProofStep(
                 step_number=3,
                 statement="Overhead reduction = (N×O) / (1×O) = N",
                 justification="Ratio of original to batched overhead",
                 rule=InferenceRule.ARITHMETIC,
-                references=[1, 2]
-            )
+                references=[1, 2],
+            ),
         ],
         conclusion="Batching achieves N-fold overhead reduction",
-        proof_method=ProofMethod.DIRECT
+        proof_method=ProofMethod.DIRECT,
     )
 
     print_proof(proof)
@@ -455,6 +450,7 @@ def main():
     except Exception as e:
         print(f"\n[X] Demo failed with error: {e}")
         import traceback
+
         traceback.print_exc()
         return 1
 

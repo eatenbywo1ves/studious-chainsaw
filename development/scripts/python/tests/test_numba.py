@@ -2,15 +2,18 @@ import numba
 import numpy as np
 from time import time
 
+
 # Test JIT compilation
 @numba.jit
 def compute_lattice_sum(n):
     """Example: compute sum of squared indices in a lattice"""
-    return np.sum(np.arange(n)**2)
+    return np.sum(np.arange(n) ** 2)
+
 
 # Test without JIT
 def compute_lattice_sum_regular(n):
-    return np.sum(np.arange(n)**2)
+    return np.sum(np.arange(n) ** 2)
+
 
 n = 10_000_000
 
@@ -33,7 +36,8 @@ print(f"[SUCCESS] Numba {numba.__version__} installed successfully!")
 print(f"\nPerformance test with {n:,} lattice points:")
 print(f"  Regular NumPy: {regular_time:.2f}ms")
 print(f"  Numba JIT:     {jit_time:.2f}ms")
-print(f"  Speedup:       {regular_time/jit_time:.1f}x faster")
+print(f"  Speedup:       {regular_time / jit_time:.1f}x faster")
+
 
 # Test parallel processing
 @numba.jit(parallel=True)
@@ -43,8 +47,9 @@ def compute_lattice_distances(points):
     distances = np.zeros((n, n))
     for i in numba.prange(n):
         for j in range(n):
-            distances[i, j] = np.sqrt(np.sum((points[i] - points[j])**2))
+            distances[i, j] = np.sqrt(np.sum((points[i] - points[j]) ** 2))
     return distances
+
 
 # Create sample high-dimensional lattice points
 dims = 10
@@ -57,5 +62,5 @@ t2 = time()
 
 print("\nParallel processing test:")
 print(f"  Computed {lattice_size}x{lattice_size} distance matrix")
-print(f"  in {dims}D space: {(t2-t1)*1000:.2f}ms")
+print(f"  in {dims}D space: {(t2 - t1) * 1000:.2f}ms")
 print(f"  Using {numba.config.NUMBA_NUM_THREADS} CPU threads")

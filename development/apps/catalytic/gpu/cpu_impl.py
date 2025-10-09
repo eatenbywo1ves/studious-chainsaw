@@ -30,8 +30,9 @@ class CPULattice(BaseLatticeGPU):
         try:
             # Get system info
             import psutil
-            self.total_memory_mb = psutil.virtual_memory().total / (1024 ** 2)
-            self.available_memory_mb = psutil.virtual_memory().available / (1024 ** 2)
+
+            self.total_memory_mb = psutil.virtual_memory().total / (1024**2)
+            self.available_memory_mb = psutil.virtual_memory().available / (1024**2)
 
             self._capabilities = GPUCapabilities(
                 device_name=f"CPU ({self.n_cores} cores)",
@@ -39,7 +40,7 @@ class CPULattice(BaseLatticeGPU):
                 total_memory_mb=self.total_memory_mb,
                 available_memory_mb=self.available_memory_mb,
                 max_threads_per_block=self.n_cores,
-                backend_name="cpu"
+                backend_name="cpu",
             )
 
             # Allocate auxiliary memory
@@ -112,15 +113,15 @@ class CPULattice(BaseLatticeGPU):
 
         # Create sparse adjacency matrix
         self.adjacency_matrix = csr_matrix(
-            (data, (rows, cols)),
-            shape=(self.n_points, self.n_points),
-            dtype=np.float32
+            (data, (rows, cols)), shape=(self.n_points, self.n_points), dtype=np.float32
         )
 
         self.adjacency_data = (np.array(rows), np.array(cols), np.array(data))
 
         build_time = (time.perf_counter() - start_time) * 1000
-        logger.info(f"Built lattice on CPU: {self.n_points} vertices, {len(rows)} edges in {build_time:.2f}ms")
+        logger.info(
+            f"Built lattice on CPU: {self.n_points} vertices, {len(rows)} edges in {build_time:.2f}ms"
+        )
 
         return self.adjacency_matrix
 
@@ -146,10 +147,7 @@ class CPULattice(BaseLatticeGPU):
 
         # Use scipy for shortest path
         dist_matrix, predecessors = shortest_path(
-            self.adjacency_matrix,
-            indices=start,
-            return_predecessors=True,
-            directed=False
+            self.adjacency_matrix, indices=start, return_predecessors=True, directed=False
         )
 
         # Reconstruct path

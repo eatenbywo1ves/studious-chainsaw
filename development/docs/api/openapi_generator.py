@@ -80,51 +80,33 @@ Common HTTP status codes:
             "version": "1.0.0",
             "contact": {
                 "name": "Catalytic Computing Support",
-                "email": "support@catalyticcomputing.example.com"
+                "email": "support@catalyticcomputing.example.com",
             },
             "license": {
                 "name": "Proprietary",
-                "url": "https://catalyticcomputing.example.com/license"
-            }
+                "url": "https://catalyticcomputing.example.com/license",
+            },
         },
         "servers": [
-            {
-                "url": "http://localhost:8000",
-                "description": "Development server"
-            },
+            {"url": "http://localhost:8000", "description": "Development server"},
             {
                 "url": "https://api.catalyticcomputing.example.com",
-                "description": "Production server"
-            }
+                "description": "Production server",
+            },
         ],
         "tags": [
             {
                 "name": "authentication",
-                "description": "Authentication and authorization operations"
+                "description": "Authentication and authorization operations",
             },
-            {
-                "name": "tenants",
-                "description": "Tenant management and registration"
-            },
-            {
-                "name": "users",
-                "description": "User management within tenants"
-            },
-            {
-                "name": "lattices",
-                "description": "KA Lattice creation and operations"
-            },
-            {
-                "name": "subscriptions",
-                "description": "Subscription and billing management"
-            },
-            {
-                "name": "monitoring",
-                "description": "Health checks and metrics"
-            }
+            {"name": "tenants", "description": "Tenant management and registration"},
+            {"name": "users", "description": "User management within tenants"},
+            {"name": "lattices", "description": "KA Lattice creation and operations"},
+            {"name": "subscriptions", "description": "Subscription and billing management"},
+            {"name": "monitoring", "description": "Health checks and metrics"},
         ],
         "paths": generate_paths(),
-        "components": generate_components()
+        "components": generate_components(),
     }
 
     return spec
@@ -155,10 +137,10 @@ def generate_paths() -> Dict[str, Any]:
                                 "first_name": "John",
                                 "last_name": "Doe",
                                 "domain": "acme.com",
-                                "plan_code": "free"
-                            }
+                                "plan_code": "free",
+                            },
                         }
-                    }
+                    },
                 },
                 "responses": {
                     "201": {
@@ -167,11 +149,11 @@ def generate_paths() -> Dict[str, Any]:
                             "application/json": {
                                 "schema": {"$ref": "#/components/schemas/RegistrationResponse"}
                             }
-                        }
+                        },
                     },
                     "400": {"$ref": "#/components/responses/BadRequest"},
-                    "409": {"description": "Tenant already exists"}
-                }
+                    "409": {"description": "Tenant already exists"},
+                },
             }
         },
         "/api/auth/login": {
@@ -187,10 +169,10 @@ def generate_paths() -> Dict[str, Any]:
                             "schema": {"$ref": "#/components/schemas/LoginRequest"},
                             "example": {
                                 "email": "admin@acme.com",
-                                "password": "SecurePassword123!"
-                            }
+                                "password": "SecurePassword123!",
+                            },
                         }
-                    }
+                    },
                 },
                 "responses": {
                     "200": {
@@ -199,10 +181,10 @@ def generate_paths() -> Dict[str, Any]:
                             "application/json": {
                                 "schema": {"$ref": "#/components/schemas/LoginResponse"}
                             }
-                        }
+                        },
                     },
-                    "401": {"description": "Invalid credentials"}
-                }
+                    "401": {"description": "Invalid credentials"},
+                },
             }
         },
         "/api/auth/verify": {
@@ -217,7 +199,7 @@ def generate_paths() -> Dict[str, Any]:
                         "application/json": {
                             "schema": {"$ref": "#/components/schemas/TokenVerifyRequest"}
                         }
-                    }
+                    },
                 },
                 "responses": {
                     "200": {
@@ -226,10 +208,10 @@ def generate_paths() -> Dict[str, Any]:
                             "application/json": {
                                 "schema": {"$ref": "#/components/schemas/TokenVerifyResponse"}
                             }
-                        }
+                        },
                     },
-                    "401": {"description": "Token is invalid or expired"}
-                }
+                    "401": {"description": "Token is invalid or expired"},
+                },
             }
         },
         "/api/auth/refresh": {
@@ -244,13 +226,11 @@ def generate_paths() -> Dict[str, Any]:
                         "application/json": {
                             "schema": {
                                 "type": "object",
-                                "properties": {
-                                    "refresh_token": {"type": "string"}
-                                },
-                                "required": ["refresh_token"]
+                                "properties": {"refresh_token": {"type": "string"}},
+                                "required": ["refresh_token"],
                             }
                         }
-                    }
+                    },
                 },
                 "responses": {
                     "200": {
@@ -261,14 +241,14 @@ def generate_paths() -> Dict[str, Any]:
                                     "type": "object",
                                     "properties": {
                                         "access_token": {"type": "string"},
-                                        "token_type": {"type": "string", "example": "bearer"}
-                                    }
+                                        "token_type": {"type": "string", "example": "bearer"},
+                                    },
                                 }
                             }
-                        }
+                        },
                     },
-                    "401": {"description": "Invalid refresh token"}
-                }
+                    "401": {"description": "Invalid refresh token"},
+                },
             }
         },
         "/api/auth/logout": {
@@ -280,11 +260,10 @@ def generate_paths() -> Dict[str, Any]:
                 "security": [{"bearerAuth": []}],
                 "responses": {
                     "200": {"description": "Logged out successfully"},
-                    "401": {"$ref": "#/components/responses/Unauthorized"}
-                }
+                    "401": {"$ref": "#/components/responses/Unauthorized"},
+                },
             }
         },
-
         # ====================================================================
         # LATTICE ENDPOINTS
         # ====================================================================
@@ -306,10 +285,10 @@ def generate_paths() -> Dict[str, Any]:
                                 "size": 1000,
                                 "field_type": "complex",
                                 "geometry": "euclidean",
-                                "enable_gpu": True
-                            }
+                                "enable_gpu": True,
+                            },
                         }
-                    }
+                    },
                 },
                 "responses": {
                     "201": {
@@ -318,12 +297,12 @@ def generate_paths() -> Dict[str, Any]:
                             "application/json": {
                                 "schema": {"$ref": "#/components/schemas/LatticeResponse"}
                             }
-                        }
+                        },
                     },
                     "400": {"$ref": "#/components/responses/BadRequest"},
                     "401": {"$ref": "#/components/responses/Unauthorized"},
-                    "429": {"$ref": "#/components/responses/RateLimitExceeded"}
-                }
+                    "429": {"$ref": "#/components/responses/RateLimitExceeded"},
+                },
             },
             "get": {
                 "tags": ["lattices"],
@@ -332,16 +311,8 @@ def generate_paths() -> Dict[str, Any]:
                 "operationId": "listLattices",
                 "security": [{"bearerAuth": []}],
                 "parameters": [
-                    {
-                        "name": "skip",
-                        "in": "query",
-                        "schema": {"type": "integer", "default": 0}
-                    },
-                    {
-                        "name": "limit",
-                        "in": "query",
-                        "schema": {"type": "integer", "default": 100}
-                    }
+                    {"name": "skip", "in": "query", "schema": {"type": "integer", "default": 0}},
+                    {"name": "limit", "in": "query", "schema": {"type": "integer", "default": 100}},
                 ],
                 "responses": {
                     "200": {
@@ -350,14 +321,14 @@ def generate_paths() -> Dict[str, Any]:
                             "application/json": {
                                 "schema": {
                                     "type": "array",
-                                    "items": {"$ref": "#/components/schemas/LatticeResponse"}
+                                    "items": {"$ref": "#/components/schemas/LatticeResponse"},
                                 }
                             }
-                        }
+                        },
                     },
-                    "401": {"$ref": "#/components/responses/Unauthorized"}
-                }
-            }
+                    "401": {"$ref": "#/components/responses/Unauthorized"},
+                },
+            },
         },
         "/api/lattices/{lattice_id}": {
             "get": {
@@ -371,7 +342,7 @@ def generate_paths() -> Dict[str, Any]:
                         "name": "lattice_id",
                         "in": "path",
                         "required": True,
-                        "schema": {"type": "string", "format": "uuid"}
+                        "schema": {"type": "string", "format": "uuid"},
                     }
                 ],
                 "responses": {
@@ -381,10 +352,10 @@ def generate_paths() -> Dict[str, Any]:
                             "application/json": {
                                 "schema": {"$ref": "#/components/schemas/LatticeResponse"}
                             }
-                        }
+                        },
                     },
-                    "404": {"$ref": "#/components/responses/NotFound"}
-                }
+                    "404": {"$ref": "#/components/responses/NotFound"},
+                },
             },
             "delete": {
                 "tags": ["lattices"],
@@ -397,16 +368,15 @@ def generate_paths() -> Dict[str, Any]:
                         "name": "lattice_id",
                         "in": "path",
                         "required": True,
-                        "schema": {"type": "string", "format": "uuid"}
+                        "schema": {"type": "string", "format": "uuid"},
                     }
                 ],
                 "responses": {
                     "204": {"description": "Lattice deleted"},
-                    "404": {"$ref": "#/components/responses/NotFound"}
-                }
-            }
+                    "404": {"$ref": "#/components/responses/NotFound"},
+                },
+            },
         },
-
         # ====================================================================
         # MONITORING ENDPOINTS
         # ====================================================================
@@ -423,9 +393,9 @@ def generate_paths() -> Dict[str, Any]:
                             "application/json": {
                                 "schema": {"$ref": "#/components/schemas/HealthResponse"}
                             }
-                        }
+                        },
                     }
-                }
+                },
             }
         },
         "/metrics": {
@@ -437,15 +407,11 @@ def generate_paths() -> Dict[str, Any]:
                 "responses": {
                     "200": {
                         "description": "Metrics in Prometheus format",
-                        "content": {
-                            "text/plain": {
-                                "schema": {"type": "string"}
-                            }
-                        }
+                        "content": {"text/plain": {"schema": {"type": "string"}}},
                     }
-                }
+                },
             }
-        }
+        },
     }
 
 
@@ -458,7 +424,7 @@ def generate_components() -> Dict[str, Any]:
                 "type": "http",
                 "scheme": "bearer",
                 "bearerFormat": "JWT",
-                "description": "JWT access token from /api/auth/login"
+                "description": "JWT access token from /api/auth/login",
             }
         },
         "schemas": {
@@ -472,13 +438,17 @@ def generate_components() -> Dict[str, Any]:
                     "password": {
                         "type": "string",
                         "minLength": 8,
-                        "description": "Must contain uppercase, lowercase, and digit"
+                        "description": "Must contain uppercase, lowercase, and digit",
                     },
                     "first_name": {"type": "string", "minLength": 1, "maxLength": 100},
                     "last_name": {"type": "string", "minLength": 1, "maxLength": 100},
                     "domain": {"type": "string", "nullable": True},
-                    "plan_code": {"type": "string", "default": "free", "enum": ["free", "pro", "enterprise"]}
-                }
+                    "plan_code": {
+                        "type": "string",
+                        "default": "free",
+                        "enum": ["free", "pro", "enterprise"],
+                    },
+                },
             },
             "RegistrationResponse": {
                 "type": "object",
@@ -487,16 +457,16 @@ def generate_components() -> Dict[str, Any]:
                     "user_id": {"type": "string", "format": "uuid"},
                     "access_token": {"type": "string"},
                     "refresh_token": {"type": "string"},
-                    "token_type": {"type": "string", "example": "bearer"}
-                }
+                    "token_type": {"type": "string", "example": "bearer"},
+                },
             },
             "LoginRequest": {
                 "type": "object",
                 "required": ["email", "password"],
                 "properties": {
                     "email": {"type": "string", "format": "email"},
-                    "password": {"type": "string"}
-                }
+                    "password": {"type": "string"},
+                },
             },
             "LoginResponse": {
                 "type": "object",
@@ -504,16 +474,16 @@ def generate_components() -> Dict[str, Any]:
                     "access_token": {"type": "string"},
                     "refresh_token": {"type": "string"},
                     "token_type": {"type": "string", "example": "bearer"},
-                    "expires_in": {"type": "integer", "description": "Seconds until expiration"}
-                }
+                    "expires_in": {"type": "integer", "description": "Seconds until expiration"},
+                },
             },
             "TokenVerifyRequest": {
                 "type": "object",
                 "required": ["token"],
                 "properties": {
                     "token": {"type": "string"},
-                    "token_type": {"type": "string", "default": "access"}
-                }
+                    "token_type": {"type": "string", "default": "access"},
+                },
             },
             "TokenVerifyResponse": {
                 "type": "object",
@@ -525,10 +495,9 @@ def generate_components() -> Dict[str, Any]:
                     "type": {"type": "string"},
                     "jti": {"type": "string", "nullable": True},
                     "iat": {"type": "integer", "nullable": True},
-                    "exp": {"type": "integer", "nullable": True}
-                }
+                    "exp": {"type": "integer", "nullable": True},
+                },
             },
-
             # Lattice schemas
             "LatticeCreate": {
                 "type": "object",
@@ -537,10 +506,18 @@ def generate_components() -> Dict[str, Any]:
                     "name": {"type": "string", "minLength": 1, "maxLength": 255},
                     "dimensions": {"type": "integer", "minimum": 2, "maximum": 10},
                     "size": {"type": "integer", "minimum": 1, "maximum": 10000},
-                    "field_type": {"type": "string", "enum": ["real", "complex"], "default": "complex"},
-                    "geometry": {"type": "string", "enum": ["euclidean", "hyperbolic", "spherical"], "default": "euclidean"},
-                    "enable_gpu": {"type": "boolean", "default": False}
-                }
+                    "field_type": {
+                        "type": "string",
+                        "enum": ["real", "complex"],
+                        "default": "complex",
+                    },
+                    "geometry": {
+                        "type": "string",
+                        "enum": ["euclidean", "hyperbolic", "spherical"],
+                        "default": "euclidean",
+                    },
+                    "enable_gpu": {"type": "boolean", "default": False},
+                },
             },
             "LatticeResponse": {
                 "type": "object",
@@ -559,12 +536,11 @@ def generate_components() -> Dict[str, Any]:
                         "nullable": True,
                         "properties": {
                             "gpu_used": {"type": "boolean"},
-                            "processing_time_ms": {"type": "number"}
-                        }
-                    }
-                }
+                            "processing_time_ms": {"type": "number"},
+                        },
+                    },
+                },
             },
-
             # Monitoring schemas
             "HealthResponse": {
                 "type": "object",
@@ -578,65 +554,48 @@ def generate_components() -> Dict[str, Any]:
                                 "type": "object",
                                 "properties": {
                                     "status": {"type": "string"},
-                                    "latency_ms": {"type": "number"}
-                                }
+                                    "latency_ms": {"type": "number"},
+                                },
                             },
                             "redis": {
                                 "type": "object",
                                 "properties": {
                                     "status": {"type": "string"},
-                                    "latency_ms": {"type": "number"}
-                                }
-                            }
-                        }
-                    }
-                }
+                                    "latency_ms": {"type": "number"},
+                                },
+                            },
+                        },
+                    },
+                },
             },
-
             # Error schemas
             "Error": {
                 "type": "object",
                 "properties": {
                     "detail": {"type": "string"},
                     "status_code": {"type": "integer"},
-                    "type": {"type": "string"}
-                }
-            }
+                    "type": {"type": "string"},
+                },
+            },
         },
         "responses": {
             "BadRequest": {
                 "description": "Bad request - invalid input",
-                "content": {
-                    "application/json": {
-                        "schema": {"$ref": "#/components/schemas/Error"}
-                    }
-                }
+                "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}},
             },
             "Unauthorized": {
                 "description": "Unauthorized - missing or invalid authentication",
-                "content": {
-                    "application/json": {
-                        "schema": {"$ref": "#/components/schemas/Error"}
-                    }
-                }
+                "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}},
             },
             "NotFound": {
                 "description": "Resource not found",
-                "content": {
-                    "application/json": {
-                        "schema": {"$ref": "#/components/schemas/Error"}
-                    }
-                }
+                "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}},
             },
             "RateLimitExceeded": {
                 "description": "Rate limit exceeded",
-                "content": {
-                    "application/json": {
-                        "schema": {"$ref": "#/components/schemas/Error"}
-                    }
-                }
-            }
-        }
+                "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}},
+            },
+        },
     }
 
 

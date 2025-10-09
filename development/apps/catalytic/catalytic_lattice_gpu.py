@@ -11,10 +11,11 @@ from numba import cuda
 from typing import Tuple, List, Optional
 import torch
 
+
 class CatalyticLatticeGPU:
     """GPU-accelerated implementation of Catalytic Lattice algorithm"""
 
-    def __init__(self, dimensions: int, size: int, device='cuda'):
+    def __init__(self, dimensions: int, size: int, device="cuda"):
         """
         Initialize GPU-accelerated lattice
 
@@ -26,7 +27,7 @@ class CatalyticLatticeGPU:
         self.dimensions = dimensions
         self.size = size
         self.device = device
-        self.n_points = size ** dimensions
+        self.n_points = size**dimensions
 
         # Check CUDA availability
         if not torch.cuda.is_available():
@@ -38,8 +39,8 @@ class CatalyticLatticeGPU:
 
         # Device properties
         self.gpu_properties = cp.cuda.runtime.getDeviceProperties(0)
-        self.max_threads = self.gpu_properties['maxThreadsPerBlock']
-        self.max_blocks = self.gpu_properties['multiProcessorCount']
+        self.max_threads = self.gpu_properties["maxThreadsPerBlock"]
+        self.max_blocks = self.gpu_properties["multiProcessorCount"]
 
         print(f"Using GPU: {torch.cuda.get_device_name(0)}")
         print(f"CUDA Cores: {self.max_blocks * 32}")
@@ -80,7 +81,9 @@ class CatalyticLatticeGPU:
         self.adjacency_gpu = (row, col, data)
 
         build_time = (time.perf_counter() - start_time) * 1000
-        print(f"GPU Lattice built: {self.n_points} vertices, {len(edges)} edges in {build_time:.2f}ms")
+        print(
+            f"GPU Lattice built: {self.n_points} vertices, {len(edges)} edges in {build_time:.2f}ms"
+        )
 
         return edges_gpu
 
@@ -214,7 +217,7 @@ class CatalyticLatticeGPU:
         cp.dot(A_gpu, B_gpu)
         cp.cuda.Stream.null.synchronize()
         gpu_time = (time.perf_counter() - start) * 1000
-        results['gpu_matmul_ms'] = gpu_time
+        results["gpu_matmul_ms"] = gpu_time
 
         # Compare with CPU
         A_cpu = cp.asnumpy(A_gpu)
@@ -223,10 +226,10 @@ class CatalyticLatticeGPU:
         start = time.perf_counter()
         np.dot(A_cpu, B_cpu)
         cpu_time = (time.perf_counter() - start) * 1000
-        results['cpu_matmul_ms'] = cpu_time
+        results["cpu_matmul_ms"] = cpu_time
 
-        results['speedup'] = cpu_time / gpu_time
-        results['matrix_size'] = matrix_size
+        results["speedup"] = cpu_time / gpu_time
+        results["matrix_size"] = matrix_size
 
         return results
 
@@ -243,8 +246,7 @@ class CatalyticLatticeGPU:
         if self.adjacency_gpu:
             row, col, data = self.adjacency_gpu
             lattice_memory_bytes = (
-                row.nbytes + col.nbytes + data.nbytes +
-                self.auxiliary_memory.nbytes
+                row.nbytes + col.nbytes + data.nbytes + self.auxiliary_memory.nbytes
             )
             lattice_memory_mb = lattice_memory_bytes / (1024**2)
         else:
@@ -254,20 +256,21 @@ class CatalyticLatticeGPU:
         traditional_memory_mb = (self.n_points * self.n_points * 4) / (1024**2)
 
         return {
-            'gpu_total_gb': round(total_memory, 2),
-            'gpu_used_gb': round(used_memory, 2),
-            'gpu_free_gb': round(free_memory, 2),
-            'lattice_memory_mb': round(lattice_memory_mb, 2),
-            'traditional_memory_mb': round(traditional_memory_mb, 2),
-            'memory_reduction': round(traditional_memory_mb / max(lattice_memory_mb, 0.001), 2),
-            'device': torch.cuda.get_device_name(0)
+            "gpu_total_gb": round(total_memory, 2),
+            "gpu_used_gb": round(used_memory, 2),
+            "gpu_free_gb": round(free_memory, 2),
+            "lattice_memory_mb": round(lattice_memory_mb, 2),
+            "traditional_memory_mb": round(traditional_memory_mb, 2),
+            "memory_reduction": round(traditional_memory_mb / max(lattice_memory_mb, 0.001), 2),
+            "device": torch.cuda.get_device_name(0),
         }
+
 
 def benchmark_gpu_acceleration():
     """Comprehensive GPU acceleration benchmark"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("    GPU ACCELERATION BENCHMARK")
-    print("="*60)
+    print("=" * 60)
 
     results = {}
 
@@ -285,7 +288,7 @@ def benchmark_gpu_acceleration():
         # Test path finding
         if lattice.n_points > 1:
             path, exec_time = lattice.parallel_path_finding_gpu(0, lattice.n_points - 1)
-            results[f'{dim}D_pathfind_ms'] = round(exec_time, 2)
+            results[f"{dim}D_pathfind_ms"] = round(exec_time, 2)
             print(f"  Path finding: {exec_time:.2f}ms (path length: {len(path)})")
 
         # Test XOR transform
@@ -299,12 +302,12 @@ def benchmark_gpu_acceleration():
         data ^ np.random.randint(0, 256, 10000, dtype=np.uint8)
         cpu_xor_time = (time.perf_counter() - start) * 1000
 
-        results[f'{dim}D_xor_speedup'] = round(cpu_xor_time / gpu_xor_time, 2)
+        results[f"{dim}D_xor_speedup"] = round(cpu_xor_time / gpu_xor_time, 2)
         print(f"  XOR speedup: {cpu_xor_time / gpu_xor_time:.2f}x")
 
         # Memory efficiency
         mem_stats = lattice.memory_efficiency_gpu()
-        results[f'{dim}D_memory_reduction'] = mem_stats['memory_reduction']
+        results[f"{dim}D_memory_reduction"] = mem_stats["memory_reduction"]
         print(f"  Memory reduction: {mem_stats['memory_reduction']}x")
 
     # Matrix operations benchmark
@@ -313,26 +316,27 @@ def benchmark_gpu_acceleration():
 
     for size in [500, 1000, 2000]:
         matrix_results = lattice.matrix_operations_gpu(size)
-        results[f'matrix_{size}_speedup'] = round(matrix_results['speedup'], 2)
+        results[f"matrix_{size}_speedup"] = round(matrix_results["speedup"], 2)
         print(f"  {size}x{size} matrix multiply: {matrix_results['speedup']:.2f}x speedup")
 
     # GPU memory stats
     mem_stats = lattice.memory_efficiency_gpu()
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("    GPU ACCELERATION RESULTS")
-    print("="*60)
+    print("=" * 60)
     print(f"GPU Device: {mem_stats['device']}")
     print(f"GPU Memory: {mem_stats['gpu_total_gb']}GB total, {mem_stats['gpu_free_gb']}GB free")
     print("\nPerformance Gains:")
 
     for key, value in results.items():
-        if 'speedup' in key or 'reduction' in key:
+        if "speedup" in key or "reduction" in key:
             print(f"  {key}: {value}x")
         else:
             print(f"  {key}: {value}ms")
 
     return results
+
 
 if __name__ == "__main__":
     try:

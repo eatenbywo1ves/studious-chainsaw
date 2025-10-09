@@ -108,7 +108,11 @@ class EncryptedJSON(TypeDecorator):
             for field in self.sensitive_fields:
                 if field in encrypted_value and encrypted_value[field] is not None:
                     # Convert to string, encrypt, store with marker
-                    field_str = json.dumps(encrypted_value[field]) if not isinstance(encrypted_value[field], str) else encrypted_value[field]
+                    field_str = (
+                        json.dumps(encrypted_value[field])
+                        if not isinstance(encrypted_value[field], str)
+                        else encrypted_value[field]
+                    )
                     encrypted_value[field] = encryption.encrypt_field(field_str)
                     # Add marker to indicate this field is encrypted
                     encrypted_value[f"__{field}_encrypted"] = True
@@ -154,10 +158,16 @@ class EncryptedJSON(TypeDecorator):
 # Pre-configured types for common use cases
 def EncryptedEmail():
     return EncryptedString(255)
+
+
 def EncryptedPhone():
     return EncryptedString(50)
+
+
 def EncryptedName():
     return EncryptedString(200)
+
+
 def EncryptedApiSecret():
     return EncryptedString(512)
 
@@ -174,17 +184,17 @@ def create_encrypted_metadata(sensitive_fields=None):
         EncryptedJSON column instance
     """
     default_sensitive = [
-        'payment_method_token',
-        'credit_card_last4',
-        'bank_account_number',
-        'ssn',
-        'tax_id',
-        'api_secret',
-        'webhook_secret',
-        'internal_notes',
-        'phone_number',
-        'address',
-        'personal_data'
+        "payment_method_token",
+        "credit_card_last4",
+        "bank_account_number",
+        "ssn",
+        "tax_id",
+        "api_secret",
+        "webhook_secret",
+        "internal_notes",
+        "phone_number",
+        "address",
+        "personal_data",
     ]
 
     if sensitive_fields:

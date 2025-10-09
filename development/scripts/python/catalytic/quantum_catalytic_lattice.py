@@ -12,6 +12,7 @@ import multiprocessing as mp
 from typing import List, Optional
 from time import time
 
+
 class QuantumCatalyticLattice:
     """
     Next-generation lattice computer combining all discovered insights.
@@ -21,7 +22,7 @@ class QuantumCatalyticLattice:
         self.dimensions = dimensions
         self.lattice_size = lattice_size
         self.collapse_dims = min(collapse_dims, dimensions)
-        self.n_points = lattice_size ** dimensions
+        self.n_points = lattice_size**dimensions
         self.n_cores = mp.cpu_count()
 
         # Initialize parallel catalytic memory regions
@@ -45,9 +46,9 @@ class QuantumCatalyticLattice:
 
     @staticmethod
     @numba.jit(nopython=True, parallel=True, cache=True)
-    def dimensional_collapse_hash(high_dim_point: np.ndarray,
-                                  target_dims: int,
-                                  aux_catalyst: np.ndarray) -> np.ndarray:
+    def dimensional_collapse_hash(
+        high_dim_point: np.ndarray, target_dims: int, aux_catalyst: np.ndarray
+    ) -> np.ndarray:
         """
         Reversibly collapse high-dimensional point to lower dimensions
         using auxiliary memory as catalyst.
@@ -74,9 +75,9 @@ class QuantumCatalyticLattice:
 
     @staticmethod
     @numba.jit(nopython=True, cache=True)
-    def recursive_catalytic_transform(data: np.ndarray,
-                                     catalyst_stack: np.ndarray,
-                                     depth: int) -> np.ndarray:
+    def recursive_catalytic_transform(
+        data: np.ndarray, catalyst_stack: np.ndarray, depth: int
+    ) -> np.ndarray:
         """
         INSIGHT: Recursive catalytic hierarchies.
         Each recursion level uses previous result as catalyst for next.
@@ -96,14 +97,13 @@ class QuantumCatalyticLattice:
 
                 # Self-modifying aspect: result affects next iteration
                 if level > 0:
-                    result[i] ^= int(result[(i-1) % len(result)]) % 256
+                    result[i] ^= int(result[(i - 1) % len(result)]) % 256
 
         return result
 
     @staticmethod
     @numba.jit(nopython=True, parallel=True, cache=True)
-    def parallel_lattice_eigenspace(lattice_coords: np.ndarray,
-                                   n_cores: int) -> np.ndarray:
+    def parallel_lattice_eigenspace(lattice_coords: np.ndarray, n_cores: int) -> np.ndarray:
         """
         Compute lattice eigenspace using parallel catalytic streams.
         Each core works on independent partition with own catalyst.
@@ -125,9 +125,9 @@ class QuantumCatalyticLattice:
 
         return eigenvalues
 
-    def quantum_inspired_superposition(self,
-                                      lattice_points: np.ndarray,
-                                      measurement_basis: Optional[np.ndarray] = None) -> np.ndarray:
+    def quantum_inspired_superposition(
+        self, lattice_points: np.ndarray, measurement_basis: Optional[np.ndarray] = None
+    ) -> np.ndarray:
         """
         INSIGHT: Quantum-inspired superposition of lattice states.
         Auxiliary memory holds superposition until "measurement" (restoration).
@@ -148,9 +148,7 @@ class QuantumCatalyticLattice:
             for i in range(n_points):
                 # Collapse high-D point to low-D
                 collapsed = self.dimensional_collapse_hash(
-                    lattice_points[i],
-                    self.collapse_dims,
-                    catalyst
+                    lattice_points[i], self.collapse_dims, catalyst
                 )
 
                 # Add quantum phase based on catalyst
@@ -177,9 +175,9 @@ class QuantumCatalyticLattice:
         """
         Showcase all insights working together.
         """
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("QUANTUM-CATALYTIC LATTICE DEMONSTRATION")
-        print("="*60)
+        print("=" * 60)
 
         # Create high-dimensional lattice points
         print(f"\n1. Creating {self.dimensions}D lattice points...")
@@ -187,87 +185,81 @@ class QuantumCatalyticLattice:
 
         # Test 1: Dimensional Collapse
         print("\n2. Dimensional Collapse via Catalysis")
-        print("-"*40)
+        print("-" * 40)
         t1 = time()
-        self.dimensional_collapse_hash(
-            lattice_points[0],
-            self.collapse_dims,
-            self.aux_memories[0]
-        )
+        self.dimensional_collapse_hash(lattice_points[0], self.collapse_dims, self.aux_memories[0])
         t2 = time()
-        print(f"  {self.dimensions}D -> {self.collapse_dims}D in {(t2-t1)*1000:.3f}ms")
-        print(f"  Memory saved: {(1 - self.collapse_dims/self.dimensions)*100:.1f}%")
+        print(f"  {self.dimensions}D -> {self.collapse_dims}D in {(t2 - t1) * 1000:.3f}ms")
+        print(f"  Memory saved: {(1 - self.collapse_dims / self.dimensions) * 100:.1f}%")
 
         # Test 2: Recursive Catalytic Transform
         print("\n3. Recursive Catalytic Hierarchy")
-        print("-"*40)
+        print("-" * 40)
         test_data = np.random.randint(0, 256, 1000, dtype=np.uint8)
         t1 = time()
         transformed = self.recursive_catalytic_transform(
-            test_data,
-            self.aux_memories[1][:5000],
-            depth=5
+            test_data, self.aux_memories[1][:5000], depth=5
         )
         t2 = time()
 
         # Verify reversibility
         reversed_transform = self.recursive_catalytic_transform(
-            transformed,
-            self.aux_memories[1][:5000],
-            depth=5
+            transformed, self.aux_memories[1][:5000], depth=5
         )
 
         error = np.mean(np.abs(test_data.astype(int) - reversed_transform.astype(int)))
-        print(f"  5-level hierarchy in {(t2-t1)*1000:.3f}ms")
+        print(f"  5-level hierarchy in {(t2 - t1) * 1000:.3f}ms")
         print(f"  Reversibility verified: {error < 1e-10}")
 
         # Test 3: Parallel Eigenspace
         print("\n4. Parallel Catalytic Eigenspace")
-        print("-"*40)
+        print("-" * 40)
         t1 = time()
         eigenvalues = self.parallel_lattice_eigenspace(lattice_points, self.n_cores)
         t2 = time()
-        print(f"  Computed {len(eigenvalues)} eigenvalues in {(t2-t1)*1000:.3f}ms")
+        print(f"  Computed {len(eigenvalues)} eigenvalues in {(t2 - t1) * 1000:.3f}ms")
         print(f"  Using {self.n_cores} parallel streams")
 
         # Test 4: Quantum Superposition
         print("\n5. Quantum-Inspired Superposition")
-        print("-"*40)
+        print("-" * 40)
         measurement_basis = np.random.randn(self.collapse_dims, self.collapse_dims)
-        measurement_basis = measurement_basis / np.linalg.norm(measurement_basis, axis=1, keepdims=True)
+        measurement_basis = measurement_basis / np.linalg.norm(
+            measurement_basis, axis=1, keepdims=True
+        )
 
         t1 = time()
         measured_states = self.quantum_inspired_superposition(
-            lattice_points[:100],
-            measurement_basis
+            lattice_points[:100], measurement_basis
         )
         t2 = time()
-        print(f"  Superposition + measurement in {(t2-t1)*1000:.3f}ms")
+        print(f"  Superposition + measurement in {(t2 - t1) * 1000:.3f}ms")
         print(f"  Result shape: {measured_states.shape}")
 
         # Memory efficiency summary
         print("\n6. MEMORY EFFICIENCY SUMMARY")
-        print("="*40)
+        print("=" * 40)
         traditional_memory = self.n_points * self.dimensions * 8
         catalytic_memory = 1000  # Just counters and small working set
         print(f"  Traditional: {traditional_memory / (1024**2):.2f} MB")
         print(f"  Catalytic:   {catalytic_memory / 1024:.2f} KB")
         print(f"  Reduction:   {traditional_memory / catalytic_memory:.0f}x")
 
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("KEY ACHIEVEMENTS:")
         print("  [OK] Dimensional collapse preserves information")
         print("  [OK] Recursive catalysis amplifies computation")
         print("  [OK] Parallel streams maximize throughput")
         print("  [OK] Quantum superposition enables new algorithms")
         print("  [OK] All operations maintain catalytic property")
-        print("="*60)
+        print("=" * 60)
+
 
 # Bonus: Self-modifying catalytic algorithm
 @numba.jit(nopython=True, cache=True)
-def self_modifying_catalytic_search(target: int,
-                                   search_space: np.ndarray,
-                                   catalyst: np.ndarray) -> int:
+def self_modifying_catalytic_search(
+    target: int, search_space: np.ndarray, catalyst: np.ndarray
+) -> int:
     """
     Algorithm that evolves its search strategy based on catalyst feedback.
     Demonstrates self-modifying catalytic principle.
@@ -302,20 +294,21 @@ def self_modifying_catalytic_search(target: int,
 
     return best_idx
 
+
 if __name__ == "__main__":
     # Initialize quantum-catalytic lattice system
     qcl = QuantumCatalyticLattice(
-        dimensions=10,      # 10-dimensional hypercube
-        lattice_size=5,     # 5^10 = 9.7M points
-        collapse_dims=3     # Collapse to 3D for visualization
+        dimensions=10,  # 10-dimensional hypercube
+        lattice_size=5,  # 5^10 = 9.7M points
+        collapse_dims=3,  # Collapse to 3D for visualization
     )
 
     # Run comprehensive demonstration
     qcl.demonstrate_combined_insights()
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("BREAKTHROUGH: This framework demonstrates that high-dimensional")
     print("lattice problems thought to require exponential resources can")
     print("be solved with logarithmic space using catalytic computing,")
     print("JIT compilation, and quantum-inspired techniques.")
-    print("="*60)
+    print("=" * 60)

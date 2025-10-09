@@ -16,11 +16,13 @@ from datetime import datetime
 # Import Redis manager for distributed rate limiting
 try:
     from .redis_manager import RedisConnectionManager, get_redis
+
     REDIS_AVAILABLE = True
 except ImportError:
     REDIS_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
+
 
 class LimitType(Enum):
     PER_IP = "per_ip"
@@ -28,11 +30,13 @@ class LimitType(Enum):
     PER_ENDPOINT = "per_endpoint"
     GLOBAL = "global"
 
+
 class RateLimitStrategy(Enum):
     TOKEN_BUCKET = "token_bucket"
     SLIDING_WINDOW = "sliding_window"
     FIXED_WINDOW = "fixed_window"
     LEAKY_BUCKET = "leaky_bucket"
+
 
 @dataclass
 class RateLimit:
@@ -42,6 +46,7 @@ class RateLimit:
     burst_allowance: int = 0
     description: str = ""
 
+
 @dataclass
 class RateLimitResult:
     allowed: bool
@@ -50,6 +55,7 @@ class RateLimitResult:
     retry_after: Optional[int] = None
     limit_type: Optional[LimitType] = None
 
+
 @dataclass
 class TokenBucket:
     capacity: int
@@ -57,10 +63,12 @@ class TokenBucket:
     last_refill: float
     refill_rate: float  # tokens per second
 
+
 @dataclass
 class SlidingWindow:
     requests: deque = field(default_factory=deque)
     window_seconds: int = 60
+
 
 class AdvancedRateLimiter:
     """
@@ -69,10 +77,10 @@ class AdvancedRateLimiter:
 
     def __init__(
         self,
-        redis_client: Optional['RedisConnectionManager'] = None,
+        redis_client: Optional["RedisConnectionManager"] = None,
         enable_ddos_protection: bool = True,
         suspicious_threshold: int = 1000,  # requests per minute
-        block_duration_minutes: int = 60
+        block_duration_minutes: int = 60,
     ):
         # Initialize Redis for distributed rate limiting
         if REDIS_AVAILABLE:
@@ -81,11 +89,15 @@ class AdvancedRateLimiter:
             if self.use_redis:
                 logger.info("Using Redis for distributed rate limiting")
             else:
-                logger.warning("Redis unavailable, using in-memory rate limiting (NOT for production!)")
+                logger.warning(
+                    "Redis unavailable, using in-memory rate limiting (NOT for production!)"
+                )
         else:
             self.redis_client = None
             self.use_redis = False
-            logger.warning("Redis module not available, using in-memory rate limiting (NOT for production!)")
+            logger.warning(
+                "Redis module not available, using in-memory rate limiting (NOT for production!)"
+            )
 
         self.enable_ddos_protection = enable_ddos_protection
         self.suspicious_threshold = suspicious_threshold
@@ -102,28 +114,63 @@ class AdvancedRateLimiter:
         self.rate_limits: Dict[str, Dict[LimitType, RateLimit]] = {
             # API endpoints
             "/api/auth/login": {
-                LimitType.PER_IP: RateLimit(5, 300, RateLimitStrategy.SLIDING_WINDOW, description="Login attempts per IP"),
-                LimitType.PER_USER: RateLimit(3, 300, RateLimitStrategy.SLIDING_WINDOW, description="Login attempts per user")
+                LimitType.PER_IP: RateLimit(
+                    5, 300, RateLimitStrategy.SLIDING_WINDOW, description="Login attempts per IP"
+                ),
+                LimitType.PER_USER: RateLimit(
+                    3, 300, RateLimitStrategy.SLIDING_WINDOW, description="Login attempts per user"
+                ),
             },
             "/api/auth/register": {
-                LimitType.PER_IP: RateLimit(3, 3600, RateLimitStrategy.FIXED_WINDOW, description="Registrations per IP per hour")
+                LimitType.PER_IP: RateLimit(
+                    3,
+                    3600,
+                    RateLimitStrategy.FIXED_WINDOW,
+                    description="Registrations per IP per hour",
+                )
             },
             "/api/auth/forgot-password": {
-                LimitType.PER_IP: RateLimit(3, 3600, RateLimitStrategy.SLIDING_WINDOW, description="Password reset per IP"),
-                LimitType.PER_USER: RateLimit(2, 3600, RateLimitStrategy.SLIDING_WINDOW, description="Password reset per user")
+                LimitType.PER_IP: RateLimit(
+                    3, 3600, RateLimitStrategy.SLIDING_WINDOW, description="Password reset per IP"
+                ),
+                LimitType.PER_USER: RateLimit(
+                    2, 3600, RateLimitStrategy.SLIDING_WINDOW, description="Password reset per user"
+                ),
             },
             "/api/catalytic/compute": {
-                LimitType.PER_USER: RateLimit(100, 3600, RateLimitStrategy.TOKEN_BUCKET, burst_allowance=20, description="Compute requests per user per hour"),
-                LimitType.GLOBAL: RateLimit(10000, 3600, RateLimitStrategy.TOKEN_BUCKET, description="Global compute limit")
+                LimitType.PER_USER: RateLimit(
+                    100,
+                    3600,
+                    RateLimitStrategy.TOKEN_BUCKET,
+                    burst_allowance=20,
+                    description="Compute requests per user per hour",
+                ),
+                LimitType.GLOBAL: RateLimit(
+                    10000, 3600, RateLimitStrategy.TOKEN_BUCKET, description="Global compute limit"
+                ),
             },
             "/api/stripe/webhooks": {
-                LimitType.PER_IP: RateLimit(1000, 3600, RateLimitStrategy.SLIDING_WINDOW, description="Webhook calls per IP")
+                LimitType.PER_IP: RateLimit(
+                    1000, 3600, RateLimitStrategy.SLIDING_WINDOW, description="Webhook calls per IP"
+                )
             },
             # Default limits
             "default": {
-                LimitType.PER_IP: RateLimit(1000, 3600, RateLimitStrategy.TOKEN_BUCKET, burst_allowance=100, description="Default per IP"),
-                LimitType.PER_USER: RateLimit(5000, 3600, RateLimitStrategy.TOKEN_BUCKET, burst_allowance=500, description="Default per user")
-            }
+                LimitType.PER_IP: RateLimit(
+                    1000,
+                    3600,
+                    RateLimitStrategy.TOKEN_BUCKET,
+                    burst_allowance=100,
+                    description="Default per IP",
+                ),
+                LimitType.PER_USER: RateLimit(
+                    5000,
+                    3600,
+                    RateLimitStrategy.TOKEN_BUCKET,
+                    burst_allowance=500,
+                    description="Default per user",
+                ),
+            },
         }
 
         logger.info("Advanced rate limiter initialized")
@@ -135,14 +182,16 @@ class AdvancedRateLimiter:
         if endpoint not in self.rate_limits:
             self.rate_limits[endpoint] = {}
         self.rate_limits[endpoint][limit_type] = rate_limit
-        logger.debug(f"Set rate limit for {endpoint} ({limit_type.value}): {rate_limit.requests}/{rate_limit.window_seconds}s")
+        logger.debug(
+            f"Set rate limit for {endpoint} ({limit_type.value}): {rate_limit.requests}/{rate_limit.window_seconds}s"
+        )
 
     async def check_rate_limit(
         self,
         identifier: str,
         endpoint: str,
         limit_type: LimitType,
-        ip_address: Optional[str] = None
+        ip_address: Optional[str] = None,
     ) -> RateLimitResult:
         """
         Check if request is within rate limits
@@ -154,7 +203,7 @@ class AdvancedRateLimiter:
                 remaining=0,
                 reset_time=self.blocked_ips[ip_address],
                 retry_after=int(self.blocked_ips[ip_address] - time.time()),
-                limit_type=limit_type
+                limit_type=limit_type,
             )
 
         # Get rate limit configuration
@@ -198,8 +247,8 @@ class AdvancedRateLimiter:
             bucket_data = self.redis_client.hgetall(key)
 
             if bucket_data:
-                tokens = float(bucket_data.get('tokens', capacity))
-                last_refill = float(bucket_data.get('last_refill', now))
+                tokens = float(bucket_data.get("tokens", capacity))
+                last_refill = float(bucket_data.get("last_refill", now))
             else:
                 # Initialize new bucket
                 tokens = float(capacity)
@@ -213,8 +262,8 @@ class AdvancedRateLimiter:
             if tokens >= 1.0:
                 tokens -= 1.0
                 # Update Redis atomically
-                self.redis_client.hset(key, 'tokens', str(tokens))
-                self.redis_client.hset(key, 'last_refill', str(now))
+                self.redis_client.hset(key, "tokens", str(tokens))
+                self.redis_client.hset(key, "last_refill", str(now))
                 self.redis_client.expire(key, rate_limit.window_seconds * 2)  # Auto-cleanup
 
                 remaining = int(tokens)
@@ -222,8 +271,8 @@ class AdvancedRateLimiter:
                 return RateLimitResult(allowed=True, remaining=remaining, reset_time=reset_time)
             else:
                 # Update last_refill even on failure
-                self.redis_client.hset(key, 'tokens', str(tokens))
-                self.redis_client.hset(key, 'last_refill', str(now))
+                self.redis_client.hset(key, "tokens", str(tokens))
+                self.redis_client.hset(key, "last_refill", str(now))
                 self.redis_client.expire(key, rate_limit.window_seconds * 2)
 
                 retry_after = int((1.0 - tokens) / refill_rate)
@@ -231,7 +280,7 @@ class AdvancedRateLimiter:
                     allowed=False,
                     remaining=0,
                     reset_time=now + retry_after,
-                    retry_after=retry_after
+                    retry_after=retry_after,
                 )
         else:
             # Fallback to in-memory implementation
@@ -241,17 +290,14 @@ class AdvancedRateLimiter:
                     capacity=rate_limit.requests + rate_limit.burst_allowance,
                     tokens=float(rate_limit.requests + rate_limit.burst_allowance),
                     last_refill=now,
-                    refill_rate=rate_limit.requests / rate_limit.window_seconds
+                    refill_rate=rate_limit.requests / rate_limit.window_seconds,
                 )
 
             bucket = self.token_buckets[identifier]
 
             # Refill tokens
             time_passed = now - bucket.last_refill
-            bucket.tokens = min(
-                bucket.capacity,
-                bucket.tokens + (time_passed * bucket.refill_rate)
-            )
+            bucket.tokens = min(bucket.capacity, bucket.tokens + (time_passed * bucket.refill_rate))
             bucket.last_refill = now
 
             # Check if request can be processed
@@ -266,10 +312,12 @@ class AdvancedRateLimiter:
                     allowed=False,
                     remaining=0,
                     reset_time=now + retry_after,
-                    retry_after=retry_after
+                    retry_after=retry_after,
                 )
 
-    async def _check_sliding_window(self, identifier: str, rate_limit: RateLimit) -> RateLimitResult:
+    async def _check_sliding_window(
+        self, identifier: str, rate_limit: RateLimit
+    ) -> RateLimitResult:
         """
         Sliding window algorithm implementation (distributed with Redis sorted sets)
         """
@@ -281,7 +329,7 @@ class AdvancedRateLimiter:
             key = f"ratelimit:window:{identifier}"
 
             # Remove old requests outside the window
-            self.redis_client.zremrangebyscore(key, '-inf', window_start)
+            self.redis_client.zremrangebyscore(key, "-inf", window_start)
 
             # Count requests in current window
             current_count = self.redis_client.zcard(key)
@@ -310,7 +358,7 @@ class AdvancedRateLimiter:
                         allowed=False,
                         remaining=0,
                         reset_time=oldest_time + rate_limit.window_seconds,
-                        retry_after=retry_after
+                        retry_after=retry_after,
                     )
                 else:
                     # No oldest request found (shouldn't happen but handle gracefully)
@@ -318,15 +366,14 @@ class AdvancedRateLimiter:
                         allowed=False,
                         remaining=0,
                         reset_time=now + rate_limit.window_seconds,
-                        retry_after=rate_limit.window_seconds
+                        retry_after=rate_limit.window_seconds,
                     )
         else:
             # Fallback to in-memory implementation
             # Get or create window
             if identifier not in self.sliding_windows:
                 self.sliding_windows[identifier] = SlidingWindow(
-                    requests=deque(),
-                    window_seconds=rate_limit.window_seconds
+                    requests=deque(), window_seconds=rate_limit.window_seconds
                 )
 
             window = self.sliding_windows[identifier]
@@ -339,7 +386,9 @@ class AdvancedRateLimiter:
             if len(window.requests) < rate_limit.requests:
                 window.requests.append(now)
                 remaining = rate_limit.requests - len(window.requests)
-                reset_time = window.requests[0] + rate_limit.window_seconds if window.requests else now
+                reset_time = (
+                    window.requests[0] + rate_limit.window_seconds if window.requests else now
+                )
                 return RateLimitResult(allowed=True, remaining=remaining, reset_time=reset_time)
             else:
                 oldest_request = window.requests[0]
@@ -348,7 +397,7 @@ class AdvancedRateLimiter:
                     allowed=False,
                     remaining=0,
                     reset_time=oldest_request + rate_limit.window_seconds,
-                    retry_after=retry_after
+                    retry_after=retry_after,
                 )
 
     async def _check_fixed_window(self, identifier: str, rate_limit: RateLimit) -> RateLimitResult:
@@ -373,10 +422,7 @@ class AdvancedRateLimiter:
             reset_time = window_start + rate_limit.window_seconds
             retry_after = int(reset_time - now)
             return RateLimitResult(
-                allowed=False,
-                remaining=0,
-                reset_time=reset_time,
-                retry_after=retry_after
+                allowed=False, remaining=0, reset_time=reset_time, retry_after=retry_after
             )
 
     def _is_ip_blocked(self, ip_address: str) -> bool:
@@ -409,11 +455,13 @@ class AdvancedRateLimiter:
             # Check if IP is already blocked
             if self.redis_client.exists(block_key):
                 block_until = float(self.redis_client.get(block_key))
-                logger.warning(f"IP {ip_address} is blocked until {datetime.fromtimestamp(block_until)}")
+                logger.warning(
+                    f"IP {ip_address} is blocked until {datetime.fromtimestamp(block_until)}"
+                )
                 return False
 
             # Remove old requests outside the 1-minute window
-            self.redis_client.zremrangebyscore(requests_key, '-inf', minute_ago)
+            self.redis_client.zremrangebyscore(requests_key, "-inf", minute_ago)
 
             # Add current request with timestamp as score and unique member
             member = f"{now}:{hashlib.md5(str(now).encode()).hexdigest()}"
@@ -429,9 +477,13 @@ class AdvancedRateLimiter:
             if request_count > self.suspicious_threshold:
                 # Block the IP
                 block_until = now + (self.block_duration_minutes * 60)
-                self.redis_client.setex(block_key, self.block_duration_minutes * 60, str(block_until))
+                self.redis_client.setex(
+                    block_key, self.block_duration_minutes * 60, str(block_until)
+                )
 
-                logger.warning(f"IP {ip_address} blocked for DDoS protection until {datetime.fromtimestamp(block_until)} ({request_count} requests/min)")
+                logger.warning(
+                    f"IP {ip_address} blocked for DDoS protection until {datetime.fromtimestamp(block_until)} ({request_count} requests/min)"
+                )
                 return False
 
             return True
@@ -440,7 +492,8 @@ class AdvancedRateLimiter:
             # Clean old entries
             if ip_address in self.suspicious_ips:
                 self.suspicious_ips[ip_address] = [
-                    timestamp for timestamp in self.suspicious_ips[ip_address]
+                    timestamp
+                    for timestamp in self.suspicious_ips[ip_address]
                     if timestamp > minute_ago
                 ]
 
@@ -453,7 +506,9 @@ class AdvancedRateLimiter:
                 block_until = now + (self.block_duration_minutes * 60)
                 self.blocked_ips[ip_address] = block_until
 
-                logger.warning(f"IP {ip_address} blocked for DDoS protection until {datetime.fromtimestamp(block_until)}")
+                logger.warning(
+                    f"IP {ip_address} blocked for DDoS protection until {datetime.fromtimestamp(block_until)}"
+                )
                 return False
 
             return True
@@ -463,10 +518,10 @@ class AdvancedRateLimiter:
         Check if IP address is in trusted networks (whitelist)
         """
         trusted_networks = [
-            "127.0.0.0/8",      # Localhost
-            "10.0.0.0/8",       # Private network
-            "172.16.0.0/12",    # Private network
-            "192.168.0.0/16",   # Private network
+            "127.0.0.0/8",  # Localhost
+            "10.0.0.0/8",  # Private network
+            "172.16.0.0/12",  # Private network
+            "192.168.0.0/16",  # Private network
             # Add your trusted networks here
         ]
 
@@ -487,7 +542,9 @@ class AdvancedRateLimiter:
         # In production, send to monitoring system
         logger.debug(f"Request recorded: IP={ip_address}, endpoint={endpoint}, user={user_id}")
 
-    def get_rate_limit_headers(self, result: RateLimitResult, rate_limit: RateLimit) -> Dict[str, str]:
+    def get_rate_limit_headers(
+        self, result: RateLimitResult, rate_limit: RateLimit
+    ) -> Dict[str, str]:
         """
         Generate rate limit headers for HTTP response
         """
@@ -532,12 +589,11 @@ class AdvancedRateLimiter:
 
         # Clean up expired blocks
         self.blocked_ips = {
-            ip: block_time
-            for ip, block_time in self.blocked_ips.items()
-            if now < block_time
+            ip: block_time for ip, block_time in self.blocked_ips.items() if now < block_time
         }
 
         logger.debug("Rate limiter cleanup completed")
+
 
 # FastAPI middleware integration
 class RateLimitMiddleware:
@@ -564,7 +620,7 @@ class RateLimitMiddleware:
             (ip_address, LimitType.PER_IP),
             (user_id if user_id else f"anon_{ip_address}", LimitType.PER_USER),
             (endpoint, LimitType.PER_ENDPOINT),
-            ("global", LimitType.GLOBAL)
+            ("global", LimitType.GLOBAL),
         ]
 
         for identifier, limit_type in limits_to_check:
@@ -601,15 +657,17 @@ class RateLimitMiddleware:
         """Extract user ID from request (from JWT or session)"""
         # This would be implemented based on your authentication system
         # For JWT, you'd decode the token from Authorization header
-        return getattr(request.state, 'user_id', None)
+        return getattr(request.state, "user_id", None)
 
-    def _create_error_response(self, status_code: int, message: str, headers: Dict[str, str] = None):
+    def _create_error_response(
+        self, status_code: int, message: str, headers: Dict[str, str] = None
+    ):
         """Create error response"""
         from fastapi.responses import JSONResponse
 
         response = JSONResponse(
             status_code=status_code,
-            content={"error": message, "timestamp": datetime.utcnow().isoformat()}
+            content={"error": message, "timestamp": datetime.utcnow().isoformat()},
         )
 
         if headers:

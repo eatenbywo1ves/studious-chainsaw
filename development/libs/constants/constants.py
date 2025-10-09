@@ -173,8 +173,10 @@ ERROR_RATE_ALERT_THRESHOLD_PERCENT: Final[float] = 1.0
 
 # === Enums for Type Safety ===
 
+
 class LogLevel(str, Enum):
     """Logging levels"""
+
     DEBUG = "DEBUG"
     INFO = "INFO"
     WARNING = "WARNING"
@@ -184,6 +186,7 @@ class LogLevel(str, Enum):
 
 class Environment(str, Enum):
     """Application environments"""
+
     DEVELOPMENT = "development"
     STAGING = "staging"
     PRODUCTION = "production"
@@ -192,6 +195,7 @@ class Environment(str, Enum):
 
 class LatticeAlgorithm(str, Enum):
     """Available lattice algorithms"""
+
     DIJKSTRA = "dijkstra"
     CATALYTIC = "catalytic"
     BREADTH_FIRST = "bfs"
@@ -201,6 +205,7 @@ class LatticeAlgorithm(str, Enum):
 
 class WebhookEvent(str, Enum):
     """Webhook event types"""
+
     LATTICE_CREATED = "lattice.created"
     LATTICE_DELETED = "lattice.deleted"
     COMPUTATION_STARTED = "computation.started"
@@ -213,6 +218,7 @@ class WebhookEvent(str, Enum):
 
 class HttpMethod(str, Enum):
     """HTTP methods"""
+
     GET = "GET"
     POST = "POST"
     PUT = "PUT"
@@ -224,6 +230,7 @@ class HttpMethod(str, Enum):
 
 class ContentType(str, Enum):
     """Content types"""
+
     JSON = "application/json"
     TEXT = "text/plain"
     HTML = "text/html"
@@ -235,6 +242,7 @@ class ContentType(str, Enum):
 
 class StatusCode(IntEnum):
     """HTTP status codes"""
+
     # Success
     OK = 200
     CREATED = 201
@@ -266,6 +274,7 @@ class StatusCode(IntEnum):
 
 # === Validation Ranges ===
 
+
 class ValidationRange:
     """Validation ranges for input parameters"""
 
@@ -289,33 +298,48 @@ NANOSECONDS_PER_SECOND: Final[int] = 1_000_000_000
 
 __all__ = [
     # Lattice constants
-    'MIN_DIMENSIONS', 'MAX_DIMENSIONS', 'DEFAULT_DIMENSIONS',
-    'MIN_LATTICE_SIZE', 'MAX_LATTICE_SIZE', 'DEFAULT_LATTICE_SIZE',
-    'MIN_AUX_MEMORY_MB', 'MAX_AUX_MEMORY_MB', 'DEFAULT_AUX_MEMORY_MB',
-
+    "MIN_DIMENSIONS",
+    "MAX_DIMENSIONS",
+    "DEFAULT_DIMENSIONS",
+    "MIN_LATTICE_SIZE",
+    "MAX_LATTICE_SIZE",
+    "DEFAULT_LATTICE_SIZE",
+    "MIN_AUX_MEMORY_MB",
+    "MAX_AUX_MEMORY_MB",
+    "DEFAULT_AUX_MEMORY_MB",
     # GPU constants
-    'CUDA_CORES_PER_SM', 'MAX_THREADS_PER_BLOCK', 'DEFAULT_BLOCK_SIZE',
-    'MIN_GPU_MEMORY_MB', 'DEFAULT_GPU_MEMORY_LIMIT_MB',
-
+    "CUDA_CORES_PER_SM",
+    "MAX_THREADS_PER_BLOCK",
+    "DEFAULT_BLOCK_SIZE",
+    "MIN_GPU_MEMORY_MB",
+    "DEFAULT_GPU_MEMORY_LIMIT_MB",
     # API constants
-    'DEFAULT_API_PORT', 'DEFAULT_WEBHOOK_PORT', 'DEFAULT_METRICS_PORT',
-    'DEFAULT_RATE_LIMIT_PER_MINUTE', 'MAX_REQUEST_SIZE_MB',
-
+    "DEFAULT_API_PORT",
+    "DEFAULT_WEBHOOK_PORT",
+    "DEFAULT_METRICS_PORT",
+    "DEFAULT_RATE_LIMIT_PER_MINUTE",
+    "MAX_REQUEST_SIZE_MB",
     # Webhook constants
-    'DEFAULT_WEBHOOK_RETRIES', 'DEFAULT_RETRY_DELAY_SEC',
-    'WEBHOOK_DELIVERY_SUCCESS_CODES', 'WEBHOOK_DELIVERY_RETRY_CODES',
-
+    "DEFAULT_WEBHOOK_RETRIES",
+    "DEFAULT_RETRY_DELAY_SEC",
+    "WEBHOOK_DELIVERY_SUCCESS_CODES",
+    "WEBHOOK_DELIVERY_RETRY_CODES",
     # Database constants
-    'DEFAULT_DB_POOL_SIZE', 'DEFAULT_DB_TIMEOUT_SEC',
-
+    "DEFAULT_DB_POOL_SIZE",
+    "DEFAULT_DB_TIMEOUT_SEC",
     # Memory constants
-    'DEFAULT_MEMORY_POOL_SIZE', 'MEMORY_ALIGNMENT_BYTES',
-    'DEFAULT_CACHE_SIZE_MB', 'TARGET_MEMORY_REDUCTION_FACTOR',
-
+    "DEFAULT_MEMORY_POOL_SIZE",
+    "MEMORY_ALIGNMENT_BYTES",
+    "DEFAULT_CACHE_SIZE_MB",
+    "TARGET_MEMORY_REDUCTION_FACTOR",
     # Enums
-    'LogLevel', 'Environment', 'LatticeAlgorithm', 'WebhookEvent',
-    'HttpMethod', 'ContentType', 'StatusCode',
-
+    "LogLevel",
+    "Environment",
+    "LatticeAlgorithm",
+    "WebhookEvent",
+    "HttpMethod",
+    "ContentType",
+    "StatusCode",
     # Validation ranges
-    'ValidationRange',
+    "ValidationRange",
 ]

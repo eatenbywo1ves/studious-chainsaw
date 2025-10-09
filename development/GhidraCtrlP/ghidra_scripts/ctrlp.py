@@ -95,6 +95,7 @@ def transientGoto(addr):
     codeViewerService = makeState().getTool().getService(CodeViewerService)
     if codeViewerService:
         from ghidra.program.util import ProgramLocation
+
         codeViewerService.goTo(ProgramLocation(getCurrentProgram(), addr), True)
     else:
         # fallback
@@ -229,6 +230,7 @@ class SymbolFilterWindow(JFrame):
         self.getContentPane().setLayout(BorderLayout())
 
         me = self
+
         class MyComponentAdapter(ComponentAdapter):
             def componentShown(self, event):
                 codeViewerService = makeState().getTool().getService(CodeViewerService)
@@ -244,9 +246,14 @@ class SymbolFilterWindow(JFrame):
                     me.symbolList.ensureIndexIsVisible(me.symbolList.getSelectedIndex())
                 SymbolLoader(me).execute()  # start updating symbols in the background
 
-            def componentHidden(self, event): pass
-            def componentMoved(self, event): pass
-            def componentResized(self, event): pass
+            def componentHidden(self, event):
+                pass
+
+            def componentMoved(self, event):
+                pass
+
+            def componentResized(self, event):
+                pass
 
         self.addComponentListener(MyComponentAdapter())
 
@@ -288,11 +295,7 @@ class SymbolFilterWindow(JFrame):
 
     def entries_by_search(self, needle, ignore_case):
         if not needle:
-            return [SearchEntry(
-                "dat (entering search mode)",
-                None,
-                lambda: None
-            )]
+            return [SearchEntry("dat (entering search mode)", None, lambda: None)]
 
         pattern = re.escape(needle)
         if ignore_case:
@@ -300,11 +303,7 @@ class SymbolFilterWindow(JFrame):
 
         filtered_symbols = []
         flatapi = FlatProgramAPI(getCurrentProgram())
-        occurs = list(
-            flatapi.findBytes(
-                getCurrentProgram().getMinAddress(), pattern, 100
-            )
-        )
+        occurs = list(flatapi.findBytes(getCurrentProgram().getMinAddress(), pattern, 100))
 
         mem = getCurrentProgram().getMemory()
 
@@ -316,14 +315,10 @@ class SymbolFilterWindow(JFrame):
                 start = rng.getMinAddress()
 
             context = getBytes(start, 130)
-            context_str = "".join(
-                chr(b % 256) if 32 <= b < 127 else '.' for b in context
+            context_str = "".join(chr(b % 256) if 32 <= b < 127 else "." for b in context)
+            filtered_symbols.append(
+                SearchEntry("dat " + str(addr) + " " + context_str, addr, wrap_goto(addr))
             )
-            filtered_symbols.append(SearchEntry(
-                "dat " + str(addr) + " " + context_str,
-                addr,
-                wrap_goto(addr)
-            ))
         return filtered_symbols
 
     def quick_exec(self, command):
@@ -375,17 +370,12 @@ class SymbolFilterWindow(JFrame):
         elif isinstance(result, list):
             strings = [str(r) for r in result]
         else:
-            strings = [
-                "str " + str(result)
-            ]
+            strings = ["str " + str(result)]
 
         def set_clipboard_wrap(content):
             return lambda: set_clipboard(content)
 
-        entries = [
-            SearchEntry("txt " + s, None, set_clipboard_wrap(s[4:]))
-            for s in strings
-        ]
+        entries = [SearchEntry("txt " + s, None, set_clipboard_wrap(s[4:])) for s in strings]
         return entries
 
     def get_order(self, sym):
@@ -422,18 +412,14 @@ class SymbolFilterWindow(JFrame):
             symbols_to_search = self.symbols
             if self.special_symbols:
                 symbols_to_search = self.special_symbols
-            filtered_symbols = [
-                sym for sym in symbols_to_search if matches(sym.text, filter_text)
-            ]
+            filtered_symbols = [sym for sym in symbols_to_search if matches(sym.text, filter_text)]
             # we have to search first, because we can't skip high-priority symbols :(
             filtered_symbols = sorted(filtered_symbols, key=self.get_order)
             if len(filtered_symbols) > 1000:
                 overflow = len(filtered_symbols) - 1000
                 filtered_symbols = filtered_symbols[:1000]
                 overflow_msg = "txt and " + str(overflow) + " more..."
-                filtered_symbols.append(
-                    SearchEntry(overflow_msg, None, lambda: None)
-                )
+                filtered_symbols.append(SearchEntry(overflow_msg, None, lambda: None))
 
         self.filtered_symbols = filtered_symbols
         self.symbolList.setListData(Vector([sym.text for sym in filtered_symbols]))
@@ -475,11 +461,7 @@ class SymbolFilterWindow(JFrame):
                 source = ref.getFromAddress()
 
                 text = prettyPrintAddress(source)
-                sym = SearchEntry(
-                    text,
-                    source,
-                    wrap_goto(source)
-                )
+                sym = SearchEntry(text, source, wrap_goto(source))
                 self.special_symbols.append(sym)
         self.updateList(self.inputField.getText())
 
@@ -501,7 +483,7 @@ class SymbolFilterWindow(JFrame):
                     selected_symbol.address,
                     BookmarkType.NOTE,
                     "CtrlP",
-                    "Quick bookmark. Query: " + query_text
+                    "Quick bookmark. Query: " + query_text,
                 )
 
             selected_symbol.has_bookmark_cache = not selected_symbol.has_bookmark_cache
@@ -532,9 +514,7 @@ class SymbolFilterWindow(JFrame):
         selected_symbol = self.current_symbol()
         if selected_symbol and selected_symbol.address:
             ref_manager = getCurrentProgram().getReferenceManager()
-            ref_count = ref_manager.getReferenceCountTo(
-                selected_symbol.address
-            )
+            ref_count = ref_manager.getReferenceCountTo(selected_symbol.address)
             if ref_count > 0:
                 refs = ref_manager.getReferencesTo(selected_symbol.address)
                 goTo(refs.next().getFromAddress())
@@ -549,9 +529,15 @@ class MyDocumentListener(DocumentListener):
     def __init__(self, parent):
         self.parent = parent
 
-    def insertUpdate(self, e): self.update()
-    def removeUpdate(self, e): self.update()
-    def changedUpdate(self, e): self.update()
+    def insertUpdate(self, e):
+        self.update()
+
+    def removeUpdate(self, e):
+        self.update()
+
+    def changedUpdate(self, e):
+        self.update()
+
     def update(self):
         self.parent.updateList(self.parent.inputField.getText())
 
@@ -598,7 +584,7 @@ class FilterKeyAdapter(KeyAdapter):
         elif event.getKeyCode() == KeyEvent.VK_END:
             self.navigate(2**30)
         elif event.getKeyCode() == KeyEvent.VK_HOME:
-            self.navigate(-2**30)
+            self.navigate(-(2**30))
         elif event.isControlDown() and event.getKeyCode() == KeyEvent.VK_D:
             self.parent.bookmarkSelectedLocation()
         elif event.isControlDown() and event.getKeyCode() == KeyEvent.VK_R:
@@ -616,12 +602,8 @@ class SymbolCellRenderer(DefaultListCellRenderer):
     def __init__(self, parent):
         self.window = parent
 
-    def getListCellRendererComponent(
-        self, list, value, index, isSelected, cellHasFocus
-    ):
-        component = super(
-            SymbolCellRenderer, self
-        ).getListCellRendererComponent(
+    def getListCellRendererComponent(self, list, value, index, isSelected, cellHasFocus):
+        component = super(SymbolCellRenderer, self).getListCellRendererComponent(
             list, value, index, isSelected, cellHasFocus
         )
 
@@ -670,28 +652,17 @@ def data_symbol_entry(sym):
             textrepr = textrepr[:80]
         if textrepr:
             textrepr = " (" + textrepr + ")"
-        entry_text = (
-            "dat " + data.getDataType().displayName + " "
-            + sym.getName() + textrepr
-        )
+        entry_text = "dat " + data.getDataType().displayName + " " + sym.getName() + textrepr
         return SearchEntry(entry_text, addr, lambda: goTo(addr))
 
-    return SearchEntry(
-        "lbl " + sym.getName(),
-        addr,
-        lambda: goTo(addr)
-    )
+    return SearchEntry("lbl " + sym.getName(), addr, lambda: goTo(addr))
 
 
 def function_symbol_entry(sym):
     listing = getCurrentProgram().getListing()
     func = listing.getFunctionAt(sym.getAddress())
     addr = toAddr(sym.getAddress().getOffset())
-    return SearchEntry(
-        "fnc " + func.getPrototypeString(True, False),
-        addr,
-        lambda: goTo(addr)
-    )
+    return SearchEntry("fnc " + func.getPrototypeString(True, False), addr, lambda: goTo(addr))
 
 
 def action_entry(context, act):
@@ -707,11 +678,7 @@ def action_entry(context, act):
         # I prefer emacs notation, so C-S-M-a, but I guess not everyone knows it.
         suffix = " (" + binding + ")"
 
-    return SearchEntry(
-        "act " + act.name + suffix,
-        None,
-        execme
-    )
+    return SearchEntry("act " + act.name + suffix, None, execme)
 
 
 def run_script(scr_file):
@@ -732,11 +699,7 @@ def component_provider_entry(cp):
         makeState().getTool().showComponentProvider(cp, True)
         cp.toFront()
 
-    return SearchEntry(
-        "wnd " + str(cp),
-        None,
-        show_and_focus
-    )
+    return SearchEntry("wnd " + str(cp), None, show_and_focus)
 
 
 def bookmark_entry(bookmark):
@@ -745,11 +708,7 @@ def bookmark_entry(bookmark):
     category = bookmark.getCategory()
     if category:
         category = " (" + category + ")"
-    return SearchEntry(
-        "bkm " + str(bookmark.getComment()) + category,
-        addr,
-        lambda: goTo(addr)
-    )
+    return SearchEntry("bkm " + str(bookmark.getComment()) + category, addr, lambda: goTo(addr))
 
 
 def get_actions():

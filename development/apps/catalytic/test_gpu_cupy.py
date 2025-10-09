@@ -7,11 +7,12 @@ import numpy as np
 import cupy as cp
 import time
 
+
 def test_cupy_gpu():
     """Test CuPy GPU acceleration"""
-    print("="*60)
+    print("=" * 60)
     print("    CUPY GPU ACCELERATION TEST")
-    print("="*60)
+    print("=" * 60)
 
     # Check GPU availability
     print(f"\nGPU Device: {cp.cuda.runtime.getDeviceProperties(0)['name'].decode()}")
@@ -53,7 +54,7 @@ def test_cupy_gpu():
         cpu_time = (time.perf_counter() - start) * 1000
 
         speedup = cpu_time / gpu_time
-        results[f'matmul_{size}'] = speedup
+        results[f"matmul_{size}"] = speedup
 
         print(f"  GPU: {gpu_time:.2f}ms")
         print(f"  CPU: {cpu_time:.2f}ms")
@@ -77,7 +78,7 @@ def test_cupy_gpu():
     cpu_time = (time.perf_counter() - start) * 1000
 
     speedup = cpu_time / gpu_time
-    results['elementwise'] = speedup
+    results["elementwise"] = speedup
 
     print(f"  GPU: {gpu_time:.2f}ms")
     print(f"  CPU: {cpu_time:.2f}ms")
@@ -100,16 +101,16 @@ def test_cupy_gpu():
     cpu_time = (time.perf_counter() - start) * 1000
 
     speedup = cpu_time / gpu_time
-    results['fft2d'] = speedup
+    results["fft2d"] = speedup
 
     print(f"  GPU: {gpu_time:.2f}ms")
     print(f"  CPU: {cpu_time:.2f}ms")
     print(f"  Speedup: {speedup:.2f}x")
 
     # Summary
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("    GPU ACCELERATION SUMMARY")
-    print("="*60)
+    print("=" * 60)
 
     avg_speedup = sum(results.values()) / len(results)
     print(f"Average Speedup: {avg_speedup:.2f}x")
@@ -135,10 +136,11 @@ def test_cupy_gpu():
 
     print(f"  Traditional dense: {traditional_memory:.2f}MB")
     print(f"  GPU sparse-like: {gpu_memory:.2f}MB")
-    print(f"  Memory ratio: {traditional_memory/gpu_memory:.2f}x")
+    print(f"  Memory ratio: {traditional_memory / gpu_memory:.2f}x")
 
     print("\nGPU Acceleration: FULLY OPERATIONAL")
     return results
+
 
 if __name__ == "__main__":
     try:
@@ -147,4 +149,5 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"Error: {e}")
         import traceback
+
         traceback.print_exc()

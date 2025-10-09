@@ -51,7 +51,7 @@ class TestGPUManagerSingleton:
 class TestGPUDeviceDetection:
     """Test GPU device detection across backends"""
 
-    @patch('apps.catalytic.gpu.manager.torch')
+    @patch("apps.catalytic.gpu.manager.torch")
     def test_detect_cuda_devices(self, mock_torch):
         """Test CUDA device detection"""
         # Setup mocks
@@ -60,7 +60,7 @@ class TestGPUDeviceDetection:
 
         mock_props = MagicMock()
         mock_props.name = "NVIDIA GeForce GTX 1080"
-        mock_props.total_memory = 8 * 1024 ** 3  # 8GB
+        mock_props.total_memory = 8 * 1024**3  # 8GB
         mock_props.major = 6
         mock_props.minor = 1
         mock_props.max_threads_per_block = 1024
@@ -68,7 +68,7 @@ class TestGPUDeviceDetection:
         mock_props.warp_size = 32
 
         mock_torch.cuda.get_device_properties.return_value = mock_props
-        mock_torch.cuda.mem_get_info.return_value = (6 * 1024 ** 3, 8 * 1024 ** 3)
+        mock_torch.cuda.mem_get_info.return_value = (6 * 1024**3, 8 * 1024**3)
 
         # Create manager and detect devices
         GPUManager.clear_instance()
@@ -81,26 +81,21 @@ class TestGPUDeviceDetection:
         assert manager.devices[0].total_memory_mb == 8192
         assert manager.devices[0].compute_capability == (6, 1)
 
-    @patch('apps.catalytic.gpu.manager.cp')
+    @patch("apps.catalytic.gpu.manager.cp")
     def test_detect_cupy_devices(self, mock_cp):
         """Test CuPy device detection"""
         # Setup mocks
         mock_cp.cuda.runtime.getDeviceCount.return_value = 1
 
-        mock_props = {
-            'name': b'Tesla V100',
-            'major': 7,
-            'minor': 0,
-            'maxThreadsPerBlock': 1024
-        }
+        mock_props = {"name": b"Tesla V100", "major": 7, "minor": 0, "maxThreadsPerBlock": 1024}
         mock_cp.cuda.runtime.getDeviceProperties.return_value = mock_props
         mock_cp.cuda.runtime.memGetInfo.return_value = (
-            12 * 1024 ** 3,  # 12GB free
-            16 * 1024 ** 3   # 16GB total
+            12 * 1024**3,  # 12GB free
+            16 * 1024**3,  # 16GB total
         )
 
         # Create manager with no CUDA available
-        with patch('apps.catalytic.gpu.manager.torch', None):
+        with patch("apps.catalytic.gpu.manager.torch", None):
             GPUManager.clear_instance()
             manager = GPUManager()
 
@@ -112,8 +107,8 @@ class TestGPUDeviceDetection:
     def test_cpu_fallback(self):
         """Test CPU fallback when no GPU available"""
         # Mock all GPU imports to fail
-        with patch('apps.catalytic.gpu.manager.torch', None):
-            with patch('apps.catalytic.gpu.manager.cp', None):
+        with patch("apps.catalytic.gpu.manager.torch", None):
+            with patch("apps.catalytic.gpu.manager.cp", None):
                 GPUManager.clear_instance()
                 manager = GPUManager()
 
@@ -139,22 +134,22 @@ class TestGPUDeviceSelection:
                 device_id=0,
                 total_memory_mb=8192,
                 available_memory_mb=6144,
-                backend_name="cuda"
+                backend_name="cuda",
             ),
             1: GPUCapabilities(
                 device_name="GPU 1",
                 device_id=1,
                 total_memory_mb=16384,
                 available_memory_mb=14336,
-                backend_name="cuda"
+                backend_name="cuda",
             ),
             2: GPUCapabilities(
                 device_name="GPU 2",
                 device_id=2,
                 total_memory_mb=4096,
                 available_memory_mb=2048,
-                backend_name="cuda"
-            )
+                backend_name="cuda",
+            ),
         }
 
         # Set all devices as available
@@ -171,8 +166,8 @@ class TestGPUDeviceSelection:
 
     def test_get_best_device_auto_select_disabled(self, manager_with_devices):
         """Test device selection with auto-select disabled"""
-        with patch.object(manager_with_devices.config.gpu, 'auto_select_device', False):
-            with patch.object(manager_with_devices.config.gpu, 'cuda_device_id', 2):
+        with patch.object(manager_with_devices.config.gpu, "auto_select_device", False):
+            with patch.object(manager_with_devices.config.gpu, "cuda_device_id", 2):
                 best_id = manager_with_devices.get_best_device()
                 assert best_id == 2  # Uses configured device
 
@@ -180,8 +175,8 @@ class TestGPUDeviceSelection:
         """Test fallback when configured device is unavailable"""
         manager_with_devices.device_status[2] = GPUStatus.BUSY
 
-        with patch.object(manager_with_devices.config.gpu, 'auto_select_device', False):
-            with patch.object(manager_with_devices.config.gpu, 'cuda_device_id', 2):
+        with patch.object(manager_with_devices.config.gpu, "auto_select_device", False):
+            with patch.object(manager_with_devices.config.gpu, "cuda_device_id", 2):
                 best_id = manager_with_devices.get_best_device()
                 assert best_id == 1  # Falls back to best available
 
@@ -208,7 +203,7 @@ class TestGPUDeviceAcquisition:
                 device_id=0,
                 total_memory_mb=8192,
                 available_memory_mb=6144,
-                backend_name="cuda"
+                backend_name="cuda",
             )
         }
         manager.device_status[0] = GPUStatus.AVAILABLE
@@ -266,7 +261,7 @@ class TestGPUMemoryInfo:
                 device_id=0,
                 total_memory_mb=8192,
                 available_memory_mb=6144,
-                backend_name="cuda"
+                backend_name="cuda",
             )
         }
         manager.selected_device_id = 0
@@ -276,15 +271,15 @@ class TestGPUMemoryInfo:
         """Test getting memory information"""
         mem_info = manager.get_memory_info(0)
 
-        assert mem_info['total_mb'] == 8192
-        assert mem_info['available_mb'] == 6144
-        assert mem_info['used_mb'] == 2048
-        assert mem_info['usage_percent'] == 25.0
+        assert mem_info["total_mb"] == 8192
+        assert mem_info["available_mb"] == 6144
+        assert mem_info["used_mb"] == 2048
+        assert mem_info["usage_percent"] == 25.0
 
     def test_get_memory_info_default_device(self, manager):
         """Test getting memory info for selected device"""
         mem_info = manager.get_memory_info()
-        assert mem_info['total_mb'] == 8192
+        assert mem_info["total_mb"] == 8192
 
     def test_get_memory_info_nonexistent_device(self, manager):
         """Test error for non-existent device"""
@@ -319,10 +314,7 @@ class TestGPUManagerUtilities:
 
     def test_get_all_devices(self, manager):
         """Test getting all devices"""
-        test_devices = {
-            0: MagicMock(),
-            1: MagicMock()
-        }
+        test_devices = {0: MagicMock(), 1: MagicMock()}
         manager.devices = test_devices
 
         all_devices = manager.get_all_devices()
@@ -338,7 +330,7 @@ class TestGPUManagerUtilities:
         manager.backend = GPUBackend.CUDA
 
         # Reset
-        with patch.object(manager, '_detect_devices'):
+        with patch.object(manager, "_detect_devices"):
             manager.reset()
 
         # State should be cleared

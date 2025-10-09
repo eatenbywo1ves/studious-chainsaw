@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class Pattern:
     """Computational pattern in the knowledge base"""
+
     id: str
     operation: str
     input_shape: Tuple[int, ...]
@@ -128,33 +129,36 @@ class KnowledgeStore:
             cursor = conn.cursor()
 
             # Store pattern metadata
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT OR REPLACE INTO patterns
                 (id, operation, input_shape, input_stats, output_shape,
                  execution_time_ms, memory_mb, confidence, created_at,
                  last_used, usage_count, success_count)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                pattern.id,
-                pattern.operation,
-                json.dumps(pattern.input_shape),
-                json.dumps(pattern.input_stats),
-                json.dumps(pattern.output_shape),
-                pattern.execution_time_ms,
-                pattern.memory_mb,
-                pattern.confidence,
-                pattern.created_at.isoformat(),
-                pattern.last_used.isoformat(),
-                pattern.usage_count,
-                pattern.success_count
-            ))
+            """,
+                (
+                    pattern.id,
+                    pattern.operation,
+                    json.dumps(pattern.input_shape),
+                    json.dumps(pattern.input_stats),
+                    json.dumps(pattern.output_shape),
+                    pattern.execution_time_ms,
+                    pattern.memory_mb,
+                    pattern.confidence,
+                    pattern.created_at.isoformat(),
+                    pattern.last_used.isoformat(),
+                    pattern.usage_count,
+                    pattern.success_count,
+                ),
+            )
 
             conn.commit()
 
         # Store result data if provided and small enough
         if result_data is not None and pattern.memory_mb < 10:
             pattern_file = self.patterns_path / f"{pattern.id}.pkl"
-            with open(pattern_file, 'wb') as f:
+            with open(pattern_file, "wb") as f:
                 pickle.dump(result_data, f)
 
         # Update cache
@@ -180,9 +184,12 @@ class KnowledgeStore:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
 
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT * FROM patterns WHERE id = ?
-            """, (pattern_id,))
+            """,
+                (pattern_id,),
+            )
 
             row = cursor.fetchone()
             if row:
@@ -197,7 +204,7 @@ class KnowledgeStore:
         operation: str,
         input_shape: Tuple[int, ...],
         input_stats: Dict[str, float],
-        max_results: int = 5
+        max_results: int = 5,
     ) -> List[Pattern]:
         """
         Find similar patterns based on operation and input characteristics
@@ -215,12 +222,15 @@ class KnowledgeStore:
             cursor = conn.cursor()
 
             # First, find patterns with same operation
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT * FROM patterns
                 WHERE operation = ?
                 ORDER BY confidence DESC, usage_count DESC
                 LIMIT ?
-            """, (operation, max_results * 2))
+            """,
+                (operation, max_results * 2),
+            )
 
             candidates = [self._row_to_pattern(row) for row in cursor.fetchall()]
 
@@ -228,8 +238,7 @@ class KnowledgeStore:
         similar_patterns = []
         for pattern in candidates:
             score = self._calculate_similarity(
-                input_shape, input_stats,
-                pattern.input_shape, pattern.input_stats
+                input_shape, input_stats, pattern.input_shape, pattern.input_stats
             )
 
             if score > 0.7:  # Similarity threshold
@@ -244,7 +253,7 @@ class KnowledgeStore:
         shape1: Tuple[int, ...],
         stats1: Dict[str, float],
         shape2: Tuple[int, ...],
-        stats2: Dict[str, float]
+        stats2: Dict[str, float],
     ) -> float:
         """Calculate similarity between two patterns"""
         score = 0.0
@@ -270,11 +279,7 @@ class KnowledgeStore:
         return score
 
     def update_pattern_performance(
-        self,
-        pattern_id: str,
-        execution_time_ms: float,
-        memory_mb: float,
-        success: bool
+        self, pattern_id: str, execution_time_ms: float, memory_mb: float, success: bool
     ):
         """Update pattern performance metrics"""
         with sqlite3.connect(self.db_path) as conn:
@@ -282,33 +287,36 @@ class KnowledgeStore:
 
             # Update pattern statistics
             if success:
-                cursor.execute("""
+                cursor.execute(
+                    """
                     UPDATE patterns
                     SET usage_count = usage_count + 1,
                         success_count = success_count + 1,
                         last_used = ?
                     WHERE id = ?
-                """, (datetime.now().isoformat(), pattern_id))
+                """,
+                    (datetime.now().isoformat(), pattern_id),
+                )
             else:
-                cursor.execute("""
+                cursor.execute(
+                    """
                     UPDATE patterns
                     SET usage_count = usage_count + 1,
                         last_used = ?
                     WHERE id = ?
-                """, (datetime.now().isoformat(), pattern_id))
+                """,
+                    (datetime.now().isoformat(), pattern_id),
+                )
 
             # Record performance history
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO performance_history
                 (pattern_id, timestamp, execution_time_ms, memory_mb, success)
                 VALUES (?, ?, ?, ?, ?)
-            """, (
-                pattern_id,
-                datetime.now().isoformat(),
-                execution_time_ms,
-                memory_mb,
-                success
-            ))
+            """,
+                (pattern_id, datetime.now().isoformat(), execution_time_ms, memory_mb, success),
+            )
 
             conn.commit()
 
@@ -317,14 +325,17 @@ class KnowledgeStore:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
 
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT * FROM patterns
                 ORDER BY
                     (confidence * 0.4 +
                      (CAST(success_count AS REAL) / MAX(usage_count, 1)) * 0.3 +
                      MIN(usage_count / 100.0, 1.0) * 0.3) DESC
                 LIMIT ?
-            """, (limit,))
+            """,
+                (limit,),
+            )
 
             return [self._row_to_pattern(row) for row in cursor.fetchall()]
 
@@ -336,24 +347,33 @@ class KnowledgeStore:
             cursor = conn.cursor()
 
             # Get patterns to delete
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT id FROM patterns
                 WHERE last_used < ? AND usage_count < 5
-            """, (cutoff_date,))
+            """,
+                (cutoff_date,),
+            )
 
             patterns_to_delete = [row[0] for row in cursor.fetchall()]
 
             # Delete patterns
-            cursor.execute("""
+            cursor.execute(
+                """
                 DELETE FROM patterns
                 WHERE last_used < ? AND usage_count < 5
-            """, (cutoff_date,))
+            """,
+                (cutoff_date,),
+            )
 
             # Delete performance history
-            cursor.execute("""
+            cursor.execute(
+                """
                 DELETE FROM performance_history
                 WHERE pattern_id IN ({})
-            """.format(','.join('?' * len(patterns_to_delete))), patterns_to_delete)
+            """.format(",".join("?" * len(patterns_to_delete))),
+                patterns_to_delete,
+            )
 
             conn.commit()
 
@@ -379,18 +399,15 @@ class KnowledgeStore:
             created_at=datetime.fromisoformat(row[8]),
             last_used=datetime.fromisoformat(row[9]),
             usage_count=row[10],
-            success_count=row[11]
+            success_count=row[11],
         )
 
     def _maintain_cache_size(self):
         """Maintain cache size limit"""
         if len(self.pattern_cache) > self.cache_size:
             # Remove least recently used patterns
-            sorted_patterns = sorted(
-                self.pattern_cache.items(),
-                key=lambda x: x[1].last_used
-            )
-            for pattern_id, _ in sorted_patterns[:-self.cache_size]:
+            sorted_patterns = sorted(self.pattern_cache.items(), key=lambda x: x[1].last_used)
+            for pattern_id, _ in sorted_patterns[: -self.cache_size]:
                 del self.pattern_cache[pattern_id]
 
     def get_statistics(self) -> Dict[str, Any]:
@@ -411,15 +428,14 @@ class KnowledgeStore:
             avg_stats = cursor.fetchone()
 
         return {
-            'total_patterns': total_patterns,
-            'total_history_records': total_history,
-            'average_confidence': avg_stats[0] or 0,
-            'average_usage': avg_stats[1] or 0,
-            'average_success': avg_stats[2] or 0,
-            'cache_size': len(self.pattern_cache),
-            'storage_size_mb': sum(
-                f.stat().st_size for f in self.patterns_path.glob('*.pkl')
-            ) / (1024 * 1024)
+            "total_patterns": total_patterns,
+            "total_history_records": total_history,
+            "average_confidence": avg_stats[0] or 0,
+            "average_usage": avg_stats[1] or 0,
+            "average_success": avg_stats[2] or 0,
+            "cache_size": len(self.pattern_cache),
+            "storage_size_mb": sum(f.stat().st_size for f in self.patterns_path.glob("*.pkl"))
+            / (1024 * 1024),
         }
 
 
@@ -432,11 +448,11 @@ class PatternLibrary:
     def __init__(self):
         """Initialize pattern library with common patterns"""
         self.patterns = {
-            'matrix_multiply': self._pattern_matrix_multiply,
-            'fourier_transform': self._pattern_fft,
-            'convolution': self._pattern_convolution,
-            'graph_traversal': self._pattern_graph_traversal,
-            'optimization': self._pattern_optimization
+            "matrix_multiply": self._pattern_matrix_multiply,
+            "fourier_transform": self._pattern_fft,
+            "convolution": self._pattern_convolution,
+            "graph_traversal": self._pattern_graph_traversal,
+            "optimization": self._pattern_optimization,
         }
 
     def _pattern_matrix_multiply(self, A: np.ndarray, B: np.ndarray) -> np.ndarray:
@@ -450,7 +466,8 @@ class PatternLibrary:
     def _pattern_convolution(self, data: np.ndarray, kernel: np.ndarray) -> np.ndarray:
         """Convolution pattern"""
         from scipy import signal
-        return signal.convolve(data, kernel, mode='same')
+
+        return signal.convolve(data, kernel, mode="same")
 
     def _pattern_graph_traversal(self, adjacency: np.ndarray, start: int) -> List[int]:
         """Graph traversal pattern (BFS)"""
@@ -472,7 +489,8 @@ class PatternLibrary:
     def _pattern_optimization(self, func, x0: np.ndarray) -> np.ndarray:
         """Optimization pattern (gradient descent)"""
         from scipy import optimize
-        result = optimize.minimize(func, x0, method='BFGS')
+
+        result = optimize.minimize(func, x0, method="BFGS")
         return result.x
 
     def match_pattern(self, operation: str, input_data: Any) -> Optional[str]:

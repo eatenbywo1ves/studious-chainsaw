@@ -13,9 +13,17 @@ import logging
 import os
 
 from .jwt_auth import (
-    verify_token, verify_api_key, extract_tenant_from_request,
-    TenantContext, TokenData
+    verify_token,
+    verify_api_key,
+    extract_tenant_from_request,
+    TenantContext,
+    TokenData,
 )
+
+# Import centralized database connection
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from database.connection import SessionLocal
 
 logger = logging.getLogger(__name__)
 
@@ -28,8 +36,9 @@ tenant_header = APIKeyHeader(name="X-Tenant-ID", auto_error=False)
 # AUTHENTICATION DEPENDENCIES
 # ============================================================================
 
+
 async def get_current_user(
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(bearer_scheme)
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(bearer_scheme),
 ) -> TokenData:
     """Dependency to get current authenticated user"""
 
@@ -50,33 +59,31 @@ async def get_current_user(
 
     return token_data
 
-async def get_current_active_user(
-    current_user: TokenData = Depends(get_current_user)
-) -> TokenData:
+
+async def get_current_active_user(current_user: TokenData = Depends(get_current_user)) -> TokenData:
     """Dependency to ensure user is active"""
 
     # In production, check against database for user status
     # For now, return the token data
     return current_user
 
-async def require_admin(
-    current_user: TokenData = Depends(get_current_active_user)
-) -> TokenData:
+
+async def require_admin(current_user: TokenData = Depends(get_current_active_user)) -> TokenData:
     """Dependency to require admin role"""
 
     if current_user.role not in ["owner", "admin"]:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin privileges required"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Admin privileges required"
         )
 
     return current_user
+
 
 async def get_tenant_id(
     request: Request,
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(bearer_scheme),
     api_key: Optional[str] = Depends(api_key_header),
-    tenant_id: Optional[str] = Depends(tenant_header)
+    tenant_id: Optional[str] = Depends(tenant_header),
 ) -> str:
     """Dependency to extract tenant ID from request"""
 
@@ -101,13 +108,14 @@ async def get_tenant_id(
         return request.state.tenant_id
 
     raise HTTPException(
-        status_code=status.HTTP_400_BAD_REQUEST,
-        detail="Tenant identification required"
+        status_code=status.HTTP_400_BAD_REQUEST, detail="Tenant identification required"
     )
+
 
 # ============================================================================
 # MIDDLEWARE CLASSES
 # ============================================================================
+
 
 class TenantIsolationMiddleware(BaseHTTPMiddleware):
     """Middleware to enforce tenant isolation"""
@@ -119,9 +127,7 @@ class TenantIsolationMiddleware(BaseHTTPMiddleware):
         tenant_header = request.headers.get("X-Tenant-ID")
 
         tenant_id = extract_tenant_from_request(
-            authorization=authorization,
-            api_key=api_key,
-            tenant_header=tenant_header
+            authorization=authorization, api_key=api_key, tenant_header=tenant_header
         )
 
         # Store in request state for easy access
@@ -138,6 +144,7 @@ class TenantIsolationMiddleware(BaseHTTPMiddleware):
 
         return response
 
+
 class AuthenticationMiddleware(BaseHTTPMiddleware):
     """Middleware to handle authentication"""
 
@@ -150,7 +157,7 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
             "/openapi.json",
             "/auth/login",
             "/auth/register",
-            "/auth/refresh"
+            "/auth/refresh",
         ]
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
@@ -177,19 +184,7 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
 
         elif api_key:
             # Get database session for API key verification
-            from sqlalchemy import create_engine
-            from sqlalchemy.orm import sessionmaker
-
-            # Import DB URL
-            DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./catalytic_saas.db")
-
-            # Create session (reuse engine pattern)
-            if DATABASE_URL.startswith("sqlite"):
-                engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
-            else:
-                engine = create_engine(DATABASE_URL, pool_pre_ping=True)
-
-            SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+            # Using centralized connection (no engine creation per-request)
             db = SessionLocal()
 
             try:
@@ -209,7 +204,7 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
                 return Response(
                     content='{"detail": "Authentication required"}',
                     status_code=401,
-                    headers={"WWW-Authenticate": "Bearer"}
+                    headers={"WWW-Authenticate": "Bearer"},
                 )
 
         request.state.authenticated = authenticated
@@ -217,6 +212,7 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
 
         response = await call_next(request)
         return response
+
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
     """Middleware for rate limiting based on tenant/user"""
@@ -245,8 +241,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         # Clean old entries
         if identifier in self.request_counts:
             self.request_counts[identifier] = [
-                t for t in self.request_counts[identifier]
-                if t > window_start
+                t for t in self.request_counts[identifier] if t > window_start
             ]
 
         # Check limit
@@ -256,7 +251,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             return Response(
                 content=f'{{"detail": "Rate limit exceeded. Try again in {retry_after} seconds"}}',
                 status_code=429,
-                headers={"Retry-After": str(retry_after)}
+                headers={"Retry-After": str(retry_after)},
             )
 
         # Add current request
@@ -272,11 +267,10 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         response.headers["X-RateLimit-Remaining"] = str(
             self.default_limit - len(self.request_counts[identifier])
         )
-        response.headers["X-RateLimit-Reset"] = str(
-            int(window_start + self.window_seconds)
-        )
+        response.headers["X-RateLimit-Reset"] = str(int(window_start + self.window_seconds))
 
         return response
+
 
 class LoggingMiddleware(BaseHTTPMiddleware):
     """Middleware for request/response logging"""
@@ -292,8 +286,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         client_host = request.client.host if request.client else "unknown"
 
         logger.info(
-            f"Request started: {method} {path} from {client_host} "
-            f"[Request-ID: {request_id}]"
+            f"Request started: {method} {path} from {client_host} [Request-ID: {request_id}]"
         )
 
         # Process request
@@ -317,9 +310,11 @@ class LoggingMiddleware(BaseHTTPMiddleware):
 
         return response
 
+
 # ============================================================================
 # PERMISSION CHECKING
 # ============================================================================
+
 
 class PermissionChecker:
     """Dependency class for checking permissions"""
@@ -328,9 +323,7 @@ class PermissionChecker:
         self.required_permissions = required_permissions
 
     async def __call__(
-        self,
-        request: Request,
-        current_user: Optional[TokenData] = Depends(get_current_active_user)
+        self, request: Request, current_user: Optional[TokenData] = Depends(get_current_active_user)
     ) -> bool:
         """Check if user has required permissions"""
 
@@ -341,10 +334,7 @@ class PermissionChecker:
 
             # Check specific permissions (would check against database)
             # For now, simple role-based check
-            role_permissions = {
-                "member": ["read", "write"],
-                "viewer": ["read"]
-            }
+            role_permissions = {"member": ["read", "write"], "viewer": ["read"]}
 
             user_permissions = role_permissions.get(current_user.role, [])
             return all(p in user_permissions for p in self.required_permissions)
@@ -356,16 +346,17 @@ class PermissionChecker:
 
         return False
 
+
 # ============================================================================
 # CORS CONFIGURATION
 # ============================================================================
+
 
 def get_cors_config():
     """Get CORS configuration for FastAPI"""
     # Read allowed origins from environment - NO WILDCARD for security
     allowed_origins = os.getenv(
-        "CORS_ALLOWED_ORIGINS",
-        "http://localhost:3000,http://localhost:3001"
+        "CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:3001"
     ).split(",")
 
     return {
@@ -377,13 +368,13 @@ def get_cors_config():
             "Content-Type",
             "X-API-Key",
             "X-Tenant-ID",
-            "X-Request-ID"
+            "X-Request-ID",
         ],
         "expose_headers": [
             "X-RateLimit-Limit",
             "X-RateLimit-Remaining",
             "X-RateLimit-Reset",
             "X-Process-Time",
-            "X-Request-ID"
-        ]
+            "X-Request-ID",
+        ],
     }

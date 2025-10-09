@@ -11,8 +11,7 @@ import redis.asyncio as aioredis
 
 # Test database configuration
 TEST_DATABASE_URL = os.getenv(
-    "TEST_DATABASE_URL",
-    "postgresql://postgres:postgres@localhost:5433/test_saas"
+    "TEST_DATABASE_URL", "postgresql://postgres:postgres@localhost:5433/test_saas"
 )
 
 # Test Redis configuration
@@ -46,7 +45,7 @@ async def redis_client() -> AsyncGenerator:
     client = await aioredis.from_url(
         f"redis://:{TEST_REDIS_PASSWORD}@{TEST_REDIS_HOST}:{TEST_REDIS_PORT}",
         encoding="utf-8",
-        decode_responses=True
+        decode_responses=True,
     )
     yield client
     await client.close()
@@ -68,18 +67,15 @@ async def authenticated_client(api_client: AsyncClient) -> AsyncGenerator:
         json={
             "email": f"test_{os.urandom(4).hex()}@example.com",
             "password": "TestPassword123!",
-            "name": "Test User"
-        }
+            "name": "Test User",
+        },
     )
     assert register_response.status_code == 201
 
     # Login to get token
     login_response = await api_client.post(
         "/auth/login",
-        json={
-            "email": register_response.json()["email"],
-            "password": "TestPassword123!"
-        }
+        json={"email": register_response.json()["email"], "password": "TestPassword123!"},
     )
     assert login_response.status_code == 200
 
@@ -105,7 +101,7 @@ def sample_lattice_data():
         "dimensions": 2,
         "size": 100,
         "field_type": "complex",
-        "geometry": "euclidean"
+        "geometry": "euclidean",
     }
 
 
@@ -127,44 +123,40 @@ async def two_tenants_fixture(api_client: AsyncClient):
     """
     # Tenant A - Register and Login
     email_a = f"tenant_a_{os.urandom(4).hex()}@example.com"
-    await api_client.post("/auth/register", json={
-        "email": email_a,
-        "password": "SecurePass123!",
-        "name": "Tenant A User"
-    })
+    await api_client.post(
+        "/auth/register",
+        json={"email": email_a, "password": "SecurePass123!", "name": "Tenant A User"},
+    )
 
-    login_a = await api_client.post("/auth/login", json={
-        "email": email_a,
-        "password": "SecurePass123!"
-    })
+    login_a = await api_client.post(
+        "/auth/login", json={"email": email_a, "password": "SecurePass123!"}
+    )
     token_a = login_a.json()["access_token"]
 
     # Create independent client for Tenant A
     client_a = AsyncClient(
         base_url=str(api_client.base_url),
         headers={"Authorization": f"Bearer {token_a}"},
-        timeout=30.0
+        timeout=30.0,
     )
 
     # Tenant B - Register and Login
     email_b = f"tenant_b_{os.urandom(4).hex()}@example.com"
-    await api_client.post("/auth/register", json={
-        "email": email_b,
-        "password": "SecurePass123!",
-        "name": "Tenant B User"
-    })
+    await api_client.post(
+        "/auth/register",
+        json={"email": email_b, "password": "SecurePass123!", "name": "Tenant B User"},
+    )
 
-    login_b = await api_client.post("/auth/login", json={
-        "email": email_b,
-        "password": "SecurePass123!"
-    })
+    login_b = await api_client.post(
+        "/auth/login", json={"email": email_b, "password": "SecurePass123!"}
+    )
     token_b = login_b.json()["access_token"]
 
     # Create independent client for Tenant B
     client_b = AsyncClient(
         base_url=str(api_client.base_url),
         headers={"Authorization": f"Bearer {token_b}"},
-        timeout=30.0
+        timeout=30.0,
     )
 
     yield client_a, client_b
@@ -187,10 +179,12 @@ def gpu_available() -> bool:
     """
     try:
         import torch
+
         return torch.cuda.is_available()
     except ImportError:
         try:
             import cupy as cp
+
             # Attempt simple GPU operation
             cp.arange(10)
             return True
@@ -240,12 +234,12 @@ class MockWebhookServer:
         from aiohttp import web
 
         self.app = web.Application()
-        self.app.router.add_post('/webhook', self.webhook_handler)
+        self.app.router.add_post("/webhook", self.webhook_handler)
 
         self.runner = web.AppRunner(self.app)
         await self.runner.setup()
 
-        self.site = web.TCPSite(self.runner, 'localhost', self.port)
+        self.site = web.TCPSite(self.runner, "localhost", self.port)
         await self.site.start()
 
     async def stop(self):

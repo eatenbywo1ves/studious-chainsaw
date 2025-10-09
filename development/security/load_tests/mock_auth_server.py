@@ -40,41 +40,40 @@ app.add_middleware(
 # MODELS
 # ============================================================================
 
+
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
 
+
 class RefreshRequest(BaseModel):
     refresh_token: str
+
 
 class TokenResponse(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
 
+
 # ============================================================================
 # JWT UTILITIES
 # ============================================================================
 
+
 def create_access_token(email: str) -> str:
     """Create JWT access token"""
     expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    payload = {
-        "sub": email,
-        "exp": expire,
-        "type": "access"
-    }
+    payload = {"sub": email, "exp": expire, "type": "access"}
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+
 
 def create_refresh_token(email: str) -> str:
     """Create JWT refresh token"""
     expire = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
-    payload = {
-        "sub": email,
-        "exp": expire,
-        "type": "refresh"
-    }
+    payload = {"sub": email, "exp": expire, "type": "refresh"}
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+
 
 def verify_token(token: str) -> Optional[str]:
     """Verify JWT token and return email"""
@@ -91,43 +90,43 @@ def verify_token(token: str) -> Optional[str]:
     except jwt.InvalidTokenError:
         return None
 
+
 # ============================================================================
 # DEPENDENCIES
 # ============================================================================
+
 
 def get_current_user(authorization: Optional[str] = Header(None)):
     """Extract and verify JWT token from Authorization header"""
     if not authorization:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Missing authorization header"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing authorization header"
         )
 
     try:
         scheme, token = authorization.split()
         if scheme.lower() != "bearer":
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid authentication scheme"
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid authentication scheme"
             )
     except ValueError:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authorization header format"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid authorization header format"
         )
 
     email = verify_token(token)
     if not email:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token"
         )
 
     return email
 
+
 # ============================================================================
 # ENDPOINTS
 # ============================================================================
+
 
 @app.get("/")
 async def root():
@@ -136,8 +135,9 @@ async def root():
         "service": "Mock Auth Server",
         "status": "running",
         "version": "1.0.0",
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.utcnow().isoformat(),
     }
+
 
 @app.post("/auth/login", response_model=TokenResponse)
 async def login(request: LoginRequest):
@@ -157,10 +157,8 @@ async def login(request: LoginRequest):
     access_token = create_access_token(email)
     refresh_token = create_refresh_token(email)
 
-    return TokenResponse(
-        access_token=access_token,
-        refresh_token=refresh_token
-    )
+    return TokenResponse(access_token=access_token, refresh_token=refresh_token)
+
 
 @app.post("/auth/refresh", response_model=TokenResponse)
 async def refresh(request: RefreshRequest):
@@ -169,18 +167,15 @@ async def refresh(request: RefreshRequest):
 
     if not email:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired refresh token"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired refresh token"
         )
 
     # Create new tokens
     access_token = create_access_token(email)
     refresh_token = create_refresh_token(email)
 
-    return TokenResponse(
-        access_token=access_token,
-        refresh_token=refresh_token
-    )
+    return TokenResponse(access_token=access_token, refresh_token=refresh_token)
+
 
 @app.post("/auth/logout")
 async def logout(current_user: str = Depends(get_current_user), authorization: str = Header(...)):
@@ -190,15 +185,12 @@ async def logout(current_user: str = Depends(get_current_user), authorization: s
         # Add token to revoked list
         revoked_tokens.add(token)
 
-        return {
-            "message": "Successfully logged out",
-            "timestamp": datetime.utcnow().isoformat()
-        }
+        return {"message": "Successfully logged out", "timestamp": datetime.utcnow().isoformat()}
     except Exception:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Logout failed"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Logout failed"
         )
+
 
 @app.get("/api/protected")
 async def protected_endpoint(current_user: str = Depends(get_current_user)):
@@ -206,8 +198,9 @@ async def protected_endpoint(current_user: str = Depends(get_current_user)):
     return {
         "message": "Access granted",
         "user": current_user,
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.utcnow().isoformat(),
     }
+
 
 @app.get("/health")
 async def health():
@@ -215,8 +208,9 @@ async def health():
     return {
         "status": "healthy",
         "revoked_tokens_count": len(revoked_tokens),
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.utcnow().isoformat(),
     }
+
 
 # ============================================================================
 # MAIN
@@ -239,9 +233,4 @@ if __name__ == "__main__":
     print("   - Tokens stored in memory (lost on restart)")
     print("=" * 80)
 
-    uvicorn.run(
-        app,
-        host="0.0.0.0",
-        port=8000,
-        log_level="info"
-    )
+    uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")

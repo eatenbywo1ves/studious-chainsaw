@@ -9,25 +9,30 @@ import sys
 from pathlib import Path
 
 # Color codes
-GREEN = '\033[0;32m'
-YELLOW = '\033[1;33m'
-BLUE = '\033[0;34m'
-RED = '\033[0;31m'
-NC = '\033[0m'
+GREEN = "\033[0;32m"
+YELLOW = "\033[1;33m"
+BLUE = "\033[0;34m"
+RED = "\033[0;31m"
+NC = "\033[0m"
+
 
 def print_header(message):
     print(f"\n{BLUE}{'=' * 60}{NC}")
     print(f"{BLUE}{message}{NC}")
     print(f"{BLUE}{'=' * 60}{NC}\n")
 
+
 def print_success(message):
     print(f"{GREEN}[OK] {message}{NC}")
+
 
 def print_warning(message):
     print(f"{YELLOW}[WARN] {message}{NC}")
 
+
 def print_error(message):
     print(f"{RED}[ERROR] {message}{NC}")
+
 
 def test_key_generation():
     """Test that all security keys were generated"""
@@ -40,7 +45,7 @@ def test_key_generation():
         "jwt_development_private.pem",
         "jwt_development_public.pem",
         "api_encryption_development.key",
-        "db_encryption_development.key"
+        "db_encryption_development.key",
     ]
 
     all_present = True
@@ -49,18 +54,21 @@ def test_key_generation():
         if key_path.exists():
             print_success(f"Found: {key_file}")
             # Check permissions
-            if 'private' in key_file:
+            if "private" in key_file:
                 stat_info = os.stat(key_path)
                 # Check if only owner has read/write (0600)
                 if stat_info.st_mode & 0o777 == 0o600:
                     print_success("  Permissions correct (600)")
                 else:
-                    print_warning(f"  Permissions: {oct(stat_info.st_mode & 0o777)} (should be 600)")
+                    print_warning(
+                        f"  Permissions: {oct(stat_info.st_mode & 0o777)} (should be 600)"
+                    )
         else:
             print_error(f"Missing: {key_file}")
             all_present = False
 
     return all_present
+
 
 def test_environment_config():
     """Test environment configuration"""
@@ -80,10 +88,10 @@ def test_environment_config():
         "JWT_PRIVATE_KEY_PATH",
         "JWT_PUBLIC_KEY_PATH",
         "SECURITY_LEVEL",
-        "RATE_LIMIT_ENABLED"
+        "RATE_LIMIT_ENABLED",
     ]
 
-    with open(env_file, 'r') as f:
+    with open(env_file, "r") as f:
         content = f.read()
 
     all_present = True
@@ -96,6 +104,7 @@ def test_environment_config():
 
     return all_present
 
+
 def test_security_modules():
     """Test that security modules can be imported"""
     print_header("Testing Security Module Imports")
@@ -107,6 +116,7 @@ def test_security_modules():
         # Test JWT Security
         try:
             from security.application.jwt_security import JWTSecurityManager, SecurityLevel
+
             print_success("JWT Security module imported")
         except ImportError as e:
             print_error(f"JWT Security import failed: {e}")
@@ -115,6 +125,7 @@ def test_security_modules():
         # Test Rate Limiting
         try:
             from security.application.rate_limiting import AdvancedRateLimiter
+
             print_success("Rate Limiting module imported")
         except ImportError as e:
             print_error(f"Rate Limiting import failed: {e}")
@@ -123,6 +134,7 @@ def test_security_modules():
         # Test Input Validation
         try:
             from security.application.input_validation import SecurityInputValidator
+
             print_success("Input Validation module imported")
         except ImportError as e:
             print_error(f"Input Validation import failed: {e}")
@@ -133,6 +145,7 @@ def test_security_modules():
     except Exception as e:
         print_error(f"Module import test failed: {e}")
         return False
+
 
 def test_jwt_functionality():
     """Test JWT security manager functionality"""
@@ -154,7 +167,7 @@ def test_jwt_functionality():
             public_key_path=str(public_key),
             access_token_expire_minutes=15,
             refresh_token_expire_days=7,
-            security_level=SecurityLevel.BASIC
+            security_level=SecurityLevel.BASIC,
         )
 
         print_success("JWT Manager initialized")
@@ -169,7 +182,7 @@ def test_jwt_functionality():
             subject=test_subject,
             user_id=test_user_id,
             roles=test_roles,
-            permissions=test_permissions
+            permissions=test_permissions,
         )
         print_success("Access token generated")
 
@@ -190,8 +203,10 @@ def test_jwt_functionality():
     except Exception as e:
         print_error(f"JWT functionality test failed: {e}")
         import traceback
+
         traceback.print_exc()
         return False
+
 
 def test_dependencies():
     """Test that all security dependencies are installed"""
@@ -205,7 +220,7 @@ def test_dependencies():
         ("redis", "redis"),
         ("pydantic", "pydantic"),
         ("email-validator", "email_validator"),
-        ("argon2-cffi", "argon2")
+        ("argon2-cffi", "argon2"),
     ]
 
     all_installed = True
@@ -219,6 +234,7 @@ def test_dependencies():
 
     return all_installed
 
+
 def test_docker_override():
     """Test docker-compose.override.yml exists"""
     print_header("Testing Docker Configuration")
@@ -229,7 +245,7 @@ def test_docker_override():
     if override_file.exists():
         print_success("docker-compose.override.yml exists")
 
-        with open(override_file, 'r') as f:
+        with open(override_file, "r") as f:
             content = f.read()
 
         if "security_opt" in content and "no-new-privileges" in content:
@@ -241,6 +257,7 @@ def test_docker_override():
     else:
         print_warning("docker-compose.override.yml not found (optional)")
         return True
+
 
 def generate_report(results):
     """Generate test report"""
@@ -270,6 +287,7 @@ def generate_report(results):
     else:
         print(f"\n{RED}Some tests failed. Please review errors above.{NC}")
 
+
 def main():
     """Run all tests"""
     print(f"{BLUE}")
@@ -294,6 +312,7 @@ def main():
 
     # Return exit code
     return 0 if all(results.values()) else 1
+
 
 if __name__ == "__main__":
     sys.exit(main())

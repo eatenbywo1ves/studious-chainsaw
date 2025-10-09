@@ -43,8 +43,8 @@ try:
         functions_dict[key] = function.getName()
 
     # Create a dictionary for the json response
-    response_dict['status'] = "completed"
-    response_dict['functions_list'] = functions_dict
+    response_dict["status"] = "completed"
+    response_dict["functions_list"] = functions_dict
     print("Found %d functions" % (c + 1))
 
     with open(output_path, "w") as f_out:
@@ -52,5 +52,5 @@ try:
     print("Json saved to %s" % output_path)
 
 except Exception:
-    response_dict['status'] = "error"
+    response_dict["status"] = "error"
     print(json.dumps(response_dict))

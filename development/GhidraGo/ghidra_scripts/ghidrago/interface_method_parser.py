@@ -64,11 +64,11 @@ class InterfaceMethodParser:
 
         try:
             # Get methods pointer and count from type_info
-            if 'interface_methods_ptr' not in type_info:
+            if "interface_methods_ptr" not in type_info:
                 return methods
 
-            methods_ptr = type_info['interface_methods_ptr']
-            methods_count = type_info.get('interface_methods_count', 0)
+            methods_ptr = type_info["interface_methods_ptr"]
+            methods_count = type_info.get("interface_methods_count", 0)
 
             if methods_ptr == 0 or methods_count == 0:
                 return methods
@@ -104,15 +104,15 @@ class InterfaceMethodParser:
         """
         try:
             # Read imethod fields
-            name_offset = self._read_uint32(method_addr)        # +0x00
-            type_offset = self._read_uint32(method_addr.add(0x04)) # +0x04
+            name_offset = self._read_uint32(method_addr)  # +0x00
+            type_offset = self._read_uint32(method_addr.add(0x04))  # +0x04
 
             # Parse method name
             method_name = self._parse_name(name_offset)
 
             method_info = {
-                'name': method_name,
-                'type_offset': type_offset,
+                "name": method_name,
+                "type_offset": type_offset,
             }
 
             return method_info
@@ -176,9 +176,9 @@ class InterfaceMethodParser:
                 elif byte == 0:
                     break
                 else:
-                    chars.append('_')
+                    chars.append("_")
 
-            return ''.join(chars) if chars else "<empty>"
+            return "".join(chars) if chars else "<empty>"
 
         except Exception:
             return "<error>"
@@ -196,9 +196,9 @@ class InterfaceMethodParser:
 # Helper function for testing
 def test_interface_method_parser():
     """Test interface method parser with current program."""
-    print("="*60)
+    print("=" * 60)
     print("Testing InterfaceMethodParser")
-    print("="*60)
+    print("=" * 60)
 
     print("\nTo use InterfaceMethodParser:")
     print("1. Parse rtype to get interface_methods_ptr and count")

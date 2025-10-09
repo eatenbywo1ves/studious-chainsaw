@@ -13,10 +13,7 @@ class TestWebhookWorkflow:
     """Test webhook event delivery workflows."""
 
     @pytest.mark.asyncio
-    async def test_webhook_event_delivery(
-        self,
-        authenticated_e2e_client: AsyncClient
-    ):
+    async def test_webhook_event_delivery(self, authenticated_e2e_client: AsyncClient):
         """
         Test complete webhook workflow:
         Register → Trigger Event → Verify Delivery
@@ -34,14 +31,11 @@ class TestWebhookWorkflow:
         webhook_data = {
             "url": "https://webhook.site/unique-id",  # Test webhook endpoint
             "events": ["lattice.created", "lattice.deleted"],
-            "secret": "webhook_secret_123"
+            "secret": "webhook_secret_123",
         }
 
         # Attempt to register webhook
-        register_response = await authenticated_e2e_client.post(
-            "/api/webhooks",
-            json=webhook_data
-        )
+        register_response = await authenticated_e2e_client.post("/api/webhooks", json=webhook_data)
 
         # If endpoint exists
         if register_response.status_code == 404:
@@ -66,13 +60,10 @@ class TestWebhookWorkflow:
             "dimensions": 2,
             "size": 100,
             "field_type": "complex",
-            "geometry": "euclidean"
+            "geometry": "euclidean",
         }
 
-        create_response = await authenticated_e2e_client.post(
-            "/api/lattices",
-            json=lattice_data
-        )
+        create_response = await authenticated_e2e_client.post("/api/lattices", json=lattice_data)
         assert create_response.status_code == 201
 
         lattice_id = create_response.json()["id"]
@@ -96,9 +87,7 @@ class TestWebhookWorkflow:
         # ================================================================
         print("\n[STEP 4] Checking delivery logs...")
 
-        logs_response = await authenticated_e2e_client.get(
-            f"/api/webhooks/{webhook_id}/deliveries"
-        )
+        logs_response = await authenticated_e2e_client.get(f"/api/webhooks/{webhook_id}/deliveries")
 
         if logs_response.status_code == 200:
             deliveries = logs_response.json()
@@ -117,9 +106,7 @@ class TestWebhookWorkflow:
         # ================================================================
         print("\n[STEP 5] Cleaning up webhook...")
 
-        delete_response = await authenticated_e2e_client.delete(
-            f"/api/webhooks/{webhook_id}"
-        )
+        delete_response = await authenticated_e2e_client.delete(f"/api/webhooks/{webhook_id}")
         assert delete_response.status_code in [200, 204]
 
         print("✓ Webhook deleted")
@@ -128,10 +115,7 @@ class TestWebhookWorkflow:
         await authenticated_e2e_client.delete(f"/api/lattices/{lattice_id}")
 
     @pytest.mark.asyncio
-    async def test_webhook_retry_logic(
-        self,
-        authenticated_e2e_client: AsyncClient
-    ):
+    async def test_webhook_retry_logic(self, authenticated_e2e_client: AsyncClient):
         """Test webhook retry mechanism for failed deliveries."""
 
         print("\n[WEBHOOK RETRY] Testing retry logic...")
@@ -141,16 +125,10 @@ class TestWebhookWorkflow:
             "url": "https://invalid-endpoint.example.com/webhook",
             "events": ["lattice.created"],
             "secret": "test_secret",
-            "retry_config": {
-                "max_retries": 3,
-                "retry_delay_seconds": 2
-            }
+            "retry_config": {"max_retries": 3, "retry_delay_seconds": 2},
         }
 
-        register_response = await authenticated_e2e_client.post(
-            "/api/webhooks",
-            json=webhook_data
-        )
+        register_response = await authenticated_e2e_client.post("/api/webhooks", json=webhook_data)
 
         if register_response.status_code == 404:
             pytest.skip("Webhook endpoints not implemented")
@@ -165,13 +143,10 @@ class TestWebhookWorkflow:
             "dimensions": 2,
             "size": 50,
             "field_type": "complex",
-            "geometry": "euclidean"
+            "geometry": "euclidean",
         }
 
-        create_response = await authenticated_e2e_client.post(
-            "/api/lattices",
-            json=lattice_data
-        )
+        create_response = await authenticated_e2e_client.post("/api/lattices", json=lattice_data)
         assert create_response.status_code == 201
         lattice_id = create_response.json()["id"]
 
@@ -199,10 +174,7 @@ class TestWebhookWorkflow:
         await authenticated_e2e_client.delete(f"/api/lattices/{lattice_id}")
 
     @pytest.mark.asyncio
-    async def test_webhook_payload_validation(
-        self,
-        authenticated_e2e_client: AsyncClient
-    ):
+    async def test_webhook_payload_validation(self, authenticated_e2e_client: AsyncClient):
         """Test webhook payload structure and signature validation."""
 
         print("\n[WEBHOOK VALIDATION] Testing payload validation...")
@@ -218,9 +190,9 @@ class TestWebhookWorkflow:
                 "tenant_id": "uuid",
                 "name": "string",
                 "dimensions": "int",
-                "size": "int"
+                "size": "int",
             },
-            "signature": "hmac-sha256-signature"
+            "signature": "hmac-sha256-signature",
         }
 
         print("Expected webhook payload structure:")
@@ -235,10 +207,7 @@ class TestWebhookWorkflow:
         # 5. Validate payload structure
 
     @pytest.mark.asyncio
-    async def test_multiple_webhook_subscriptions(
-        self,
-        authenticated_e2e_client: AsyncClient
-    ):
+    async def test_multiple_webhook_subscriptions(self, authenticated_e2e_client: AsyncClient):
         """Test multiple webhooks for same event."""
 
         print("\n[MULTIPLE WEBHOOKS] Testing multiple subscriptions...")
@@ -250,13 +219,10 @@ class TestWebhookWorkflow:
             webhook_data = {
                 "url": f"https://webhook.site/endpoint-{i}",
                 "events": ["lattice.created"],
-                "secret": f"secret_{i}"
+                "secret": f"secret_{i}",
             }
 
-            response = await authenticated_e2e_client.post(
-                "/api/webhooks",
-                json=webhook_data
-            )
+            response = await authenticated_e2e_client.post("/api/webhooks", json=webhook_data)
 
             if response.status_code == 404:
                 pytest.skip("Webhook endpoints not implemented")
@@ -273,13 +239,10 @@ class TestWebhookWorkflow:
             "dimensions": 2,
             "size": 50,
             "field_type": "complex",
-            "geometry": "euclidean"
+            "geometry": "euclidean",
         }
 
-        create_response = await authenticated_e2e_client.post(
-            "/api/lattices",
-            json=lattice_data
-        )
+        create_response = await authenticated_e2e_client.post("/api/lattices", json=lattice_data)
         assert create_response.status_code == 201
         lattice_id = create_response.json()["id"]
 

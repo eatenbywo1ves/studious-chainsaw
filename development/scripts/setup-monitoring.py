@@ -18,8 +18,9 @@ import requests
 from pathlib import Path
 import logging
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
+
 
 class MonitoringStackSetup:
     """Handles complete monitoring stack setup and validation."""
@@ -43,8 +44,8 @@ class MonitoringStackSetup:
                 compose_data = yaml.safe_load(f)
 
             # Check for monitoring services
-            services = compose_data.get('services', {})
-            required_services = ['prometheus', 'grafana']
+            services = compose_data.get("services", {})
+            required_services = ["prometheus", "grafana"]
 
             missing_services = [svc for svc in required_services if svc not in services]
             if missing_services:
@@ -71,35 +72,24 @@ class MonitoringStackSetup:
 
         # Create default Prometheus configuration
         config = {
-            'global': {
-                'scrape_interval': '15s',
-                'evaluation_interval': '15s'
-            },
-            'rule_files': [
-                "alerts/*.yml"
+            "global": {"scrape_interval": "15s", "evaluation_interval": "15s"},
+            "rule_files": ["alerts/*.yml"],
+            "scrape_configs": [
+                {"job_name": "prometheus", "static_configs": [{"targets": ["localhost:9090"]}]},
+                {
+                    "job_name": "catalytic-api",
+                    "static_configs": [{"targets": ["catalytic-api:8082"]}],
+                },
+                {"job_name": "saas-api", "static_configs": [{"targets": ["saas-api:8001"]}]},
+                {
+                    "job_name": "webhook-system",
+                    "static_configs": [{"targets": ["webhook-system:9090"]}],
+                },
             ],
-            'scrape_configs': [
-                {
-                    'job_name': 'prometheus',
-                    'static_configs': [{'targets': ['localhost:9090']}]
-                },
-                {
-                    'job_name': 'catalytic-api',
-                    'static_configs': [{'targets': ['catalytic-api:8082']}]
-                },
-                {
-                    'job_name': 'saas-api',
-                    'static_configs': [{'targets': ['saas-api:8001']}]
-                },
-                {
-                    'job_name': 'webhook-system',
-                    'static_configs': [{'targets': ['webhook-system:9090']}]
-                }
-            ]
         }
 
         try:
-            with open(prometheus_config, 'w') as f:
+            with open(prometheus_config, "w") as f:
                 yaml.dump(config, f, default_flow_style=False)
 
             logger.info("✅ Prometheus configuration created")
@@ -115,78 +105,78 @@ class MonitoringStackSetup:
         alerts_dir.mkdir(parents=True, exist_ok=True)
 
         alert_rules = {
-            'groups': [
+            "groups": [
                 {
-                    'name': 'catalytic-computing-alerts',
-                    'rules': [
+                    "name": "catalytic-computing-alerts",
+                    "rules": [
                         {
-                            'alert': 'HighAPIResponseTime',
-                            'expr': 'histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="catalytic-api"}[5m])) > 1',
-                            'for': '5m',
-                            'labels': {'severity': 'warning'},
-                            'annotations': {
-                                'summary': 'High API response time detected',
-                                'description': '95th percentile response time is {{ $value }}s'
-                            }
+                            "alert": "HighAPIResponseTime",
+                            "expr": 'histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="catalytic-api"}[5m])) > 1',
+                            "for": "5m",
+                            "labels": {"severity": "warning"},
+                            "annotations": {
+                                "summary": "High API response time detected",
+                                "description": "95th percentile response time is {{ $value }}s",
+                            },
                         },
                         {
-                            'alert': 'HighErrorRate',
-                            'expr': 'rate(http_requests_total{status=~"5.."}[5m]) > 0.1',
-                            'for': '2m',
-                            'labels': {'severity': 'critical'},
-                            'annotations': {
-                                'summary': 'High error rate detected',
-                                'description': 'Error rate is {{ $value }} req/sec'
-                            }
+                            "alert": "HighErrorRate",
+                            "expr": 'rate(http_requests_total{status=~"5.."}[5m]) > 0.1',
+                            "for": "2m",
+                            "labels": {"severity": "critical"},
+                            "annotations": {
+                                "summary": "High error rate detected",
+                                "description": "Error rate is {{ $value }} req/sec",
+                            },
                         },
                         {
-                            'alert': 'MemoryEfficiencyBelowTarget',
-                            'expr': 'catalytic_memory_efficiency_ratio < 20000',
-                            'for': '10m',
-                            'labels': {'severity': 'warning'},
-                            'annotations': {
-                                'summary': 'Memory efficiency below target',
-                                'description': 'Current efficiency ratio: {{ $value }}, target: 28571'
-                            }
+                            "alert": "MemoryEfficiencyBelowTarget",
+                            "expr": "catalytic_memory_efficiency_ratio < 20000",
+                            "for": "10m",
+                            "labels": {"severity": "warning"},
+                            "annotations": {
+                                "summary": "Memory efficiency below target",
+                                "description": "Current efficiency ratio: {{ $value }}, target: 28571",
+                            },
                         },
                         {
-                            'alert': 'ProcessingSpeedBelowTarget',
-                            'expr': 'catalytic_processing_speed_ratio < 500',
-                            'for': '10m',
-                            'labels': {'severity': 'warning'},
-                            'annotations': {
-                                'summary': 'Processing speed below target',
-                                'description': 'Current speed ratio: {{ $value }}, target: 649'
-                            }
+                            "alert": "ProcessingSpeedBelowTarget",
+                            "expr": "catalytic_processing_speed_ratio < 500",
+                            "for": "10m",
+                            "labels": {"severity": "warning"},
+                            "annotations": {
+                                "summary": "Processing speed below target",
+                                "description": "Current speed ratio: {{ $value }}, target: 649",
+                            },
                         },
                         {
-                            'alert': 'DatabaseConnectionPoolExhausted',
-                            'expr': 'db_connections_waiting > 10',
-                            'for': '2m',
-                            'labels': {'severity': 'critical'},
-                            'annotations': {
-                                'summary': 'Database connection pool exhausted',
-                                'description': '{{ $value }} connections waiting'
-                            }
+                            "alert": "DatabaseConnectionPoolExhausted",
+                            "expr": "db_connections_waiting > 10",
+                            "for": "2m",
+                            "labels": {"severity": "critical"},
+                            "annotations": {
+                                "summary": "Database connection pool exhausted",
+                                "description": "{{ $value }} connections waiting",
+                            },
                         },
                         {
-                            'alert': 'LowCacheHitRate',
-                            'expr': 'rate(redis_keyspace_hits_total[5m]) / (rate(redis_keyspace_hits_total[5m]) + rate(redis_keyspace_misses_total[5m])) < 0.8',
-                            'for': '5m',
-                            'labels': {'severity': 'warning'},
-                            'annotations': {
-                                'summary': 'Low Redis cache hit rate',
-                                'description': 'Cache hit rate: {{ $value | humanizePercentage }}'
-                            }
-                        }
-                    ]
+                            "alert": "LowCacheHitRate",
+                            "expr": "rate(redis_keyspace_hits_total[5m]) / (rate(redis_keyspace_hits_total[5m]) + rate(redis_keyspace_misses_total[5m])) < 0.8",
+                            "for": "5m",
+                            "labels": {"severity": "warning"},
+                            "annotations": {
+                                "summary": "Low Redis cache hit rate",
+                                "description": "Cache hit rate: {{ $value | humanizePercentage }}",
+                            },
+                        },
+                    ],
                 }
             ]
         }
 
         try:
             alerts_file = alerts_dir / "catalytic-computing.yml"
-            with open(alerts_file, 'w') as f:
+            with open(alerts_file, "w") as f:
                 yaml.dump(alert_rules, f, default_flow_style=False)
 
             logger.info("✅ Alert rules created")
@@ -199,8 +189,8 @@ class MonitoringStackSetup:
     def wait_for_services(self, timeout: int = 300) -> bool:
         """Wait for monitoring services to be ready."""
         services = {
-            'Grafana': 'http://localhost:3000/api/health',
-            'Prometheus': 'http://localhost:9090/-/healthy'
+            "Grafana": "http://localhost:3000/api/health",
+            "Prometheus": "http://localhost:9090/-/healthy",
         }
 
         start_time = time.time()
@@ -230,9 +220,12 @@ class MonitoringStackSetup:
             logger.info("🚀 Starting monitoring stack...")
 
             # Start monitoring services
-            result = subprocess.run([
-                'docker', 'compose', '--profile', 'monitoring', 'up', '-d'
-            ], cwd=self.project_root, capture_output=True, text=True)
+            result = subprocess.run(
+                ["docker", "compose", "--profile", "monitoring", "up", "-d"],
+                cwd=self.project_root,
+                capture_output=True,
+                text=True,
+            )
 
             if result.returncode != 0:
                 logger.error(f"❌ Failed to start monitoring stack: {result.stderr}")
@@ -244,6 +237,7 @@ class MonitoringStackSetup:
         except Exception as e:
             logger.error(f"❌ Error starting monitoring stack: {e}")
             return False
+
 
 def main():
     """Main setup function."""
@@ -282,19 +276,26 @@ def main():
     logger.info("📈 Prometheus: http://localhost:9090")
 
     # Deploy dashboards if Grafana API key is available
-    grafana_api_key = os.environ.get('GRAFANA_API_KEY')
+    grafana_api_key = os.environ.get("GRAFANA_API_KEY")
     if grafana_api_key:
         logger.info("🎯 Deploying Grafana dashboards...")
 
         deploy_script = project_root / "scripts" / "deploy-grafana-dashboards.py"
         dashboards_dir = project_root / "monitoring" / "grafana" / "dashboards"
 
-        result = subprocess.run([
-            sys.executable, str(deploy_script),
-            '--grafana-url', 'http://localhost:3000',
-            '--api-key', grafana_api_key,
-            '--dashboards-dir', str(dashboards_dir)
-        ], cwd=project_root)
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(deploy_script),
+                "--grafana-url",
+                "http://localhost:3000",
+                "--api-key",
+                grafana_api_key,
+                "--dashboards-dir",
+                str(dashboards_dir),
+            ],
+            cwd=project_root,
+        )
 
         if result.returncode == 0:
             logger.info("✅ Dashboards deployed successfully!")
@@ -303,5 +304,6 @@ def main():
     else:
         logger.info("💡 Set GRAFANA_API_KEY environment variable to auto-deploy dashboards")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

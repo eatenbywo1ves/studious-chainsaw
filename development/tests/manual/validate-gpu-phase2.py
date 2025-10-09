@@ -10,19 +10,21 @@ import time
 import traceback
 import numpy as np
 
+
 def setup_cuda_environment():
     """Configure CUDA environment using PyTorch libraries"""
     try:
         import torch
-        torch_lib = os.path.join(os.path.dirname(torch.__file__), 'lib')
+
+        torch_lib = os.path.join(os.path.dirname(torch.__file__), "lib")
 
         # Set environment variables
-        os.environ['CUDA_PATH'] = torch_lib
-        os.environ['CUDA_HOME'] = torch_lib
-        os.environ['PATH'] = torch_lib + ';' + os.environ.get('PATH', '')
+        os.environ["CUDA_PATH"] = torch_lib
+        os.environ["CUDA_HOME"] = torch_lib
+        os.environ["PATH"] = torch_lib + ";" + os.environ.get("PATH", "")
 
         # Add DLL directory for Windows
-        if hasattr(os, 'add_dll_directory'):
+        if hasattr(os, "add_dll_directory"):
             os.add_dll_directory(torch_lib)
 
         print(f"[OK] CUDA environment configured with PyTorch libs: {torch_lib}")
@@ -31,14 +33,16 @@ def setup_cuda_environment():
         print(f"[ERROR] Failed to setup CUDA environment: {e}")
         return None
 
+
 def test_pytorch():
     """Test PyTorch GPU functionality"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("PYTORCH GPU TEST")
-    print("="*60)
+    print("=" * 60)
 
     try:
         import torch
+
         print(f"PyTorch version: {torch.__version__}")
         print(f"CUDA available: {torch.cuda.is_available()}")
 
@@ -48,7 +52,7 @@ def test_pytorch():
             print(f"GPU memory: {torch.cuda.get_device_properties(0).total_memory / 1e9:.1f} GB")
 
             # Performance test
-            device = torch.device('cuda:0')
+            device = torch.device("cuda:0")
             start_time = time.time()
             a = torch.randn(1024, 1024, device=device)
             b = torch.randn(1024, 1024, device=device)
@@ -60,7 +64,7 @@ def test_pytorch():
             operations = 2 * 1024**3  # Matrix multiply operations
             tflops = operations / elapsed / 1e12
 
-            print(f"Matrix multiply (1024x1024): {elapsed*1000:.2f}ms")
+            print(f"Matrix multiply (1024x1024): {elapsed * 1000:.2f}ms")
             print(f"Performance: {tflops:.2f} TFLOPS")
             print("[OK] PyTorch: FULLY FUNCTIONAL")
             return True
@@ -70,14 +74,16 @@ def test_pytorch():
         traceback.print_exc()
         return False
 
+
 def test_cupy():
     """Test CuPy GPU functionality with CURAND"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("CUPY GPU TEST")
-    print("="*60)
+    print("=" * 60)
 
     try:
         import cupy
+
         print(f"CuPy version: {cupy.__version__}")
         print(f"CUDA available: {cupy.cuda.is_available()}")
 
@@ -103,7 +109,7 @@ def test_cupy():
             operations = 2 * 1024**3
             tflops = operations / elapsed / 1e12
 
-            print(f"Matrix multiply (1024x1024): {elapsed*1000:.2f}ms")
+            print(f"Matrix multiply (1024x1024): {elapsed * 1000:.2f}ms")
             print(f"Performance: {tflops:.2f} TFLOPS")
             print("[OK] CuPy: FULLY FUNCTIONAL (CURAND RESOLVED)")
             return True
@@ -113,11 +119,12 @@ def test_cupy():
         traceback.print_exc()
         return False
 
+
 def test_numba():
     """Test Numba CUDA functionality"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("NUMBA CUDA TEST")
-    print("="*60)
+    print("=" * 60)
 
     try:
         import numba
@@ -157,8 +164,8 @@ def test_numba():
             result = c.copy_to_host()
             elapsed = end_time - start_time
 
-            print(f"Kernel execution ({n} elements): {elapsed*1000:.2f}ms")
-            print(f"Throughput: {n/elapsed/1e6:.1f} M elements/sec")
+            print(f"Kernel execution ({n} elements): {elapsed * 1000:.2f}ms")
+            print(f"Throughput: {n / elapsed / 1e6:.1f} M elements/sec")
             print(f"Result sample: {result[:5]}")
             print("[OK] Numba: CUDA KERNEL COMPILATION AND EXECUTION WORKING")
             return True
@@ -167,6 +174,7 @@ def test_numba():
         print(f"[ERROR] Numba error: {e}")
         traceback.print_exc()
         return False
+
 
 def main():
     """Main validation function"""
@@ -187,9 +195,9 @@ def main():
     numba_ok = test_numba()
 
     # Summary
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("PHASE 2 VALIDATION SUMMARY")
-    print("="*60)
+    print("=" * 60)
     print(f"PyTorch: {'[PASS]' if pytorch_ok else '[FAIL]'}")
     print(f"CuPy:    {'[PASS]' if cupy_ok else '[FAIL]'}")
     print(f"Numba:   {'[PASS]' if numba_ok else '[FAIL]'}")
@@ -201,6 +209,7 @@ def main():
     else:
         print("\n[WARNING] Some tests failed. Check individual results above.")
         return False
+
 
 if __name__ == "__main__":
     success = main()

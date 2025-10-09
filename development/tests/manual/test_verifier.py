@@ -9,8 +9,8 @@ import io
 from pathlib import Path
 
 # Set UTF-8 encoding for stdout to handle mathematical symbols
-if sys.platform == 'win32':
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+if sys.platform == "win32":
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
 
 sys.path.insert(0, str(Path(__file__).parent))
 
@@ -24,16 +24,16 @@ from libs.gpu import (
     ProofStep,
     FormalProof,
     PerformanceGuarantee,
-    ComplexityTier
+    ComplexityTier,
 )
 import json
 
 
 def test_proof_step_construction():
     """Test 1: Proof step construction"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 1: Proof Step Construction")
-    print("="*70)
+    print("=" * 70)
 
     # Create individual proof steps
     step1 = ProofStep(
@@ -41,7 +41,7 @@ def test_proof_step_construction():
         statement="GPU_exec(op, data) is deterministic",
         justification="Given: op is deterministic computation",
         rule=InferenceRule.ASSUMPTION,
-        references=[]
+        references=[],
     )
 
     step2 = ProofStep(
@@ -49,7 +49,7 @@ def test_proof_step_construction():
         statement="Same input produces same output",
         justification="From step 1, by definition of deterministic",
         rule=InferenceRule.DEFINITION,
-        references=[1]
+        references=[1],
     )
 
     step3 = ProofStep(
@@ -57,7 +57,7 @@ def test_proof_step_construction():
         statement="GPU_exec(op, data) = CPU_exec(op, data)",
         justification="From steps 1-2, by transitivity",
         rule=InferenceRule.TRANSITIVITY,
-        references=[1, 2]
+        references=[1, 2],
     )
 
     # Verify step structure
@@ -79,9 +79,9 @@ def test_proof_step_construction():
 
 def test_inference_rules():
     """Test 2: Inference rule application"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 2: Inference Rule Application")
-    print("="*70)
+    print("=" * 70)
 
     # Test all 8 inference rules
     rules_to_test = [
@@ -92,7 +92,7 @@ def test_inference_rules():
         (InferenceRule.ASSUMPTION, "Given/axiom"),
         (InferenceRule.DEFINITION, "By definition"),
         (InferenceRule.ARITHMETIC, "Arithmetic operation"),
-        (InferenceRule.MONOTONICITY, "f monotonic, a<b ⊢ f(a)<f(b)")
+        (InferenceRule.MONOTONICITY, "f monotonic, a<b ⊢ f(a)<f(b)"),
     ]
 
     for rule, description in rules_to_test:
@@ -101,7 +101,7 @@ def test_inference_rules():
             statement=f"Test statement for {rule.value}",
             justification=description,
             rule=rule,
-            references=[]
+            references=[],
         )
         assert step.rule == rule, f"Rule {rule.value} not applied correctly"
         print(f"  [OK] {rule.value:<20} → {description}")
@@ -111,9 +111,9 @@ def test_inference_rules():
 
 def test_equivalence_proof_generation():
     """Test 3: Equivalence proof generation for all transformations"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 3: Equivalence Proof Generation")
-    print("="*70)
+    print("=" * 70)
 
     generator = get_proof_generator()
     catalog = get_transformation_catalog()
@@ -125,7 +125,7 @@ def test_equivalence_proof_generation():
         "BatchFusion",
         "MemoryPooling",
         "PrecisionReduction",
-        "KernelFusion"
+        "KernelFusion",
     ]
 
     for rule_name in transformation_names:
@@ -136,7 +136,7 @@ def test_equivalence_proof_generation():
         proof = generator.generate_equivalence_proof(
             transformation_name=rule.name,
             transformation_description=rule.source_description,
-            assumptions=rule.proof.assumptions
+            assumptions=rule.proof.assumptions,
         )
 
         # Verify proof structure
@@ -144,8 +144,9 @@ def test_equivalence_proof_generation():
         assert len(proof.assumptions) > 0, "Proof should have assumptions"
         assert len(proof.steps) > 0, "Proof should have steps"
         assert proof.proof_method == ProofMethod.DIRECT, "Equivalence proofs use direct method"
-        assert "equivalence" in proof.conclusion.lower() or "=" in proof.conclusion, \
+        assert "equivalence" in proof.conclusion.lower() or "=" in proof.conclusion, (
             "Conclusion should mention equivalence"
+        )
 
         print(f"  [OK] {rule_name:<25} → {len(proof.steps)} proof steps")
 
@@ -154,9 +155,9 @@ def test_equivalence_proof_generation():
 
 def test_performance_proof_generation():
     """Test 4: Performance proof generation"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 4: Performance Proof Generation")
-    print("="*70)
+    print("=" * 70)
 
     generator = get_proof_generator()
 
@@ -165,7 +166,7 @@ def test_performance_proof_generation():
         ("SmallGPUToCPU", 50.0, "50x speedup guarantee"),
         ("BatchFusion", 2.0, "2x speedup guarantee"),
         ("MemoryPooling", 1.3, "1.3x speedup guarantee"),
-        ("KernelFusion", 3.0, "3x speedup guarantee")
+        ("KernelFusion", 3.0, "3x speedup guarantee"),
     ]
 
     for transformation_name, speedup_bound, description in test_cases:
@@ -175,15 +176,16 @@ def test_performance_proof_generation():
             assumptions=[
                 "Operation is compute-bound",
                 "No I/O bottlenecks",
-                "Sufficient parallel resources"
-            ]
+                "Sufficient parallel resources",
+            ],
         )
 
         # Verify proof structure
         assert proof.theorem_name == f"{transformation_name}_Performance", "Theorem name mismatch"
         assert len(proof.steps) > 0, "Performance proof should have steps"
-        assert "speedup" in proof.conclusion.lower() or str(speedup_bound) in proof.conclusion, \
+        assert "speedup" in proof.conclusion.lower() or str(speedup_bound) in proof.conclusion, (
             "Conclusion should mention speedup"
+        )
 
         print(f"  [OK] {transformation_name:<25} → Speedup bound: {speedup_bound}x")
 
@@ -192,9 +194,9 @@ def test_performance_proof_generation():
 
 def test_complexity_proof_generation():
     """Test 5: Complexity preservation proof generation"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 5: Complexity Preservation Proof Generation")
-    print("="*70)
+    print("=" * 70)
 
     generator = get_proof_generator()
 
@@ -203,7 +205,7 @@ def test_complexity_proof_generation():
         ("SmallGPUToCPU", ComplexityTier.LINEAR, ComplexityTier.LINEAR, "Same tier"),
         ("BatchFusion", ComplexityTier.POLYNOMIAL, ComplexityTier.LINEAR, "Reduced complexity"),
         ("MemoryPooling", ComplexityTier.LINEAR, ComplexityTier.TRIVIAL, "Optimized to trivial"),
-        ("KernelFusion", ComplexityTier.POLYNOMIAL, ComplexityTier.POLYNOMIAL, "Preserved")
+        ("KernelFusion", ComplexityTier.POLYNOMIAL, ComplexityTier.POLYNOMIAL, "Preserved"),
     ]
 
     for transformation_name, orig_tier, trans_tier, description in test_cases:
@@ -211,7 +213,7 @@ def test_complexity_proof_generation():
             transformation_name=transformation_name,
             original_complexity=orig_tier.name,
             transformed_complexity=trans_tier.name,
-            assumptions=["Transformation preserves algorithm structure"]
+            assumptions=["Transformation preserves algorithm structure"],
         )
 
         # Verify proof structure
@@ -226,9 +228,9 @@ def test_complexity_proof_generation():
 
 def test_proof_verification():
     """Test 6: Proof verification (valid and invalid)"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 6: Proof Verification")
-    print("="*70)
+    print("=" * 70)
 
     generator = get_proof_generator()
     verifier = get_proof_verifier()
@@ -237,7 +239,7 @@ def test_proof_verification():
     valid_proof = generator.generate_equivalence_proof(
         transformation_name="SmallGPUToCPU",
         transformation_description="Route small GPU operations to CPU",
-        assumptions=["Op is deterministic", "No device-specific operations"]
+        assumptions=["Op is deterministic", "No device-specific operations"],
     )
 
     result = verifier.verify_proof(valid_proof)
@@ -256,19 +258,20 @@ def test_proof_verification():
         steps=[
             ProofStep(1, "Start", "Given", InferenceRule.ASSUMPTION, []),
             # Missing intermediate steps
-            ProofStep(2, "Conclusion", "Magic", InferenceRule.MODUS_PONENS, [1])
+            ProofStep(2, "Conclusion", "Magic", InferenceRule.MODUS_PONENS, [1]),
         ],
         conclusion="Unprovable conclusion",
         proof_method=ProofMethod.DIRECT,
         verified=False,
-        confidence_score=0.0
+        confidence_score=0.0,
     )
 
     result_invalid = verifier.verify_proof(invalid_proof)
 
     # Invalid proof should either fail or have low confidence
-    assert not result_invalid.is_valid or result_invalid.confidence_score < 0.7, \
+    assert not result_invalid.is_valid or result_invalid.confidence_score < 0.7, (
         "Invalid proof should fail or have low confidence"
+    )
 
     print(f"  [OK] Invalid proof detected (confidence: {result_invalid.confidence_score:.2f})")
     print("  [OK] Proof verification working correctly")
@@ -276,9 +279,9 @@ def test_proof_verification():
 
 def test_assumption_checking():
     """Test 7: Assumption validation"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 7: Assumption Validation")
-    print("="*70)
+    print("=" * 70)
 
     verifier = get_proof_verifier()
     generator = get_proof_generator()
@@ -290,15 +293,15 @@ def test_assumption_checking():
         assumptions=[
             "Operation is compute-bound",
             "GPU has sufficient memory",
-            "No data dependencies between operations"
-        ]
+            "No data dependencies between operations",
+        ],
     )
 
     # Test with satisfied context
     satisfied_context = {
         "is_compute_bound": True,
         "gpu_memory_available": 8192,  # MB
-        "has_dependencies": False
+        "has_dependencies": False,
     }
 
     assumptions_valid, failed = verifier.verify_assumptions(proof, satisfied_context)
@@ -311,7 +314,7 @@ def test_assumption_checking():
     unsatisfied_context = {
         "is_compute_bound": False,  # IO-bound, not compute-bound
         "gpu_memory_available": 512,  # Low memory
-        "has_dependencies": True  # Has dependencies
+        "has_dependencies": True,  # Has dependencies
     }
 
     assumptions_invalid, failed = verifier.verify_assumptions(proof, unsatisfied_context)
@@ -325,9 +328,9 @@ def test_assumption_checking():
 
 def test_proof_library():
     """Test 8: Proof library storage and retrieval"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 8: Proof Library Storage and Retrieval")
-    print("="*70)
+    print("=" * 70)
 
     library = get_proof_library()
     generator = get_proof_generator()
@@ -342,7 +345,7 @@ def test_proof_library():
         proof = generator.generate_equivalence_proof(
             transformation_name=trans_name,
             transformation_description=f"Test transformation {trans_name}",
-            assumptions=["Test assumption"]
+            assumptions=["Test assumption"],
         )
         library.store_proof(proof)
 
@@ -368,11 +371,12 @@ def test_proof_library():
     assert export_path.exists(), "Export file should exist"
 
     # Verify export format
-    with open(export_path, 'r', encoding='utf-8') as f:
+    with open(export_path, "r", encoding="utf-8") as f:
         exported_data = json.load(f)
         assert "proofs" in exported_data, "Export should contain proofs"
-        assert len(exported_data["proofs"]) == len(test_transformations), \
+        assert len(exported_data["proofs"]) == len(test_transformations), (
             "Export should contain all proofs"
+        )
 
     print(f"  [OK] Exported proof library to {export_path.name}")
 
@@ -384,9 +388,9 @@ def test_proof_library():
 
 def test_transformation_integration():
     """Test 9: Integration with transformation catalog"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 9: Integration with Transformation Catalog")
-    print("="*70)
+    print("=" * 70)
 
     catalog = get_transformation_catalog()
 
@@ -400,17 +404,21 @@ def test_transformation_integration():
     for rule_name, rule in catalog.rules.items():
         if rule.formal_proof is not None:
             rules_with_proofs += 1
-            assert rule.formal_proof.theorem_name == f"{rule_name}_Equivalence", \
+            assert rule.formal_proof.theorem_name == f"{rule_name}_Equivalence", (
                 f"Proof name mismatch for {rule_name}"
+            )
 
         if rule.performance_guarantee is not None:
             rules_with_guarantees += 1
-            assert rule.performance_guarantee.guarantee_type == "speedup", \
+            assert rule.performance_guarantee.guarantee_type == "speedup", (
                 "Performance guarantee should be speedup type"
+            )
             assert rule.performance_guarantee.bound > 0, "Bound should be positive"
 
     assert rules_with_proofs == 6, f"All 6 rules should have proofs, got {rules_with_proofs}"
-    assert rules_with_guarantees == 6, f"All 6 rules should have guarantees, got {rules_with_guarantees}"
+    assert rules_with_guarantees == 6, (
+        f"All 6 rules should have guarantees, got {rules_with_guarantees}"
+    )
 
     print(f"  [OK] Generated proofs for {rules_with_proofs}/6 transformation rules")
     print(f"  [OK] Generated guarantees for {rules_with_guarantees}/6 transformation rules")
@@ -438,9 +446,9 @@ def test_transformation_integration():
 
 def test_performance_guarantees():
     """Test 10: Performance guarantee validation"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 10: Performance Guarantee Validation")
-    print("="*70)
+    print("=" * 70)
 
     generator = get_proof_generator()
 
@@ -449,7 +457,7 @@ def test_performance_guarantees():
         ("speedup", 2.0, "minimum", 0.95),
         ("speedup", 5.0, "expected", 0.85),
         ("latency", 100.0, "maximum", 0.90),
-        ("throughput", 1000.0, "minimum", 0.92)
+        ("throughput", 1000.0, "minimum", 0.92),
     ]
 
     for guarantee_type, bound, bound_type, confidence in test_cases:
@@ -457,7 +465,7 @@ def test_performance_guarantees():
         proof = generator.generate_performance_proof(
             transformation_name="TestTransformation",
             speedup_bound=bound,
-            assumptions=["Test assumptions"]
+            assumptions=["Test assumptions"],
         )
 
         # Create guarantee
@@ -466,7 +474,7 @@ def test_performance_guarantees():
             bound=bound,
             bound_type=bound_type,
             confidence=confidence,
-            proof=proof
+            proof=proof,
         )
 
         # Verify guarantee structure
@@ -476,21 +484,19 @@ def test_performance_guarantees():
         assert guarantee.confidence == confidence, "Confidence mismatch"
         assert guarantee.proof is not None, "Guarantee should have proof"
 
-        print(f"  [OK] {guarantee_type:<12} → {bound_type:<8} {bound:>6.1f} (conf: {confidence:.2f})")
+        print(
+            f"  [OK] {guarantee_type:<12} → {bound_type:<8} {bound:>6.1f} (conf: {confidence:.2f})"
+        )
 
     # Test runtime verification
     guarantee = PerformanceGuarantee(
-        guarantee_type="speedup",
-        bound=2.0,
-        bound_type="minimum",
-        confidence=0.95,
-        proof=None
+        guarantee_type="speedup", bound=2.0, bound_type="minimum", confidence=0.95, proof=None
     )
 
     # Test with metrics that satisfy guarantee (speedup >= 2.0)
     satisfying_metrics = {
         "original_time_ms": 100.0,
-        "optimized_time_ms": 45.0  # Speedup = 100/45 = 2.22x
+        "optimized_time_ms": 45.0,  # Speedup = 100/45 = 2.22x
     }
 
     satisfied = guarantee.verify_against_runtime(satisfying_metrics)
@@ -500,7 +506,7 @@ def test_performance_guarantees():
     # Test with metrics that violate guarantee (speedup < 2.0)
     violating_metrics = {
         "original_time_ms": 100.0,
-        "optimized_time_ms": 60.0  # Speedup = 100/60 = 1.67x
+        "optimized_time_ms": 60.0,  # Speedup = 100/60 = 1.67x
     }
 
     violated = guarantee.verify_against_runtime(violating_metrics)
@@ -512,9 +518,9 @@ def test_performance_guarantees():
 
 def run_all_tests():
     """Run all Phase 4 verification tests"""
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("PHASE 4: FORMAL VERIFICATION & PROOF GENERATION - TEST SUITE")
-    print("="*80)
+    print("=" * 80)
     print("Testing Mernithian-inspired formal verification system...")
 
     tests = [
@@ -527,7 +533,7 @@ def run_all_tests():
         ("Assumption Validation", test_assumption_checking),
         ("Proof Library", test_proof_library),
         ("Transformation Integration", test_transformation_integration),
-        ("Performance Guarantees", test_performance_guarantees)
+        ("Performance Guarantees", test_performance_guarantees),
     ]
 
     passed = 0
@@ -548,9 +554,9 @@ def run_all_tests():
             print(f"\n  [ERROR] {test_name}: {e}")
 
     # Print summary
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("TEST SUMMARY")
-    print("="*80)
+    print("=" * 80)
     print(f"Total tests: {len(tests)}")
     print(f"Passed: {passed}")
     print(f"Failed: {failed}")
@@ -566,11 +572,11 @@ def run_all_tests():
         print("All 6 transformation rules have verified formal proofs.")
         print("Performance guarantees are mathematically proven.")
 
-    print("="*80)
+    print("=" * 80)
 
     return failed == 0
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     success = run_all_tests()
     sys.exit(0 if success else 1)

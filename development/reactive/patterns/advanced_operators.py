@@ -20,13 +20,15 @@ from reactivex.scheduler.eventloop import AsyncIOScheduler
 
 # For visualization
 import logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 
 @dataclass
 class WebhookEvent:
     """Simple webhook event for demonstrations"""
+
     event_type: str
     data: Dict[str, Any]
     timestamp: float
@@ -60,9 +62,9 @@ class AdvancedWebhookPatterns:
         Debounce:   --------c-----------e--------f-|
                     (only emit after 5 units of silence)
         """
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("PATTERN 1: DEBOUNCE - Smart Event Coalescing")
-        print("="*80)
+        print("=" * 80)
 
         print("\n💡 Scenario: Rapid git pushes should trigger ONE build, not 100")
         print("   Input: 5 commits in 2 seconds, then pause")
@@ -73,10 +75,11 @@ class AdvancedWebhookPatterns:
         pipeline = self.event_stream.pipe(
             # Wait for 1 second of silence before emitting
             ops.debounce(1.0),
-            ops.do_action(lambda event: logger.info(
-                f"🚀 DEBOUNCED EVENT: {event.event_type} "
-                f"(aggregated rapid events)"
-            ))
+            ops.do_action(
+                lambda event: logger.info(
+                    f"🚀 DEBOUNCED EVENT: {event.event_type} (aggregated rapid events)"
+                )
+            ),
         )
 
         pipeline.subscribe(on_next=lambda e: results.append(e))
@@ -84,11 +87,11 @@ class AdvancedWebhookPatterns:
         # Simulate rapid events
         print("📤 Emitting rapid events...")
         for i in range(5):
-            self.event_stream.on_next(WebhookEvent(
-                event_type="git.push",
-                data={"commit": f"abc{i}"},
-                timestamp=time.time()
-            ))
+            self.event_stream.on_next(
+                WebhookEvent(
+                    event_type="git.push", data={"commit": f"abc{i}"}, timestamp=time.time()
+                )
+            )
             time.sleep(0.1)  # 100ms apart
 
         print("   ⏸️  Waiting for debounce period...\n")
@@ -117,9 +120,9 @@ class AdvancedWebhookPatterns:
         Throttle:   -a-----d-----g-----j-|
                     (1 event per 3 time units)
         """
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("PATTERN 2: THROTTLE - Rate Limiting")
-        print("="*80)
+        print("=" * 80)
 
         print("\n💡 Scenario: Health checks every 100ms, but we want max 1/second")
         print("   Input: 10 health checks in 1 second")
@@ -130,9 +133,9 @@ class AdvancedWebhookPatterns:
         pipeline = self.event_stream.pipe(
             # Maximum one event per second
             ops.throttle_first(1.0),
-            ops.do_action(lambda event: logger.info(
-                f"💓 THROTTLED HEALTH CHECK: {event.data['status']}"
-            ))
+            ops.do_action(
+                lambda event: logger.info(f"💓 THROTTLED HEALTH CHECK: {event.data['status']}")
+            ),
         )
 
         pipeline.subscribe(on_next=lambda e: results.append(e))
@@ -140,11 +143,13 @@ class AdvancedWebhookPatterns:
         # Simulate rapid health checks
         print("📤 Emitting 10 rapid health checks...")
         for i in range(10):
-            self.event_stream.on_next(WebhookEvent(
-                event_type="health.check",
-                data={"status": f"healthy_{i}"},
-                timestamp=time.time()
-            ))
+            self.event_stream.on_next(
+                WebhookEvent(
+                    event_type="health.check",
+                    data={"status": f"healthy_{i}"},
+                    timestamp=time.time(),
+                )
+            )
             time.sleep(0.1)
 
         time.sleep(0.5)  # Let throttle process
@@ -170,9 +175,9 @@ class AdvancedWebhookPatterns:
         Window:     ------[abc]-----[def]-----[ghi]-|
                     (3-second windows)
         """
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("PATTERN 3: WINDOW - Time-Based Batching")
-        print("="*80)
+        print("=" * 80)
 
         print("\n💡 Scenario: Batch metrics into 2-second windows for efficiency")
         print("   Input: Individual metric events")
@@ -183,15 +188,17 @@ class AdvancedWebhookPatterns:
         pipeline = self.event_stream.pipe(
             # Create 2-second windows
             ops.window_with_time(2.0),
-            ops.flat_map(lambda window: window.pipe(
-                # Convert each window to a list
-                ops.to_iterable(),
-                ops.map(lambda events: list(events))
-            )),
+            ops.flat_map(
+                lambda window: window.pipe(
+                    # Convert each window to a list
+                    ops.to_iterable(),
+                    ops.map(lambda events: list(events)),
+                )
+            ),
             ops.filter(lambda batch: len(batch) > 0),  # Skip empty windows
-            ops.do_action(lambda batch: logger.info(
-                f"📦 BATCHED METRICS: {len(batch)} events in window"
-            ))
+            ops.do_action(
+                lambda batch: logger.info(f"📦 BATCHED METRICS: {len(batch)} events in window")
+            ),
         )
 
         pipeline.subscribe(on_next=lambda b: batches.append(b))
@@ -200,18 +207,16 @@ class AdvancedWebhookPatterns:
         print("📤 Emitting metrics over 5 seconds...")
         time.time()
         for i in range(8):
-            self.event_stream.on_next(WebhookEvent(
-                event_type="metric.updated",
-                data={"value": i},
-                timestamp=time.time()
-            ))
+            self.event_stream.on_next(
+                WebhookEvent(event_type="metric.updated", data={"value": i}, timestamp=time.time())
+            )
             time.sleep(0.6)  # Slower than window size
 
         time.sleep(2.5)  # Let final window complete
 
         print(f"\n✅ Success: {len(batches)} batches created\n")
         for idx, batch in enumerate(batches):
-            print(f"   Batch {idx+1}: {len(batch)} events")
+            print(f"   Batch {idx + 1}: {len(batch)} events")
 
         return batches
 
@@ -233,9 +238,9 @@ class AdvancedWebhookPatterns:
         Sample:     -----c-------g-----j-|
                     (sample every 5 units, take most recent)
         """
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("PATTERN 4: SAMPLE - Periodic Snapshots")
-        print("="*80)
+        print("=" * 80)
 
         print("\n💡 Scenario: Server metrics update constantly, sample every 2s")
         print("   Input: Continuous metric stream")
@@ -248,9 +253,7 @@ class AdvancedWebhookPatterns:
 
         pipeline = self.event_stream.pipe(
             ops.sample(sampler),
-            ops.do_action(lambda event: logger.info(
-                f"📸 SNAPSHOT: {event.data}"
-            ))
+            ops.do_action(lambda event: logger.info(f"📸 SNAPSHOT: {event.data}")),
         )
 
         pipeline.subscribe(on_next=lambda e: snapshots.append(e))
@@ -258,11 +261,11 @@ class AdvancedWebhookPatterns:
         # Emit rapidly changing metrics
         print("📤 Emitting rapidly changing metrics...")
         for i in range(20):
-            self.event_stream.on_next(WebhookEvent(
-                event_type="metrics.cpu",
-                data={"cpu_percent": 40 + i},
-                timestamp=time.time()
-            ))
+            self.event_stream.on_next(
+                WebhookEvent(
+                    event_type="metrics.cpu", data={"cpu_percent": 40 + i}, timestamp=time.time()
+                )
+            )
             time.sleep(0.3)
 
         time.sleep(1)  # Let final sample happen
@@ -288,9 +291,9 @@ class AdvancedWebhookPatterns:
         Scan(+):    -1--3--6-10-15-|
                     (running sum)
         """
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("PATTERN 5: SCAN - Stateful Accumulation")
-        print("="*80)
+        print("=" * 80)
 
         print("\n💡 Scenario: Track running total of webhook deliveries")
         print("   Input: Individual delivery events")
@@ -302,15 +305,17 @@ class AdvancedWebhookPatterns:
             # Accumulate delivery count
             ops.scan(
                 lambda acc, event: {
-                    'total_deliveries': acc['total_deliveries'] + 1,
-                    'last_event': event.event_type,
-                    'timestamp': event.timestamp
+                    "total_deliveries": acc["total_deliveries"] + 1,
+                    "last_event": event.event_type,
+                    "timestamp": event.timestamp,
                 },
-                seed={'total_deliveries': 0, 'last_event': None, 'timestamp': 0}
+                seed={"total_deliveries": 0, "last_event": None, "timestamp": 0},
             ),
-            ops.do_action(lambda state: logger.info(
-                f"📊 RUNNING TOTAL: {state['total_deliveries']} deliveries"
-            ))
+            ops.do_action(
+                lambda state: logger.info(
+                    f"📊 RUNNING TOTAL: {state['total_deliveries']} deliveries"
+                )
+            ),
         )
 
         pipeline.subscribe(on_next=lambda s: totals.append(s))
@@ -318,11 +323,13 @@ class AdvancedWebhookPatterns:
         # Emit delivery events
         print("📤 Emitting 5 delivery events...\n")
         for i in range(5):
-            self.event_stream.on_next(WebhookEvent(
-                event_type="webhook.delivered",
-                data={"endpoint": f"http://api{i}.example.com"},
-                timestamp=time.time()
-            ))
+            self.event_stream.on_next(
+                WebhookEvent(
+                    event_type="webhook.delivered",
+                    data={"endpoint": f"http://api{i}.example.com"},
+                    timestamp=time.time(),
+                )
+            )
             time.sleep(0.3)
 
         print(f"\n✅ Success: {len(totals)} running totals emitted")
@@ -348,9 +355,9 @@ class AdvancedWebhookPatterns:
         Combined:    ---a1---b2---c2-|
                      (emits when either changes, with latest from both)
         """
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("PATTERN 6: COMBINE_LATEST - Multi-Stream Coordination")
-        print("="*80)
+        print("=" * 80)
 
         print("\n💡 Scenario: Only deliver webhooks when system is healthy")
         print("   Stream 1: Webhook events")
@@ -362,58 +369,58 @@ class AdvancedWebhookPatterns:
         results = []
 
         pipeline = combine_latest(webhook_stream, health_stream).pipe(
-            ops.filter(lambda combined: combined[1]['status'] == 'healthy'),
-            ops.map(lambda combined: {
-                'event': combined[0],
-                'health': combined[1],
-                'allowed': True
-            }),
-            ops.do_action(lambda result: logger.info(
-                f"✅ WEBHOOK ALLOWED: {result['event'].event_type} "
-                f"(system {result['health']['status']})"
-            ))
+            ops.filter(lambda combined: combined[1]["status"] == "healthy"),
+            ops.map(
+                lambda combined: {"event": combined[0], "health": combined[1], "allowed": True}
+            ),
+            ops.do_action(
+                lambda result: logger.info(
+                    f"✅ WEBHOOK ALLOWED: {result['event'].event_type} "
+                    f"(system {result['health']['status']})"
+                )
+            ),
         )
 
         pipeline.subscribe(on_next=lambda r: results.append(r))
 
         # Start with healthy status
         print("📤 Initial state: healthy\n")
-        health_stream.on_next({'status': 'healthy', 'cpu': 30})
+        health_stream.on_next({"status": "healthy", "cpu": 30})
 
         # Emit some webhooks
         print("📤 Emitting webhooks while healthy...")
         for i in range(3):
-            webhook_stream.on_next(WebhookEvent(
-                event_type="git.push",
-                data={"commit": f"abc{i}"},
-                timestamp=time.time()
-            ))
+            webhook_stream.on_next(
+                WebhookEvent(
+                    event_type="git.push", data={"commit": f"abc{i}"}, timestamp=time.time()
+                )
+            )
             time.sleep(0.2)
 
         # System becomes unhealthy
         print("\n⚠️  System becomes unhealthy...")
-        health_stream.on_next({'status': 'unhealthy', 'cpu': 95})
+        health_stream.on_next({"status": "unhealthy", "cpu": 95})
 
         # Try to emit webhook while unhealthy (should be blocked)
         print("📤 Attempting webhook while unhealthy...")
-        webhook_stream.on_next(WebhookEvent(
-            event_type="git.push",
-            data={"commit": "should_be_blocked"},
-            timestamp=time.time()
-        ))
+        webhook_stream.on_next(
+            WebhookEvent(
+                event_type="git.push", data={"commit": "should_be_blocked"}, timestamp=time.time()
+            )
+        )
         time.sleep(0.2)
 
         # System recovers
         print("\n✅ System recovers...")
-        health_stream.on_next({'status': 'healthy', 'cpu': 40})
+        health_stream.on_next({"status": "healthy", "cpu": 40})
 
         # Emit final webhook
         print("📤 Emitting final webhook while healthy...")
-        webhook_stream.on_next(WebhookEvent(
-            event_type="git.push",
-            data={"commit": "final_commit"},
-            timestamp=time.time()
-        ))
+        webhook_stream.on_next(
+            WebhookEvent(
+                event_type="git.push", data={"commit": "final_commit"}, timestamp=time.time()
+            )
+        )
         time.sleep(0.2)
 
         print(f"\n✅ Success: {len(results)} webhooks delivered (unhealthy ones blocked)\n")
@@ -437,9 +444,9 @@ class AdvancedWebhookPatterns:
         High:         -H---H---H-|
         Low:          ---L---L---|
         """
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("PATTERN 7: PARTITION - Stream Splitting")
-        print("="*80)
+        print("=" * 80)
 
         print("\n💡 Scenario: Route urgent webhooks to fast lane")
         print("   Input: Mixed priority webhooks")
@@ -450,13 +457,13 @@ class AdvancedWebhookPatterns:
 
         # Split into urgent and normal streams
         urgent_stream = self.event_stream.pipe(
-            ops.filter(lambda e: e.data.get('priority') == 'urgent'),
-            ops.do_action(lambda e: logger.info(f"🚨 URGENT: {e.event_type}"))
+            ops.filter(lambda e: e.data.get("priority") == "urgent"),
+            ops.do_action(lambda e: logger.info(f"🚨 URGENT: {e.event_type}")),
         )
 
         normal_stream = self.event_stream.pipe(
-            ops.filter(lambda e: e.data.get('priority') != 'urgent'),
-            ops.do_action(lambda e: logger.info(f"📬 NORMAL: {e.event_type}"))
+            ops.filter(lambda e: e.data.get("priority") != "urgent"),
+            ops.do_action(lambda e: logger.info(f"📬 NORMAL: {e.event_type}")),
         )
 
         urgent_stream.subscribe(on_next=lambda e: urgent_results.append(e))
@@ -465,19 +472,19 @@ class AdvancedWebhookPatterns:
         # Emit mixed priority events
         print("📤 Emitting mixed priority events...\n")
         events = [
-            ('urgent', 'security.breach'),
-            ('normal', 'user.login'),
-            ('urgent', 'system.crash'),
-            ('normal', 'metric.update'),
-            ('urgent', 'payment.failed'),
+            ("urgent", "security.breach"),
+            ("normal", "user.login"),
+            ("urgent", "system.crash"),
+            ("normal", "metric.update"),
+            ("urgent", "payment.failed"),
         ]
 
         for priority, event_type in events:
-            self.event_stream.on_next(WebhookEvent(
-                event_type=event_type,
-                data={'priority': priority},
-                timestamp=time.time()
-            ))
+            self.event_stream.on_next(
+                WebhookEvent(
+                    event_type=event_type, data={"priority": priority}, timestamp=time.time()
+                )
+            )
             time.sleep(0.2)
 
         print("\n✅ Success:")
@@ -491,11 +498,12 @@ class AdvancedWebhookPatterns:
 # DEMONSTRATION RUNNER
 # ============================================================================
 
+
 async def run_all_advanced_patterns():
     """Run all advanced operator demonstrations"""
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("ADVANCED RXPY OPERATORS FOR WEBHOOK MANAGEMENT")
-    print("="*80)
+    print("=" * 80)
 
     patterns = AdvancedWebhookPatterns()
 
@@ -527,9 +535,9 @@ async def run_all_advanced_patterns():
     patterns = AdvancedWebhookPatterns()
     patterns.demo_partition()
 
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("✅ ALL ADVANCED PATTERNS DEMONSTRATED")
-    print("="*80)
+    print("=" * 80)
 
     print("\n📚 OPERATOR SUMMARY:")
     print("""

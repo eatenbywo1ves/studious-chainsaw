@@ -24,9 +24,7 @@ def event_loop():
 async def e2e_client() -> AsyncGenerator[AsyncClient, None]:
     """Create HTTP client for E2E testing with extended timeout."""
     async with AsyncClient(
-        base_url=E2E_API_URL,
-        timeout=E2E_TIMEOUT,
-        follow_redirects=True
+        base_url=E2E_API_URL, timeout=E2E_TIMEOUT, follow_redirects=True
     ) as client:
         yield client
 
@@ -49,7 +47,7 @@ async def new_tenant(e2e_client: AsyncClient) -> Dict[str, Any]:
         "password": "E2ETestPassword123!",
         "first_name": "E2E",
         "last_name": "Tester",
-        "plan_code": "pro"  # Use Pro plan for E2E tests
+        "plan_code": "pro",  # Use Pro plan for E2E tests
     }
 
     # Register tenant
@@ -66,19 +64,16 @@ async def new_tenant(e2e_client: AsyncClient) -> Dict[str, Any]:
         "refresh_token": registration_result.get("refresh_token"),
         "email": tenant_data["email"],
         "password": tenant_data["password"],
-        "company_name": tenant_data["company_name"]
+        "company_name": tenant_data["company_name"],
     }
 
 
 @pytest.fixture(scope="function")
 async def authenticated_e2e_client(
-    e2e_client: AsyncClient,
-    new_tenant: Dict[str, Any]
+    e2e_client: AsyncClient, new_tenant: Dict[str, Any]
 ) -> AsyncGenerator[AsyncClient, None]:
     """Create authenticated HTTP client with tenant context."""
-    e2e_client.headers.update({
-        "Authorization": f"Bearer {new_tenant['access_token']}"
-    })
+    e2e_client.headers.update({"Authorization": f"Bearer {new_tenant['access_token']}"})
 
     # Attach tenant context to client for easy access in tests
     e2e_client.tenant_context = new_tenant
@@ -95,7 +90,7 @@ def sample_lattice_small():
         "size": 50,
         "field_type": "complex",
         "geometry": "euclidean",
-        "enable_gpu": False
+        "enable_gpu": False,
     }
 
 
@@ -108,7 +103,7 @@ def sample_lattice_large():
         "size": 2000,
         "field_type": "complex",
         "geometry": "euclidean",
-        "enable_gpu": True
+        "enable_gpu": True,
     }
 
 

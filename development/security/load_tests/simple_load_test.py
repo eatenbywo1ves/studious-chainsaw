@@ -20,6 +20,7 @@ TEST_SCENARIOS = [
     {"name": "ultimate", "users": 2000, "duration": 30},
 ]
 
+
 class LoadTestResults:
     def __init__(self):
         self.total_requests = 0
@@ -54,7 +55,9 @@ class LoadTestResults:
         else:
             p50 = p95 = p99 = avg_latency = min_latency = max_latency = 0
 
-        failure_rate = (self.failed_requests / self.total_requests * 100) if self.total_requests > 0 else 0
+        failure_rate = (
+            (self.failed_requests / self.total_requests * 100) if self.total_requests > 0 else 0
+        )
         success_rate = 100 - failure_rate
         throughput = self.total_requests / duration if duration > 0 else 0
 
@@ -74,7 +77,7 @@ class LoadTestResults:
                 "p99": f"{p99 * 1000:.2f}",
                 "max": f"{max_latency * 1000:.2f}",
             },
-            "errors": self.errors[:10]  # First 10 errors
+            "errors": self.errors[:10],  # First 10 errors
         }
 
 
@@ -85,7 +88,7 @@ async def make_login_request(session: aiohttp.ClientSession, results: LoadTestRe
         async with session.post(
             f"{BASE_URL}/auth/login",
             json={"email": "test@example.com", "password": "testpass"},
-            timeout=aiohttp.ClientTimeout(total=30)
+            timeout=aiohttp.ClientTimeout(total=30),
         ) as response:
             latency = time.time() - start_time
             success = response.status == 200
@@ -112,7 +115,8 @@ async def get_pool_metrics() -> Dict:
             async with session.get(f"{BASE_URL}/health/redis") as response:
                 if response.status == 200:
                     return await response.json()
-    except:
+    except Exception:
+        # Health check failed - return empty metrics
         pass
     return {}
 
@@ -185,25 +189,31 @@ async def run_load_test(name: str, concurrent_users: int, duration: int):
     print(f"  p99:               {stats['latency_ms']['p99']}")
     print(f"  Max:               {stats['latency_ms']['max']}")
 
-    if stats['errors']:
+    if stats["errors"]:
         print("\nFirst 10 Errors:")
-        for error in stats['errors']:
+        for error in stats["errors"]:
             print(f"  - {error}")
 
     print("=" * 80)
 
     # Save results to JSON
-    result_file = f"load_test_{name}_{concurrent_users}users_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-    with open(result_file, 'w') as f:
-        json.dump({
-            "test_name": name,
-            "concurrent_users": concurrent_users,
-            "duration": duration,
-            "timestamp": datetime.now().isoformat(),
-            "initial_pool_metrics": initial_metrics,
-            "final_pool_metrics": final_metrics,
-            "results": stats
-        }, f, indent=2)
+    result_file = (
+        f"load_test_{name}_{concurrent_users}users_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+    )
+    with open(result_file, "w") as f:
+        json.dump(
+            {
+                "test_name": name,
+                "concurrent_users": concurrent_users,
+                "duration": duration,
+                "timestamp": datetime.now().isoformat(),
+                "initial_pool_metrics": initial_metrics,
+                "final_pool_metrics": final_metrics,
+                "results": stats,
+            },
+            f,
+            indent=2,
+        )
     print(f"\nResults saved to: {result_file}")
 
     return stats
@@ -221,16 +231,10 @@ async def main():
     all_results = []
 
     for scenario in TEST_SCENARIOS:
-        stats = await run_load_test(
-            scenario["name"],
-            scenario["users"],
-            scenario["duration"]
+        stats = await run_load_test(scenario["name"], scenario["users"], scenario["duration"])
+        all_results.append(
+            {"scenario": scenario["name"], "users": scenario["users"], "stats": stats}
         )
-        all_results.append({
-            "scenario": scenario["name"],
-            "users": scenario["users"],
-            "stats": stats
-        })
 
         # Wait between tests
         if scenario != TEST_SCENARIOS[-1]:
@@ -241,14 +245,18 @@ async def main():
     print("\n" + "=" * 80)
     print("SUMMARY COMPARISON")
     print("=" * 80)
-    print(f"{'Scenario':<15} {'Users':<10} {'Success':<10} {'Failure':<10} {'p95 (ms)':<12} {'Throughput':<12}")
+    print(
+        f"{'Scenario':<15} {'Users':<10} {'Success':<10} {'Failure':<10} {'p95 (ms)':<12} {'Throughput':<12}"
+    )
     print("-" * 80)
     for result in all_results:
-        print(f"{result['scenario']:<15} {result['users']:<10} "
-              f"{result['stats']['success_rate']:<10} "
-              f"{result['stats']['failure_rate']:<10} "
-              f"{result['stats']['latency_ms']['p95']:<12} "
-              f"{result['stats']['throughput_rps']:<12}")
+        print(
+            f"{result['scenario']:<15} {result['users']:<10} "
+            f"{result['stats']['success_rate']:<10} "
+            f"{result['stats']['failure_rate']:<10} "
+            f"{result['stats']['latency_ms']['p95']:<12} "
+            f"{result['stats']['throughput_rps']:<12}"
+        )
     print("=" * 80)
 
 

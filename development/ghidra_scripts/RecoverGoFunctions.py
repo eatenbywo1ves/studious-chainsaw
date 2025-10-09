@@ -21,9 +21,10 @@ from ghidra.app.cmd.function import CreateFunctionCmd
 import struct
 
 # Go PCLNTAB magic numbers by version
-MAGIC_12 = 0xfffffffb    # Go 1.2-1.15
-MAGIC_116 = 0xfffffff0   # Go 1.16-1.17
-MAGIC_118 = 0xfffffff1   # Go 1.18+
+MAGIC_12 = 0xFFFFFFFB  # Go 1.2-1.15
+MAGIC_116 = 0xFFFFFFF0  # Go 1.16-1.17
+MAGIC_118 = 0xFFFFFFF1  # Go 1.18+
+
 
 class GoVersionDetector:
     """Detect Go version from PCLNTAB magic number"""
@@ -98,7 +99,11 @@ class GoVersionDetector:
 
             # For Go 1.16+, check nfunc is reasonable
             if version in ["1.16-1.17", "1.18+"]:
-                nfunc = self._read_uint32(addr.add(8)) if ptrsize == 4 else self._read_uint64(addr.add(8))
+                nfunc = (
+                    self._read_uint32(addr.add(8))
+                    if ptrsize == 4
+                    else self._read_uint64(addr.add(8))
+                )
                 # Reasonable function count: 1 to 100,000
                 if nfunc < 1 or nfunc > 100000:
                     return False
@@ -179,10 +184,7 @@ class PclntabParser:
                 func_name = self._read_string(name_addr)
 
                 if func_name and func_entry > 0:
-                    self.functions.append({
-                        'address': func_entry,
-                        'name': func_name
-                    })
+                    self.functions.append({"address": func_entry, "name": func_name})
             except:
                 continue
 
@@ -241,10 +243,7 @@ class PclntabParser:
                 func_name = self._read_string(name_addr)
 
                 if func_name and func_entry > 0:
-                    self.functions.append({
-                        'address': func_entry,
-                        'name': func_name
-                    })
+                    self.functions.append({"address": func_entry, "name": func_name})
             except:
                 continue
 
@@ -286,7 +285,7 @@ class PclntabParser:
                 else:
                     break  # Non-ASCII, probably not a string
 
-            return ''.join(chars) if chars else None
+            return "".join(chars) if chars else None
         except:
             return None
 
@@ -307,8 +306,8 @@ class FunctionRecoveryService:
 
         for func_info in functions:
             try:
-                addr_value = func_info['address']
-                func_name = func_info['name']
+                addr_value = func_info["address"]
+                func_name = func_info["name"]
 
                 # Create address
                 addr = toAddr(addr_value)
@@ -347,9 +346,9 @@ class FunctionRecoveryService:
 
 # Main script execution
 def main():
-    print("="*60)
+    print("=" * 60)
     print("GhidraGo - Go Function Recovery")
-    print("="*60)
+    print("=" * 60)
 
     # Get current program
     program = currentProgram
@@ -384,7 +383,7 @@ def main():
     service.apply_functions(parser.functions)
 
     print("\n[*] Function recovery complete!")
-    print("="*60)
+    print("=" * 60)
 
 
 # Run the script
