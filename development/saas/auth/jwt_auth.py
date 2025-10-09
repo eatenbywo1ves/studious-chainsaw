@@ -510,7 +510,7 @@ def revoke_all_user_tokens(user_id: str, tenant_id: str):
 # ============================================================================
 
 
-def generate_api_key(tenant_id: str, name: str, permissions: list = None) -> Tuple[str, str]:
+def generate_api_key(tenant_id: str, name: str, permissions: Optional[list[str]] = None) -> Tuple[str, str]:
     """Generate API key for programmatic access"""
 
     # Generate secure random key
@@ -581,7 +581,7 @@ class TenantContext:
     def __init__(self, tenant_id: str, user_id: Optional[str] = None):
         self.tenant_id = tenant_id
         self.user_id = user_id
-        self._original_settings = {}
+        self._original_settings: dict[str, Any] = {}
 
     def __enter__(self):
         """Set tenant context for database queries"""
