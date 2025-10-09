@@ -17,8 +17,15 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from database.models import (
-    Base, Tenant, User, Subscription, ApiKey, UsageLog,
-    AuditLog, Webhook, WebhookDelivery
+    Base,
+    Tenant,
+    User,
+    Subscription,
+    ApiKey,
+    UsageLog,
+    AuditLog,
+    Webhook,
+    WebhookDelivery,
 )
 
 
@@ -33,12 +40,16 @@ class DatabaseMigrator:
 
         # Create engines
         if source_url.startswith("sqlite"):
-            self.source_engine = create_engine(source_url, connect_args={"check_same_thread": False})
+            self.source_engine = create_engine(
+                source_url, connect_args={"check_same_thread": False}
+            )
         else:
             self.source_engine = create_engine(source_url)
 
         if target_url.startswith("sqlite"):
-            self.target_engine = create_engine(target_url, connect_args={"check_same_thread": False})
+            self.target_engine = create_engine(
+                target_url, connect_args={"check_same_thread": False}
+            )
         else:
             self.target_engine = create_engine(target_url, pool_pre_ping=True)
 
@@ -122,7 +133,7 @@ class DatabaseMigrator:
             if target_count > 0:
                 self.log(f"  WARNING: Target has {target_count} existing records", "WARNING")
                 user_input = input(f"    Clear existing {table_name} data? (y/N): ")
-                if user_input.lower() == 'y':
+                if user_input.lower() == "y":
                     target_session.query(model_class).delete()
                     target_session.commit()
                     self.log(f"  Cleared {target_count} existing records")
@@ -135,8 +146,7 @@ class DatabaseMigrator:
                 try:
                     # Create new instance with same data
                     record_dict = {
-                        c.name: getattr(record, c.name)
-                        for c in record.__table__.columns
+                        c.name: getattr(record, c.name) for c in record.__table__.columns
                     }
 
                     new_record = model_class(**record_dict)
@@ -155,7 +165,10 @@ class DatabaseMigrator:
             target_session.commit()
 
             if errors:
-                self.log(f"  ✓ Migrated {migrated}/{record_count} records with {len(errors)} errors", "WARNING")
+                self.log(
+                    f"  ✓ Migrated {migrated}/{record_count} records with {len(errors)} errors",
+                    "WARNING",
+                )
             else:
                 self.log(f"  ✓ Successfully migrated {migrated}/{record_count} records")
 
@@ -184,7 +197,7 @@ class DatabaseMigrator:
             results[table_name] = {
                 "source": source_count,
                 "target": target_count,
-                "match": source_count == target_count
+                "match": source_count == target_count,
             }
 
             status = "✓" if source_count == target_count else "✗"
@@ -199,6 +212,7 @@ class DatabaseMigrator:
         if db_url.startswith("sqlite"):
             # SQLite: just copy the file
             import shutil
+
             db_file = db_url.replace("sqlite:///", "")
             shutil.copy2(db_file, backup_path)
             self.log("✓ SQLite backup created")
@@ -206,10 +220,8 @@ class DatabaseMigrator:
         elif db_url.startswith("postgresql"):
             # PostgreSQL: use pg_dump
             import subprocess
-            result = subprocess.run(
-                ["pg_dump", db_url, "-f", backup_path],
-                capture_output=True
-            )
+
+            result = subprocess.run(["pg_dump", db_url, "-f", backup_path], capture_output=True)
             if result.returncode == 0:
                 self.log("✓ PostgreSQL backup created")
             else:
@@ -241,7 +253,7 @@ class DatabaseMigrator:
             UsageLog,
             AuditLog,
             Webhook,
-            WebhookDelivery
+            WebhookDelivery,
         ]
 
         for model in migration_order:
@@ -251,7 +263,7 @@ class DatabaseMigrator:
                 self.log(f"Migration failed for {model.__tablename__}: {e}", "ERROR")
                 if not self.dry_run:
                     user_input = input("Continue with remaining tables? (y/N): ")
-                    if user_input.lower() != 'y':
+                    if user_input.lower() != "y":
                         return False
 
         # Step 4: Verify migration
@@ -272,8 +284,8 @@ class DatabaseMigrator:
 
         # Step 5: Save migration log
         log_file = f"migration_log_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
-        with open(log_file, 'w') as f:
-            f.write('\n'.join(self.migration_log))
+        with open(log_file, "w") as f:
+            f.write("\n".join(self.migration_log))
         self.log(f"Migration log saved: {log_file}")
 
         return True
@@ -285,33 +297,25 @@ def main():
     parser.add_argument(
         "--source",
         default="sqlite:///C:/Users/Corbin/development/saas/catalytic_saas.db",
-        help="Source database URL (default: SQLite development DB)"
+        help="Source database URL (default: SQLite development DB)",
     )
-    parser.add_argument(
-        "--target",
-        help="Target database URL (PostgreSQL production DB)"
-    )
-    parser.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="Run in dry-run mode (no changes)"
-    )
-    parser.add_argument(
-        "--backup",
-        action="store_true",
-        help="Create backup before migration"
-    )
+    parser.add_argument("--target", help="Target database URL (PostgreSQL production DB)")
+    parser.add_argument("--dry-run", action="store_true", help="Run in dry-run mode (no changes)")
+    parser.add_argument("--backup", action="store_true", help="Create backup before migration")
 
     args = parser.parse_args()
 
     # Get target URL from environment if not provided
     if not args.target:
         from dotenv import load_dotenv
+
         load_dotenv(".env.production")
         args.target = os.getenv("DATABASE_URL")
 
         if not args.target:
-            print("ERROR: Target database URL not provided and DATABASE_URL not set in .env.production")
+            print(
+                "ERROR: Target database URL not provided and DATABASE_URL not set in .env.production"
+            )
             sys.exit(1)
 
     # Validate URLs
@@ -321,9 +325,7 @@ def main():
 
     # Create migrator
     migrator = DatabaseMigrator(
-        source_url=args.source,
-        target_url=args.target,
-        dry_run=args.dry_run
+        source_url=args.source, target_url=args.target, dry_run=args.dry_run
     )
 
     # Create backup if requested

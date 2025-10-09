@@ -23,7 +23,11 @@ async def test_redis_connection():
     """Test 1: Verify Redis is running and accessible"""
     print("\n[TEST 1] Redis Connection")
     try:
-        redis_url = f"redis://:{REDIS_PASSWORD}@localhost:6379" if REDIS_PASSWORD else "redis://localhost:6379"
+        redis_url = (
+            f"redis://:{REDIS_PASSWORD}@localhost:6379"
+            if REDIS_PASSWORD
+            else "redis://localhost:6379"
+        )
         redis_client = await redis.from_url(redis_url, decode_responses=False)
         pong = await redis_client.ping()
         await redis_client.close()
@@ -45,7 +49,11 @@ async def test_jwt_redis_blacklist():
     try:
         from application.jwt_security_redis import JWTSecurityManager, SecurityLevel
 
-        redis_url = f"redis://:{REDIS_PASSWORD}@localhost:6379" if REDIS_PASSWORD else "redis://localhost:6379"
+        redis_url = (
+            f"redis://:{REDIS_PASSWORD}@localhost:6379"
+            if REDIS_PASSWORD
+            else "redis://localhost:6379"
+        )
         redis_client = await redis.from_url(redis_url, decode_responses=False)
 
         # Initialize JWT manager
@@ -53,15 +61,12 @@ async def test_jwt_redis_blacklist():
             private_key_path="keys/jwt_development_private.pem",
             public_key_path="keys/jwt_development_public.pem",
             redis_client=redis_client,
-            security_level=SecurityLevel.STRICT
+            security_level=SecurityLevel.STRICT,
         )
 
         # Create token
         token = jwt_manager.create_access_token(
-            subject="test_user",
-            user_id="test_123",
-            roles=["user"],
-            permissions=["read"]
+            subject="test_user", user_id="test_123", roles=["user"], permissions=["read"]
         )
 
         # Revoke token
@@ -92,6 +97,7 @@ async def test_jwt_redis_blacklist():
     except Exception as e:
         print(f"  [FAIL] JWT blacklist test failed: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
@@ -102,14 +108,15 @@ async def test_rate_limiting_redis():
     try:
         from application.rate_limiting_redis import AdvancedRateLimiter, LimitType
 
-        redis_url = f"redis://:{REDIS_PASSWORD}@localhost:6379" if REDIS_PASSWORD else "redis://localhost:6379"
+        redis_url = (
+            f"redis://:{REDIS_PASSWORD}@localhost:6379"
+            if REDIS_PASSWORD
+            else "redis://localhost:6379"
+        )
         redis_client = await redis.from_url(redis_url, decode_responses=False)
 
         # Initialize rate limiter
-        limiter = AdvancedRateLimiter(
-            redis_client=redis_client,
-            enable_ddos_protection=False
-        )
+        limiter = AdvancedRateLimiter(redis_client=redis_client, enable_ddos_protection=False)
 
         identifier = "test_user"
         endpoint = "/api/auth/login"  # Use configured endpoint with strict limits
@@ -121,13 +128,13 @@ async def test_rate_limiting_redis():
                 identifier=identifier,
                 endpoint=endpoint,
                 limit_type=LimitType.PER_USER,
-                ip_address="127.0.0.1"
+                ip_address="127.0.0.1",
             )
             if result.allowed:
                 allowed_count += 1
 
         # Should have rate limited after 3 requests
-        was_rate_limited = (allowed_count == 3)
+        was_rate_limited = allowed_count == 3
 
         # Cleanup
         keys = await redis_client.keys("ratelimit:*")
@@ -145,6 +152,7 @@ async def test_rate_limiting_redis():
     except Exception as e:
         print(f"  [FAIL] Rate limiting test failed: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
@@ -155,7 +163,11 @@ async def test_distributed_blacklist():
     try:
         from application.jwt_security_redis import JWTSecurityManager, SecurityLevel
 
-        redis_url = f"redis://:{REDIS_PASSWORD}@localhost:6379" if REDIS_PASSWORD else "redis://localhost:6379"
+        redis_url = (
+            f"redis://:{REDIS_PASSWORD}@localhost:6379"
+            if REDIS_PASSWORD
+            else "redis://localhost:6379"
+        )
         redis_client = await redis.from_url(redis_url, decode_responses=False)
 
         # Create two separate JWT manager instances (simulating two servers)
@@ -163,22 +175,19 @@ async def test_distributed_blacklist():
             private_key_path="keys/jwt_development_private.pem",
             public_key_path="keys/jwt_development_public.pem",
             redis_client=redis_client,
-            security_level=SecurityLevel.STRICT
+            security_level=SecurityLevel.STRICT,
         )
 
         jwt_manager_2 = JWTSecurityManager(
             private_key_path="keys/jwt_development_private.pem",
             public_key_path="keys/jwt_development_public.pem",
             redis_client=redis_client,
-            security_level=SecurityLevel.STRICT
+            security_level=SecurityLevel.STRICT,
         )
 
         # Server 1 creates a token
         token = jwt_manager_1.create_access_token(
-            subject="distributed_test",
-            user_id="dist_123",
-            roles=["user"],
-            permissions=["read"]
+            subject="distributed_test", user_id="dist_123", roles=["user"], permissions=["read"]
         )
 
         # Server 2 can verify it (decode without audience check for testing)
@@ -218,6 +227,7 @@ async def test_distributed_blacklist():
     except Exception as e:
         print(f"  [FAIL] Distributed blacklist test failed: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
@@ -228,19 +238,17 @@ async def test_distributed_rate_limiting():
     try:
         from application.rate_limiting_redis import AdvancedRateLimiter, LimitType
 
-        redis_url = f"redis://:{REDIS_PASSWORD}@localhost:6379" if REDIS_PASSWORD else "redis://localhost:6379"
+        redis_url = (
+            f"redis://:{REDIS_PASSWORD}@localhost:6379"
+            if REDIS_PASSWORD
+            else "redis://localhost:6379"
+        )
         redis_client = await redis.from_url(redis_url, decode_responses=False)
 
         # Create two separate limiter instances (simulating two servers)
-        limiter_1 = AdvancedRateLimiter(
-            redis_client=redis_client,
-            enable_ddos_protection=False
-        )
+        limiter_1 = AdvancedRateLimiter(redis_client=redis_client, enable_ddos_protection=False)
 
-        limiter_2 = AdvancedRateLimiter(
-            redis_client=redis_client,
-            enable_ddos_protection=False
-        )
+        limiter_2 = AdvancedRateLimiter(redis_client=redis_client, enable_ddos_protection=False)
 
         identifier = "distributed_user"
         endpoint = "/api/auth/forgot-password"  # Limit: 2 per user per hour
@@ -252,7 +260,7 @@ async def test_distributed_rate_limiting():
                 identifier=identifier,
                 endpoint=endpoint,
                 limit_type=LimitType.PER_USER,
-                ip_address="192.168.1.100"
+                ip_address="192.168.1.100",
             )
             if result.allowed:
                 server1_allowed += 1
@@ -264,7 +272,7 @@ async def test_distributed_rate_limiting():
                 identifier=identifier,
                 endpoint=endpoint,
                 limit_type=LimitType.PER_USER,
-                ip_address="192.168.1.100"
+                ip_address="192.168.1.100",
             )
             if result.allowed:
                 server2_allowed += 1
@@ -277,18 +285,23 @@ async def test_distributed_rate_limiting():
 
         # Expected: Server 1 allows 2, Server 2 allows 0 (limit: 2 per user)
         server1_allowed + server2_allowed
-        was_distributed = (server1_allowed == 2 and server2_allowed == 0)
+        was_distributed = server1_allowed == 2 and server2_allowed == 0
 
         if was_distributed:
-            print(f"  [OK] Distributed rate limiting works (S1: {server1_allowed}/2, S2: {server2_allowed}/2, limit: 2)")
+            print(
+                f"  [OK] Distributed rate limiting works (S1: {server1_allowed}/2, S2: {server2_allowed}/2, limit: 2)"
+            )
             return True
         else:
-            print(f"  [FAIL] Not distributed correctly (S1: {server1_allowed}/2, S2: {server2_allowed}/2, expected S1=2, S2=0)")
+            print(
+                f"  [FAIL] Not distributed correctly (S1: {server1_allowed}/2, S2: {server2_allowed}/2, expected S1=2, S2=0)"
+            )
             return False
 
     except Exception as e:
         print(f"  [FAIL] Distributed rate limiting test failed: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
@@ -304,8 +317,8 @@ async def test_secret_generation():
             content = f.read()
 
         # Extract secrets
-        session_match = re.search(r'SESSION_SECRET_KEY=([a-f0-9]{64})', content)
-        csrf_match = re.search(r'CSRF_SECRET_KEY=([a-f0-9]{64})', content)
+        session_match = re.search(r"SESSION_SECRET_KEY=([a-f0-9]{64})", content)
+        csrf_match = re.search(r"CSRF_SECRET_KEY=([a-f0-9]{64})", content)
 
         if not session_match or not csrf_match:
             print("  [FAIL] Secrets not found or invalid format")
@@ -329,9 +342,9 @@ async def test_secret_generation():
 
 async def main():
     """Main test runner"""
-    print("="*70)
+    print("=" * 70)
     print("Critical Security Fixes - Integration Tests")
-    print("="*70)
+    print("=" * 70)
 
     results = []
 
@@ -347,9 +360,9 @@ async def main():
     passed = sum(results)
     total = len(results)
 
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print(f"Results: {passed}/{total} tests passed")
-    print("="*70)
+    print("=" * 70)
 
     if passed == total:
         print("\n[SUCCESS] All critical security fixes verified!")

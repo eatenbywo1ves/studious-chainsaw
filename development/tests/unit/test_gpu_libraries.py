@@ -18,12 +18,12 @@ class TestGPULibraries:
         assert torch.cuda.device_count() > 0, "At least one GPU should be detected"
 
         # Test basic tensor operations
-        device = torch.device('cuda:0')
+        device = torch.device("cuda:0")
         a = torch.randn(100, 100, device=device)
         b = torch.randn(100, 100, device=device)
         c = torch.mm(a, b)
 
-        assert c.device.type == 'cuda', "Result should be on GPU"
+        assert c.device.type == "cuda", "Result should be on GPU"
         assert c.shape == (100, 100), "Result shape should be correct"
 
     @pytest.mark.gpu
@@ -64,12 +64,13 @@ class TestGPULibraries:
         """Test that operations work with CPU fallback when GPU unavailable."""
         try:
             import torch
+
             # Test CPU operations
             a = torch.randn(10, 10)
             b = torch.randn(10, 10)
             c = torch.mm(a, b)
 
-            assert c.device.type == 'cpu', "Should work on CPU"
+            assert c.device.type == "cpu", "Should work on CPU"
             assert c.shape == (10, 10), "Result shape should be correct"
         except ImportError:
             pytest.skip("PyTorch not available")
@@ -87,7 +88,7 @@ class TestPerformanceBaseline:
         if not torch.cuda.is_available():
             pytest.skip("GPU not available")
 
-        device = torch.device('cuda:0')
+        device = torch.device("cuda:0")
 
         def matrix_multiply():
             a = torch.randn(1024, 1024, device=device)
@@ -100,6 +101,7 @@ class TestPerformanceBaseline:
     @pytest.mark.performance
     def test_cpu_performance_baseline(self, benchmark):
         """Benchmark CPU performance as baseline."""
+
         def cpu_matrix_multiply():
             a = np.random.randn(512, 512)
             b = np.random.randn(512, 512)
@@ -120,7 +122,7 @@ class TestMemoryManagement:
         if not torch.cuda.is_available():
             pytest.skip("GPU not available")
 
-        device = torch.device('cuda:0')
+        device = torch.device("cuda:0")
         initial_memory = torch.cuda.memory_allocated(device)
 
         # Allocate memory
@@ -147,7 +149,7 @@ class TestMemoryManagement:
         if not torch.cuda.is_available():
             pytest.skip("GPU not available")
 
-        device = torch.device('cuda:0')
+        device = torch.device("cuda:0")
 
         # Test in-place operations for memory efficiency
         a = torch.randn(1000, 1000, device=device)
@@ -157,4 +159,6 @@ class TestMemoryManagement:
         a.add_(1.0)
 
         after_inplace = torch.cuda.memory_allocated(device)
-        assert after_inplace == initial_memory, "In-place operation should not allocate extra memory"
+        assert after_inplace == initial_memory, (
+            "In-place operation should not allocate extra memory"
+        )

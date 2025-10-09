@@ -16,15 +16,17 @@ logger = logging.getLogger(__name__)
 
 class MemoryPressure(Enum):
     """GPU memory pressure levels"""
-    LOW = "low"          # <60% used
+
+    LOW = "low"  # <60% used
     MODERATE = "moderate"  # 60-80% used
-    HIGH = "high"        # 80-90% used
+    HIGH = "high"  # 80-90% used
     CRITICAL = "critical"  # >90% used
 
 
 @dataclass
 class MemorySnapshot:
     """Snapshot of GPU memory state at a point in time"""
+
     timestamp: float
     allocated_mb: float
     reserved_mb: float
@@ -39,6 +41,7 @@ class MemorySnapshot:
 @dataclass
 class MemoryStats:
     """Aggregated memory statistics"""
+
     current_snapshot: MemorySnapshot
     peak_allocated_mb: float
     peak_reserved_mb: float
@@ -62,7 +65,7 @@ class GPUMemoryMonitor:
         MemoryPressure.LOW: 0.6,
         MemoryPressure.MODERATE: 0.8,
         MemoryPressure.HIGH: 0.9,
-        MemoryPressure.CRITICAL: 0.95
+        MemoryPressure.CRITICAL: 0.95,
     }
 
     def __init__(
@@ -70,7 +73,7 @@ class GPUMemoryMonitor:
         device_id: int = 0,
         enable_auto_cleanup: bool = True,
         cleanup_threshold: float = 0.85,
-        enable_leak_detection: bool = True
+        enable_leak_detection: bool = True,
     ):
         """
         Initialize GPU memory monitor
@@ -113,13 +116,16 @@ class GPUMemoryMonitor:
         # Cleanup callbacks
         self._cleanup_callbacks: List[Callable[[], None]] = []
 
-        logger.info(f"GPUMemoryMonitor initialized: device={device_id}, "
-                   f"auto_cleanup={enable_auto_cleanup}, threshold={cleanup_threshold:.1%}")
+        logger.info(
+            f"GPUMemoryMonitor initialized: device={device_id}, "
+            f"auto_cleanup={enable_auto_cleanup}, threshold={cleanup_threshold:.1%}"
+        )
 
     def _detect_backends(self):
         """Detect available GPU backends"""
         try:
             import torch
+
             if torch.cuda.is_available():
                 self.pytorch_available = True
                 logger.debug("PyTorch CUDA backend detected")
@@ -128,6 +134,7 @@ class GPUMemoryMonitor:
 
         try:
             import cupy as cp
+
             if cp.cuda.is_available():
                 self.cupy_available = True
                 logger.debug("CuPy backend detected")
@@ -157,12 +164,12 @@ class GPUMemoryMonitor:
             import torch
 
             # Get memory stats
-            allocated = torch.cuda.memory_allocated(self.device_id) / (1024 ** 2)
-            reserved = torch.cuda.memory_reserved(self.device_id) / (1024 ** 2)
+            allocated = torch.cuda.memory_allocated(self.device_id) / (1024**2)
+            reserved = torch.cuda.memory_reserved(self.device_id) / (1024**2)
 
             # Get total memory
             props = torch.cuda.get_device_properties(self.device_id)
-            total = props.total_memory / (1024 ** 2)
+            total = props.total_memory / (1024**2)
 
             available = total - allocated
             utilization = (allocated / total) * 100 if total > 0 else 0
@@ -177,7 +184,7 @@ class GPUMemoryMonitor:
                 utilization=utilization,
                 pressure=pressure,
                 backend="pytorch",
-                device_id=self.device_id
+                device_id=self.device_id,
             )
         except Exception as e:
             logger.error(f"Error getting PyTorch memory snapshot: {e}")
@@ -192,12 +199,12 @@ class GPUMemoryMonitor:
             mempool = cp.get_default_memory_pool()
 
             # Get memory stats
-            used = mempool.used_bytes() / (1024 ** 2)
-            total_bytes = mempool.total_bytes() / (1024 ** 2)
+            used = mempool.used_bytes() / (1024**2)
+            total_bytes = mempool.total_bytes() / (1024**2)
 
             # Get device properties
             device = cp.cuda.Device(self.device_id)
-            total_device = device.mem_info[1] / (1024 ** 2)  # Total memory
+            total_device = device.mem_info[1] / (1024**2)  # Total memory
 
             # Use device total if pool total is not set
             total = total_device if total_device > 0 else total_bytes
@@ -216,7 +223,7 @@ class GPUMemoryMonitor:
                 utilization=utilization,
                 pressure=pressure,
                 backend="cupy",
-                device_id=self.device_id
+                device_id=self.device_id,
             )
         except Exception as e:
             logger.error(f"Error getting CuPy memory snapshot: {e}")
@@ -233,7 +240,7 @@ class GPUMemoryMonitor:
             utilization=0.0,
             pressure=MemoryPressure.LOW,
             backend="unknown",
-            device_id=self.device_id
+            device_id=self.device_id,
         )
 
     def _calculate_pressure(self, utilization: float) -> MemoryPressure:
@@ -311,7 +318,9 @@ class GPUMemoryMonitor:
         # If memory increased by >20% consistently, possible leak
         if last_third_avg > first_third_avg * 1.2:
             increase_pct = ((last_third_avg - first_third_avg) / first_third_avg) * 100
-            logger.warning(f"Potential memory leak detected: {increase_pct:.1f}% increase over 5 min")
+            logger.warning(
+                f"Potential memory leak detected: {increase_pct:.1f}% increase over 5 min"
+            )
 
     def cleanup_memory(self) -> Dict[str, float]:
         """
@@ -348,21 +357,24 @@ class GPUMemoryMonitor:
             self._total_gc_runs += 1
             self._last_cleanup_time = time.time()
 
-            logger.info(f"Memory cleanup complete: freed {freed_mb:.2f}MB, "
-                       f"now {snapshot_after.utilization:.1f}% used")
+            logger.info(
+                f"Memory cleanup complete: freed {freed_mb:.2f}MB, "
+                f"now {snapshot_after.utilization:.1f}% used"
+            )
 
             return {
-                'before_mb': snapshot_before.allocated_mb,
-                'after_mb': snapshot_after.allocated_mb,
-                'freed_mb': freed_mb,
-                'before_util': snapshot_before.utilization,
-                'after_util': snapshot_after.utilization
+                "before_mb": snapshot_before.allocated_mb,
+                "after_mb": snapshot_after.allocated_mb,
+                "freed_mb": freed_mb,
+                "before_util": snapshot_before.utilization,
+                "after_util": snapshot_after.utilization,
             }
 
     def _cleanup_pytorch(self):
         """PyTorch-specific cleanup"""
         try:
             import torch
+
             torch.cuda.empty_cache()
             logger.debug("PyTorch cache cleared")
         except Exception as e:
@@ -372,6 +384,7 @@ class GPUMemoryMonitor:
         """CuPy-specific cleanup"""
         try:
             import cupy as cp
+
             mempool = cp.get_default_memory_pool()
             mempool.free_all_blocks()
             logger.debug("CuPy memory pool freed")
@@ -414,7 +427,7 @@ class GPUMemoryMonitor:
                 allocation_failures=self._allocation_failures,
                 last_cleanup_time=self._last_cleanup_time,
                 avg_utilization=avg_util,
-                pressure_events=self._pressure_events.copy()
+                pressure_events=self._pressure_events.copy(),
             )
 
     def get_pressure(self) -> MemoryPressure:
@@ -490,9 +503,7 @@ _monitor_lock = Lock()
 
 
 def get_memory_monitor(
-    device_id: int = 0,
-    enable_auto_cleanup: bool = True,
-    cleanup_threshold: float = 0.85
+    device_id: int = 0, enable_auto_cleanup: bool = True, cleanup_threshold: float = 0.85
 ) -> GPUMemoryMonitor:
     """
     Get global memory monitor instance (singleton)
@@ -512,7 +523,7 @@ def get_memory_monitor(
             _global_memory_monitor = GPUMemoryMonitor(
                 device_id=device_id,
                 enable_auto_cleanup=enable_auto_cleanup,
-                cleanup_threshold=cleanup_threshold
+                cleanup_threshold=cleanup_threshold,
             )
 
         return _global_memory_monitor

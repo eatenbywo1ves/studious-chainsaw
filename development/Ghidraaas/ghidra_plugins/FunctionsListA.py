@@ -44,22 +44,21 @@ try:
         try:
             range = function.getBody().getFirstRange()
             if range is not None:
-                length = int(range.getMaxAddress().subtract(
-                    range.getMinAddress())) + 1
+                length = int(range.getMaxAddress().subtract(range.getMinAddress())) + 1
                 size = hex(length).strip("L")
                 bbytes = getBytes(function.getEntryPoint(), length)
-                uints = [x & 0xff for x in bbytes]
+                uints = [x & 0xFF for x in bbytes]
                 sha256 = hashlib.sha256(str(bytearray(uints))).hexdigest()
                 b64 = base64.b64encode(bytearray(uints))
                 address = function.getEntryPoint().getOffset()
                 start_addr = hex(address).strip("L")
 
                 function_d = dict()
-                function_d['func_bytes'] = b64
-                function_d['func_name'] = function.getName().strip("`\'")
-                function_d['sha256'] = sha256
-                function_d['size'] = size
-                function_d['start_addr'] = start_addr
+                function_d["func_bytes"] = b64
+                function_d["func_name"] = function.getName().strip("`'")
+                function_d["sha256"] = sha256
+                function_d["size"] = size
+                function_d["start_addr"] = start_addr
                 functions_dict[sha256] = function_d
 
         except ghidra.program.model.mem.MemoryAccessException:
@@ -67,8 +66,8 @@ try:
             pass
 
     # Create a dictionary for the json response
-    response_dict['status'] = "completed"
-    response_dict['functions_list'] = functions_dict
+    response_dict["status"] = "completed"
+    response_dict["functions_list"] = functions_dict
     print("Found %d functions" % (c + 1))
 
     with open(output_path, "w") as f_out:
@@ -76,5 +75,5 @@ try:
     print("Json saved to %s" % output_path)
 
 except Exception:
-    response_dict['status'] = "error"
+    response_dict["status"] = "error"
     print(json.dumps(response_dict))

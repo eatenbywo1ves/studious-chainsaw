@@ -73,11 +73,11 @@ class StructFieldParser:
 
         try:
             # Get fields pointer and count from type_info (parsed in Phase 1)
-            if 'struct_fields_ptr' not in type_info:
+            if "struct_fields_ptr" not in type_info:
                 return fields
 
-            fields_ptr = type_info['struct_fields_ptr']
-            fields_count = type_info.get('struct_fields_count', 0)
+            fields_ptr = type_info["struct_fields_ptr"]
+            fields_count = type_info.get("struct_fields_count", 0)
 
             if fields_ptr == 0 or fields_count == 0:
                 return fields
@@ -114,9 +114,9 @@ class StructFieldParser:
         """
         try:
             # Read structField fields
-            name_offset = self._read_uint32(field_addr)          # +0x00
-            type_offset = self._read_uint32(field_addr.add(0x08)) # +0x08
-            offset_anon = self._read_uint64(field_addr.add(0x10)) # +0x10
+            name_offset = self._read_uint32(field_addr)  # +0x00
+            type_offset = self._read_uint32(field_addr.add(0x08))  # +0x08
+            offset_anon = self._read_uint64(field_addr.add(0x10))  # +0x10
 
             # Extract offset and embedded flag
             # Lower bits = offset, highest bit = embedded flag
@@ -127,11 +127,11 @@ class StructFieldParser:
             field_name, field_tag = self._parse_name(name_offset)
 
             field_info = {
-                'name': field_name,
-                'type_offset': type_offset,
-                'offset': offset,
-                'embedded': embedded,
-                'tag': field_tag,
+                "name": field_name,
+                "type_offset": type_offset,
+                "offset": offset,
+                "embedded": embedded,
+                "tag": field_tag,
             }
 
             return field_info
@@ -242,9 +242,9 @@ class StructFieldParser:
                 else:
                     # Non-ASCII - could be UTF-8 multi-byte
                     # For Phase 2, replace with underscore
-                    chars.append('_')
+                    chars.append("_")
 
-            return ''.join(chars) if chars else "<empty>"
+            return "".join(chars) if chars else "<empty>"
 
         except Exception as e:
             print(f"[!] Error reading UTF-8 string: {e}")
@@ -268,9 +268,9 @@ class StructFieldParser:
 # Helper function for testing
 def test_struct_field_parser():
     """Test struct field parser with current program."""
-    print("="*60)
+    print("=" * 60)
     print("Testing StructFieldParser")
-    print("="*60)
+    print("=" * 60)
 
     print("\nTo use StructFieldParser:")
     print("1. Parse rtype to get struct_fields_ptr and count")

@@ -70,9 +70,7 @@ class PrometheusValidator:
         """Query a specific metric"""
         try:
             response = requests.get(
-                f"{self.api_url}/query",
-                params={"query": metric_name},
-                timeout=5
+                f"{self.api_url}/query", params={"query": metric_name}, timeout=5
             )
             response.raise_for_status()
             return response.json()
@@ -104,23 +102,18 @@ class PrometheusValidator:
             # Application metrics
             "http_requests_total": "API request counter",
             "http_request_duration_seconds": "API request latency",
-
             # Security metrics
             "encryption_errors_total": "Encryption error counter",
             "decryption_errors_total": "Decryption error counter",
-
             # Cache metrics
             "cache_requests_total": "Cache request counter",
             "cache_misses_total": "Cache miss counter",
-
             # Database metrics
             "database_query_duration_seconds": "Database query latency",
             "database_connections_active": "Active database connections",
-
             # Redis metrics (from redis_exporter)
             "redis_memory_used_bytes": "Redis memory usage",
             "redis_connected_clients": "Redis client connections",
-
             # System metrics (from node_exporter)
             "node_cpu_seconds_total": "CPU time",
             "node_memory_MemTotal_bytes": "Total memory",
@@ -140,6 +133,7 @@ class PrometheusValidator:
 # ============================================================================
 # PYTEST TEST CASES
 # ============================================================================
+
 
 @pytest.fixture
 def validator():
@@ -238,8 +232,9 @@ def test_scrape_duration_acceptable(validator):
     for job in jobs:
         duration = validator.get_scrape_duration(job)
         if duration > 0:
-            assert duration < max_scrape_duration, \
+            assert duration < max_scrape_duration, (
                 f"Scrape duration for {job} is too high: {duration}s"
+            )
 
 
 def test_recording_rules_exist(validator):

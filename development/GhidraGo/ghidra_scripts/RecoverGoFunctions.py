@@ -30,7 +30,7 @@ from ghidrago.exceptions import (
     MemoryAccessError,
     InvalidBinaryError,
     ParseError,
-    StructureNotFoundError
+    StructureNotFoundError,
 )
 
 # Ghidra runtime functions (injected by Ghidra at runtime)
@@ -44,9 +44,10 @@ except NameError:
     pass  # Only defined when run in Ghidra
 
 # Go PCLNTAB magic numbers by version
-MAGIC_12 = 0xfffffffb    # Go 1.2-1.15
-MAGIC_116 = 0xfffffff0   # Go 1.16-1.17
-MAGIC_118 = 0xfffffff1   # Go 1.18+
+MAGIC_12 = 0xFFFFFFFB  # Go 1.2-1.15
+MAGIC_116 = 0xFFFFFFF0  # Go 1.16-1.17
+MAGIC_118 = 0xFFFFFFF1  # Go 1.18+
+
 
 class GoVersionDetector:
     """Detect Go version from PCLNTAB magic number"""
@@ -145,13 +146,9 @@ class GoVersionDetector:
             byte_data = getBytes(addr, 4)  # noqa: F821
             return struct.unpack("<I", byte_data.tostring())[0]
         except (AttributeError, TypeError) as e:
-            raise MemoryAccessError(
-                addr, f"Failed to read 4 bytes: {e}"
-            )
+            raise MemoryAccessError(addr, f"Failed to read 4 bytes: {e}")
         except struct.error as e:
-            raise MemoryAccessError(
-                addr, f"Invalid data for uint32: {e}"
-            )
+            raise MemoryAccessError(addr, f"Invalid data for uint32: {e}")
 
     def _read_uint64(self, addr):
         """Read 64-bit unsigned integer"""
@@ -159,22 +156,16 @@ class GoVersionDetector:
             byte_data = getBytes(addr, 8)  # noqa: F821
             return struct.unpack("<Q", byte_data.tostring())[0]
         except (AttributeError, TypeError) as e:
-            raise MemoryAccessError(
-                addr, f"Failed to read 8 bytes: {e}"
-            )
+            raise MemoryAccessError(addr, f"Failed to read 8 bytes: {e}")
         except struct.error as e:
-            raise MemoryAccessError(
-                addr, f"Invalid data for uint64: {e}"
-            )
+            raise MemoryAccessError(addr, f"Invalid data for uint64: {e}")
 
     def _read_uint8(self, addr):
         """Read 8-bit unsigned integer"""
         try:
             return getByte(addr) & 0xFF  # noqa: F821
         except (AttributeError, TypeError) as e:
-            raise MemoryAccessError(
-                addr, f"Failed to read byte: {e}"
-            )  # noqa: F821
+            raise MemoryAccessError(addr, f"Failed to read byte: {e}")  # noqa: F821
 
 
 class PclntabParser:
@@ -234,10 +225,7 @@ class PclntabParser:
                 func_name = self._read_string(name_addr)
 
                 if func_name and func_entry > 0:
-                    self.functions.append({
-                        'address': func_entry,
-                        'name': func_name
-                    })
+                    self.functions.append({"address": func_entry, "name": func_name})
             except (MemoryAccessError, struct.error) as e:
                 # Expected: some entries may be corrupted or invalid
                 print(f"[DEBUG] Skipping entry: {e}")
@@ -302,10 +290,7 @@ class PclntabParser:
                 func_name = self._read_string(name_addr)
 
                 if func_name and func_entry > 0:
-                    self.functions.append({
-                        'address': func_entry,
-                        'name': func_name
-                    })
+                    self.functions.append({"address": func_entry, "name": func_name})
             except (MemoryAccessError, struct.error) as e:
                 # Expected: some entries may be corrupted or invalid
                 print(f"[DEBUG] Skipping entry: {e}")
@@ -330,13 +315,9 @@ class PclntabParser:
             byte_data = getBytes(addr, 4)  # noqa: F821
             return struct.unpack("<I", byte_data.tostring())[0]
         except (AttributeError, TypeError) as e:
-            raise MemoryAccessError(
-                addr, f"Failed to read 4 bytes: {e}"
-            )
+            raise MemoryAccessError(addr, f"Failed to read 4 bytes: {e}")
         except struct.error as e:
-            raise MemoryAccessError(
-                addr, f"Invalid data for uint32: {e}"
-            )
+            raise MemoryAccessError(addr, f"Invalid data for uint32: {e}")
 
     def _read_uint64(self, addr):
         """Read 64-bit unsigned integer"""
@@ -344,22 +325,16 @@ class PclntabParser:
             byte_data = getBytes(addr, 8)  # noqa: F821
             return struct.unpack("<Q", byte_data.tostring())[0]
         except (AttributeError, TypeError) as e:
-            raise MemoryAccessError(
-                addr, f"Failed to read 8 bytes: {e}"
-            )
+            raise MemoryAccessError(addr, f"Failed to read 8 bytes: {e}")
         except struct.error as e:
-            raise MemoryAccessError(
-                addr, f"Invalid data for uint64: {e}"
-            )
+            raise MemoryAccessError(addr, f"Invalid data for uint64: {e}")
 
     def _read_uint8(self, addr):
         """Read 8-bit unsigned integer"""
         try:
             return getByte(addr) & 0xFF  # noqa: F821
         except (AttributeError, TypeError) as e:
-            raise MemoryAccessError(
-                addr, f"Failed to read byte: {e}"
-            )
+            raise MemoryAccessError(addr, f"Failed to read byte: {e}")
 
     def _read_string(self, addr):
         """Read null-terminated string"""
@@ -376,12 +351,10 @@ class PclntabParser:
                 else:
                     break  # Non-ASCII, probably not a string
 
-            return ''.join(chars) if chars else None
+            return "".join(chars) if chars else None
         except (AttributeError, TypeError) as e:
             # Failed to read - likely invalid address
-            raise MemoryAccessError(
-                addr, f"Failed to read string: {e}"
-            )
+            raise MemoryAccessError(addr, f"Failed to read string: {e}")
         except Exception as e:
             # Unexpected error during string read
             print(f"[WARN] Unexpected error reading string at {addr}: {e}")
@@ -404,8 +377,8 @@ class FunctionRecoveryService:
 
         for func_info in functions:
             try:
-                addr_value = func_info['address']
-                func_name = func_info['name']
+                addr_value = func_info["address"]
+                func_name = func_info["name"]
 
                 # Create address
                 addr = toAddr(addr_value)  # noqa: F821
@@ -416,16 +389,11 @@ class FunctionRecoveryService:
                 if existing_func:
                     # Rename existing function
                     old_name = existing_func.getName()
-                    is_default_name = (
-                        old_name.startswith("FUN_") or
-                        old_name.startswith("SUB_")
-                    )
+                    is_default_name = old_name.startswith("FUN_") or old_name.startswith("SUB_")
                     if is_default_name:
                         existing_func.setName(func_name, SourceType.ANALYSIS)
                         self.renamed += 1
-                        rename_msg = "  [+] Renamed: {} -> {}".format(
-                            old_name, func_name
-                        )
+                        rename_msg = "  [+] Renamed: {} -> {}".format(old_name, func_name)
                         print(rename_msg)
                 else:
                     # Create new function
@@ -435,18 +403,14 @@ class FunctionRecoveryService:
                         if new_func:
                             new_func.setName(func_name, SourceType.ANALYSIS)
                             self.created += 1
-                            create_msg = "  [+] Created: {} at {}".format(
-                                func_name, addr
-                            )
+                            create_msg = "  [+] Created: {} at {}".format(func_name, addr)
                             print(create_msg)
                     else:
                         self.failed += 1
 
             except Exception as e:
                 self.failed += 1
-                err_msg = "  [-] Error processing {}: {}".format(
-                    func_name, str(e)
-                )
+                err_msg = "  [-] Error processing {}: {}".format(func_name, str(e))
                 print(err_msg)
 
         print("\n[*] Summary:")
@@ -457,9 +421,9 @@ class FunctionRecoveryService:
 
 # Main script execution
 def main():
-    print("="*60)
+    print("=" * 60)
     print("GhidraGo - Go Function Recovery")
-    print("="*60)
+    print("=" * 60)
 
     try:
         # Get current program
@@ -479,9 +443,7 @@ def main():
         print("[+] PCLNTAB located at: {}".format(detector.pclntab_addr))
 
         # Parse PCLNTAB
-        parser = PclntabParser(
-            program, detector.pclntab_addr, detector.version
-        )
+        parser = PclntabParser(program, detector.pclntab_addr, detector.version)
         func_count = parser.parse()
 
         if func_count == 0:
@@ -496,30 +458,31 @@ def main():
         service.apply_functions(parser.functions)
 
         print("\n[*] Function recovery complete!")
-        print("="*60)
+        print("=" * 60)
 
     except StructureNotFoundError as e:
         print(f"\n[!] Error: {e}")
         print("[!] This may not be a Go binary, or uses unsupported version")
-        print("="*60)
+        print("=" * 60)
         return
 
     except (MemoryAccessError, InvalidBinaryError, ParseError) as e:
         print(f"\n[!] Binary analysis error: {e}")
         print("[!] The binary may be corrupted or use custom packing")
-        print("="*60)
+        print("=" * 60)
         return
 
     except KeyboardInterrupt:
         print("\n\n[!] Analysis interrupted by user")
-        print("="*60)
+        print("=" * 60)
         raise  # Re-raise to allow Ghidra to handle cleanup
 
     except Exception as e:
         print(f"\n[!] Unexpected error: {e}")
         print("[!] Please report this issue with binary details")
-        print("="*60)
+        print("=" * 60)
         import traceback
+
         traceback.print_exc()
         raise
 

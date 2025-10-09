@@ -57,9 +57,7 @@ def jwt_keys(tmp_path_factory):
     tmp_path = tmp_path_factory.mktemp("keys")
 
     private_key = rsa.generate_private_key(
-        public_exponent=65537,
-        key_size=2048,
-        backend=default_backend()
+        public_exponent=65537, key_size=2048, backend=default_backend()
     )
 
     public_key = private_key.public_key()
@@ -71,14 +69,14 @@ def jwt_keys(tmp_path_factory):
         private_key.private_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PrivateFormat.PKCS8,
-            encryption_algorithm=serialization.NoEncryption()
+            encryption_algorithm=serialization.NoEncryption(),
         )
     )
 
     public_key_path.write_bytes(
         public_key.public_bytes(
             encoding=serialization.Encoding.PEM,
-            format=serialization.PublicFormat.SubjectPublicKeyInfo
+            format=serialization.PublicFormat.SubjectPublicKeyInfo,
         )
     )
 
@@ -103,9 +101,7 @@ class TestRedisFailureScenarios:
 
         # Create Redis manager with invalid connection (simulates Redis down)
         redis_client = RedisConnectionManager(
-            host="invalid-host-that-does-not-exist",
-            port=9999,
-            enable_fallback=True
+            host="invalid-host-that-does-not-exist", port=9999, enable_fallback=True
         )
 
         # Verify Redis is not available
@@ -118,16 +114,13 @@ class TestRedisFailureScenarios:
             private_key_path=private_key_path,
             public_key_path=public_key_path,
             redis_client=redis_client,
-            security_level=SecurityLevel.ENHANCED
+            security_level=SecurityLevel.ENHANCED,
         )
 
         # Test 1: Create token (should work with in-memory)
         try:
             token = jwt_mgr.create_access_token(
-                subject="chaos_user",
-                user_id="user_001",
-                roles=["user"],
-                permissions=["read"]
+                subject="chaos_user", user_id="user_001", roles=["user"], permissions=["read"]
             )
             assert token is not None
             chaos_metrics["operations_succeeded"] += 1
@@ -189,7 +182,7 @@ class TestRedisFailureScenarios:
                 private_key_path=private_key_path,
                 public_key_path=public_key_path,
                 redis_client=redis_client,
-                security_level=SecurityLevel.ENHANCED
+                security_level=SecurityLevel.ENHANCED,
             )
 
             # Create token while Redis is working
@@ -197,7 +190,7 @@ class TestRedisFailureScenarios:
                 subject="user_before_failure",
                 user_id="user_002",
                 roles=["user"],
-                permissions=["read"]
+                permissions=["read"],
             )
             chaos_metrics["operations_succeeded"] += 1
 
@@ -212,7 +205,7 @@ class TestRedisFailureScenarios:
                     subject="user_after_failure",
                     user_id="user_003",
                     roles=["user"],
-                    permissions=["read"]
+                    permissions=["read"],
                 )
                 assert token2 is not None
                 chaos_metrics["operations_succeeded"] += 1
@@ -247,11 +240,7 @@ class TestRedisFailureScenarios:
         reset_chaos_metrics()
 
         # Create rate limiter with no Redis
-        redis_client = RedisConnectionManager(
-            host="invalid-host",
-            port=9999,
-            enable_fallback=True
-        )
+        redis_client = RedisConnectionManager(host="invalid-host", port=9999, enable_fallback=True)
         assert redis_client.is_available is False
         chaos_metrics["fallback_activations"] += 1
 
@@ -260,9 +249,7 @@ class TestRedisFailureScenarios:
         # Configure rate limit
         endpoint = "/api/chaos/test"
         rate_limit = RateLimit(
-            requests=3,
-            window_seconds=60,
-            strategy=RateLimitStrategy.SLIDING_WINDOW
+            requests=3, window_seconds=60, strategy=RateLimitStrategy.SLIDING_WINDOW
         )
         limiter.set_rate_limit(endpoint, LimitType.PER_USER, rate_limit)
 
@@ -270,16 +257,12 @@ class TestRedisFailureScenarios:
 
         # Make 3 requests (should all be allowed)
         for i in range(3):
-            result = asyncio.run(
-                limiter.check_rate_limit(user_id, endpoint, LimitType.PER_USER)
-            )
-            assert result.allowed is True, f"Request {i+1} should be allowed"
+            result = asyncio.run(limiter.check_rate_limit(user_id, endpoint, LimitType.PER_USER))
+            assert result.allowed is True, f"Request {i + 1} should be allowed"
             chaos_metrics["operations_succeeded"] += 1
 
         # 4th request should be blocked
-        result = asyncio.run(
-            limiter.check_rate_limit(user_id, endpoint, LimitType.PER_USER)
-        )
+        result = asyncio.run(limiter.check_rate_limit(user_id, endpoint, LimitType.PER_USER))
         assert result.allowed is False, "4th request should be blocked"
         chaos_metrics["operations_succeeded"] += 1
 
@@ -311,15 +294,12 @@ class TestDataCorruptionScenarios:
             private_key_path=private_key_path,
             public_key_path=public_key_path,
             redis_client=redis_client,
-            security_level=SecurityLevel.ENHANCED
+            security_level=SecurityLevel.ENHANCED,
         )
 
         # Create token
         token = jwt_mgr.create_access_token(
-            subject="corrupt_test",
-            user_id="user_corrupt",
-            roles=["user"],
-            permissions=["read"]
+            subject="corrupt_test", user_id="user_corrupt", roles=["user"], permissions=["read"]
         )
 
         # Extract JTI from token
@@ -374,7 +354,7 @@ class TestNetworkIssues:
         # Create Redis manager with aggressive timeout
         redis_client = RedisConnectionManager(
             socket_timeout=0.001,  # 1ms - will timeout on most operations
-            enable_fallback=True
+            enable_fallback=True,
         )
 
         # Operations may timeout and fallback
@@ -383,16 +363,13 @@ class TestNetworkIssues:
             private_key_path=private_key_path,
             public_key_path=public_key_path,
             redis_client=redis_client,
-            security_level=SecurityLevel.ENHANCED
+            security_level=SecurityLevel.ENHANCED,
         )
 
         # Try to create token (may use fallback due to timeout)
         try:
             token = jwt_mgr.create_access_token(
-                subject="timeout_test",
-                user_id="user_timeout",
-                roles=["user"],
-                permissions=["read"]
+                subject="timeout_test", user_id="user_timeout", roles=["user"], permissions=["read"]
             )
             assert token is not None
             chaos_metrics["operations_succeeded"] += 1
@@ -428,15 +405,12 @@ class TestResourceExhaustion:
             private_key_path=private_key_path,
             public_key_path=public_key_path,
             redis_client=redis_client,
-            security_level=SecurityLevel.ENHANCED
+            security_level=SecurityLevel.ENHANCED,
         )
 
         # Create token
         token = jwt_mgr.create_access_token(
-            subject="load_test",
-            user_id="user_load",
-            roles=["user"],
-            permissions=["read"]
+            subject="load_test", user_id="user_load", roles=["user"], permissions=["read"]
         )
 
         # Verify token 100 times concurrently
@@ -473,7 +447,7 @@ class TestResourceExhaustion:
         print(f"  Successes: {successes}/100")
         print(f"  Failures: {failures}/100")
         print(f"  Total time: {elapsed_ms:.2f}ms")
-        print(f"  Avg latency: {elapsed_ms/100:.2f}ms per operation")
+        print(f"  Avg latency: {elapsed_ms / 100:.2f}ms per operation")
 
 
 class TestCascadingFailures:
@@ -496,7 +470,7 @@ class TestCascadingFailures:
         redis_client = RedisConnectionManager(
             host="invalid-host",  # Redis unavailable
             socket_timeout=0.001,  # Network timeout
-            enable_fallback=True
+            enable_fallback=True,
         )
 
         assert redis_client.is_available is False
@@ -508,17 +482,14 @@ class TestCascadingFailures:
             private_key_path=private_key_path,
             public_key_path=public_key_path,
             redis_client=redis_client,
-            security_level=SecurityLevel.ENHANCED
+            security_level=SecurityLevel.ENHANCED,
         )
 
         limiter = AdvancedRateLimiter(redis_client=redis_client)
 
         # Test JWT operations despite failures
         token = jwt_mgr.create_access_token(
-            subject="cascade_test",
-            user_id="user_cascade",
-            roles=["user"],
-            permissions=["read"]
+            subject="cascade_test", user_id="user_cascade", roles=["user"], permissions=["read"]
         )
         chaos_metrics["operations_succeeded"] += 1
 
@@ -531,9 +502,7 @@ class TestCascadingFailures:
         rate_limit = RateLimit(requests=5, window_seconds=60)
         limiter.set_rate_limit(endpoint, LimitType.PER_USER, rate_limit)
 
-        result = asyncio.run(
-            limiter.check_rate_limit("cascade_user", endpoint, LimitType.PER_USER)
-        )
+        result = asyncio.run(limiter.check_rate_limit("cascade_user", endpoint, LimitType.PER_USER))
         assert result.allowed is True
         chaos_metrics["operations_succeeded"] += 1
 

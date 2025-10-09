@@ -21,13 +21,17 @@ router = APIRouter(prefix="/api/auth", tags=["authentication"])
 # PYDANTIC MODELS
 # ============================================================================
 
+
 class TokenVerifyRequest(BaseModel):
     """Request to verify a JWT token"""
+
     token: str
     token_type: str = "access"
 
+
 class TokenVerifyResponse(BaseModel):
     """Response from token verification"""
+
     sub: str
     tenant_id: str
     email: str
@@ -37,9 +41,11 @@ class TokenVerifyResponse(BaseModel):
     iat: Optional[int] = None
     exp: Optional[int] = None
 
+
 # ============================================================================
 # AUTHENTICATION ENDPOINTS
 # ============================================================================
+
 
 @router.post("/verify", response_model=TokenVerifyResponse)
 async def verify_jwt_token(request: TokenVerifyRequest):
@@ -55,8 +61,7 @@ async def verify_jwt_token(request: TokenVerifyRequest):
 
         if not token_data:
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid or expired token"
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token"
             )
 
         # Convert TokenData to response model
@@ -68,7 +73,7 @@ async def verify_jwt_token(request: TokenVerifyRequest):
             type=token_data.type,
             jti=token_data.jti,
             iat=int(token_data.iat.timestamp()) if token_data.iat else None,
-            exp=int(token_data.exp.timestamp()) if token_data.exp else None
+            exp=int(token_data.exp.timestamp()) if token_data.exp else None,
         )
 
     except HTTPException:
@@ -76,8 +81,9 @@ async def verify_jwt_token(request: TokenVerifyRequest):
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error verifying token: {str(e)}"
+            detail=f"Error verifying token: {str(e)}",
         )
+
 
 @router.get("/health")
 async def auth_health_check():
@@ -87,7 +93,5 @@ async def auth_health_check():
     return {
         "status": "healthy",
         "service": "authentication",
-        "endpoints": [
-            "/api/auth/verify - Verify JWT tokens"
-        ]
+        "endpoints": ["/api/auth/verify - Verify JWT tokens"],
     }

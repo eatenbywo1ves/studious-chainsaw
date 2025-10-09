@@ -10,14 +10,13 @@ import json
 import unittest
 from typing import Dict, Any
 import warnings
-warnings.filterwarnings('ignore')
+
+warnings.filterwarnings("ignore")
 
 # Import all lattice components
 try:
-    from catalytic_lattice_graph import (
-        CatalyticLatticeGraph,
-        GraphAcceleratedCatalyticComputer
-    )
+    from catalytic_lattice_graph import CatalyticLatticeGraph, GraphAcceleratedCatalyticComputer
+
     IGRAPH_AVAILABLE = True
 except ImportError:
     IGRAPH_AVAILABLE = False
@@ -26,6 +25,7 @@ except ImportError:
 # GPU availability check
 try:
     import cupy as cp
+
     GPU_AVAILABLE = cp.cuda.is_available()
 except ImportError:
     GPU_AVAILABLE = False
@@ -39,10 +39,10 @@ class TestLatticeIntegration(unittest.TestCase):
     def setUpClass(cls):
         """Set up test fixtures"""
         cls.test_results = {
-            'timestamp': time.strftime('%Y-%m-%d %H:%M:%S'),
-            'tests': {},
-            'performance': {},
-            'memory': {}
+            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "tests": {},
+            "performance": {},
+            "memory": {},
         }
 
     def setUp(self):
@@ -53,10 +53,7 @@ class TestLatticeIntegration(unittest.TestCase):
         """Record test metrics"""
         elapsed = time.time() - self.start_time
         test_name = self._testMethodName
-        self.__class__.test_results['tests'][test_name] = {
-            'elapsed': elapsed,
-            'passed': True
-        }
+        self.__class__.test_results["tests"][test_name] = {"elapsed": elapsed, "passed": True}
 
     def test_01_basic_lattice_creation(self):
         """Test basic lattice creation across different dimensions"""
@@ -64,10 +61,10 @@ class TestLatticeIntegration(unittest.TestCase):
         print("-" * 50)
 
         test_cases = [
-            (2, 10, 100),      # 2D lattice, 10x10
-            (3, 5, 125),       # 3D lattice, 5x5x5
-            (4, 4, 256),       # 4D lattice, 4x4x4x4
-            (5, 3, 243),       # 5D lattice, 3^5
+            (2, 10, 100),  # 2D lattice, 10x10
+            (3, 5, 125),  # 3D lattice, 5x5x5
+            (4, 4, 256),  # 4D lattice, 4x4x4x4
+            (5, 3, 243),  # 5D lattice, 3^5
         ]
 
         for dims, size, expected_points in test_cases:
@@ -76,15 +73,20 @@ class TestLatticeIntegration(unittest.TestCase):
                     graph = CatalyticLatticeGraph(dims, size)
                     actual_points = graph.n_points
 
-                    self.assertEqual(actual_points, expected_points,
-                                   f"Expected {expected_points} points, got {actual_points}")
+                    self.assertEqual(
+                        actual_points,
+                        expected_points,
+                        f"Expected {expected_points} points, got {actual_points}",
+                    )
 
                     # Verify graph connectivity
                     self.assertIsNotNone(graph.graph)
                     self.assertGreater(len(graph.graph.es), 0, "Graph should have edges")
 
-                    print(f"  [OK] {dims}D x {size}: {actual_points} points, "
-                          f"{len(graph.graph.es)} edges")
+                    print(
+                        f"  [OK] {dims}D x {size}: {actual_points} points, "
+                        f"{len(graph.graph.es)} edges"
+                    )
                 else:
                     print("  [SKIP] igraph not available")
 
@@ -98,11 +100,7 @@ class TestLatticeIntegration(unittest.TestCase):
 
         # Create test lattice
         graph = CatalyticLatticeGraph(dimensions=3, lattice_size=8)
-        computer = GraphAcceleratedCatalyticComputer(
-            dimensions=3,
-            lattice_size=8,
-            aux_memory_mb=10
-        )
+        computer = GraphAcceleratedCatalyticComputer(dimensions=3, lattice_size=8, aux_memory_mb=10)
 
         start, end = 0, graph.n_points - 1
 
@@ -118,18 +116,18 @@ class TestLatticeIntegration(unittest.TestCase):
 
         # Verify paths are optimal
         self.assertEqual(len(path1), len(path2), "Paths should be same length")
-        self.assertAlmostEqual(length1, length2, places=2,
-                              msg="Path distances should match")
+        self.assertAlmostEqual(length1, length2, places=2, msg="Path distances should match")
 
-        print(f"  [OK] igraph path: {len(path1)} steps in {time1*1000:.2f}ms")
-        print(f"  [OK] Catalytic path: {len(path2)} steps in {time2*1000:.2f}ms")
+        print(f"  [OK] igraph path: {len(path1)} steps in {time1 * 1000:.2f}ms")
+        print(f"  [OK] Catalytic path: {len(path2)} steps in {time2 * 1000:.2f}ms")
 
         # Verify catalytic memory restoration
         initial_aux = computer.aux_memory[:100].copy()
         computer.catalytic_graph_traversal(10, 20)
         final_aux = computer.aux_memory[:100]
-        self.assertTrue(np.array_equal(initial_aux, final_aux),
-                       "Auxiliary memory should be restored")
+        self.assertTrue(
+            np.array_equal(initial_aux, final_aux), "Auxiliary memory should be restored"
+        )
         print("  [OK] Catalytic memory restoration verified")
 
     def test_03_parallel_processing_integration(self):
@@ -140,11 +138,7 @@ class TestLatticeIntegration(unittest.TestCase):
         if not IGRAPH_AVAILABLE:
             self.skipTest("igraph not available")
 
-        computer = GraphAcceleratedCatalyticComputer(
-            dimensions=4,
-            lattice_size=5,
-            aux_memory_mb=20
-        )
+        computer = GraphAcceleratedCatalyticComputer(dimensions=4, lattice_size=5, aux_memory_mb=20)
 
         # Test graph coloring for parallelization
         coloring = computer.graph.apply_graph_coloring()
@@ -156,17 +150,21 @@ class TestLatticeIntegration(unittest.TestCase):
         print(f"  [OK] Graph colored with {n_colors} colors for parallel processing")
 
         # Test parallel operations
-        operations = ['compute', 'transform']
+        operations = ["compute", "transform"]
 
         for op in operations:
             results = computer.parallel_lattice_operation(op)
             total_processed = sum(len(r) for r in results)
 
-            self.assertEqual(total_processed, computer.graph.n_points,
-                           f"All vertices should be processed for {op}")
+            self.assertEqual(
+                total_processed,
+                computer.graph.n_points,
+                f"All vertices should be processed for {op}",
+            )
 
-            print(f"  [OK] Parallel {op}: {len(results)} groups, "
-                  f"{total_processed} vertices processed")
+            print(
+                f"  [OK] Parallel {op}: {len(results)} groups, {total_processed} vertices processed"
+            )
 
     def test_04_memory_efficiency_integration(self):
         """Test memory efficiency across components"""
@@ -175,15 +173,13 @@ class TestLatticeIntegration(unittest.TestCase):
 
         # Compare memory usage across different approaches
         dims, size = 4, 6
-        n_points = size ** dims
+        n_points = size**dims
 
         # Traditional dense matrix
         traditional_bytes = n_points * n_points * 8
         traditional_mb = traditional_bytes / (1024 * 1024)
 
-        results = {
-            'traditional_dense': traditional_mb
-        }
+        results = {"traditional_dense": traditional_mb}
 
         # igraph sparse representation
         if IGRAPH_AVAILABLE:
@@ -194,25 +190,29 @@ class TestLatticeIntegration(unittest.TestCase):
             n_edges = len(graph.graph.es)
             sparse_bytes = n_edges * 2 * 8  # Edge list
             sparse_mb = sparse_bytes / (1024 * 1024)
-            results['igraph_sparse'] = sparse_mb
+            results["igraph_sparse"] = sparse_mb
 
             print(f"  Traditional dense: {traditional_mb:.2f} MB")
-            print(f"  igraph sparse: {sparse_mb:.2f} MB "
-                  f"({traditional_mb/sparse_mb:.1f}x reduction)")
+            print(
+                f"  igraph sparse: {sparse_mb:.2f} MB ({traditional_mb / sparse_mb:.1f}x reduction)"
+            )
 
         # Catalytic approach
         if IGRAPH_AVAILABLE:
             computer = GraphAcceleratedCatalyticComputer(dims, size, aux_memory_mb=5)
             catalytic_mb = computer.aux_memory.nbytes / (1024 * 1024)
-            results['catalytic'] = catalytic_mb
+            results["catalytic"] = catalytic_mb
 
-            print(f"  Catalytic auxiliary: {catalytic_mb:.2f} MB "
-                  f"({traditional_mb/catalytic_mb:.1f}x reduction)")
+            print(
+                f"  Catalytic auxiliary: {catalytic_mb:.2f} MB "
+                f"({traditional_mb / catalytic_mb:.1f}x reduction)"
+            )
 
-            self.assertLess(catalytic_mb, traditional_mb,
-                          "Catalytic should use less memory than traditional")
+            self.assertLess(
+                catalytic_mb, traditional_mb, "Catalytic should use less memory than traditional"
+            )
 
-        self.__class__.test_results['memory'] = results
+        self.__class__.test_results["memory"] = results
 
     def test_05_algorithm_correctness_integration(self):
         """Test correctness of integrated algorithms"""
@@ -230,34 +230,32 @@ class TestLatticeIntegration(unittest.TestCase):
         corners = [0, 3, 12, 15]
         for corner in corners:
             neighbors = graph.get_neighbors(corner, radius=1)
-            self.assertEqual(len(neighbors), 2,
-                           f"Corner {corner} should have 2 neighbors")
+            self.assertEqual(len(neighbors), 2, f"Corner {corner} should have 2 neighbors")
 
         print("  [OK] Lattice structure verified")
 
         # Test 2: Path symmetry
         path_forward, _ = graph.find_shortest_path(0, 15)
         path_backward, _ = graph.find_shortest_path(15, 0)
-        self.assertEqual(len(path_forward), len(path_backward),
-                       "Forward and backward paths should be equal")
+        self.assertEqual(
+            len(path_forward), len(path_backward), "Forward and backward paths should be equal"
+        )
 
         print("  [OK] Path symmetry verified")
 
         # Test 3: Community detection coverage
-        communities = graph.find_communities('multilevel')
+        communities = graph.find_communities("multilevel")
         all_vertices = set()
         for community in communities:
             all_vertices.update(community)
 
-        self.assertEqual(len(all_vertices), graph.n_points,
-                       "All vertices should be in communities")
+        self.assertEqual(len(all_vertices), graph.n_points, "All vertices should be in communities")
 
         print("  [OK] Community detection coverage verified")
 
         # Test 4: MST properties
         mst = graph.find_minimum_spanning_tree()
-        self.assertEqual(len(mst.es), graph.n_points - 1,
-                       "MST should have n-1 edges")
+        self.assertEqual(len(mst.es), graph.n_points - 1, "MST should have n-1 edges")
 
         print("  [OK] Minimum spanning tree properties verified")
 
@@ -272,15 +270,15 @@ class TestLatticeIntegration(unittest.TestCase):
         scaling_results = []
 
         test_cases = [
-            (3, 4),   # Small 3D
-            (3, 6),   # Medium 3D
-            (4, 4),   # Small 4D
-            (4, 5),   # Medium 4D
-            (5, 3),   # Small 5D
+            (3, 4),  # Small 3D
+            (3, 6),  # Medium 3D
+            (4, 4),  # Small 4D
+            (4, 5),  # Medium 4D
+            (5, 3),  # Small 5D
         ]
 
         for dims, size in test_cases:
-            n_points = size ** dims
+            n_points = size**dims
 
             # Build lattice
             t_start = time.time()
@@ -292,28 +290,31 @@ class TestLatticeIntegration(unittest.TestCase):
             path, _ = graph.find_shortest_path(0, n_points - 1)
             path_time = time.time() - t_start
 
-            scaling_results.append({
-                'dims': dims,
-                'size': size,
-                'n_points': n_points,
-                'build_time': build_time,
-                'path_time': path_time
-            })
+            scaling_results.append(
+                {
+                    "dims": dims,
+                    "size": size,
+                    "n_points": n_points,
+                    "build_time": build_time,
+                    "path_time": path_time,
+                }
+            )
 
-            print(f"  {dims}D x {size}: {n_points:4d} points | "
-                  f"Build: {build_time*1000:6.2f}ms | "
-                  f"Path: {path_time*1000:6.2f}ms")
+            print(
+                f"  {dims}D x {size}: {n_points:4d} points | "
+                f"Build: {build_time * 1000:6.2f}ms | "
+                f"Path: {path_time * 1000:6.2f}ms"
+            )
 
         # Verify reasonable scaling
-        times = [r['build_time'] for r in scaling_results]
-        points = [r['n_points'] for r in scaling_results]
+        times = [r["build_time"] for r in scaling_results]
+        points = [r["n_points"] for r in scaling_results]
 
         # Check that larger lattices take more time (generally)
         correlation = np.corrcoef(points, times)[0, 1]
-        self.assertGreater(correlation, 0.5,
-                         "Build time should correlate with lattice size")
+        self.assertGreater(correlation, 0.5, "Build time should correlate with lattice size")
 
-        self.__class__.test_results['performance']['scaling'] = scaling_results
+        self.__class__.test_results["performance"]["scaling"] = scaling_results
 
     def test_07_gpu_acceleration_integration(self):
         """Test GPU acceleration if available"""
@@ -390,15 +391,17 @@ class TestLatticeIntegration(unittest.TestCase):
         print(f"  [OK] PCA projection: {explained_var:.1%} variance explained")
 
         # Test graph metrics for visualization
-        centrality = graph.compute_centrality('betweenness')
-        communities = graph.find_communities('multilevel')
+        centrality = graph.compute_centrality("betweenness")
+        communities = graph.find_communities("multilevel")
 
         self.assertEqual(len(centrality), graph.n_points)
         self.assertGreater(len(communities), 0)
 
-        print(f"  [OK] Graph metrics computed: "
-              f"{len(communities)} communities, "
-              f"max centrality={centrality.max():.2f}")
+        print(
+            f"  [OK] Graph metrics computed: "
+            f"{len(communities)} communities, "
+            f"max centrality={centrality.max():.2f}"
+        )
 
     def test_09_cross_component_workflow(self):
         """Test complete workflow across all components"""
@@ -413,43 +416,43 @@ class TestLatticeIntegration(unittest.TestCase):
 
         # Step 1: Create lattice with igraph
         t_start = time.time()
-        computer = GraphAcceleratedCatalyticComputer(
-            dimensions=4,
-            lattice_size=5,
-            aux_memory_mb=10
-        )
-        workflow_steps.append(('create', time.time() - t_start))
-        print(f"  [OK] Step 1: Lattice created ({workflow_steps[-1][1]*1000:.2f}ms)")
+        computer = GraphAcceleratedCatalyticComputer(dimensions=4, lattice_size=5, aux_memory_mb=10)
+        workflow_steps.append(("create", time.time() - t_start))
+        print(f"  [OK] Step 1: Lattice created ({workflow_steps[-1][1] * 1000:.2f}ms)")
 
         # Step 2: Find optimal path
         t_start = time.time()
-        path, length = computer.catalytic_graph_traversal(
-            0, computer.graph.n_points - 1
+        path, length = computer.catalytic_graph_traversal(0, computer.graph.n_points - 1)
+        workflow_steps.append(("pathfind", time.time() - t_start))
+        print(
+            f"  [OK] Step 2: Path found - {len(path)} steps ({workflow_steps[-1][1] * 1000:.2f}ms)"
         )
-        workflow_steps.append(('pathfind', time.time() - t_start))
-        print(f"  [OK] Step 2: Path found - {len(path)} steps ({workflow_steps[-1][1]*1000:.2f}ms)")
 
         # Step 3: Compute graph properties
         t_start = time.time()
-        communities = computer.graph.find_communities('fast_greedy')
-        computer.graph.compute_centrality('betweenness')
-        workflow_steps.append(('analyze', time.time() - t_start))
-        print(f"  [OK] Step 3: Graph analyzed - {len(communities)} communities "
-              f"({workflow_steps[-1][1]*1000:.2f}ms)")
+        communities = computer.graph.find_communities("fast_greedy")
+        computer.graph.compute_centrality("betweenness")
+        workflow_steps.append(("analyze", time.time() - t_start))
+        print(
+            f"  [OK] Step 3: Graph analyzed - {len(communities)} communities "
+            f"({workflow_steps[-1][1] * 1000:.2f}ms)"
+        )
 
         # Step 4: Parallel operations
         t_start = time.time()
-        results = computer.parallel_lattice_operation('compute')
-        workflow_steps.append(('parallel', time.time() - t_start))
-        print(f"  [OK] Step 4: Parallel processing - {len(results)} groups "
-              f"({workflow_steps[-1][1]*1000:.2f}ms)")
+        results = computer.parallel_lattice_operation("compute")
+        workflow_steps.append(("parallel", time.time() - t_start))
+        print(
+            f"  [OK] Step 4: Parallel processing - {len(results)} groups "
+            f"({workflow_steps[-1][1] * 1000:.2f}ms)"
+        )
 
         # Verify complete workflow
         total_time = sum(t for _, t in workflow_steps)
         self.assertLess(total_time, 1.0, "Workflow should complete in < 1 second")
 
-        print(f"\n  Total workflow time: {total_time*1000:.2f}ms")
-        self.__class__.test_results['performance']['workflow'] = workflow_steps
+        print(f"\n  Total workflow time: {total_time * 1000:.2f}ms")
+        self.__class__.test_results["performance"]["workflow"] = workflow_steps
 
     def test_10_stress_test_integration(self):
         """Stress test with larger lattices"""
@@ -466,11 +469,11 @@ class TestLatticeIntegration(unittest.TestCase):
         configs = [
             (3, 10),  # 1000 points
             (3, 15),  # 3375 points
-            (4, 7),   # 2401 points
+            (4, 7),  # 2401 points
         ]
 
         for dims, size in configs:
-            n_points = size ** dims
+            n_points = size**dims
             if n_points > max_points:
                 continue
 
@@ -481,34 +484,37 @@ class TestLatticeIntegration(unittest.TestCase):
                 # Stress test operations
                 path, _ = graph.find_shortest_path(0, n_points - 1)
                 graph.get_neighbors(n_points // 2, radius=2)
-                graph.find_communities('multilevel')
+                graph.find_communities("multilevel")
 
                 elapsed = time.time() - t_start
 
-                stress_results.append({
-                    'config': f"{dims}D x {size}",
-                    'n_points': n_points,
-                    'time': elapsed,
-                    'success': True
-                })
+                stress_results.append(
+                    {
+                        "config": f"{dims}D x {size}",
+                        "n_points": n_points,
+                        "time": elapsed,
+                        "success": True,
+                    }
+                )
 
-                print(f"  [OK] {dims}D x {size} ({n_points} points): "
-                      f"{elapsed*1000:.2f}ms")
+                print(f"  [OK] {dims}D x {size} ({n_points} points): {elapsed * 1000:.2f}ms")
 
             except Exception as e:
-                stress_results.append({
-                    'config': f"{dims}D x {size}",
-                    'n_points': n_points,
-                    'error': str(e),
-                    'success': False
-                })
+                stress_results.append(
+                    {
+                        "config": f"{dims}D x {size}",
+                        "n_points": n_points,
+                        "error": str(e),
+                        "success": False,
+                    }
+                )
                 print(f"  [FAIL] {dims}D x {size}: {e}")
 
         # At least some stress tests should pass
-        successes = sum(1 for r in stress_results if r.get('success', False))
+        successes = sum(1 for r in stress_results if r.get("success", False))
         self.assertGreater(successes, 0, "At least one stress test should pass")
 
-        self.__class__.test_results['performance']['stress'] = stress_results
+        self.__class__.test_results["performance"]["stress"] = stress_results
 
 
 class TestReportGenerator:
@@ -518,54 +524,56 @@ class TestReportGenerator:
     def generate_report(test_results: Dict[str, Any]) -> str:
         """Generate formatted test report"""
         report = []
-        report.append("\n" + "="*70)
+        report.append("\n" + "=" * 70)
         report.append(" LATTICE ALGORITHM INTEGRATION TEST REPORT")
-        report.append("="*70)
+        report.append("=" * 70)
         report.append(f"\nTest Date: {test_results['timestamp']}")
 
         # Test Summary
         report.append("\n## Test Summary")
         report.append("-" * 40)
-        total_tests = len(test_results['tests'])
-        passed_tests = sum(1 for t in test_results['tests'].values() if t.get('passed', False))
+        total_tests = len(test_results["tests"])
+        passed_tests = sum(1 for t in test_results["tests"].values() if t.get("passed", False))
 
         report.append(f"Total Tests: {total_tests}")
         report.append(f"Passed: {passed_tests}")
         report.append(f"Failed: {total_tests - passed_tests}")
-        report.append(f"Success Rate: {passed_tests/total_tests*100:.1f}%")
+        report.append(f"Success Rate: {passed_tests / total_tests * 100:.1f}%")
 
         # Performance Metrics
-        if test_results.get('performance'):
+        if test_results.get("performance"):
             report.append("\n## Performance Metrics")
             report.append("-" * 40)
 
-            if 'scaling' in test_results['performance']:
+            if "scaling" in test_results["performance"]:
                 report.append("\n### Scaling Performance:")
-                for item in test_results['performance']['scaling']:
-                    report.append(f"  {item['dims']}D x {item['size']}: "
-                                f"{item['build_time']*1000:.2f}ms build, "
-                                f"{item['path_time']*1000:.2f}ms path")
+                for item in test_results["performance"]["scaling"]:
+                    report.append(
+                        f"  {item['dims']}D x {item['size']}: "
+                        f"{item['build_time'] * 1000:.2f}ms build, "
+                        f"{item['path_time'] * 1000:.2f}ms path"
+                    )
 
-            if 'workflow' in test_results['performance']:
+            if "workflow" in test_results["performance"]:
                 report.append("\n### Workflow Performance:")
-                for step, time in test_results['performance']['workflow']:
-                    report.append(f"  {step}: {time*1000:.2f}ms")
+                for step, time in test_results["performance"]["workflow"]:
+                    report.append(f"  {step}: {time * 1000:.2f}ms")
 
         # Memory Analysis
-        if test_results.get('memory'):
+        if test_results.get("memory"):
             report.append("\n## Memory Analysis")
             report.append("-" * 40)
-            for method, mb in test_results['memory'].items():
+            for method, mb in test_results["memory"].items():
                 report.append(f"  {method}: {mb:.2f} MB")
 
         # Individual Test Times
         report.append("\n## Test Execution Times")
         report.append("-" * 40)
-        for test_name, data in sorted(test_results['tests'].items()):
-            status = "PASS" if data.get('passed', False) else "FAIL"
-            report.append(f"  {test_name}: {data['elapsed']*1000:.2f}ms [{status}]")
+        for test_name, data in sorted(test_results["tests"].items()):
+            status = "PASS" if data.get("passed", False) else "FAIL"
+            report.append(f"  {test_name}: {data['elapsed'] * 1000:.2f}ms [{status}]")
 
-        total_time = sum(t['elapsed'] for t in test_results['tests'].values())
+        total_time = sum(t["elapsed"] for t in test_results["tests"].values())
         report.append(f"\nTotal Execution Time: {total_time:.2f}s")
 
         return "\n".join(report)
@@ -573,9 +581,9 @@ class TestReportGenerator:
 
 def run_integration_tests():
     """Run complete integration test suite"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print(" LATTICE ALGORITHM INTEGRATION TEST SUITE")
-    print("="*70)
+    print("=" * 70)
     print("\nThis suite tests the integration of:")
     print("  - Catalytic Computing (200x memory reduction)")
     print("  - igraph (22x performance improvement)")
@@ -598,8 +606,8 @@ def run_integration_tests():
     print(report)
 
     # Save report to file
-    report_file = 'lattice_integration_test_report.json'
-    with open(report_file, 'w') as f:
+    report_file = "lattice_integration_test_report.json"
+    with open(report_file, "w") as f:
         json.dump(test_results, f, indent=2)
     print(f"\n[INFO] Detailed report saved to: {report_file}")
 

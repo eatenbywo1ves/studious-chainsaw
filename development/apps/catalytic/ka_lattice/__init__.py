@@ -9,14 +9,14 @@ from .knowledge_base import KnowledgeStore, PatternLibrary
 from .orchestrator import KALatticeOrchestrator, OrchestratorConfig
 
 __all__ = [
-    'KALatticeCore',
-    'LatticeState',
-    'ProductionCycleManager',
-    'CyclePhase',
-    'KnowledgeStore',
-    'PatternLibrary',
-    'KALatticeOrchestrator',
-    'OrchestratorConfig'
+    "KALatticeCore",
+    "LatticeState",
+    "ProductionCycleManager",
+    "CyclePhase",
+    "KnowledgeStore",
+    "PatternLibrary",
+    "KALatticeOrchestrator",
+    "OrchestratorConfig",
 ]
 
-__version__ = '1.0.0'
+__version__ = "1.0.0"

@@ -36,9 +36,9 @@ def get_postgresql_url():
     pg_url = os.getenv("POSTGRESQL_URL") or os.getenv("DATABASE_URL")
 
     if not pg_url or not pg_url.startswith("postgresql"):
-        print("\n" + "="*70)
+        print("\n" + "=" * 70)
         print("POSTGRESQL CONFIGURATION REQUIRED")
-        print("="*70)
+        print("=" * 70)
         print("\nTo migrate to PostgreSQL, you need to:")
         print("\n1. Install PostgreSQL:")
         print("   Windows: https://www.postgresql.org/download/windows/")
@@ -50,10 +50,12 @@ def get_postgresql_url():
         print("   CREATE USER catalytic WITH ENCRYPTED PASSWORD 'your_password';")
         print("   GRANT ALL PRIVILEGES ON DATABASE catalytic_saas TO catalytic;")
         print("\n3. Add to .env:")
-        print("   POSTGRESQL_URL=postgresql://catalytic:your_password@localhost:5432/catalytic_saas")
+        print(
+            "   POSTGRESQL_URL=postgresql://catalytic:your_password@localhost:5432/catalytic_saas"
+        )
         print("\n4. Update DATABASE_URL in .env:")
         print("   DATABASE_URL=postgresql://catalytic:your_password@localhost:5432/catalytic_saas")
-        print("\n" + "="*70 + "\n")
+        print("\n" + "=" * 70 + "\n")
         sys.exit(1)
 
     return pg_url
@@ -61,9 +63,9 @@ def get_postgresql_url():
 
 def test_postgresql_connection(pg_url):
     """Test PostgreSQL connection"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TESTING POSTGRESQL CONNECTION")
-    print("="*70 + "\n")
+    print("=" * 70 + "\n")
 
     try:
         engine = create_engine(pg_url, echo=False)
@@ -85,9 +87,9 @@ def test_postgresql_connection(pg_url):
 
 def backup_sqlite(sqlite_url):
     """Create backup of SQLite database"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("BACKING UP SQLITE DATABASE")
-    print("="*70 + "\n")
+    print("=" * 70 + "\n")
 
     try:
         sqlite_path = sqlite_url.replace("sqlite:///", "")
@@ -97,9 +99,12 @@ def backup_sqlite(sqlite_url):
             return False
 
         # Create backup
-        backup_path = sqlite_path.replace(".db", f"_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.db")
+        backup_path = sqlite_path.replace(
+            ".db", f"_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.db"
+        )
 
         import shutil
+
         shutil.copy2(sqlite_path, backup_path)
 
         backup_size = os.path.getsize(backup_path)
@@ -114,9 +119,9 @@ def backup_sqlite(sqlite_url):
 
 def analyze_sqlite_data(sqlite_engine):
     """Analyze SQLite database content"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("ANALYZING SQLITE DATABASE")
-    print("="*70 + "\n")
+    print("=" * 70 + "\n")
 
     inspector = inspect(sqlite_engine)
     tables = inspector.get_table_names()
@@ -142,9 +147,9 @@ def analyze_sqlite_data(sqlite_engine):
 
 def create_postgresql_schema(pg_engine):
     """Create PostgreSQL schema"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("CREATING POSTGRESQL SCHEMA")
-    print("="*70 + "\n")
+    print("=" * 70 + "\n")
 
     try:
         # Drop all tables if they exist
@@ -189,14 +194,22 @@ def migrate_table_data(sqlite_session, pg_session, table_name, model_class):
 
 def migrate_all_data(sqlite_engine, pg_engine):
     """Migrate all data from SQLite to PostgreSQL"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("MIGRATING DATA")
-    print("="*70 + "\n")
+    print("=" * 70 + "\n")
 
     from database.models import (
-        SubscriptionPlan, Tenant, User, TenantSubscription,
-        StripeCustomer, StripePaymentMethod, Invoice, UsageRecord,
-        APIKey, AuditLog, Notification
+        SubscriptionPlan,
+        Tenant,
+        User,
+        TenantSubscription,
+        StripeCustomer,
+        StripePaymentMethod,
+        Invoice,
+        UsageRecord,
+        APIKey,
+        AuditLog,
+        Notification,
     )
 
     # Order matters due to foreign key constraints
@@ -241,9 +254,9 @@ def migrate_all_data(sqlite_engine, pg_engine):
 
 def verify_migration(sqlite_engine, pg_engine):
     """Verify data was migrated correctly"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("VERIFYING MIGRATION")
-    print("="*70 + "\n")
+    print("=" * 70 + "\n")
 
     inspector = inspect(sqlite_engine)
     tables = inspector.get_table_names()
@@ -278,9 +291,9 @@ def verify_migration(sqlite_engine, pg_engine):
 
 def main():
     """Main migration function"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("CATALYTIC COMPUTING SAAS - POSTGRESQL MIGRATION")
-    print("="*70)
+    print("=" * 70)
 
     # Get database URLs
     sqlite_url = get_sqlite_url()
@@ -304,10 +317,10 @@ def main():
     analyze_sqlite_data(sqlite_engine)
 
     # Confirm migration
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     response = input("\nProceed with migration? (y/N): ")
 
-    if response.lower() != 'y':
+    if response.lower() != "y":
         print("Migration cancelled.")
         sys.exit(0)
 
@@ -327,9 +340,9 @@ def main():
     else:
         print("\n[WARN] Migration verification found mismatches.")
 
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("MIGRATION COMPLETE")
-    print("="*70)
+    print("=" * 70)
     print("\nNext steps:")
     print("1. Update DATABASE_URL in .env to use PostgreSQL:")
     print(f"   DATABASE_URL={pg_url}")
@@ -337,7 +350,7 @@ def main():
     print("3. Test application functionality")
     print("4. Run validation: python validate-deployment.py")
     print("\nBackup location: Check output above for backup file path")
-    print("="*70 + "\n")
+    print("=" * 70 + "\n")
 
 
 if __name__ == "__main__":

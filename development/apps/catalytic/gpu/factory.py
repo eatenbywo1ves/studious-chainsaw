@@ -41,7 +41,7 @@ class GPUFactory:
         size: int,
         backend: Optional[GPUBackend] = None,
         device_id: Optional[int] = None,
-        **kwargs
+        **kwargs,
     ) -> BaseLatticeGPU:
         """
         Create a GPU lattice instance with the appropriate backend
@@ -70,7 +70,9 @@ class GPUFactory:
         else:
             # Verify requested backend is available
             if backend != gpu_manager.get_backend() and backend != GPUBackend.CPU:
-                logger.warning(f"Requested backend {backend.value} not available, using {gpu_manager.get_backend().value}")
+                logger.warning(
+                    f"Requested backend {backend.value} not available, using {gpu_manager.get_backend().value}"
+                )
                 backend = gpu_manager.get_backend()
 
         # Get implementation class
@@ -102,14 +104,13 @@ class GPUFactory:
                 device_id = 0
 
         # Create instance
-        logger.info(f"Creating {backend.value} lattice (device={device_id}, dimensions={dimensions}, size={size})")
+        logger.info(
+            f"Creating {backend.value} lattice (device={device_id}, dimensions={dimensions}, size={size})"
+        )
 
         try:
             instance = implementation_class(
-                dimensions=dimensions,
-                size=size,
-                device_id=device_id or 0,
-                **kwargs
+                dimensions=dimensions, size=size, device_id=device_id or 0, **kwargs
             )
 
             # Initialize the device
@@ -125,21 +126,13 @@ class GPUFactory:
             if backend != GPUBackend.CPU and GPUBackend.CPU in cls._implementations:
                 logger.info("Attempting CPU fallback")
                 return cls.create(
-                    dimensions=dimensions,
-                    size=size,
-                    backend=GPUBackend.CPU,
-                    device_id=0,
-                    **kwargs
+                    dimensions=dimensions, size=size, backend=GPUBackend.CPU, device_id=0, **kwargs
                 )
             raise
 
     @classmethod
     def create_best(
-        cls,
-        dimensions: int,
-        size: int,
-        prefer_memory: bool = False,
-        **kwargs
+        cls, dimensions: int, size: int, prefer_memory: bool = False, **kwargs
     ) -> BaseLatticeGPU:
         """
         Create the best available GPU lattice based on requirements
@@ -156,26 +149,22 @@ class GPUFactory:
         gpu_manager = get_gpu_manager()
 
         # Estimate memory requirements
-        n_points = size ** dimensions
-        estimated_memory_mb = (n_points * n_points * 8) / (1024 ** 2)
+        n_points = size**dimensions
+        estimated_memory_mb = (n_points * n_points * 8) / (1024**2)
 
         logger.info(f"Estimated memory requirement: {estimated_memory_mb:.2f} MB")
 
         if prefer_memory and gpu_manager.is_gpu_available():
             # Find device with most available memory
             devices = gpu_manager.get_all_devices()
-            best_device = max(
-                devices.items(),
-                key=lambda x: x[1].available_memory_mb
-            )
+            best_device = max(devices.items(), key=lambda x: x[1].available_memory_mb)
 
             if best_device[1].available_memory_mb >= estimated_memory_mb:
-                logger.info(f"Selected device {best_device[0]} with {best_device[1].available_memory_mb:.2f} MB available")
+                logger.info(
+                    f"Selected device {best_device[0]} with {best_device[1].available_memory_mb:.2f} MB available"
+                )
                 return cls.create(
-                    dimensions=dimensions,
-                    size=size,
-                    device_id=best_device[0],
-                    **kwargs
+                    dimensions=dimensions, size=size, device_id=best_device[0], **kwargs
                 )
 
         # Default to auto-selection
@@ -192,11 +181,7 @@ class GPUFactory:
         return list(cls._implementations.keys())
 
     @classmethod
-    def benchmark_backends(
-        cls,
-        dimensions: int = 4,
-        size: int = 10
-    ) -> Dict[str, Dict]:
+    def benchmark_backends(cls, dimensions: int = 4, size: int = 10) -> Dict[str, Dict]:
         """
         Benchmark all available backends
 
@@ -212,22 +197,15 @@ class GPUFactory:
         for backend in cls._implementations:
             try:
                 logger.info(f"Benchmarking {backend.value}")
-                instance = cls.create(
-                    dimensions=dimensions,
-                    size=size,
-                    backend=backend
-                )
+                instance = cls.create(dimensions=dimensions, size=size, backend=backend)
 
                 with instance:
                     results[backend.value] = instance.benchmark()
-                    results[backend.value]['status'] = 'success'
+                    results[backend.value]["status"] = "success"
 
             except Exception as e:
                 logger.warning(f"Failed to benchmark {backend.value}: {e}")
-                results[backend.value] = {
-                    'status': 'failed',
-                    'error': str(e)
-                }
+                results[backend.value] = {"status": "failed", "error": str(e)}
 
         return results
 
@@ -237,24 +215,28 @@ def register_implementations():
     """Register all available GPU implementations"""
     try:
         from .cuda_impl import CUDALatticeGPU
+
         GPUFactory.register(GPUBackend.CUDA, CUDALatticeGPU)
     except ImportError:
         logger.debug("CUDA implementation not available")
 
     try:
         from .cupy_impl import CuPyLatticeGPU
+
         GPUFactory.register(GPUBackend.CUPY, CuPyLatticeGPU)
     except ImportError:
         logger.debug("CuPy implementation not available")
 
     try:
         from .pytorch_impl import PyTorchLatticeGPU
+
         GPUFactory.register(GPUBackend.PYTORCH, PyTorchLatticeGPU)
     except ImportError:
         logger.debug("PyTorch implementation not available")
 
     # CPU fallback is always available
     from .cpu_impl import CPULattice
+
     GPUFactory.register(GPUBackend.CPU, CPULattice)
 
 

@@ -31,7 +31,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         csp_directives: Optional[dict] = None,
         frame_options: str = "DENY",
         enable_permissions_policy: bool = True,
-        enable_referrer_policy: bool = True
+        enable_referrer_policy: bool = True,
     ):
         """
         Initialize security headers middleware
@@ -61,7 +61,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "frame-ancestors": "'none'",
             "base-uri": "'self'",
             "form-action": "'self'",
-            "upgrade-insecure-requests": ""
+            "upgrade-insecure-requests": "",
         }
 
         # Merge custom CSP with defaults
@@ -163,12 +163,15 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             if value:  # Only add if value is not empty
                 csp_parts.append(f"{directive} {value}")
             else:
-                csp_parts.append(directive)  # Directive with no value (like upgrade-insecure-requests)
+                csp_parts.append(
+                    directive
+                )  # Directive with no value (like upgrade-insecure-requests)
 
         return "; ".join(csp_parts)
 
 
 # Pre-configured middleware instances for common use cases
+
 
 def create_strict_security_headers() -> SecurityHeadersMiddleware:
     """
@@ -189,10 +192,10 @@ def create_strict_security_headers() -> SecurityHeadersMiddleware:
             "frame-ancestors": "'none'",
             "base-uri": "'self'",
             "form-action": "'self'",
-            "upgrade-insecure-requests": ""
+            "upgrade-insecure-requests": "",
         },
         enable_permissions_policy=True,
-        enable_referrer_policy=True
+        enable_referrer_policy=True,
     )
 
 
@@ -214,10 +217,10 @@ def create_relaxed_security_headers() -> SecurityHeadersMiddleware:
             "connect-src": "'self' ws: wss:",  # Allow WebSocket
             "frame-ancestors": "'self'",
             "base-uri": "'self'",
-            "form-action": "'self'"
+            "form-action": "'self'",
         },
         enable_permissions_policy=False,
-        enable_referrer_policy=True
+        enable_referrer_policy=True,
     )
 
 
@@ -233,10 +236,10 @@ def create_api_security_headers() -> SecurityHeadersMiddleware:
         csp_directives={
             "default-src": "'none'",  # APIs shouldn't load resources
             "frame-ancestors": "'none'",
-            "base-uri": "'none'"
+            "base-uri": "'none'",
         },
         enable_permissions_policy=True,
-        enable_referrer_policy=True
+        enable_referrer_policy=True,
     )
 
 
@@ -245,7 +248,7 @@ def create_custom_security_headers(
     environment: str = "production",
     allow_inline_scripts: bool = False,
     allow_websockets: bool = False,
-    allowed_origins: list = None
+    allowed_origins: list = None,
 ) -> SecurityHeadersMiddleware:
     """
     Create middleware with custom security headers based on requirements
@@ -271,8 +274,8 @@ def create_custom_security_headers(
             "font-src": "'self' data:",
             "frame-ancestors": "'none'",
             "base-uri": "'self'",
-            "form-action": "'self'"
-        }
+            "form-action": "'self'",
+        },
     }
 
     # Script source configuration

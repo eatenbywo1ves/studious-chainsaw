@@ -25,17 +25,17 @@ class TestGPUMemoryLimits:
                 pytest.skip("CUDA not available")
 
             # Get available memory
-            device = torch.device('cuda:0')
+            device = torch.device("cuda:0")
             props = torch.cuda.get_device_properties(0)
-            total_memory_mb = props.total_memory / (1024 ** 2)
+            total_memory_mb = props.total_memory / (1024**2)
 
             # Allocate 10% of available memory (should succeed)
-            size = int((total_memory_mb * 0.1 * 1024 ** 2) / 4)  # float32 = 4 bytes
+            size = int((total_memory_mb * 0.1 * 1024**2) / 4)  # float32 = 4 bytes
             matrix_size = int(np.sqrt(size))
 
             tensor = torch.randn(matrix_size, matrix_size, device=device)
 
-            assert tensor.device.type == 'cuda'
+            assert tensor.device.type == "cuda"
             assert tensor.numel() > 0
 
             # Cleanup
@@ -54,7 +54,7 @@ class TestGPUMemoryLimits:
             if not torch.cuda.is_available():
                 pytest.skip("CUDA not available")
 
-            device = torch.device('cuda:0')
+            device = torch.device("cuda:0")
 
             # Try to allocate more memory than available
             with pytest.raises((RuntimeError, torch.cuda.OutOfMemoryError)):
@@ -73,7 +73,7 @@ class TestGPUMemoryLimits:
             if not torch.cuda.is_available():
                 pytest.skip("CUDA not available")
 
-            device = torch.device('cuda:0')
+            device = torch.device("cuda:0")
             tensors = []
 
             # Allocate multiple small tensors
@@ -88,7 +88,7 @@ class TestGPUMemoryLimits:
 
             # Try to allocate larger tensor
             large_tensor = torch.randn(1000, 1000, device=device)
-            assert large_tensor.device.type == 'cuda'
+            assert large_tensor.device.type == "cuda"
 
             # Cleanup
             del tensors
@@ -111,7 +111,7 @@ class TestGPUResourceCleanup:
             if not torch.cuda.is_available():
                 pytest.skip("CUDA not available")
 
-            device = torch.device('cuda:0')
+            device = torch.device("cuda:0")
 
             # Get initial memory
             torch.cuda.empty_cache()
@@ -148,10 +148,10 @@ class TestGPUResourceCleanup:
             torch.cuda.empty_cache()
             initial_memory = torch.cuda.memory_allocated(0)
 
-            with gpu_memory_context(backend='pytorch') as gpu:
+            with gpu_memory_context(backend="pytorch") as gpu:
                 if gpu:
                     # Allocate some memory
-                    tensor = torch.randn(1000, 1000, device='cuda:0')
+                    tensor = torch.randn(1000, 1000, device="cuda:0")
                     del tensor
 
             # Memory should be cleaned up
@@ -172,16 +172,17 @@ class TestCUDAInitializationEdgeCases:
         """Test that multiple initialization calls are safe"""
         from libs.gpu.cuda_init import initialize_cuda_environment
 
-        with patch('libs.gpu.cuda_init.torch') as mock_torch:
+        with patch("libs.gpu.cuda_init.torch") as mock_torch:
             mock_torch.cuda.is_available.return_value = True
             mock_torch.__version__ = "2.5.1+cu121"
             mock_torch.version.cuda = "12.1"
             mock_torch.cuda.get_device_name.return_value = "Test GPU"
             mock_torch.__file__ = "/test/torch/__init__.py"
 
-            with patch('pathlib.Path.exists', return_value=True), \
-                 patch('pathlib.Path.glob', return_value=[Path("cuda.dll")]):
-
+            with (
+                patch("pathlib.Path.exists", return_value=True),
+                patch("pathlib.Path.glob", return_value=[Path("cuda.dll")]),
+            ):
                 # Call multiple times
                 result1 = initialize_cuda_environment(verbose=False)
                 result2 = initialize_cuda_environment(verbose=False)
@@ -193,7 +194,7 @@ class TestCUDAInitializationEdgeCases:
         """Test initialization when dependencies are missing"""
         from libs.gpu.cuda_init import initialize_cuda_environment
 
-        with patch('libs.gpu.cuda_init.torch', side_effect=ImportError("torch not found")):
+        with patch("libs.gpu.cuda_init.torch", side_effect=ImportError("torch not found")):
             result = initialize_cuda_environment(verbose=False)
             assert result is False
 
@@ -201,14 +202,15 @@ class TestCUDAInitializationEdgeCases:
         """Test when CUDA is partially available"""
         from libs.gpu.cuda_init import initialize_cuda_environment
 
-        with patch('libs.gpu.cuda_init.torch') as mock_torch:
+        with patch("libs.gpu.cuda_init.torch") as mock_torch:
             # CUDA reported as available but DLLs missing
             mock_torch.cuda.is_available.return_value = True
             mock_torch.__file__ = "/test/torch/__init__.py"
 
-            with patch('pathlib.Path.exists', return_value=True), \
-                 patch('pathlib.Path.glob', return_value=[]):  # No DLLs
-
+            with (
+                patch("pathlib.Path.exists", return_value=True),
+                patch("pathlib.Path.glob", return_value=[]),
+            ):  # No DLLs
                 result = initialize_cuda_environment(verbose=False)
                 assert result is False
 
@@ -221,7 +223,9 @@ class TestLatticeMemoryEdgeCases:
         from apps.catalytic.core.unified_lattice import UnifiedCatalyticLattice
 
         # Create very small lattice
-        with UnifiedCatalyticLattice(dimensions=2, size=2, enable_gpu=False, aux_memory_size=10) as lattice:
+        with UnifiedCatalyticLattice(
+            dimensions=2, size=2, enable_gpu=False, aux_memory_size=10
+        ) as lattice:
             assert lattice.dimensions == 2
             assert lattice.size == 2
             assert len(lattice.auxiliary_memory) == 10
@@ -233,7 +237,7 @@ class TestLatticeMemoryEdgeCases:
         # Create high-dimensional lattice (but small size to avoid memory issues)
         with UnifiedCatalyticLattice(dimensions=10, size=2, enable_gpu=False) as lattice:
             lattice.build_lattice()
-            assert lattice.n_points == 2 ** 10  # 1024 points
+            assert lattice.n_points == 2**10  # 1024 points
 
     def test_lattice_cache_size_limits(self):
         """Test that lattice cache doesn't grow unbounded"""
@@ -263,7 +267,10 @@ class TestGPUFallbackBehavior:
         """Test that GPU initialization failure falls back to CPU"""
         from apps.catalytic.core.unified_lattice import UnifiedCatalyticLattice
 
-        with patch('apps.catalytic.gpu.factory.GPUFactory.create', side_effect=RuntimeError("GPU init failed")):
+        with patch(
+            "apps.catalytic.gpu.factory.GPUFactory.create",
+            side_effect=RuntimeError("GPU init failed"),
+        ):
             # Should not raise, should fall back to CPU
             with UnifiedCatalyticLattice(dimensions=3, size=5, enable_gpu=True) as lattice:
                 assert lattice.gpu_backend is None
@@ -288,7 +295,7 @@ class TestGPUFallbackBehavior:
             assert len(path) > 0
 
             analysis = lattice.analyze_structure()
-            assert 'vertices' in analysis
+            assert "vertices" in analysis
 
 
 class TestConcurrentGPUAccess:
@@ -324,7 +331,7 @@ class TestConcurrentGPUAccess:
             if not torch.cuda.is_available():
                 pytest.skip("CUDA not available")
 
-            device = torch.device('cuda:0')
+            device = torch.device("cuda:0")
             tensors = []
 
             # Allocate tensors until we're close to limit
@@ -343,11 +350,11 @@ class TestConcurrentGPUAccess:
 
             # Should be able to allocate again
             test_tensor = torch.randn(100, 100, device=device)
-            assert test_tensor.device.type == 'cuda'
+            assert test_tensor.device.type == "cuda"
 
         except ImportError:
             pytest.skip("PyTorch not available")
 
 
-if __name__ == '__main__':
-    pytest.main([__file__, '-v', '--tb=short', '-m', 'not slow'])
+if __name__ == "__main__":
+    pytest.main([__file__, "-v", "--tb=short", "-m", "not slow"])

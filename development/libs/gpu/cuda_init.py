@@ -65,7 +65,7 @@ def initialize_cuda_environment(force: bool = False, verbose: bool = True) -> bo
 
         # Get PyTorch's lib directory (contains CUDA DLLs)
         torch_path = Path(torch.__file__).parent
-        torch_lib = torch_path / 'lib'
+        torch_lib = torch_path / "lib"
 
         if not torch_lib.exists():
             if verbose:
@@ -75,7 +75,7 @@ def initialize_cuda_environment(force: bool = False, verbose: bool = True) -> bo
             return False
 
         # Check for CUDA DLLs
-        cuda_dlls = list(torch_lib.glob('*cuda*.dll'))
+        cuda_dlls = list(torch_lib.glob("*cuda*.dll"))
         if not cuda_dlls:
             if verbose:
                 logger.warning(f"No CUDA DLLs found in {torch_lib}")
@@ -85,16 +85,16 @@ def initialize_cuda_environment(force: bool = False, verbose: bool = True) -> bo
 
         # Configure environment variables
         torch_lib_str = str(torch_lib.absolute())
-        os.environ['CUDA_PATH'] = torch_lib_str
-        os.environ['CUDA_HOME'] = torch_lib_str
+        os.environ["CUDA_PATH"] = torch_lib_str
+        os.environ["CUDA_HOME"] = torch_lib_str
 
         # Add to PATH (prepend to prioritize PyTorch's CUDA)
-        current_path = os.environ.get('PATH', '')
+        current_path = os.environ.get("PATH", "")
         if torch_lib_str not in current_path:
-            os.environ['PATH'] = torch_lib_str + ';' + current_path
+            os.environ["PATH"] = torch_lib_str + ";" + current_path
 
         # Add DLL directory for Windows
-        if hasattr(os, 'add_dll_directory'):
+        if hasattr(os, "add_dll_directory"):
             try:
                 os.add_dll_directory(torch_lib_str)
             except Exception as e:
@@ -166,22 +166,23 @@ def get_cuda_info() -> Tuple[bool, dict]:
         initialize_cuda_environment(verbose=False)
 
     info = {
-        'available': _cuda_available,
-        'initialized': _cuda_initialized,
-        'lib_path': str(_torch_cuda_lib_path) if _torch_cuda_lib_path else None,
-        'dll_count': 0,
-        'version': None,
-        'device_name': None,
+        "available": _cuda_available,
+        "initialized": _cuda_initialized,
+        "lib_path": str(_torch_cuda_lib_path) if _torch_cuda_lib_path else None,
+        "dll_count": 0,
+        "version": None,
+        "device_name": None,
     }
 
     if _cuda_available:
         try:
             import torch
-            info['version'] = torch.version.cuda
-            info['device_name'] = torch.cuda.get_device_name(0)
+
+            info["version"] = torch.version.cuda
+            info["device_name"] = torch.cuda.get_device_name(0)
 
             if _torch_cuda_lib_path:
-                info['dll_count'] = len(list(_torch_cuda_lib_path.glob('*.dll')))
+                info["dll_count"] = len(list(_torch_cuda_lib_path.glob("*.dll")))
         except Exception as e:
             logger.error(f"Error getting CUDA info: {e}")
 
@@ -200,6 +201,7 @@ def validate_cupy_curand() -> bool:
 
     try:
         import cupy as cp
+
         # Test CURAND - this was the problematic operation
         x = cp.random.randn(10)
         logger.info(f"[OK] CuPy CURAND test passed: shape={x.shape}")
@@ -210,15 +212,15 @@ def validate_cupy_curand() -> bool:
 
 
 # Auto-initialize on import if requested
-if os.environ.get('AUTO_INIT_CUDA', '').lower() in ('1', 'true', 'yes'):
+if os.environ.get("AUTO_INIT_CUDA", "").lower() in ("1", "true", "yes"):
     initialize_cuda_environment(verbose=True)
 
 
 if __name__ == "__main__":
     # Test the initialization
-    print("="*60)
+    print("=" * 60)
     print("CUDA Environment Initialization Test")
-    print("="*60)
+    print("=" * 60)
 
     success = initialize_cuda_environment(verbose=True)
 

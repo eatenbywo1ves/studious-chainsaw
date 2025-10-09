@@ -10,9 +10,9 @@ from datetime import datetime
 
 def test_technique_mapping():
     """Test 1: Verify technique mapping works"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 1: D3FEND Technique Mapping")
-    print("="*70)
+    print("=" * 70)
 
     from technique_mapping import TechniqueMapper
 
@@ -26,9 +26,11 @@ def test_technique_mapping():
 
     # Test coverage report
     report = mapper.generate_coverage_report()
-    assert report['techniques_implemented'] > 0, "[FAIL] No techniques implemented!"
+    assert report["techniques_implemented"] > 0, "[FAIL] No techniques implemented!"
     print(f"[OK] Coverage: {report['coverage_percentage']:.1f}%")
-    print(f"   Implemented: {report['techniques_implemented']}/{report['total_techniques_available']}")
+    print(
+        f"   Implemented: {report['techniques_implemented']}/{report['total_techniques_available']}"
+    )
 
     # Test recommendations
     recommendations = mapper.recommend_next_techniques(limit=3)
@@ -39,9 +41,9 @@ def test_technique_mapping():
 
 def test_ontology_export():
     """Test 2: Verify ontology export works"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 2: Ontology Export (JSON-LD, RDF, Turtle)")
-    print("="*70)
+    print("=" * 70)
 
     from ontology_export import D3FENDOntologyExporter
 
@@ -54,7 +56,7 @@ def test_ontology_export():
         "event_type": "test.webhook.event",
         "endpoint": "https://test.example.com/webhook",
         "duration": 0.123,
-        "status": "success"
+        "status": "success",
     }
 
     # Test JSON-LD export
@@ -67,12 +69,12 @@ def test_ontology_export():
 
     # Test RDF/XML export
     rdf_xml = exporter.export_to_rdf_xml(jsonld)
-    assert 'rdf:RDF' in rdf_xml, "[FAIL] RDF/XML export failed!"
+    assert "rdf:RDF" in rdf_xml, "[FAIL] RDF/XML export failed!"
     print(f"[OK] RDF/XML export successful ({len(rdf_xml)} bytes)")
 
     # Test Turtle export
     turtle = exporter.export_to_turtle(jsonld)
-    assert '@prefix d3f:' in turtle, "[FAIL] Turtle export failed!"
+    assert "@prefix d3f:" in turtle, "[FAIL] Turtle export failed!"
     print(f"[OK] Turtle export successful ({len(turtle)} bytes)")
 
     return True
@@ -80,9 +82,9 @@ def test_ontology_export():
 
 def test_compliance_mapping():
     """Test 3: Verify compliance mapping works"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 3: Compliance Control Mapping")
-    print("="*70)
+    print("=" * 70)
 
     from compliance_d3fend_mapping import ComplianceD3FENDMapper
 
@@ -117,9 +119,9 @@ def test_compliance_mapping():
 
 async def test_api_client():
     """Test 4: Verify API client works (with offline fallback)"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 4: D3FEND API Client (Offline Fallback)")
-    print("="*70)
+    print("=" * 70)
 
     from api_client import D3FENDAPIClient, D3FENDOfflineData
 
@@ -154,9 +156,9 @@ async def test_api_client():
 
 def test_technique_coverage():
     """Test 5: Verify technique coverage meets minimum"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 5: D3FEND Coverage Requirements")
-    print("="*70)
+    print("=" * 70)
 
     from technique_mapping import TechniqueMapper
 
@@ -170,7 +172,7 @@ def test_technique_coverage():
 
     # Check minimum overall coverage
     report = mapper.generate_coverage_report()
-    overall = report['coverage_percentage']
+    overall = report["coverage_percentage"]
 
     if overall >= 60:
         print(f"\n[OK] Overall Coverage: {overall:.1f}% (PASS - Target: 60%)")
@@ -190,9 +192,9 @@ def test_technique_coverage():
 
 def test_export_formats():
     """Test 6: Verify all export formats work"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 6: Export Format Validation")
-    print("="*70)
+    print("=" * 70)
 
     from ontology_export import D3FENDOntologyExporter
 
@@ -204,7 +206,7 @@ def test_export_formats():
         "event_type": "format.test",
         "endpoint": "https://test.com",
         "duration": 0.1,
-        "status": "success"
+        "status": "success",
     }
 
     jsonld = exporter.export_webhook_event_jsonld(test_event)
@@ -217,16 +219,16 @@ def test_export_formats():
 
     # Validate RDF/XML
     rdf = exporter.export_to_rdf_xml(jsonld)
-    assert '<?xml version' in rdf, "[FAIL] RDF/XML missing XML declaration"
-    assert 'rdf:RDF' in rdf, "[FAIL] RDF/XML missing RDF root"
-    assert 'd3f:defendsTechnique' in rdf, "[FAIL] RDF/XML missing D3FEND technique"
+    assert "<?xml version" in rdf, "[FAIL] RDF/XML missing XML declaration"
+    assert "rdf:RDF" in rdf, "[FAIL] RDF/XML missing RDF root"
+    assert "d3f:defendsTechnique" in rdf, "[FAIL] RDF/XML missing D3FEND technique"
     print("[OK] RDF/XML structure valid")
 
     # Validate Turtle
     turtle = exporter.export_to_turtle(jsonld)
-    assert '@prefix d3f:' in turtle, "[FAIL] Turtle missing d3f prefix"
-    assert '@prefix rdf:' in turtle, "[FAIL] Turtle missing rdf prefix"
-    assert 'd3f:defendsTechnique' in turtle, "[FAIL] Turtle missing D3FEND technique"
+    assert "@prefix d3f:" in turtle, "[FAIL] Turtle missing d3f prefix"
+    assert "@prefix rdf:" in turtle, "[FAIL] Turtle missing rdf prefix"
+    assert "d3f:defendsTechnique" in turtle, "[FAIL] Turtle missing D3FEND technique"
     print("[OK] Turtle structure valid")
 
     return True
@@ -234,9 +236,9 @@ def test_export_formats():
 
 async def run_all_tests():
     """Run all integration tests"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("D3FEND INTEGRATION TEST SUITE")
-    print("="*70)
+    print("=" * 70)
 
     tests = [
         ("Technique Mapping", test_technique_mapping),
@@ -260,9 +262,9 @@ async def run_all_tests():
             print(f"\n[FAIL] {test_name} FAILED: {e}")
 
     # Print summary
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST SUMMARY")
-    print("="*70)
+    print("=" * 70)
 
     passed = sum(1 for _, result, _ in results if result)
     total = len(results)
@@ -273,9 +275,9 @@ async def run_all_tests():
         if error:
             print(f"       Error: {error}")
 
-    print("\n" + "="*70)
-    print(f"TOTAL: {passed}/{total} tests passed ({passed/total*100:.1f}%)")
-    print("="*70)
+    print("\n" + "=" * 70)
+    print(f"TOTAL: {passed}/{total} tests passed ({passed / total * 100:.1f}%)")
+    print("=" * 70)
 
     if passed == total:
         print("\n[SUCCESS] ALL TESTS PASSED! D3FEND integration is working correctly.")

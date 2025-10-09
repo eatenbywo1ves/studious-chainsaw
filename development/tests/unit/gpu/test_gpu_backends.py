@@ -37,7 +37,7 @@ class TestCPULatticeImplementation:
         """Test memory allocation failure"""
         cpu_lattice.initialize_device()
         # Try to allocate huge amount
-        with patch('numpy.zeros', side_effect=MemoryError()):
+        with patch("numpy.zeros", side_effect=MemoryError()):
             assert cpu_lattice.allocate_memory(1000000.0) is False
 
     def test_cpu_build_lattice(self, cpu_lattice):
@@ -159,24 +159,24 @@ class TestCuPyImplementation:
         mock_cp = MagicMock()
         mock_cp.cuda.runtime.getDeviceCount.return_value = 1
         mock_cp.cuda.runtime.memGetInfo.return_value = (
-            6 * 1024 ** 3,  # 6GB free
-            8 * 1024 ** 3   # 8GB total
+            6 * 1024**3,  # 6GB free
+            8 * 1024**3,  # 8GB total
         )
         mock_cp.cuda.runtime.getDeviceProperties.return_value = {
-            'name': b'Test GPU',
-            'major': 7,
-            'minor': 5,
-            'maxThreadsPerBlock': 1024,
-            'multiProcessorCount': 68,
-            'warpSize': 32
+            "name": b"Test GPU",
+            "major": 7,
+            "minor": 5,
+            "maxThreadsPerBlock": 1024,
+            "multiProcessorCount": 68,
+            "warpSize": 32,
         }
         mock_cp.zeros.return_value = MagicMock()
         mock_cp.cuda.Stream.return_value = MagicMock()
         mock_cp.cuda.Device.return_value = MagicMock()
         return mock_cp
 
-    @patch('apps.catalytic.gpu.cupy_impl.cp')
-    @patch('apps.catalytic.gpu.cupy_impl.CUPY_AVAILABLE', True)
+    @patch("apps.catalytic.gpu.cupy_impl.cp")
+    @patch("apps.catalytic.gpu.cupy_impl.CUPY_AVAILABLE", True)
     def test_cupy_initialization_success(self, mock_cp):
         """Test successful CuPy initialization"""
         from apps.catalytic.gpu.cupy_impl import CuPyLatticeGPU
@@ -188,7 +188,7 @@ class TestCuPyImplementation:
         lattice = CuPyLatticeGPU(dimensions=3, size=5, device_id=0)
         assert lattice.initialize_device() is True
 
-    @patch('apps.catalytic.gpu.cupy_impl.CUPY_AVAILABLE', False)
+    @patch("apps.catalytic.gpu.cupy_impl.CUPY_AVAILABLE", False)
     def test_cupy_not_available(self):
         """Test error when CuPy not installed"""
         from apps.catalytic.gpu.cupy_impl import CuPyLatticeGPU
@@ -196,8 +196,8 @@ class TestCuPyImplementation:
         with pytest.raises(GPUNotAvailableError):
             CuPyLatticeGPU(dimensions=3, size=5)
 
-    @patch('apps.catalytic.gpu.cupy_impl.cp')
-    @patch('apps.catalytic.gpu.cupy_impl.CUPY_AVAILABLE', True)
+    @patch("apps.catalytic.gpu.cupy_impl.cp")
+    @patch("apps.catalytic.gpu.cupy_impl.CUPY_AVAILABLE", True)
     def test_cupy_xor_transform(self, mock_cp):
         """Test XOR transformation with CuPy"""
         from apps.catalytic.gpu.cupy_impl import CuPyLatticeGPU
@@ -219,8 +219,8 @@ class TestCuPyImplementation:
         mock_cp.bitwise_xor.assert_called_once()
         assert isinstance(result, np.ndarray)
 
-    @patch('apps.catalytic.gpu.cupy_impl.cp')
-    @patch('apps.catalytic.gpu.cupy_impl.CUPY_AVAILABLE', True)
+    @patch("apps.catalytic.gpu.cupy_impl.cp")
+    @patch("apps.catalytic.gpu.cupy_impl.CUPY_AVAILABLE", True)
     def test_cupy_matrix_multiply(self, mock_cp):
         """Test matrix multiplication with CuPy"""
         from apps.catalytic.gpu.cupy_impl import CuPyLatticeGPU

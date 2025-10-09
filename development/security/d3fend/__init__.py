@@ -14,7 +14,7 @@ from .technique_mapping import (
     D3FENDTechnique,
     D3FENDCategory,
     TechniqueMapper,
-    COMPONENT_TECHNIQUE_MAPPING
+    COMPONENT_TECHNIQUE_MAPPING,
 )
 from .api_client import D3FENDAPIClient
 from .ontology_export import D3FENDOntologyExporter
@@ -26,5 +26,5 @@ __all__ = [
     "TechniqueMapper",
     "D3FENDAPIClient",
     "D3FENDOntologyExporter",
-    "COMPONENT_TECHNIQUE_MAPPING"
+    "COMPONENT_TECHNIQUE_MAPPING",
 ]

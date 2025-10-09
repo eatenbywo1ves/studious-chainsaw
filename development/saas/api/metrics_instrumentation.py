@@ -12,7 +12,8 @@ from typing import Callable
 # Import Prometheus metrics
 import sys
 import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
 
 from security.application.prometheus_metrics import (
     get_metrics,
@@ -23,7 +24,7 @@ from security.application.prometheus_metrics import (
     lattice_operations_total,
     active_lattices,
     database_queries_total,
-    rate_limit_hits_total
+    rate_limit_hits_total,
 )
 
 
@@ -31,10 +32,11 @@ from security.application.prometheus_metrics import (
 # METRICS ENDPOINT
 # ============================================================================
 
+
 def add_metrics_endpoint(app: FastAPI):
     """Add /metrics endpoint to FastAPI app"""
 
-    @app.get('/metrics')
+    @app.get("/metrics")
     async def metrics():
         """Prometheus metrics endpoint"""
         content, content_type = get_metrics()
@@ -44,6 +46,7 @@ def add_metrics_endpoint(app: FastAPI):
 # ============================================================================
 # METRICS MIDDLEWARE
 # ============================================================================
+
 
 class MetricsMiddleware(BaseHTTPMiddleware):
     """Middleware to track HTTP request metrics"""
@@ -66,32 +69,20 @@ class MetricsMiddleware(BaseHTTPMiddleware):
 
             # Track metrics
             http_requests_total.labels(
-                method=method,
-                endpoint=endpoint,
-                status=str(status_code)
+                method=method, endpoint=endpoint, status=str(status_code)
             ).inc()
 
             duration = time.time() - start_time
-            http_request_duration_seconds.labels(
-                method=method,
-                endpoint=endpoint
-            ).observe(duration)
+            http_request_duration_seconds.labels(method=method, endpoint=endpoint).observe(duration)
 
             return response
 
         except Exception as e:
             # Track error
-            http_requests_total.labels(
-                method=method,
-                endpoint=endpoint,
-                status='500'
-            ).inc()
+            http_requests_total.labels(method=method, endpoint=endpoint, status="500").inc()
 
             duration = time.time() - start_time
-            http_request_duration_seconds.labels(
-                method=method,
-                endpoint=endpoint
-            ).observe(duration)
+            http_request_duration_seconds.labels(method=method, endpoint=endpoint).observe(duration)
 
             raise e
 
@@ -101,14 +92,14 @@ class MetricsMiddleware(BaseHTTPMiddleware):
 
         # Replace UUIDs
         path = re.sub(
-            r'/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}',
-            '/{id}',
+            r"/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
+            "/{id}",
             path,
-            flags=re.IGNORECASE
+            flags=re.IGNORECASE,
         )
 
         # Replace numeric IDs
-        path = re.sub(r'/\d+', '/{id}', path)
+        path = re.sub(r"/\d+", "/{id}", path)
 
         return path
 
@@ -117,9 +108,10 @@ class MetricsMiddleware(BaseHTTPMiddleware):
 # INSTRUMENTATION HELPERS
 # ============================================================================
 
+
 def track_authentication(tenant_slug: str, success: bool):
     """Track authentication attempt"""
-    track_login_attempt(tenant_slug or 'default', success)
+    track_login_attempt(tenant_slug or "default", success)
 
 
 def track_input_validation_error(validator_name: str, error_type: str):
@@ -129,10 +121,7 @@ def track_input_validation_error(validator_name: str, error_type: str):
 
 def track_lattice_operation(operation: str, dimensions: int):
     """Track lattice operation"""
-    lattice_operations_total.labels(
-        operation=operation,
-        dimensions=str(dimensions)
-    ).inc()
+    lattice_operations_total.labels(operation=operation, dimensions=str(dimensions)).inc()
 
 
 def update_active_lattice_count(count: int):
@@ -142,20 +131,13 @@ def update_active_lattice_count(count: int):
 
 def track_database_operation(operation: str, table: str, success: bool):
     """Track database query"""
-    status = 'success' if success else 'failure'
-    database_queries_total.labels(
-        operation=operation,
-        table=table,
-        status=status
-    ).inc()
+    status = "success" if success else "failure"
+    database_queries_total.labels(operation=operation, table=table, status=status).inc()
 
 
-def track_rate_limit(endpoint: str, limit_type: str = 'api'):
+def track_rate_limit(endpoint: str, limit_type: str = "api"):
     """Track rate limit hit"""
-    rate_limit_hits_total.labels(
-        endpoint=endpoint,
-        limit_type=limit_type
-    ).inc()
+    rate_limit_hits_total.labels(endpoint=endpoint, limit_type=limit_type).inc()
 
 
 # ============================================================================

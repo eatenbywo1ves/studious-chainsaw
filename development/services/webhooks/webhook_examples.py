@@ -26,9 +26,9 @@ class GitHubWebhookAdapter:
                 "repository": payload.get("repository", {}).get("full_name"),
                 "pusher": payload.get("pusher", {}).get("name"),
                 "commits": len(payload.get("commits", [])),
-                "branch": payload.get("ref", "").split("/")[-1]
+                "branch": payload.get("ref", "").split("/")[-1],
             },
-            metadata={"source": "github", "event_type": "push"}
+            metadata={"source": "github", "event_type": "push"},
         )
 
     def handle_pull_request(self, payload: Dict[str, Any]):
@@ -41,9 +41,9 @@ class GitHubWebhookAdapter:
                 "number": pr.get("number"),
                 "title": pr.get("title"),
                 "user": pr.get("user", {}).get("login"),
-                "state": pr.get("state")
+                "state": pr.get("state"),
             },
-            metadata={"source": "github", "event_type": "pull_request"}
+            metadata={"source": "github", "event_type": "pull_request"},
         )
 
     def handle_issue(self, payload: Dict[str, Any]):
@@ -56,9 +56,9 @@ class GitHubWebhookAdapter:
                 "number": issue.get("number"),
                 "title": issue.get("title"),
                 "user": issue.get("user", {}).get("login"),
-                "state": issue.get("state")
+                "state": issue.get("state"),
             },
-            metadata={"source": "github", "event_type": "issue"}
+            metadata={"source": "github", "event_type": "issue"},
         )
 
 
@@ -72,10 +72,7 @@ class SlackWebhookNotifier:
         """Send message to Slack"""
         import httpx
 
-        payload = {
-            "text": text,
-            "username": username
-        }
+        payload = {"text": text, "username": username}
 
         if channel:
             payload["channel"] = channel
@@ -89,13 +86,15 @@ class SlackWebhookNotifier:
         import httpx
 
         payload = {
-            "attachments": [{
-                "color": color,
-                "title": title,
-                "text": description,
-                "footer": "Webhook System",
-                "ts": int(asyncio.get_event_loop().time())
-            }]
+            "attachments": [
+                {
+                    "color": color,
+                    "title": title,
+                    "text": description,
+                    "footer": "Webhook System",
+                    "ts": int(asyncio.get_event_loop().time()),
+                }
+            ]
         }
 
         async with httpx.AsyncClient() as client:
@@ -126,13 +125,15 @@ class DiscordWebhookNotifier:
         import httpx
 
         payload = {
-            "embeds": [{
-                "title": title,
-                "description": description,
-                "color": color,
-                "footer": {"text": "Webhook System"},
-                "timestamp": datetime.now().isoformat()
-            }]
+            "embeds": [
+                {
+                    "title": title,
+                    "description": description,
+                    "color": color,
+                    "footer": {"text": "Webhook System"},
+                    "timestamp": datetime.now().isoformat(),
+                }
+            ]
         }
 
         async with httpx.AsyncClient() as client:
@@ -150,44 +151,31 @@ class DatabaseWebhookIntegration:
         """Trigger webhook on record creation"""
         self.manager.trigger_event(
             event="database.record.created",
-            data={
-                "table": table,
-                "id": str(record_id),
-                "data": data
-            },
-            metadata={"operation": "insert"}
+            data={"table": table, "id": str(record_id), "data": data},
+            metadata={"operation": "insert"},
         )
 
-    def on_record_updated(self, table: str, record_id: Any,
-                         old_data: Dict[str, Any], new_data: Dict[str, Any]):
+    def on_record_updated(
+        self, table: str, record_id: Any, old_data: Dict[str, Any], new_data: Dict[str, Any]
+    ):
         """Trigger webhook on record update"""
         changes = {}
         for key in new_data:
             if key in old_data and old_data[key] != new_data[key]:
-                changes[key] = {
-                    "old": old_data[key],
-                    "new": new_data[key]
-                }
+                changes[key] = {"old": old_data[key], "new": new_data[key]}
 
         self.manager.trigger_event(
             event="database.record.updated",
-            data={
-                "table": table,
-                "id": str(record_id),
-                "changes": changes
-            },
-            metadata={"operation": "update"}
+            data={"table": table, "id": str(record_id), "changes": changes},
+            metadata={"operation": "update"},
         )
 
     def on_record_deleted(self, table: str, record_id: Any):
         """Trigger webhook on record deletion"""
         self.manager.trigger_event(
             event="database.record.deleted",
-            data={
-                "table": table,
-                "id": str(record_id)
-            },
-            metadata={"operation": "delete"}
+            data={"table": table, "id": str(record_id)},
+            metadata={"operation": "delete"},
         )
 
 
@@ -213,9 +201,9 @@ class MonitoringWebhookIntegration:
                         "metric": metric,
                         "value": value,
                         "threshold": threshold,
-                        "exceeded_by": value - threshold
+                        "exceeded_by": value - threshold,
                     },
-                    metadata={"severity": "warning" if value < threshold * 1.5 else "critical"}
+                    metadata={"severity": "warning" if value < threshold * 1.5 else "critical"},
                 )
                 return True
         return False
@@ -228,9 +216,9 @@ class MonitoringWebhookIntegration:
                 "service": service,
                 "status": status,
                 "details": details or {},
-                "timestamp": datetime.now().isoformat()
+                "timestamp": datetime.now().isoformat(),
             },
-            metadata={"type": "health_check"}
+            metadata={"type": "health_check"},
         )
 
 
@@ -240,8 +228,7 @@ class PaymentWebhookIntegration:
     def __init__(self, webhook_manager: WebhookManager):
         self.manager = webhook_manager
 
-    def payment_succeeded(self, payment_id: str, amount: float, currency: str,
-                         customer_id: str):
+    def payment_succeeded(self, payment_id: str, amount: float, currency: str, customer_id: str):
         """Handle successful payment"""
         self.manager.trigger_event(
             event="payment.succeeded",
@@ -250,13 +237,14 @@ class PaymentWebhookIntegration:
                 "amount": amount,
                 "currency": currency,
                 "customer_id": customer_id,
-                "status": "succeeded"
+                "status": "succeeded",
             },
-            metadata={"type": "payment", "processor": "stripe"}
+            metadata={"type": "payment", "processor": "stripe"},
         )
 
-    def payment_failed(self, payment_id: str, amount: float, currency: str,
-                      customer_id: str, error: str):
+    def payment_failed(
+        self, payment_id: str, amount: float, currency: str, customer_id: str, error: str
+    ):
         """Handle failed payment"""
         self.manager.trigger_event(
             event="payment.failed",
@@ -266,13 +254,14 @@ class PaymentWebhookIntegration:
                 "currency": currency,
                 "customer_id": customer_id,
                 "status": "failed",
-                "error": error
+                "error": error,
             },
-            metadata={"type": "payment", "processor": "stripe"}
+            metadata={"type": "payment", "processor": "stripe"},
         )
 
-    def subscription_created(self, subscription_id: str, customer_id: str,
-                           plan: str, amount: float):
+    def subscription_created(
+        self, subscription_id: str, customer_id: str, plan: str, amount: float
+    ):
         """Handle subscription creation"""
         self.manager.trigger_event(
             event="subscription.created",
@@ -281,17 +270,18 @@ class PaymentWebhookIntegration:
                 "customer_id": customer_id,
                 "plan": plan,
                 "amount": amount,
-                "status": "active"
+                "status": "active",
             },
-            metadata={"type": "subscription"}
+            metadata={"type": "subscription"},
         )
 
 
 class WebhookBatchProcessor:
     """Process webhooks in batches for efficiency"""
 
-    def __init__(self, webhook_manager: WebhookManager, batch_size: int = 100,
-                 flush_interval: float = 5.0):
+    def __init__(
+        self, webhook_manager: WebhookManager, batch_size: int = 100, flush_interval: float = 5.0
+    ):
         self.manager = webhook_manager
         self.batch_size = batch_size
         self.flush_interval = flush_interval
@@ -300,11 +290,7 @@ class WebhookBatchProcessor:
 
     def add_event(self, event: str, data: Dict[str, Any], metadata: Dict[str, Any] = None):
         """Add event to batch"""
-        self.buffer.append({
-            "event": event,
-            "data": data,
-            "metadata": metadata or {}
-        })
+        self.buffer.append({"event": event, "data": data, "metadata": metadata or {}})
 
         # Check if we should flush
         if len(self.buffer) >= self.batch_size:
@@ -319,13 +305,11 @@ class WebhookBatchProcessor:
         batch_data = {
             "events": self.buffer,
             "count": len(self.buffer),
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
         }
 
         self.manager.trigger_event(
-            event="batch.events",
-            data=batch_data,
-            metadata={"batch_size": len(self.buffer)}
+            event="batch.events", data=batch_data, metadata={"batch_size": len(self.buffer)}
         )
 
         logger.info(f"Flushed batch of {len(self.buffer)} events")
@@ -336,7 +320,10 @@ class WebhookBatchProcessor:
         """Auto-flush loop"""
         while True:
             await asyncio.sleep(self.flush_interval)
-            if self.buffer and (asyncio.get_event_loop().time() - self.last_flush) >= self.flush_interval:
+            if (
+                self.buffer
+                and (asyncio.get_event_loop().time() - self.last_flush) >= self.flush_interval
+            ):
                 await self.flush()
 
 
@@ -355,7 +342,7 @@ async def complete_integration_example():
         slack_webhook_id = manager.register_webhook(
             url="https://hooks.slack.com/services/YOUR/WEBHOOK/URL",
             events=["monitoring.threshold.exceeded", "payment.failed"],
-            secret="slack-secret"
+            secret="slack-secret",
         )
 
         # Analytics service webhook for all events
@@ -363,15 +350,19 @@ async def complete_integration_example():
             url="https://analytics.example.com/webhook",
             events=["*"],  # Receive all events
             secret="analytics-secret",
-            headers={"X-API-Key": "your-api-key"}
+            headers={"X-API-Key": "your-api-key"},
         )
 
         # Database backup service for data events
         backup_webhook_id = manager.register_webhook(
             url="https://backup.example.com/webhook",
-            events=["database.record.created", "database.record.updated", "database.record.deleted"],
+            events=[
+                "database.record.created",
+                "database.record.updated",
+                "database.record.deleted",
+            ],
             retry_count=5,
-            retry_delay=10
+            retry_delay=10,
         )
 
         # Initialize integrations
@@ -387,23 +378,16 @@ async def complete_integration_example():
         # Simulate events
 
         # 1. Health check
-        monitoring.send_health_check("api-server", "healthy", {
-            "uptime": 3600,
-            "requests_per_second": 150
-        })
+        monitoring.send_health_check(
+            "api-server", "healthy", {"uptime": 3600, "requests_per_second": 150}
+        )
 
         # 2. Database operations
-        database.on_record_created("users", 123, {
-            "name": "John Doe",
-            "email": "john@example.com"
-        })
+        database.on_record_created("users", 123, {"name": "John Doe", "email": "john@example.com"})
 
         # 3. Payment event
         payment.payment_succeeded(
-            payment_id="pay_123",
-            amount=99.99,
-            currency="USD",
-            customer_id="cust_456"
+            payment_id="pay_123", amount=99.99, currency="USD", customer_id="cust_456"
         )
 
         # 4. Metric threshold exceeded
@@ -444,7 +428,7 @@ class WebhookChain:
                 self.manager.trigger_event(
                     event=event,
                     data=payload.data,
-                    metadata={**payload.metadata, "chained_from": trigger_event}
+                    metadata={**payload.metadata, "chained_from": trigger_event},
                 )
 
         self.manager.add_event_handler(trigger_event, chain_handler)
@@ -453,24 +437,17 @@ class WebhookChain:
         """Example: Order processing workflow"""
         self.add_chain(
             trigger_event="order.created",
-            chain_events=[
-                "payment.process",
-                "inventory.reserve",
-                "notification.send_confirmation"
-            ]
+            chain_events=["payment.process", "inventory.reserve", "notification.send_confirmation"],
         )
 
         self.add_chain(
             trigger_event="payment.succeeded",
-            chain_events=[
-                "order.confirm",
-                "shipping.prepare",
-                "notification.send_receipt"
-            ]
+            chain_events=["order.confirm", "shipping.prepare", "notification.send_receipt"],
         )
 
 
 if __name__ == "__main__":
     # Run example
     from datetime import datetime
+
     asyncio.run(complete_integration_example())

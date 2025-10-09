@@ -21,8 +21,14 @@ load_dotenv()
 
 # Import models
 from database.models import (  # noqa: E402
-    Base, Tenant, User, SubscriptionPlan, TenantSubscription,
-    TenantStatus, UserRole, SubscriptionStatus
+    Base,
+    Tenant,
+    User,
+    SubscriptionPlan,
+    TenantSubscription,
+    TenantStatus,
+    UserRole,
+    SubscriptionStatus,
 )
 from auth.jwt_auth import hash_password  # noqa: E402
 
@@ -30,8 +36,7 @@ from auth.jwt_auth import hash_password  # noqa: E402
 def get_database_url():
     """Get database URL from environment or use SQLite default"""
     return os.getenv(
-        'DATABASE_URL',
-        f'sqlite:///{os.path.join(os.path.dirname(__file__), "catalytic_saas.db")}'
+        "DATABASE_URL", f"sqlite:///{os.path.join(os.path.dirname(__file__), 'catalytic_saas.db')}"
     )
 
 
@@ -57,14 +62,14 @@ def seed_subscription_plans(session):
                 "api_calls": "100/month",
                 "support": "Community",
                 "lattices": "Standard compute",
-                "analytics": "Basic"
+                "analytics": "Basic",
             },
             "limits": {
                 "max_api_calls_per_month": 100,
                 "max_lattices": 1,
                 "max_users": 1,
-                "max_storage_gb": 1
-            }
+                "max_storage_gb": 1,
+            },
         },
         {
             "name": "Starter",
@@ -76,14 +81,14 @@ def seed_subscription_plans(session):
                 "api_calls": "1,000/month",
                 "support": "Email",
                 "lattices": "Enhanced management",
-                "analytics": "Advanced"
+                "analytics": "Advanced",
             },
             "limits": {
                 "max_api_calls_per_month": 1000,
                 "max_lattices": 5,
                 "max_users": 3,
-                "max_storage_gb": 10
-            }
+                "max_storage_gb": 10,
+            },
         },
         {
             "name": "Professional",
@@ -96,14 +101,14 @@ def seed_subscription_plans(session):
                 "support": "Priority",
                 "lattices": "Advanced analytics",
                 "analytics": "Custom",
-                "custom_configurations": "Yes"
+                "custom_configurations": "Yes",
             },
             "limits": {
                 "max_api_calls_per_month": 10000,
                 "max_lattices": 25,
                 "max_users": 10,
-                "max_storage_gb": 100
-            }
+                "max_storage_gb": 100,
+            },
         },
         {
             "name": "Enterprise",
@@ -117,15 +122,15 @@ def seed_subscription_plans(session):
                 "lattices": "White-label options",
                 "analytics": "Custom",
                 "sla": "99.9% uptime guarantee",
-                "custom_configurations": "Yes"
+                "custom_configurations": "Yes",
             },
             "limits": {
                 "max_api_calls_per_month": -1,  # Unlimited
                 "max_lattices": -1,
                 "max_users": -1,
-                "max_storage_gb": -1
-            }
-        }
+                "max_storage_gb": -1,
+            },
+        },
     ]
 
     for plan_data in plans:
@@ -144,7 +149,7 @@ def seed_subscription_plans(session):
             features=plan_data["features"],
             limits=plan_data["limits"],
             is_active=True,
-            created_at=datetime.now(timezone.utc)
+            created_at=datetime.now(timezone.utc),
         )
         session.add(plan)
         print(f"  [OK] Created plan: {plan_data['name']} (${plan_data['price_monthly']}/month)")
@@ -155,7 +160,7 @@ def seed_subscription_plans(session):
 
 def create_demo_tenant(session):
     """Create a demo tenant for testing (optional)"""
-    demo_mode = os.getenv('CREATE_DEMO_TENANT', 'false').lower() == 'true'
+    demo_mode = os.getenv("CREATE_DEMO_TENANT", "false").lower() == "true"
 
     if not demo_mode:
         print("\nSkipping demo tenant creation (set CREATE_DEMO_TENANT=true to enable)")
@@ -175,7 +180,7 @@ def create_demo_tenant(session):
         name="Demo Organization",
         email="demo@catalyticcomputing.com",
         status=TenantStatus.ACTIVE,
-        created_at=datetime.now(timezone.utc)
+        created_at=datetime.now(timezone.utc),
     )
     session.add(tenant)
     session.flush()
@@ -189,7 +194,7 @@ def create_demo_tenant(session):
         role=UserRole.OWNER,
         is_active=True,
         email_verified=True,
-        created_at=datetime.now(timezone.utc)
+        created_at=datetime.now(timezone.utc),
     )
     session.add(admin_user)
     session.flush()
@@ -203,7 +208,7 @@ def create_demo_tenant(session):
             plan_id=free_plan.id,
             status=SubscriptionStatus.ACTIVE,
             current_period_start=datetime.now(timezone.utc),
-            created_at=datetime.now(timezone.utc)
+            created_at=datetime.now(timezone.utc),
         )
         session.add(subscription)
 
@@ -215,45 +220,43 @@ def create_demo_tenant(session):
 
 def show_database_stats(session):
     """Display database statistics"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("DATABASE STATISTICS")
-    print("="*60)
+    print("=" * 60)
 
     stats = {
         "Subscription Plans": session.query(SubscriptionPlan).count(),
         "Tenants": session.query(Tenant).count(),
         "Users": session.query(User).count(),
-        "Active Subscriptions": session.query(TenantSubscription).filter_by(
-            status=SubscriptionStatus.ACTIVE
-        ).count()
+        "Active Subscriptions": session.query(TenantSubscription)
+        .filter_by(status=SubscriptionStatus.ACTIVE)
+        .count(),
     }
 
     for key, value in stats.items():
         print(f"{key:.<40} {value:>10}")
 
-    print("="*60)
+    print("=" * 60)
 
 
 def main():
     """Main initialization function"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("CATALYTIC COMPUTING SAAS - DATABASE INITIALIZATION")
-    print("="*60 + "\n")
+    print("=" * 60 + "\n")
 
     # Get database URL
     db_url = get_database_url()
     print(f"Database URL: {db_url}")
 
     # Check if using PostgreSQL or SQLite
-    is_postgres = db_url.startswith('postgresql')
+    is_postgres = db_url.startswith("postgresql")
     db_type = "PostgreSQL" if is_postgres else "SQLite"
     print(f"Database Type: {db_type}")
 
     # Create engine
     engine = create_engine(
-        db_url,
-        connect_args={"check_same_thread": False} if not is_postgres else {},
-        echo=False
+        db_url, connect_args={"check_same_thread": False} if not is_postgres else {}, echo=False
     )
 
     # Create tables
@@ -277,7 +280,7 @@ def main():
         print("2. Access API docs: http://localhost:8000/docs")
         print("3. Start frontend: cd frontend && npm run dev")
 
-        if os.getenv('CREATE_DEMO_TENANT', 'false').lower() == 'true':
+        if os.getenv("CREATE_DEMO_TENANT", "false").lower() == "true":
             print("\nDemo credentials:")
             print("  Email: admin@demo.catalyticcomputing.com")
             print("  Password: DemoPassword123!")

@@ -13,18 +13,17 @@ from ._compat import text_type
 from . import backend
 from . import tools
 
-__all__ = ['File', 'Source']
+__all__ = ["File", "Source"]
 
-ENCODING = 'utf-8'
+ENCODING = "utf-8"
 
 
 log = logging.getLogger(__name__)
 
 
 class Base(object):
-
-    _format = 'pdf'
-    _engine = 'dot'
+    _format = "pdf"
+    _engine = "dot"
     _encoding = ENCODING
 
     @property
@@ -36,7 +35,7 @@ class Base(object):
     def format(self, format):
         format = format.lower()
         if format not in backend.FORMATS:
-            raise ValueError('unknown format: %r' % format)
+            raise ValueError("unknown format: %r" % format)
         self._format = format
 
     @property
@@ -48,7 +47,7 @@ class Base(object):
     def engine(self, engine):
         engine = engine.lower()
         if engine not in backend.ENGINES:
-            raise ValueError('unknown engine: %r' % engine)
+            raise ValueError("unknown engine: %r" % engine)
         self._engine = engine
 
     @property
@@ -74,21 +73,18 @@ class Base(object):
 
     def _kwargs(self):
         ns = self.__dict__
-        return {a[1:]: ns[a] for a in ('_format', '_engine', '_encoding')
-                if a in ns}
+        return {a[1:]: ns[a] for a in ("_format", "_engine", "_encoding") if a in ns}
 
 
 class File(Base):
+    directory = ""
 
-    directory = ''
+    _default_extension = "gv"
 
-    _default_extension = 'gv'
-
-    def __init__(self, filename=None, directory=None,
-                 format=None, engine=None, encoding=ENCODING):
+    def __init__(self, filename=None, directory=None, format=None, engine=None, encoding=ENCODING):
         if filename is None:
-            name = getattr(self, 'name', None) or self.__class__.__name__
-            filename = '%s.%s' % (name, self._default_extension)
+            name = getattr(self, "name", None) or self.__class__.__name__
+            filename = "%s.%s" % (name, self._default_extension)
         self.filename = filename
 
         if directory is not None:
@@ -104,13 +100,13 @@ class File(Base):
 
     def _kwargs(self):
         result = super(File, self)._kwargs()
-        result['filename'] = self.filename
-        if 'directory' in self.__dict__:
-            result['directory'] = self.directory
+        result["filename"] = self.filename
+        if "directory" in self.__dict__:
+            result["directory"] = self.directory
         return result
 
     def _repr_svg_(self):
-        return self.pipe(format='svg').decode(self._encoding)
+        return self.pipe(format="svg").decode(self._encoding)
 
     def pipe(self, format=None, renderer=None, formatter=None, quiet=False):
         """Return the source piped through the Graphviz layout command.
@@ -133,9 +129,9 @@ class File(Base):
 
         data = text_type(self.source).encode(self._encoding)
 
-        out = backend.pipe(self._engine, format, data,
-                           renderer=renderer, formatter=formatter,
-                           quiet=quiet)
+        out = backend.pipe(
+            self._engine, format, data, renderer=renderer, formatter=formatter, quiet=quiet
+        )
 
         return out
 
@@ -162,17 +158,26 @@ class File(Base):
 
         data = text_type(self.source)
 
-        log.debug('write %d bytes to %r', len(data), filepath)
-        with io.open(filepath, 'w', encoding=self.encoding) as fd:
+        log.debug("write %d bytes to %r", len(data), filepath)
+        with io.open(filepath, "w", encoding=self.encoding) as fd:
             fd.write(data)
-            if not data.endswith(u'\n'):
-                fd.write(u'\n')
+            if not data.endswith("\n"):
+                fd.write("\n")
 
         return filepath
 
-    def render(self, filename=None, directory=None, view=False, cleanup=False,
-               format=None, renderer=None, formatter=None,
-               quiet=False, quiet_view=False):
+    def render(
+        self,
+        filename=None,
+        directory=None,
+        view=False,
+        cleanup=False,
+        format=None,
+        renderer=None,
+        formatter=None,
+        quiet=False,
+        quiet_view=False,
+    ):
         """Save the source to file and render with the Graphviz engine.
 
         Args:
@@ -204,12 +209,12 @@ class File(Base):
         if format is None:
             format = self._format
 
-        rendered = backend.render(self._engine, format, filepath,
-                                  renderer=renderer, formatter=formatter,
-                                  quiet=quiet)
+        rendered = backend.render(
+            self._engine, format, filepath, renderer=renderer, formatter=formatter, quiet=quiet
+        )
 
         if cleanup:
-            log.debug('delete %r', filepath)
+            log.debug("delete %r", filepath)
             os.remove(filepath)
 
         if quiet_view or view:
@@ -217,8 +222,7 @@ class File(Base):
 
         return rendered
 
-    def view(self, filename=None, directory=None, cleanup=False,
-             quiet=False, quiet_view=False):
+    def view(self, filename=None, directory=None, cleanup=False, quiet=False, quiet_view=False):
         """Save the source to file, open the rendered result in a viewer.
 
         Args:
@@ -237,24 +241,30 @@ class File(Base):
 
         Short-cut method for calling :meth:`.render` with ``view=True``.
         """
-        return self.render(filename=filename, directory=directory,
-                           view=True, cleanup=cleanup,
-                           quiet=quiet, quiet_view=quiet_view)
+        return self.render(
+            filename=filename,
+            directory=directory,
+            view=True,
+            cleanup=cleanup,
+            quiet=quiet,
+            quiet_view=quiet_view,
+        )
 
     def _view(self, filepath, format, quiet):
         """Start the right viewer based on file format and platform."""
         methodnames = [
-            '_view_%s_%s' % (format, backend.PLATFORM),
-            '_view_%s' % backend.PLATFORM,
+            "_view_%s_%s" % (format, backend.PLATFORM),
+            "_view_%s" % backend.PLATFORM,
         ]
         for name in methodnames:
             view_method = getattr(self, name, None)
             if view_method is not None:
                 break
         else:
-            raise RuntimeError('%r has no built-in viewer support for %r'
-                               ' on %r platform' % (self.__class__, format,
-                                                    backend.PLATFORM))
+            raise RuntimeError(
+                "%r has no built-in viewer support for %r"
+                " on %r platform" % (self.__class__, format, backend.PLATFORM)
+            )
         view_method(filepath, quiet)
 
     _view_darwin = staticmethod(backend.view.darwin)
@@ -280,8 +290,7 @@ class Source(File):
     """
 
     @classmethod
-    def from_file(cls, filename, directory=None,
-                  format=None, engine=None, encoding=ENCODING):
+    def from_file(cls, filename, directory=None, format=None, engine=None, encoding=ENCODING):
         """Return an instance with the source string read from the given file.
 
         Args:
@@ -291,21 +300,21 @@ class Source(File):
             engine: Layout command used (``'dot'``, ``'neato'``, ...).
             encoding: Encoding for loading/saving the source.
         """
-        filepath = os.path.join(directory or '', filename)
+        filepath = os.path.join(directory or "", filename)
         if encoding is None:
             encoding = locale.getpreferredencoding()
-        log.debug('read %r with encoding %r', filepath, encoding)
+        log.debug("read %r with encoding %r", filepath, encoding)
         with io.open(filepath, encoding=encoding) as fd:
             source = fd.read()
         return cls(source, filename, directory, format, engine, encoding)
 
-    def __init__(self, source, filename=None, directory=None,
-                 format=None, engine=None, encoding=ENCODING):
-        super(Source, self).__init__(filename, directory,
-                                     format, engine, encoding)
+    def __init__(
+        self, source, filename=None, directory=None, format=None, engine=None, encoding=ENCODING
+    ):
+        super(Source, self).__init__(filename, directory, format, engine, encoding)
         self.source = source  #: The verbatim DOT source code string.
 
     def _kwargs(self):
         result = super(Source, self)._kwargs()
-        result['source'] = self.source
+        result["source"] = self.source
         return result

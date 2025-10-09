@@ -21,10 +21,7 @@ class TestCatalyticLattice:
             from apps.catalytic.catalytic_lattice_gpu import CatalyticLattice
 
             config = sample_data["lattice_config"]
-            lattice = CatalyticLattice(
-                dimensions=config["dimensions"],
-                size=config["size"]
-            )
+            lattice = CatalyticLattice(dimensions=config["dimensions"], size=config["size"])
 
             assert lattice.dimensions == config["dimensions"]
             assert lattice.size == config["size"]
@@ -43,11 +40,13 @@ class TestCatalyticLattice:
 
             # The catalytic approach should use significantly less memory
             # than a traditional dense representation
-            expected_dense_size = (5 ** 3) ** 2 * 8  # bytes for adjacency matrix
+            expected_dense_size = (5**3) ** 2 * 8  # bytes for adjacency matrix
             actual_memory = lattice.get_memory_usage()
 
             efficiency_ratio = expected_dense_size / actual_memory
-            assert efficiency_ratio > 10, f"Memory efficiency should be >10x, got {efficiency_ratio:.1f}x"
+            assert efficiency_ratio > 10, (
+                f"Memory efficiency should be >10x, got {efficiency_ratio:.1f}x"
+            )
 
         except ImportError:
             pytest.skip("Catalytic module not available")
@@ -80,7 +79,9 @@ class TestCatalyticLattice:
             lattice = CatalyticLattice(dimensions=2, size=4)
 
             # Store initial state
-            initial_aux_memory = lattice.aux_memory.copy() if hasattr(lattice, 'aux_memory') else None
+            initial_aux_memory = (
+                lattice.aux_memory.copy() if hasattr(lattice, "aux_memory") else None
+            )
 
             # Perform some operations that modify auxiliary memory
             lattice.transform_data(np.array([1, 2, 3, 4]))
@@ -93,7 +94,7 @@ class TestCatalyticLattice:
                 np.testing.assert_array_equal(
                     initial_aux_memory,
                     final_aux_memory,
-                    "Catalytic property should restore memory perfectly"
+                    "Catalytic property should restore memory perfectly",
                 )
 
         except ImportError:
@@ -113,7 +114,7 @@ class TestGPUAcceleration:
             backend = factory.create_backend()
 
             assert backend is not None, "Backend should be created"
-            assert hasattr(backend, 'is_available'), "Backend should have availability check"
+            assert hasattr(backend, "is_available"), "Backend should have availability check"
 
         except ImportError:
             pytest.skip("GPU factory module not available")
@@ -172,8 +173,8 @@ class TestKALattice:
             ka_lattice = KALattice(max_instances=2)
 
             assert ka_lattice.max_instances == 2
-            assert hasattr(ka_lattice, 'knowledge_base')
-            assert hasattr(ka_lattice, 'orchestrator')
+            assert hasattr(ka_lattice, "knowledge_base")
+            assert hasattr(ka_lattice, "orchestrator")
 
         except ImportError:
             pytest.skip("KA Lattice module not available")
@@ -209,7 +210,7 @@ class TestKALattice:
                 workload = {
                     "operation": "transform",
                     "data": np.random.randn(100),
-                    "parameters": {"factor": 2.0}
+                    "parameters": {"factor": 2.0},
                 }
                 return ka_lattice.process_workload(workload)
 

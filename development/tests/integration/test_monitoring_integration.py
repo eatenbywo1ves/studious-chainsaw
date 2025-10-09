@@ -28,7 +28,7 @@ class PrometheusClient:
     """
 
     def __init__(self, base_url: str = "http://localhost:9090"):
-        self.base_url = base_url.rstrip('/')
+        self.base_url = base_url.rstrip("/")
         self.client = httpx.AsyncClient(timeout=30.0)
 
     async def query(self, query: str, time: Optional[datetime] = None) -> Dict[str, Any]:
@@ -52,10 +52,7 @@ class PrometheusClient:
         if time:
             params["time"] = time.timestamp()
 
-        response = await self.client.get(
-            f"{self.base_url}/api/v1/query",
-            params=params
-        )
+        response = await self.client.get(f"{self.base_url}/api/v1/query", params=params)
         response.raise_for_status()
         return response.json()
 
@@ -86,9 +83,7 @@ class PrometheusClient:
         return []
 
     async def get_metric_value(
-        self,
-        metric_name: str,
-        labels: Optional[Dict[str, str]] = None
+        self, metric_name: str, labels: Optional[Dict[str, str]] = None
     ) -> float:
         """
         Get current value of a metric.
@@ -104,7 +99,7 @@ class PrometheusClient:
         query = metric_name
         if labels:
             label_str = ",".join(f'{k}="{v}"' for k, v in labels.items())
-            query = f'{metric_name}{{{label_str}}}'
+            query = f"{metric_name}{{{label_str}}}"
 
         result = await self.query(query)
 
@@ -158,12 +153,8 @@ class GrafanaClient:
     API Reference: https://grafana.com/docs/grafana/latest/http_api/
     """
 
-    def __init__(
-        self,
-        base_url: str = "http://localhost:3000",
-        api_key: Optional[str] = None
-    ):
-        self.base_url = base_url.rstrip('/')
+    def __init__(self, base_url: str = "http://localhost:3000", api_key: Optional[str] = None):
+        self.base_url = base_url.rstrip("/")
 
         # Default credentials (admin:admin)
         headers = {}
@@ -172,13 +163,11 @@ class GrafanaClient:
         else:
             # Use basic auth with default credentials
             import base64
-            credentials = base64.b64encode(b"admin:admin").decode('ascii')
+
+            credentials = base64.b64encode(b"admin:admin").decode("ascii")
             headers["Authorization"] = f"Basic {credentials}"
 
-        self.client = httpx.AsyncClient(
-            headers=headers,
-            timeout=30.0
-        )
+        self.client = httpx.AsyncClient(headers=headers, timeout=30.0)
 
     async def query(self, query: str, datasource_uid: str = "prometheus") -> Dict[str, Any]:
         """
@@ -193,15 +182,7 @@ class GrafanaClient:
         """
         response = await self.client.post(
             f"{self.base_url}/api/ds/query",
-            json={
-                "queries": [
-                    {
-                        "refId": "A",
-                        "expr": query,
-                        "datasourceId": datasource_uid
-                    }
-                ]
-            }
+            json={"queries": [{"refId": "A", "expr": query, "datasourceId": datasource_uid}]},
         )
         response.raise_for_status()
         return response.json()
@@ -219,9 +200,7 @@ class GrafanaClient:
                 "meta": {...}
             }
         """
-        response = await self.client.get(
-            f"{self.base_url}/api/dashboards/uid/{dashboard_uid}"
-        )
+        response = await self.client.get(f"{self.base_url}/api/dashboards/uid/{dashboard_uid}")
         response.raise_for_status()
         return response.json()
 
@@ -234,11 +213,9 @@ class GrafanaClient:
 async def grafana_client() -> GrafanaClient:
     """Fixture providing Grafana API client."""
     import os
+
     api_key = os.getenv("GRAFANA_API_KEY")  # Optional
-    client = GrafanaClient(
-        base_url="http://localhost:3000",
-        api_key=api_key
-    )
+    client = GrafanaClient(base_url="http://localhost:3000", api_key=api_key)
     yield client
     await client.close()
 
@@ -256,10 +233,7 @@ class TestPrometheusMetrics:
     """
 
     @pytest.mark.asyncio
-    async def test_metrics_endpoint_accessible(
-        self,
-        api_client: AsyncClient
-    ):
+    async def test_metrics_endpoint_accessible(self, api_client: AsyncClient):
         """
         Metrics endpoint returns Prometheus-format data.
 
@@ -268,19 +242,19 @@ class TestPrometheusMetrics:
         # Query /metrics endpoint
         response = await api_client.get("http://localhost:8000/metrics")
 
-        assert response.status_code == 200, \
-            f"Metrics endpoint returned {response.status_code}"
+        assert response.status_code == 200, f"Metrics endpoint returned {response.status_code}"
 
         # Verify Prometheus text format
         text = response.text
-        assert "# HELP" in text or "# TYPE" in text or "_total" in text, \
+        assert "# HELP" in text or "# TYPE" in text or "_total" in text, (
             "Metrics should be in Prometheus format"
+        )
 
         # Verify key metrics present
         expected_metrics = [
             "http_requests_total",
             "http_request_duration_seconds",
-            "process_cpu_seconds_total"
+            "process_cpu_seconds_total",
         ]
 
         # At least one expected metric should be present
@@ -289,9 +263,7 @@ class TestPrometheusMetrics:
 
     @pytest.mark.asyncio
     async def test_http_request_counter(
-        self,
-        api_client: AsyncClient,
-        prometheus_client: PrometheusClient
+        self, api_client: AsyncClient, prometheus_client: PrometheusClient
     ):
         """
         HTTP request counter increments correctly.
@@ -301,8 +273,7 @@ class TestPrometheusMetrics:
         # Get initial count
         try:
             initial_count = await prometheus_client.get_metric_value(
-                "http_requests_total",
-                labels={"endpoint": "/api/lattices", "method": "GET"}
+                "http_requests_total", labels={"endpoint": "/api/lattices", "method": "GET"}
             )
         except Exception:
             # Prometheus may not have data yet
@@ -317,21 +288,19 @@ class TestPrometheusMetrics:
         # Get updated count
         try:
             final_count = await prometheus_client.get_metric_value(
-                "http_requests_total",
-                labels={"endpoint": "/api/lattices", "method": "GET"}
+                "http_requests_total", labels={"endpoint": "/api/lattices", "method": "GET"}
             )
 
             # Verify increment
-            assert final_count >= initial_count, \
+            assert final_count >= initial_count, (
                 f"Counter should not decrease (was {initial_count}, now {final_count})"
+            )
         except Exception as e:
             pytest.skip(f"Prometheus not available or metric not found: {e}")
 
     @pytest.mark.asyncio
     async def test_request_duration_histogram(
-        self,
-        authenticated_client: AsyncClient,
-        prometheus_client: PrometheusClient
+        self, authenticated_client: AsyncClient, prometheus_client: PrometheusClient
     ):
         """
         Request duration histogram records timings correctly.
@@ -350,20 +319,16 @@ class TestPrometheusMetrics:
 
             # Look for duration histogram
             histogram_found = any(
-                "duration" in name.lower() and "seconds" in name.lower()
-                for name in metrics.keys()
+                "duration" in name.lower() and "seconds" in name.lower() for name in metrics.keys()
             )
 
-            assert histogram_found or len(metrics) > 0, \
-                "Duration histogram or metrics should exist"
+            assert histogram_found or len(metrics) > 0, "Duration histogram or metrics should exist"
         except Exception as e:
             pytest.skip(f"Prometheus metrics not available: {e}")
 
     @pytest.mark.asyncio
     async def test_error_rate_metric(
-        self,
-        api_client: AsyncClient,
-        prometheus_client: PrometheusClient
+        self, api_client: AsyncClient, prometheus_client: PrometheusClient
     ):
         """
         Error rate metric tracks 4xx/5xx responses.
@@ -379,8 +344,7 @@ class TestPrometheusMetrics:
         # Verify 404 counted
         try:
             error_count = await prometheus_client.get_metric_value(
-                "http_requests_total",
-                labels={"status": "404"}
+                "http_requests_total", labels={"status": "404"}
             )
 
             assert error_count >= 0, "404 errors should be tracked"
@@ -402,9 +366,7 @@ class TestApplicationMetrics:
 
     @pytest.mark.asyncio
     async def test_active_users_gauge(
-        self,
-        authenticated_client: AsyncClient,
-        prometheus_client: PrometheusClient
+        self, authenticated_client: AsyncClient, prometheus_client: PrometheusClient
     ):
         """
         Active users gauge reflects current authenticated users.
@@ -422,8 +384,9 @@ class TestApplicationMetrics:
             active_users = await prometheus_client.get_metric_value("active_users")
 
             # Should have at least 0 active users (metric exists)
-            assert active_users >= 0, \
+            assert active_users >= 0, (
                 f"Active users metric should be non-negative, got {active_users}"
+            )
         except Exception as e:
             pytest.skip(f"Active users metric not implemented: {e}")
 
@@ -432,7 +395,7 @@ class TestApplicationMetrics:
         self,
         authenticated_client: AsyncClient,
         prometheus_client: PrometheusClient,
-        sample_lattice_data: Dict
+        sample_lattice_data: Dict,
     ):
         """
         Transformation counter increments when transformations performed.
@@ -441,8 +404,7 @@ class TestApplicationMetrics:
         """
         # Create lattice
         lattice_response = await authenticated_client.post(
-            "/api/lattices",
-            json=sample_lattice_data
+            "/api/lattices", json=sample_lattice_data
         )
         assert lattice_response.status_code == 201
         lattice_id = lattice_response.json()["id"]
@@ -458,8 +420,7 @@ class TestApplicationMetrics:
         # Perform transformation (if endpoint exists)
         try:
             transform_response = await authenticated_client.post(
-                f"/api/lattices/{lattice_id}/transform",
-                json={"transformation_type": "xor"}
+                f"/api/lattices/{lattice_id}/transform", json={"transformation_type": "xor"}
             )
 
             if transform_response.status_code == 200:
@@ -480,7 +441,7 @@ class TestApplicationMetrics:
         self,
         authenticated_client: AsyncClient,
         prometheus_client: PrometheusClient,
-        gpu_available: bool
+        gpu_available: bool,
     ):
         """
         GPU utilization metric updates during GPU operations.
@@ -495,8 +456,7 @@ class TestApplicationMetrics:
             gpu_util = await prometheus_client.get_metric_value("gpu_utilization_percent")
 
             # Should be between 0 and 100
-            assert 0 <= gpu_util <= 100, \
-                f"GPU utilization should be 0-100%, got {gpu_util}"
+            assert 0 <= gpu_util <= 100, f"GPU utilization should be 0-100%, got {gpu_util}"
         except Exception as e:
             pytest.skip(f"GPU metrics not implemented: {e}")
 
@@ -514,10 +474,7 @@ class TestGrafanaDashboards:
     """
 
     @pytest.mark.asyncio
-    async def test_dashboard_query_executes(
-        self,
-        grafana_client: GrafanaClient
-    ):
+    async def test_dashboard_query_executes(self, grafana_client: GrafanaClient):
         """
         Dashboard queries return data from Prometheus.
 
@@ -525,7 +482,7 @@ class TestGrafanaDashboards:
         """
         try:
             # Execute PromQL query via Grafana
-            query = 'rate(http_requests_total[1m])'
+            query = "rate(http_requests_total[1m])"
             result = await grafana_client.query(query)
 
             # Verify query succeeded
@@ -534,10 +491,7 @@ class TestGrafanaDashboards:
             pytest.skip(f"Grafana not available: {e}")
 
     @pytest.mark.asyncio
-    async def test_dashboard_panels_populated(
-        self,
-        grafana_client: GrafanaClient
-    ):
+    async def test_dashboard_panels_populated(self, grafana_client: GrafanaClient):
         """
         Dashboard panels have data.
 
@@ -560,10 +514,7 @@ class TestGrafanaDashboards:
             pytest.skip(f"Grafana not available: {e}")
 
     @pytest.mark.asyncio
-    async def test_grafana_accessible(
-        self,
-        grafana_client: GrafanaClient
-    ):
+    async def test_grafana_accessible(self, grafana_client: GrafanaClient):
         """
         Grafana is accessible and responding.
 
@@ -571,7 +522,7 @@ class TestGrafanaDashboards:
         """
         try:
             # Simple health check via query
-            result = await grafana_client.query('up')
+            result = await grafana_client.query("up")
             assert result is not None
         except Exception as e:
             pytest.skip(f"Grafana not available: {e}")
@@ -592,10 +543,7 @@ class TestAlertRules:
     @pytest.mark.asyncio
     @pytest.mark.slow
     async def test_high_error_rate_alert(
-        self,
-        api_client: AsyncClient,
-        prometheus_client: PrometheusClient,
-        clean_redis
+        self, api_client: AsyncClient, prometheus_client: PrometheusClient, clean_redis
     ):
         """
         High error rate alert triggers when error threshold exceeded.
@@ -612,8 +560,7 @@ class TestAlertRules:
             # Trigger 500 errors (if endpoint exists)
             try:
                 await api_client.post(
-                    "http://localhost:8000/api/trigger-error",
-                    json={"error_type": "500"}
+                    "http://localhost:8000/api/trigger-error", json={"error_type": "500"}
                 )
             except Exception:
                 pass  # Expected to fail
@@ -626,10 +573,7 @@ class TestAlertRules:
             alerts = await prometheus_client.get_alerts()
 
             # Verify HighErrorRate alert fired (if configured)
-            high_error_alerts = [
-                a for a in alerts
-                if a["labels"]["alertname"] == "HighErrorRate"
-            ]
+            high_error_alerts = [a for a in alerts if a["labels"]["alertname"] == "HighErrorRate"]
 
             # May not fire if trigger-error endpoint doesn't exist
             if len(high_error_alerts) == 0:
@@ -638,10 +582,7 @@ class TestAlertRules:
             pytest.skip(f"Prometheus alerts not available: {e}")
 
     @pytest.mark.asyncio
-    async def test_alert_query_works(
-        self,
-        prometheus_client: PrometheusClient
-    ):
+    async def test_alert_query_works(self, prometheus_client: PrometheusClient):
         """
         Alert API endpoint is accessible.
 
@@ -656,10 +597,7 @@ class TestAlertRules:
             pytest.skip(f"Prometheus alerts API not available: {e}")
 
     @pytest.mark.asyncio
-    async def test_alert_clears(
-        self,
-        prometheus_client: PrometheusClient
-    ):
+    async def test_alert_clears(self, prometheus_client: PrometheusClient):
         """
         Alert clears when condition resolves.
 
@@ -695,7 +633,7 @@ class TestWebhookAlerts:
         api_client: AsyncClient,
         webhook_server_fixture,
         prometheus_client: PrometheusClient,
-        clean_redis
+        clean_redis,
     ):
         """
         Webhook called when alert fires.
@@ -712,8 +650,7 @@ class TestWebhookAlerts:
         for i in range(100):
             try:
                 await api_client.post(
-                    "http://localhost:8000/api/trigger-error",
-                    json={"error_type": "500"}
+                    "http://localhost:8000/api/trigger-error", json={"error_type": "500"}
                 )
             except Exception:
                 pass
@@ -732,10 +669,7 @@ class TestWebhookAlerts:
         assert len(webhooks) > 0, "Expected webhook to be called"
 
     @pytest.mark.asyncio
-    async def test_webhook_server_works(
-        self,
-        webhook_server_fixture
-    ):
+    async def test_webhook_server_works(self, webhook_server_fixture):
         """
         Webhook server fixture is functional.
 
@@ -745,14 +679,11 @@ class TestWebhookAlerts:
         assert webhook_server_fixture is not None
 
         # Verify methods are available
-        assert hasattr(webhook_server_fixture, 'get_received')
-        assert hasattr(webhook_server_fixture, 'reset')
+        assert hasattr(webhook_server_fixture, "get_received")
+        assert hasattr(webhook_server_fixture, "reset")
 
     @pytest.mark.asyncio
-    async def test_webhook_delivery_verified(
-        self,
-        webhook_server_fixture
-    ):
+    async def test_webhook_delivery_verified(self, webhook_server_fixture):
         """
         Webhook delivery can be verified.
 
@@ -783,7 +714,7 @@ class TestEndToEndMonitoring:
         api_client: AsyncClient,
         prometheus_client: PrometheusClient,
         webhook_server_fixture,
-        clean_redis
+        clean_redis,
     ):
         """
         Complete flow: metric → alert → webhook.
@@ -804,8 +735,7 @@ class TestEndToEndMonitoring:
         for i in range(100):
             try:
                 await api_client.post(
-                    "http://localhost:8000/api/trigger-error",
-                    json={"error_type": "500"}
+                    "http://localhost:8000/api/trigger-error", json={"error_type": "500"}
                 )
             except Exception:
                 pass
@@ -836,13 +766,13 @@ class TestEndToEndMonitoring:
             assert isinstance(alerts, list), "Alerts should be queryable"
 
         except Exception as e:
-            pytest.skip(f"End-to-end flow incomplete (monitoring stack may not be fully configured): {e}")
+            pytest.skip(
+                f"End-to-end flow incomplete (monitoring stack may not be fully configured): {e}"
+            )
 
     @pytest.mark.asyncio
     async def test_multi_tenant_metrics_isolation(
-        self,
-        two_tenants_fixture,
-        prometheus_client: PrometheusClient
+        self, two_tenants_fixture, prometheus_client: PrometheusClient
     ):
         """
         Metrics are isolated by tenant.
@@ -874,10 +804,7 @@ class TestEndToEndMonitoring:
             pytest.skip(f"Prometheus not available: {e}")
 
     @pytest.mark.asyncio
-    async def test_monitoring_stack_health(
-        self,
-        prometheus_client: PrometheusClient
-    ):
+    async def test_monitoring_stack_health(self, prometheus_client: PrometheusClient):
         """
         Monitoring stack components are healthy.
 
@@ -885,16 +812,14 @@ class TestEndToEndMonitoring:
         """
         try:
             # Verify Prometheus is reachable
-            result = await prometheus_client.query('up')
+            result = await prometheus_client.query("up")
 
-            assert result["status"] == "success", \
-                "Prometheus should respond to queries"
+            assert result["status"] == "success", "Prometheus should respond to queries"
 
             # Verify metrics are being scraped
             metrics = await prometheus_client.get_metric_families()
 
-            assert len(metrics) > 0, \
-                "Application should expose metrics"
+            assert len(metrics) > 0, "Application should expose metrics"
 
         except Exception as e:
             pytest.skip(f"Monitoring stack health check failed: {e}")

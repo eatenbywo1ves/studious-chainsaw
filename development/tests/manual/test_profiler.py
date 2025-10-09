@@ -20,20 +20,21 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 # Initialize CUDA first
 from libs.gpu.cuda_init import initialize_cuda_environment  # noqa: E402
+
 initialize_cuda_environment(verbose=True)
 
 from libs.gpu.profiler import GPUProfiler, get_profiler  # noqa: E402
 
 # Set up logging
-logging.basicConfig(level=logging.INFO, format='%(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format="%(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 
 def test_basic_profiling():
     """Test basic profiling functionality"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 1: Basic Profiling")
-    print("="*70)
+    print("=" * 70)
 
     profiler = GPUProfiler(enabled=True, device_id=0)
 
@@ -101,9 +102,9 @@ def test_basic_profiling():
 
 def test_statistics():
     """Test profiling statistics and summaries"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 2: Statistics and Summaries")
-    print("="*70)
+    print("=" * 70)
 
     profiler = GPUProfiler(enabled=True, device_id=0)
     profiler.reset()
@@ -165,12 +166,13 @@ def test_statistics():
 
 def test_gpu_operations():
     """Test profiling of actual GPU operations"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 3: GPU Operation Profiling")
-    print("="*70)
+    print("=" * 70)
 
     try:
         import torch
+
         if not torch.cuda.is_available():
             print("  [SKIP] CUDA not available")
             return True
@@ -234,9 +236,9 @@ def test_gpu_operations():
 
 def test_decorator_profiling():
     """Test decorator-based profiling"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 4: Decorator Profiling")
-    print("="*70)
+    print("=" * 70)
 
     profiler = GPUProfiler(enabled=True, device_id=0)
     profiler.reset()
@@ -271,7 +273,7 @@ def test_decorator_profiling():
         time.sleep(0.005)
         return a + b
 
-    results = [another_function(i, i+1) for i in range(5)]
+    results = [another_function(i, i + 1) for i in range(5)]
     print(f"  Results: {results}")
 
     summary = profiler.get_summary()
@@ -285,9 +287,9 @@ def test_decorator_profiling():
 
 def test_output_formats():
     """Test profiling output formats"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 5: Output Formats")
-    print("="*70)
+    print("=" * 70)
 
     profiler = GPUProfiler(enabled=True, device_id=0)
     profiler.reset()
@@ -317,21 +319,21 @@ def test_output_formats():
     import tempfile
     import json
 
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
         filepath = f.name
 
     profiler.export_json(filepath)
     print(f"  Exported to: {filepath}")
 
     # Verify JSON
-    with open(filepath, 'r') as f:
+    with open(filepath, "r") as f:
         data = json.load(f)
 
     print(f"  Entries in JSON: {len(data['entries'])}")
     print(f"  Summary operations: {len(data['summary'])}")
 
-    assert len(data['entries']) == 3, "Should have 3 entries"
-    assert len(data['summary']) == 2, "Should have 2 operations in summary"
+    assert len(data["entries"]) == 3, "Should have 3 entries"
+    assert len(data["summary"]) == 2, "Should have 2 operations in summary"
 
     # Clean up
     Path(filepath).unlink()
@@ -343,9 +345,9 @@ def test_output_formats():
 
 def test_global_profiler():
     """Test global profiler singleton"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 6: Global Profiler")
-    print("="*70)
+    print("=" * 70)
 
     # Test 6.1: Get global instance
     print("\n[Test 6.1] Global Instance")
@@ -378,9 +380,9 @@ def test_global_profiler():
 
 
 def main():
-    print("="*70)
+    print("=" * 70)
     print("GPU PROFILER TEST SUITE")
-    print("="*70)
+    print("=" * 70)
 
     all_passed = True
 
@@ -410,9 +412,9 @@ def main():
         all_passed = all_passed and test6
 
         # Final summary
-        print("\n" + "="*70)
+        print("\n" + "=" * 70)
         print("TEST SUITE SUMMARY")
-        print("="*70)
+        print("=" * 70)
         if all_passed:
             print("[SUCCESS] ALL TESTS PASSED - GPU Profiler working!")
             print("\nKey Features Validated:")
@@ -425,13 +427,14 @@ def main():
             print("  - Global profiler singleton")
         else:
             print("[FAILURE] SOME TESTS FAILED - Review output above")
-        print("="*70)
+        print("=" * 70)
 
         return 0 if all_passed else 1
 
     except Exception as e:
         print(f"\n[FAILURE] Test suite failed: {e}")
         import traceback
+
         traceback.print_exc()
         return 1
 

@@ -27,7 +27,7 @@ class TestSSHMonitorInit:
                 "name": "Test Device",
                 "tailscale_hostname": "test-device",
                 "ssh_port": 8022,
-                "ssh_user": "testuser"
+                "ssh_user": "testuser",
             },
             "monitoring": {
                 "check_interval_seconds": 30,
@@ -35,28 +35,28 @@ class TestSSHMonitorInit:
                 "max_retry_attempts": 5,
                 "exponential_backoff": True,
                 "backoff_multiplier": 2,
-                "max_backoff_seconds": 300
+                "max_backoff_seconds": 300,
             },
             "reconnection": {
                 "enabled": True,
                 "restart_sshd_command": "sshd",
-                "restart_tailscale_command": None
+                "restart_tailscale_command": None,
             },
             "notifications": {
                 "log_to_file": True,
                 "log_file": "test_monitor.log",
                 "console_output": True,
                 "notify_on_failure": True,
-                "notify_on_recovery": True
-            }
+                "notify_on_recovery": True,
+            },
         }
 
-        with open(config_file, 'w') as f:
+        with open(config_file, "w") as f:
             json.dump(config_data, f)
 
         monitor = SSHMonitor(str(config_file))
 
-        assert monitor.config['device']['name'] == "Test Device"
+        assert monitor.config["device"]["name"] == "Test Device"
         assert monitor.connection_failures == 0
         assert monitor.total_reconnects == 0
         assert monitor.last_success is None
@@ -71,13 +71,13 @@ class TestSSHMonitorInit:
         # Verify default config was created
         assert config_file.exists()
 
-        with open(config_file, 'r') as f:
+        with open(config_file, "r") as f:
             config = json.load(f)
 
-        assert 'device' in config
-        assert 'monitoring' in config
-        assert 'reconnection' in config
-        assert 'notifications' in config
+        assert "device" in config
+        assert "monitoring" in config
+        assert "reconnection" in config
+        assert "notifications" in config
 
 
 class TestTailscaleConnectivity:
@@ -88,7 +88,7 @@ class TestTailscaleConnectivity:
         config_file = self._create_test_config(tmp_path)
         monitor = SSHMonitor(str(config_file))
 
-        with patch('socket.gethostbyname', return_value='100.100.100.100'):
+        with patch("socket.gethostbyname", return_value="100.100.100.100"):
             result = monitor.check_tailscale_connectivity()
             assert result is True
 
@@ -97,7 +97,7 @@ class TestTailscaleConnectivity:
         config_file = self._create_test_config(tmp_path)
         monitor = SSHMonitor(str(config_file))
 
-        with patch('socket.gethostbyname', side_effect=socket.gaierror("Name resolution failed")):
+        with patch("socket.gethostbyname", side_effect=socket.gaierror("Name resolution failed")):
             result = monitor.check_tailscale_connectivity()
             assert result is False
 
@@ -106,7 +106,7 @@ class TestTailscaleConnectivity:
         config_file = self._create_test_config(tmp_path)
         monitor = SSHMonitor(str(config_file))
 
-        with patch('socket.gethostbyname', side_effect=socket.timeout("Connection timeout")):
+        with patch("socket.gethostbyname", side_effect=socket.timeout("Connection timeout")):
             result = monitor.check_tailscale_connectivity()
             assert result is False
 
@@ -119,7 +119,7 @@ class TestTailscaleConnectivity:
                 "name": "Test Device",
                 "tailscale_hostname": "test-device",
                 "ssh_port": 8022,
-                "ssh_user": "testuser"
+                "ssh_user": "testuser",
             },
             "monitoring": {
                 "check_interval_seconds": 30,
@@ -127,21 +127,21 @@ class TestTailscaleConnectivity:
                 "max_retry_attempts": 5,
                 "exponential_backoff": True,
                 "backoff_multiplier": 2,
-                "max_backoff_seconds": 300
+                "max_backoff_seconds": 300,
             },
             "reconnection": {
                 "enabled": True,
                 "restart_sshd_command": "sshd",
-                "restart_tailscale_command": None
+                "restart_tailscale_command": None,
             },
             "notifications": {
                 "log_to_file": False,
                 "console_output": False,
                 "notify_on_failure": True,
-                "notify_on_recovery": True
-            }
+                "notify_on_recovery": True,
+            },
         }
-        with open(config_file, 'w') as f:
+        with open(config_file, "w") as f:
             json.dump(config_data, f)
         return config_file
 
@@ -158,7 +158,7 @@ class TestSSHConnection:
         mock_result.returncode = 0
         mock_result.stdout = "connected"
 
-        with patch('subprocess.run', return_value=mock_result):
+        with patch("subprocess.run", return_value=mock_result):
             result = monitor.check_ssh_connection()
             assert result is True
 
@@ -171,7 +171,7 @@ class TestSSHConnection:
         mock_result.returncode = 255
         mock_result.stdout = ""
 
-        with patch('subprocess.run', return_value=mock_result):
+        with patch("subprocess.run", return_value=mock_result):
             result = monitor.check_ssh_connection()
             assert result is False
 
@@ -180,7 +180,7 @@ class TestSSHConnection:
         config_file = TestTailscaleConnectivity._create_test_config(tmp_path)
         monitor = SSHMonitor(str(config_file))
 
-        with patch('subprocess.run', side_effect=subprocess.TimeoutExpired("ssh", 15)):
+        with patch("subprocess.run", side_effect=subprocess.TimeoutExpired("ssh", 15)):
             result = monitor.check_ssh_connection()
             assert result is False
 
@@ -193,15 +193,15 @@ class TestSSHConnection:
         mock_result.returncode = 0
         mock_result.stdout = "connected"
 
-        with patch('subprocess.run', return_value=mock_result) as mock_run:
+        with patch("subprocess.run", return_value=mock_result) as mock_run:
             monitor.check_ssh_connection()
 
             # Verify command structure
             args = mock_run.call_args[0][0]
-            assert args[0] == 'ssh'
-            assert '-p' in args
-            assert '8022' in args
-            assert 'testuser@test-device' in args
+            assert args[0] == "ssh"
+            assert "-p" in args
+            assert "8022" in args
+            assert "testuser@test-device" in args
 
 
 class TestExponentialBackoff:
@@ -211,7 +211,7 @@ class TestExponentialBackoff:
         """Test backoff with exponential disabled"""
         config_file = TestTailscaleConnectivity._create_test_config(tmp_path)
         monitor = SSHMonitor(str(config_file))
-        monitor.config['monitoring']['exponential_backoff'] = False
+        monitor.config["monitoring"]["exponential_backoff"] = False
 
         delay1 = monitor.calculate_backoff_delay(1)
         delay2 = monitor.calculate_backoff_delay(5)
@@ -264,9 +264,10 @@ class TestConnectionFailureHandling:
         # Set to max retries
         monitor.connection_failures = 4
 
-        with patch.object(monitor, 'check_tailscale_connectivity', return_value=True), \
-             patch.object(monitor, 'restart_ssh_service', return_value=True):
-
+        with (
+            patch.object(monitor, "check_tailscale_connectivity", return_value=True),
+            patch.object(monitor, "restart_ssh_service", return_value=True),
+        ):
             monitor.handle_connection_failure()
 
             # Counter should reset after reaching max
@@ -280,7 +281,7 @@ class TestConnectionFailureHandling:
 
         monitor.connection_failures = 4
 
-        with patch.object(monitor, 'check_tailscale_connectivity', return_value=False):
+        with patch.object(monitor, "check_tailscale_connectivity", return_value=False):
             monitor.handle_connection_failure()
 
             # Should reset counter to keep trying
@@ -309,6 +310,7 @@ class TestConnectionSuccess:
         monitor = SSHMonitor(str(config_file))
 
         from datetime import datetime, timedelta
+
         monitor.last_success = datetime.now() - timedelta(seconds=60)
         monitor.connection_failures = 3
 
@@ -325,7 +327,7 @@ class TestSSHServiceRestart:
         """Test restart when reconnection disabled"""
         config_file = TestTailscaleConnectivity._create_test_config(tmp_path)
         monitor = SSHMonitor(str(config_file))
-        monitor.config['reconnection']['enabled'] = False
+        monitor.config["reconnection"]["enabled"] = False
 
         result = monitor.restart_ssh_service()
         assert result is False
@@ -334,7 +336,7 @@ class TestSSHServiceRestart:
         """Test restart when no command configured"""
         config_file = TestTailscaleConnectivity._create_test_config(tmp_path)
         monitor = SSHMonitor(str(config_file))
-        monitor.config['reconnection']['restart_sshd_command'] = None
+        monitor.config["reconnection"]["restart_sshd_command"] = None
 
         result = monitor.restart_ssh_service()
         assert result is False
@@ -344,9 +346,7 @@ class TestSSHServiceRestart:
         config_file = TestTailscaleConnectivity._create_test_config(tmp_path)
         monitor = SSHMonitor(str(config_file))
 
-        with patch('subprocess.run') as mock_run, \
-             patch('time.sleep'):
-
+        with patch("subprocess.run") as mock_run, patch("time.sleep"):
             result = monitor.restart_ssh_service()
 
             assert result is True
@@ -357,10 +357,10 @@ class TestSSHServiceRestart:
         config_file = TestTailscaleConnectivity._create_test_config(tmp_path)
         monitor = SSHMonitor(str(config_file))
 
-        with patch('subprocess.run', side_effect=Exception("Restart failed")):
+        with patch("subprocess.run", side_effect=Exception("Restart failed")):
             result = monitor.restart_ssh_service()
             assert result is False
 
 
-if __name__ == '__main__':
-    pytest.main([__file__, '-v', '--tb=short'])
+if __name__ == "__main__":
+    pytest.main([__file__, "-v", "--tb=short"])

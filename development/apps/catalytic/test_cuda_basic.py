@@ -7,11 +7,12 @@ import numpy as np
 import cupy as cp
 import time
 
+
 def test_basic_cuda():
     """Test basic CUDA operations without CURAND"""
-    print("="*60)
+    print("=" * 60)
     print("    BASIC CUDA FUNCTIONALITY TEST")
-    print("="*60)
+    print("=" * 60)
 
     try:
         # Test 1: Device info
@@ -55,7 +56,7 @@ def test_basic_cuda():
 
         print(f"   GPU time: {gpu_time:.3f}ms")
         print(f"   CPU time: {cpu_time:.3f}ms")
-        print(f"   Speedup: {cpu_time/gpu_time:.2f}x")
+        print(f"   Speedup: {cpu_time / gpu_time:.2f}x")
         print(f"   Result verified: All elements = {c_result[0]}")
 
         # Test 3: Matrix operations without random
@@ -63,8 +64,8 @@ def test_basic_cuda():
 
         n = 1000
         # Create deterministic matrices
-        A_cpu = np.arange(n*n, dtype=np.float32).reshape(n, n) / (n*n)
-        B_cpu = np.arange(n*n, dtype=np.float32).reshape(n, n).T / (n*n)
+        A_cpu = np.arange(n * n, dtype=np.float32).reshape(n, n) / (n * n)
+        B_cpu = np.arange(n * n, dtype=np.float32).reshape(n, n).T / (n * n)
 
         # GPU multiplication
         A_gpu = cp.asarray(A_cpu)
@@ -83,7 +84,7 @@ def test_basic_cuda():
         print(f"   {n}x{n} matrix multiplication:")
         print(f"   GPU time: {gpu_time:.2f}ms")
         print(f"   CPU time: {cpu_time:.2f}ms")
-        print(f"   Speedup: {cpu_time/gpu_time:.2f}x")
+        print(f"   Speedup: {cpu_time / gpu_time:.2f}x")
 
         # Test 4: Memory transfer benchmark
         print("\n4. Memory Transfer Benchmark:")
@@ -139,12 +140,12 @@ def test_basic_cuda():
         print(f"   Data size: {data_size:,} bytes")
         print(f"   GPU XOR: {gpu_time:.3f}ms")
         print(f"   CPU XOR: {cpu_time:.3f}ms")
-        print(f"   Speedup: {cpu_time/gpu_time:.2f}x")
+        print(f"   Speedup: {cpu_time / gpu_time:.2f}x")
         print(f"   Reversibility verified: {np.array_equal(data, reversed_data)}")
 
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("    CUDA TEST RESULTS")
-        print("="*60)
+        print("=" * 60)
         print("CUDA Status: OPERATIONAL")
         print("GPU Computing: AVAILABLE")
         print("Memory Transfer: WORKING")
@@ -155,8 +156,10 @@ def test_basic_cuda():
     except Exception as e:
         print(f"\nError during CUDA test: {e}")
         import traceback
+
         traceback.print_exc()
         return False
+
 
 if __name__ == "__main__":
     success = test_basic_cuda()

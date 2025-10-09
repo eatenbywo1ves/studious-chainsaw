@@ -26,26 +26,24 @@ import logging
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('grafana-deployment.log'),
-        logging.StreamHandler()
-    ]
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[logging.FileHandler("grafana-deployment.log"), logging.StreamHandler()],
 )
 logger = logging.getLogger(__name__)
+
 
 class GrafanaDashboardDeployer:
     """Handles Grafana dashboard deployment operations."""
 
     def __init__(self, grafana_url: str, api_key: str, org_id: int = 1):
         """Initialize the deployer with Grafana connection details."""
-        self.grafana_url = grafana_url.rstrip('/')
+        self.grafana_url = grafana_url.rstrip("/")
         self.api_key = api_key
         self.org_id = org_id
         self.headers = {
-            'Authorization': f'Bearer {api_key}',
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+            "Accept": "application/json",
         }
         self.session = requests.Session()
         self.session.headers.update(self.headers)
@@ -53,7 +51,7 @@ class GrafanaDashboardDeployer:
     def validate_connection(self) -> bool:
         """Validate connection to Grafana instance."""
         try:
-            response = self.session.get(f'{self.grafana_url}/api/org')
+            response = self.session.get(f"{self.grafana_url}/api/org")
             response.raise_for_status()
             logger.info(f"✅ Successfully connected to Grafana at {self.grafana_url}")
             return True
@@ -64,16 +62,18 @@ class GrafanaDashboardDeployer:
     def validate_dashboard_json(self, dashboard_path: Path) -> Tuple[bool, Optional[Dict]]:
         """Validate dashboard JSON file structure."""
         try:
-            with open(dashboard_path, 'r', encoding='utf-8') as f:
+            with open(dashboard_path, "r", encoding="utf-8") as f:
                 dashboard_data = json.load(f)
 
             # Basic validation
-            if 'dashboard' not in dashboard_data:
-                logger.error(f"❌ Invalid dashboard format in {dashboard_path}: missing 'dashboard' key")
+            if "dashboard" not in dashboard_data:
+                logger.error(
+                    f"❌ Invalid dashboard format in {dashboard_path}: missing 'dashboard' key"
+                )
                 return False, None
 
-            dashboard = dashboard_data['dashboard']
-            required_fields = ['title', 'panels']
+            dashboard = dashboard_data["dashboard"]
+            required_fields = ["title", "panels"]
 
             for field in required_fields:
                 if field not in dashboard:
@@ -94,29 +94,23 @@ class GrafanaDashboardDeployer:
         """Create a dashboard folder if it doesn't exist."""
         try:
             # Check if folder exists
-            response = self.session.get(f'{self.grafana_url}/api/folders')
+            response = self.session.get(f"{self.grafana_url}/api/folders")
             response.raise_for_status()
 
             for folder in response.json():
-                if folder['title'] == folder_name:
+                if folder["title"] == folder_name:
                     logger.info(f"📁 Folder '{folder_name}' already exists")
-                    return folder['id']
+                    return folder["id"]
 
             # Create new folder
-            folder_data = {
-                'uid': folder_name.lower().replace(' ', '-'),
-                'title': folder_name
-            }
+            folder_data = {"uid": folder_name.lower().replace(" ", "-"), "title": folder_name}
 
-            response = self.session.post(
-                f'{self.grafana_url}/api/folders',
-                json=folder_data
-            )
+            response = self.session.post(f"{self.grafana_url}/api/folders", json=folder_data)
             response.raise_for_status()
 
             folder_info = response.json()
             logger.info(f"✅ Created folder '{folder_name}' with ID {folder_info['id']}")
-            return folder_info['id']
+            return folder_info["id"]
 
         except requests.RequestException as e:
             logger.error(f"❌ Failed to create folder '{folder_name}': {e}")
@@ -125,25 +119,22 @@ class GrafanaDashboardDeployer:
     def deploy_dashboard(self, dashboard_data: Dict, folder_id: Optional[int] = None) -> bool:
         """Deploy a single dashboard to Grafana."""
         try:
-            dashboard = dashboard_data['dashboard']
-            title = dashboard['title']
+            dashboard = dashboard_data["dashboard"]
+            title = dashboard["title"]
 
             # Prepare dashboard for deployment
             deploy_data = {
-                'dashboard': dashboard,
-                'folderId': folder_id or 0,
-                'overwrite': True,
-                'message': f"Deployed via automation script at {time.strftime('%Y-%m-%d %H:%M:%S')}"
+                "dashboard": dashboard,
+                "folderId": folder_id or 0,
+                "overwrite": True,
+                "message": f"Deployed via automation script at {time.strftime('%Y-%m-%d %H:%M:%S')}",
             }
 
             # Remove id to allow Grafana to assign one
-            if 'id' in deploy_data['dashboard']:
-                del deploy_data['dashboard']['id']
+            if "id" in deploy_data["dashboard"]:
+                del deploy_data["dashboard"]["id"]
 
-            response = self.session.post(
-                f'{self.grafana_url}/api/dashboards/db',
-                json=deploy_data
-            )
+            response = self.session.post(f"{self.grafana_url}/api/dashboards/db", json=deploy_data)
             response.raise_for_status()
 
             result = response.json()
@@ -156,19 +147,19 @@ class GrafanaDashboardDeployer:
 
         except requests.RequestException as e:
             logger.error(f"❌ Failed to deploy dashboard '{title}': {e}")
-            if hasattr(e, 'response') and e.response:
+            if hasattr(e, "response") and e.response:
                 logger.error(f"   Response: {e.response.text}")
             return False
 
     def validate_datasources(self) -> bool:
         """Validate that required data sources are available."""
-        required_datasources = ['Prometheus', 'PostgreSQL', 'Redis']
+        required_datasources = ["Prometheus", "PostgreSQL", "Redis"]
 
         try:
-            response = self.session.get(f'{self.grafana_url}/api/datasources')
+            response = self.session.get(f"{self.grafana_url}/api/datasources")
             response.raise_for_status()
 
-            available_datasources = {ds['name'] for ds in response.json()}
+            available_datasources = {ds["name"] for ds in response.json()}
             missing_datasources = set(required_datasources) - available_datasources
 
             if missing_datasources:
@@ -186,7 +177,7 @@ class GrafanaDashboardDeployer:
     def get_existing_dashboards(self) -> List[Dict]:
         """Get list of existing dashboards for backup/rollback."""
         try:
-            response = self.session.get(f'{self.grafana_url}/api/search?type=dash-db')
+            response = self.session.get(f"{self.grafana_url}/api/search?type=dash-db")
             response.raise_for_status()
             return response.json()
         except requests.RequestException as e:
@@ -199,7 +190,7 @@ class GrafanaDashboardDeployer:
 
         for uid in dashboard_uids:
             try:
-                response = self.session.get(f'{self.grafana_url}/api/dashboards/uid/{uid}')
+                response = self.session.get(f"{self.grafana_url}/api/dashboards/uid/{uid}")
                 if response.status_code == 200:
                     backups[uid] = response.json()
                     logger.info(f"📦 Backed up dashboard: {uid}")
@@ -208,15 +199,24 @@ class GrafanaDashboardDeployer:
 
         return backups
 
+
 def main():
     """Main deployment function."""
-    parser = argparse.ArgumentParser(description='Deploy Grafana dashboards for Catalytic Computing platform')
-    parser.add_argument('--grafana-url', default='http://localhost:3000', help='Grafana URL')
-    parser.add_argument('--api-key', required=True, help='Grafana API key')
-    parser.add_argument('--dashboards-dir', default='monitoring/grafana/dashboards', help='Dashboards directory')
-    parser.add_argument('--validate-only', action='store_true', help='Only validate dashboards without deploying')
-    parser.add_argument('--skip-datasource-check', action='store_true', help='Skip data source validation')
-    parser.add_argument('--org-id', type=int, default=1, help='Grafana organization ID')
+    parser = argparse.ArgumentParser(
+        description="Deploy Grafana dashboards for Catalytic Computing platform"
+    )
+    parser.add_argument("--grafana-url", default="http://localhost:3000", help="Grafana URL")
+    parser.add_argument("--api-key", required=True, help="Grafana API key")
+    parser.add_argument(
+        "--dashboards-dir", default="monitoring/grafana/dashboards", help="Dashboards directory"
+    )
+    parser.add_argument(
+        "--validate-only", action="store_true", help="Only validate dashboards without deploying"
+    )
+    parser.add_argument(
+        "--skip-datasource-check", action="store_true", help="Skip data source validation"
+    )
+    parser.add_argument("--org-id", type=int, default=1, help="Grafana organization ID")
 
     args = parser.parse_args()
 
@@ -240,7 +240,7 @@ def main():
         logger.error(f"❌ Dashboards directory not found: {dashboards_dir}")
         sys.exit(1)
 
-    dashboard_files = list(dashboards_dir.glob('*.json'))
+    dashboard_files = list(dashboards_dir.glob("*.json"))
     if not dashboard_files:
         logger.error(f"❌ No dashboard JSON files found in {dashboards_dir}")
         sys.exit(1)
@@ -273,13 +273,13 @@ def main():
     failed_deployments = 0
 
     for dashboard_file, dashboard_data in validated_dashboards:
-        dashboard_title = dashboard_data['dashboard']['title']
+        dashboard_title = dashboard_data["dashboard"]["title"]
 
         # Determine folder based on dashboard type
         folder_id = None
-        if 'system' in dashboard_title.lower():
+        if "system" in dashboard_title.lower():
             folder_id = system_folder_id
-        elif 'business' in dashboard_title.lower():
+        elif "business" in dashboard_title.lower():
             folder_id = business_folder_id
 
         if deployer.deploy_dashboard(dashboard_data, folder_id):
@@ -299,5 +299,6 @@ def main():
         logger.error(f"💥 {failed_deployments} dashboards failed to deploy")
         sys.exit(1)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

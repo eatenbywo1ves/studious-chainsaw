@@ -5,14 +5,15 @@ This creates ASCII art flowcharts showing how data flows through
 the reactive pipeline in webhook_manager_reactive.py
 """
 
+
 def print_main_delivery_pipeline():
     """
     Flowchart of the main webhook delivery pipeline
     Based on webhook_manager_reactive.py lines 204-247
     """
-    print("\n" + "="*100)
+    print("\n" + "=" * 100)
     print("MAIN WEBHOOK DELIVERY PIPELINE FLOWCHART")
-    print("="*100 + "\n")
+    print("=" * 100 + "\n")
 
     flowchart = r"""
 ┌─────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -151,9 +152,9 @@ def print_metrics_pipeline():
     Flowchart of the metrics collection pipeline
     Based on webhook_manager_reactive.py lines 251-265
     """
-    print("\n" + "="*100)
+    print("\n" + "=" * 100)
     print("METRICS COLLECTION PIPELINE FLOWCHART")
-    print("="*100 + "\n")
+    print("=" * 100 + "\n")
 
     flowchart = r"""
 ┌─────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -230,9 +231,9 @@ def print_circuit_breaker_pipeline():
     Flowchart of circuit breaker state monitoring
     Based on webhook_manager_reactive.py lines 267-282
     """
-    print("\n" + "="*100)
+    print("\n" + "=" * 100)
     print("CIRCUIT BREAKER STATE MONITORING PIPELINE")
-    print("="*100 + "\n")
+    print("=" * 100 + "\n")
 
     flowchart = r"""
 ┌─────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -322,9 +323,9 @@ def print_data_flow_summary():
     """
     High-level data flow through entire system
     """
-    print("\n" + "="*100)
+    print("\n" + "=" * 100)
     print("END-TO-END DATA FLOW: Webhook Event → Delivery → Metrics")
-    print("="*100 + "\n")
+    print("=" * 100 + "\n")
 
     flowchart = r"""
 ┌─────────────┐
@@ -432,9 +433,9 @@ def print_operator_reference():
     """
     Quick reference of all operators used
     """
-    print("\n" + "="*100)
+    print("\n" + "=" * 100)
     print("OPERATOR QUICK REFERENCE")
-    print("="*100 + "\n")
+    print("=" * 100 + "\n")
 
     print("""
 ╔═══════════════════════════════════════════════════════════════════════════════════════════════╗
@@ -469,9 +470,9 @@ def print_comparison_table():
     """
     Imperative vs Reactive comparison
     """
-    print("\n" + "="*100)
+    print("\n" + "=" * 100)
     print("IMPERATIVE VS REACTIVE: SIDE-BY-SIDE COMPARISON")
-    print("="*100 + "\n")
+    print("=" * 100 + "\n")
 
     print("""
 ╔═══════════════════════════════════════════════════════════════════════════════════════════════╗
@@ -497,11 +498,12 @@ def print_comparison_table():
 # MAIN EXECUTION
 # ============================================================================
 
+
 def generate_all_flowcharts():
     """Generate all flowcharts and diagrams"""
-    print("\n" + "="*100)
+    print("\n" + "=" * 100)
     print("           COMPREHENSIVE REACTIVE WEBHOOK PIPELINE VISUALIZATION")
-    print("="*100)
+    print("=" * 100)
 
     print_main_delivery_pipeline()
     print_metrics_pipeline()
@@ -510,9 +512,9 @@ def generate_all_flowcharts():
     print_operator_reference()
     print_comparison_table()
 
-    print("\n" + "="*100)
+    print("\n" + "=" * 100)
     print("✅ ALL FLOWCHARTS GENERATED")
-    print("="*100)
+    print("=" * 100)
 
     print("\n📖 HOW TO READ THESE DIAGRAMS:")
     print("""

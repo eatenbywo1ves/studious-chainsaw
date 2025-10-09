@@ -18,23 +18,17 @@ def run_script(server_host, server_port):
         connect_to_host=server_host, connect_to_port=server_port, namespace=globals()
     ):
         # grab the current function
-        function = currentProgram.getFunctionManager().getFunctionContaining(
-            currentAddress
-        )
+        function = currentProgram.getFunctionManager().getFunctionContaining(currentAddress)
 
         if function is None:
-            raise Exception(
-                "Current address {} not within a function".format(currentAddress)
-            )
+            raise Exception("Current address {} not within a function".format(currentAddress))
 
         print("Graphing {}:{}".format(function, function.getEntryPoint()))
 
         model = ghidra.program.model.block.BasicBlockModel(currentProgram)
 
         # get the first code block in the function
-        code_block = model.getFirstCodeBlockContaining(
-            function.getEntryPoint(), monitor
-        )
+        code_block = model.getFirstCodeBlockContaining(function.getEntryPoint(), monitor)
 
         graph = networkx.DiGraph()
 
@@ -73,7 +67,6 @@ def run_script(server_host, server_port):
 
 
 if __name__ == "__main__":
-
     in_ghidra = False
     try:
         import ghidra
@@ -89,9 +82,7 @@ if __name__ == "__main__":
 
         script_file = getSourceFile().getAbsolutePath()
         # spin up a ghidra_bridge_server and spawn the script in external python to connect back to it
-        ghidra_bridge_server.GhidraBridgeServer.run_script_across_ghidra_bridge(
-            script_file
-        )
+        ghidra_bridge_server.GhidraBridgeServer.run_script_across_ghidra_bridge(script_file)
     else:
         # we're being run outside ghidra! (almost certainly from spawned by run_script_across_ghidra_bridge())
 

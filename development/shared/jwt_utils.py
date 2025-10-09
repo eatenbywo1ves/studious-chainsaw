@@ -35,15 +35,14 @@ Usage:
 
 import os
 import secrets
-import hashlib
 import logging
 from datetime import datetime, timedelta, timezone
-from typing import Optional, Dict, Any, List, Union
+from typing import Optional, Dict, Any, List
 from enum import Enum
 from pathlib import Path
 
 import jwt
-from jwt.exceptions import PyJWTError, ExpiredSignatureError, InvalidTokenError
+from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.backends import default_backend
@@ -52,13 +51,16 @@ from pydantic import BaseModel, Field, validator
 # Optional Redis import (graceful degradation if not available)
 try:
     import sys
-    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'security', 'application'))
+
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "security", "application"))
     from redis_connection_pool_optimized import get_optimized_redis_pool
+
     REDIS_POOL_AVAILABLE = True
 except ImportError:
     REDIS_POOL_AVAILABLE = False
     try:
         import redis
+
         BASIC_REDIS_AVAILABLE = True
     except ImportError:
         BASIC_REDIS_AVAILABLE = False
@@ -70,8 +72,10 @@ logger = logging.getLogger(__name__)
 # Enums
 # ============================================================================
 
+
 class TokenType(Enum):
     """Token type enumeration"""
+
     ACCESS = "access"
     REFRESH = "refresh"
     API_KEY = "api_key"
@@ -80,13 +84,15 @@ class TokenType(Enum):
 
 class SecurityLevel(Enum):
     """Security validation level"""
-    BASIC = "basic"       # Minimal validation (signature + expiry)
+
+    BASIC = "basic"  # Minimal validation (signature + expiry)
     ENHANCED = "enhanced"  # Standard validation (+ claims validation)
-    STRICT = "strict"      # Maximum validation (+ fingerprinting, rate limiting)
+    STRICT = "strict"  # Maximum validation (+ fingerprinting, rate limiting)
 
 
 class Algorithm(Enum):
     """Supported JWT algorithms"""
+
     RS256 = "RS256"  # RSA asymmetric (recommended for production)
     HS256 = "HS256"  # HMAC symmetric (simpler, less secure)
 
@@ -94,6 +100,7 @@ class Algorithm(Enum):
 # ============================================================================
 # Configuration
 # ============================================================================
+
 
 class JWTConfig(BaseModel):
     """
@@ -134,7 +141,9 @@ class JWTConfig(BaseModel):
         """Ensure secret key is provided for HS256"""
         if values.get("algorithm") == Algorithm.HS256 and not v:
             # Generate a secure random key if not provided
-            logger.warning("No JWT_SECRET_KEY provided, generating random key (NOT recommended for production)")
+            logger.warning(
+                "No JWT_SECRET_KEY provided, generating random key (NOT recommended for production)"
+            )
             return secrets.token_urlsafe(32)
         return v
 
@@ -146,8 +155,10 @@ class JWTConfig(BaseModel):
 # Token Models
 # ============================================================================
 
+
 class TokenPayload(BaseModel):
     """Standard JWT payload model"""
+
     sub: str  # Subject (user identifier)
     exp: int  # Expiration timestamp
     iat: int  # Issued at timestamp
@@ -164,6 +175,7 @@ class TokenPayload(BaseModel):
 
 class TokenResponse(BaseModel):
     """Token creation response"""
+
     access_token: str
     refresh_token: Optional[str] = None
     token_type: str = "bearer"
@@ -174,6 +186,7 @@ class TokenResponse(BaseModel):
 # ============================================================================
 # JWT Manager
 # ============================================================================
+
 
 class JWTManager:
     """
@@ -209,9 +222,11 @@ class JWTManager:
         # Fallback in-memory blacklist (only used if Redis unavailable)
         self._memory_blacklist: set = set()
 
-        logger.info(f"JWT Manager initialized: {self.config.algorithm.value}, "
-                   f"Security: {self.config.security_level.value}, "
-                   f"Redis: {'Connected' if self._redis_available else 'In-memory fallback'}")
+        logger.info(
+            f"JWT Manager initialized: {self.config.algorithm.value}, "
+            f"Security: {self.config.security_level.value}, "
+            f"Redis: {'Connected' if self._redis_available else 'In-memory fallback'}"
+        )
 
     def _init_rsa_keys(self):
         """Initialize RSA keys for RS256 algorithm"""
@@ -231,7 +246,9 @@ class JWTManager:
             logger.info(f"Loaded RSA keys from {private_path} and {public_path}")
         else:
             # Generate new keys
-            logger.warning(f"RSA keys not found, generating new keys (NOT recommended for production)")
+            logger.warning(
+                "RSA keys not found, generating new keys (NOT recommended for production)"
+            )
             self._generate_rsa_keys()
             # Optionally save keys
             if not private_path.parent.exists():
@@ -241,9 +258,7 @@ class JWTManager:
     def _generate_rsa_keys(self):
         """Generate new RSA key pair"""
         self._private_key = rsa.generate_private_key(
-            public_exponent=65537,
-            key_size=2048,
-            backend=default_backend()
+            public_exponent=65537, key_size=2048, backend=default_backend()
         )
         self._public_key = self._private_key.public_key()
         logger.info("Generated new 2048-bit RSA key pair")
@@ -252,17 +267,21 @@ class JWTManager:
         """Save RSA keys to files"""
         # Save private key
         with open(private_path, "wb") as f:
-            f.write(self._private_key.private_bytes(
-                encoding=serialization.Encoding.PEM,
-                format=serialization.PrivateFormat.PKCS8,
-                encryption_algorithm=serialization.NoEncryption()
-            ))
+            f.write(
+                self._private_key.private_bytes(
+                    encoding=serialization.Encoding.PEM,
+                    format=serialization.PrivateFormat.PKCS8,
+                    encryption_algorithm=serialization.NoEncryption(),
+                )
+            )
         # Save public key
         with open(public_path, "wb") as f:
-            f.write(self._public_key.public_bytes(
-                encoding=serialization.Encoding.PEM,
-                format=serialization.PublicFormat.SubjectPublicKeyInfo
-            ))
+            f.write(
+                self._public_key.public_bytes(
+                    encoding=serialization.Encoding.PEM,
+                    format=serialization.PublicFormat.SubjectPublicKeyInfo,
+                )
+            )
         logger.info(f"Saved RSA keys to {private_path} and {public_path}")
 
     def _init_redis(self, redis_client):
@@ -292,12 +311,13 @@ class JWTManager:
             # Fallback to basic Redis
             try:
                 import redis as basic_redis
+
                 self._redis_client = basic_redis.Redis(
                     host=os.getenv("REDIS_HOST", "localhost"),
                     port=int(os.getenv("REDIS_PORT", "6379")),
                     db=0,
                     decode_responses=True,
-                    password=os.getenv("REDIS_PASSWORD")
+                    password=os.getenv("REDIS_PASSWORD"),
                 )
                 self._redis_client.ping()
                 self._redis_available = True
@@ -323,7 +343,7 @@ class JWTManager:
         roles: Optional[List[str]] = None,
         permissions: Optional[List[str]] = None,
         expires_delta: Optional[timedelta] = None,
-        fingerprint: Optional[str] = None
+        fingerprint: Optional[str] = None,
     ) -> str:
         """
         Create access token
@@ -349,7 +369,7 @@ class JWTManager:
             tenant_id=tenant_id,
             roles=roles or [],
             permissions=permissions or [],
-            fingerprint=fingerprint
+            fingerprint=fingerprint,
         )
 
     def create_refresh_token(
@@ -357,7 +377,7 @@ class JWTManager:
         subject: str,
         user_id: Optional[str] = None,
         tenant_id: Optional[str] = None,
-        fingerprint: Optional[str] = None
+        fingerprint: Optional[str] = None,
     ) -> str:
         """Create refresh token (long-lived)"""
         expires_delta = timedelta(days=self.config.refresh_token_expire_days)
@@ -367,7 +387,7 @@ class JWTManager:
             expires_delta=expires_delta,
             user_id=user_id,
             tenant_id=tenant_id,
-            fingerprint=fingerprint
+            fingerprint=fingerprint,
         )
 
     def create_token_pair(
@@ -377,7 +397,7 @@ class JWTManager:
         tenant_id: Optional[str] = None,
         roles: Optional[List[str]] = None,
         permissions: Optional[List[str]] = None,
-        fingerprint: Optional[str] = None
+        fingerprint: Optional[str] = None,
     ) -> TokenResponse:
         """
         Create access + refresh token pair
@@ -391,27 +411,21 @@ class JWTManager:
             tenant_id=tenant_id,
             roles=roles,
             permissions=permissions,
-            fingerprint=fingerprint
+            fingerprint=fingerprint,
         )
 
         refresh_token = self.create_refresh_token(
-            subject=subject,
-            user_id=user_id,
-            tenant_id=tenant_id,
-            fingerprint=fingerprint
+            subject=subject, user_id=user_id, tenant_id=tenant_id, fingerprint=fingerprint
         )
 
         # Extract JTI from access token
-        payload = jwt.decode(
-            access_token,
-            options={"verify_signature": False}
-        )
+        payload = jwt.decode(access_token, options={"verify_signature": False})
 
         return TokenResponse(
             access_token=access_token,
             refresh_token=refresh_token,
             expires_in=self.config.access_token_expire_minutes * 60,
-            jti=payload["jti"]
+            jti=payload["jti"],
         )
 
     def _create_token(
@@ -423,7 +437,7 @@ class JWTManager:
         tenant_id: Optional[str] = None,
         roles: Optional[List[str]] = None,
         permissions: Optional[List[str]] = None,
-        fingerprint: Optional[str] = None
+        fingerprint: Optional[str] = None,
     ) -> str:
         """Internal token creation method"""
         now = datetime.now(timezone.utc)
@@ -436,7 +450,7 @@ class JWTManager:
             "jti": secrets.token_urlsafe(16),  # Unique token ID
             "type": token_type.value,
             "iss": self.config.issuer,
-            "aud": self.config.audience
+            "aud": self.config.audience,
         }
 
         # Add optional claims
@@ -467,7 +481,7 @@ class JWTManager:
         self,
         token: str,
         expected_type: Optional[TokenType] = None,
-        fingerprint: Optional[str] = None
+        fingerprint: Optional[str] = None,
     ) -> TokenPayload:
         """
         Verify JWT token
@@ -496,7 +510,7 @@ class JWTManager:
                     self._public_key,
                     algorithms=["RS256"],
                     issuer=self.config.issuer,
-                    audience=self.config.audience
+                    audience=self.config.audience,
                 )
             else:  # HS256
                 payload = jwt.decode(
@@ -504,12 +518,14 @@ class JWTManager:
                     self._secret_key,
                     algorithms=["HS256"],
                     issuer=self.config.issuer,
-                    audience=self.config.audience
+                    audience=self.config.audience,
                 )
 
             # Validate token type
             if expected_type and payload.get("type") != expected_type.value:
-                raise InvalidTokenError(f"Expected {expected_type.value} token, got {payload.get('type')}")
+                raise InvalidTokenError(
+                    f"Expected {expected_type.value} token, got {payload.get('type')}"
+                )
 
             # STRICT mode: Validate fingerprint
             if self.config.security_level == SecurityLevel.STRICT:
@@ -529,11 +545,11 @@ class JWTManager:
                 permissions=payload.get("permissions", []),
                 iss=payload.get("iss"),
                 aud=payload.get("aud"),
-                fingerprint=payload.get("fingerprint")
+                fingerprint=payload.get("fingerprint"),
             )
 
         except ExpiredSignatureError:
-            logger.warning(f"Token expired")
+            logger.warning("Token expired")
             raise
         except InvalidTokenError as e:
             logger.warning(f"Invalid token: {e}")

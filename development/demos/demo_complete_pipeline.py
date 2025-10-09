@@ -16,9 +16,9 @@ from glyph_svg_exporter import SVGGalleryGenerator
 
 def simulate_realistic_workload():
     """Simulate a realistic GPU workload with varied operations"""
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("STEP 1: Profiling Realistic GPU Workload")
-    print("="*80)
+    print("=" * 80)
 
     profiler = get_profiler(enabled=True)
     profiler.reset()
@@ -93,14 +93,14 @@ def simulate_realistic_workload():
 
 def export_profiling_data(profiler):
     """Export profiling data with glyphs"""
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("STEP 2: Exporting Profiling Data with Glyphs")
-    print("="*80)
+    print("=" * 80)
 
     # Print summary
-    print("\n" + "-"*80)
+    print("\n" + "-" * 80)
     profiler.print_summary()
-    print("-"*80)
+    print("-" * 80)
 
     # Print glyph summary
     profiler.print_glyph_summary()
@@ -115,9 +115,9 @@ def export_profiling_data(profiler):
 
 def generate_svg_visualizations(json_file):
     """Generate SVG visualizations from JSON"""
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("STEP 3: Generating SVG Visualizations")
-    print("="*80)
+    print("=" * 80)
 
     exporter = SVGGalleryGenerator()
     exporter.export_all_formats(json_file, output_prefix="pipeline")
@@ -127,9 +127,9 @@ def generate_svg_visualizations(json_file):
 
 def generate_documentation():
     """Generate reference documentation"""
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("STEP 4: Generating Reference Documentation")
-    print("="*80)
+    print("=" * 80)
 
     print("\nRunning demo_svg_glyphs.py to generate comprehensive reference...")
 
@@ -137,7 +137,7 @@ def generate_documentation():
     from demo_svg_glyphs import (
         create_reference_glyphs,
         generate_reference_sheet_svg,
-        generate_shape_showcase_svg
+        generate_shape_showcase_svg,
     )
 
     glyphs = create_reference_glyphs()
@@ -151,13 +151,13 @@ def generate_documentation():
 
 def display_final_summary(json_file, svg_files):
     """Display final summary and next steps"""
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("PIPELINE COMPLETE!")
-    print("="*80)
+    print("=" * 80)
 
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("Generated Files:")
-    print("="*80)
+    print("=" * 80)
 
     print("\n[Profiling Data]")
     print(f"  {json_file} - Profiling data with glyph annotations")
@@ -170,9 +170,9 @@ def display_final_summary(json_file, svg_files):
     print("  glyph_reference_sheet.svg - Comprehensive glyph catalog")
     print("  glyph_shape_showcase.svg - Shape × iteration matrix")
 
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("Next Steps:")
-    print("="*80)
+    print("=" * 80)
     print("\n1. View SVG Visualizations:")
     print("   - Open SVG files in browser (Chrome, Firefox, Edge)")
     print("   - Or use image viewer that supports SVG")
@@ -198,9 +198,9 @@ def display_final_summary(json_file, svg_files):
 
 def print_glyph_interpretation_guide():
     """Print guide to interpreting glyphs"""
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("GLYPH INTERPRETATION GUIDE")
-    print("="*80)
+    print("=" * 80)
 
     print("\n[Shape Encoding - Operation Category]")
     print("  O  (Circle)   -> Compute-intensive operations (matrix ops, batch processing)")
@@ -245,12 +245,12 @@ def print_glyph_interpretation_guide():
 
 def main():
     """Run complete end-to-end pipeline"""
-    print("\n" + "*"*80)
-    print("*" + " "*78 + "*")
+    print("\n" + "*" * 80)
+    print("*" + " " * 78 + "*")
     print("*" + "  MERNITHIAN COMPLETE PIPELINE DEMONSTRATION".center(78) + "*")
     print("*" + "  Profile -> Glyphs -> JSON -> SVG -> HTML".center(78) + "*")
-    print("*" + " "*78 + "*")
-    print("*"*80)
+    print("*" + " " * 78 + "*")
+    print("*" * 80)
 
     # Print interpretation guide
     print_glyph_interpretation_guide()
@@ -270,9 +270,9 @@ def main():
     # Final summary
     display_final_summary(json_file, svg_files)
 
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("DEMO COMPLETE - Mernithian GPU Profiling System Fully Deployed!")
-    print("="*80 + "\n")
+    print("=" * 80 + "\n")
 
 
 if __name__ == "__main__":

@@ -19,7 +19,7 @@ from libs.config.settings import (
     GPUBackend,
     StorageBackend,
     get_settings,
-    reload_settings
+    reload_settings,
 )
 
 
@@ -79,12 +79,15 @@ class TestLatticeConfig:
         assert config.enable_caching is True
         assert config.cache_ttl_seconds == 3600
 
-    @patch.dict(os.environ, {
-        'LATTICE_MIN_DIMENSIONS': '2',
-        'LATTICE_MAX_DIMENSIONS': '20',
-        'LATTICE_DEFAULT_DIMENSIONS': '5',
-        'LATTICE_ENABLE_CACHING': 'false'
-    })
+    @patch.dict(
+        os.environ,
+        {
+            "LATTICE_MIN_DIMENSIONS": "2",
+            "LATTICE_MAX_DIMENSIONS": "20",
+            "LATTICE_DEFAULT_DIMENSIONS": "5",
+            "LATTICE_ENABLE_CACHING": "false",
+        },
+    )
     def test_env_var_override(self):
         """Test environment variable override"""
         config = LatticeConfig()
@@ -97,11 +100,7 @@ class TestLatticeConfig:
     def test_validation_constraints(self):
         """Test validation constraints"""
         # Valid config
-        config = LatticeConfig(
-            min_dimensions=1,
-            max_dimensions=15,
-            min_lattice_size=1
-        )
+        config = LatticeConfig(min_dimensions=1, max_dimensions=15, min_lattice_size=1)
         assert config.min_dimensions == 1
 
         # Test field validation would happen at instantiation
@@ -134,12 +133,15 @@ class TestGPUConfig:
         assert config.gpu_timeout_seconds == 30.0
         assert config.auto_select_device is True
 
-    @patch.dict(os.environ, {
-        'GPU_PREFERRED_BACKEND': 'pytorch',
-        'GPU_CUDA_DEVICE_ID': '2',
-        'GPU_ENABLE_GPU_PROFILING': 'true',
-        'GPU_AUTO_SELECT_DEVICE': 'false'
-    })
+    @patch.dict(
+        os.environ,
+        {
+            "GPU_PREFERRED_BACKEND": "pytorch",
+            "GPU_CUDA_DEVICE_ID": "2",
+            "GPU_ENABLE_GPU_PROFILING": "true",
+            "GPU_AUTO_SELECT_DEVICE": "false",
+        },
+    )
     def test_env_var_override(self):
         """Test GPU config environment variable override"""
         config = GPUConfig()
@@ -185,14 +187,17 @@ class TestAPIConfig:
         assert config.metrics_port == 9090
         assert config.enable_health_check is True
 
-    @patch.dict(os.environ, {
-        'API_HOST': 'localhost',
-        'API_PORT': '8888',
-        'API_WORKERS': '8',
-        'API_RELOAD': 'true',
-        'API_MAX_LATTICES': '200',
-        'API_CACHE_ENABLED': 'false'
-    })
+    @patch.dict(
+        os.environ,
+        {
+            "API_HOST": "localhost",
+            "API_PORT": "8888",
+            "API_WORKERS": "8",
+            "API_RELOAD": "true",
+            "API_MAX_LATTICES": "200",
+            "API_CACHE_ENABLED": "false",
+        },
+    )
     def test_env_var_override(self):
         """Test API config environment variable override"""
         config = APIConfig()
@@ -222,12 +227,15 @@ class TestWebhookConfig:
         assert config.max_webhooks_per_event == 10
         assert config.max_payload_size_kb == 100
 
-    @patch.dict(os.environ, {
-        'WEBHOOK_ENABLED': 'false',
-        'WEBHOOK_PORT': '9000',
-        'WEBHOOK_MAX_RETRIES': '5',
-        'WEBHOOK_REQUIRE_SIGNATURE': 'false'
-    })
+    @patch.dict(
+        os.environ,
+        {
+            "WEBHOOK_ENABLED": "false",
+            "WEBHOOK_PORT": "9000",
+            "WEBHOOK_MAX_RETRIES": "5",
+            "WEBHOOK_REQUIRE_SIGNATURE": "false",
+        },
+    )
     def test_env_var_override(self):
         """Test webhook config environment variable override"""
         config = WebhookConfig()
@@ -256,12 +264,15 @@ class TestStorageConfig:
         assert config.postgres_pool_size == 20
         assert isinstance(config.filesystem_base_path, Path)
 
-    @patch.dict(os.environ, {
-        'STORAGE_BACKEND': 'redis',
-        'STORAGE_REDIS_URL': 'redis://localhost:6379',
-        'STORAGE_REDIS_PASSWORD': 'secret',
-        'STORAGE_REDIS_DB': '1'
-    })
+    @patch.dict(
+        os.environ,
+        {
+            "STORAGE_BACKEND": "redis",
+            "STORAGE_REDIS_URL": "redis://localhost:6379",
+            "STORAGE_REDIS_PASSWORD": "secret",
+            "STORAGE_REDIS_DB": "1",
+        },
+    )
     def test_redis_config(self):
         """Test Redis storage configuration"""
         config = StorageConfig()
@@ -294,12 +305,15 @@ class TestMonitoringConfig:
         assert config.tracing_endpoint is None
         assert config.tracing_sample_rate == 0.1
 
-    @patch.dict(os.environ, {
-        'MONITORING_LOG_LEVEL': 'DEBUG',
-        'MONITORING_LOG_FORMAT': 'text',
-        'MONITORING_ENABLE_TRACING': 'true',
-        'MONITORING_TRACING_SAMPLE_RATE': '0.5'
-    })
+    @patch.dict(
+        os.environ,
+        {
+            "MONITORING_LOG_LEVEL": "DEBUG",
+            "MONITORING_LOG_FORMAT": "text",
+            "MONITORING_ENABLE_TRACING": "true",
+            "MONITORING_TRACING_SAMPLE_RATE": "0.5",
+        },
+    )
     def test_env_var_override(self):
         """Test monitoring config environment variable override"""
         config = MonitoringConfig()
@@ -330,12 +344,15 @@ class TestCatalyticSettings:
         assert isinstance(settings.base_path, Path)
         assert isinstance(settings.data_path, Path)
 
-    @patch.dict(os.environ, {
-        'CATALYTIC_ENVIRONMENT': 'production',
-        'CATALYTIC_DEBUG': 'true',
-        'CATALYTIC_APP_NAME': 'Test App',
-        'CATALYTIC_APP_VERSION': '2.0.0'
-    })
+    @patch.dict(
+        os.environ,
+        {
+            "CATALYTIC_ENVIRONMENT": "production",
+            "CATALYTIC_DEBUG": "true",
+            "CATALYTIC_APP_NAME": "Test App",
+            "CATALYTIC_APP_VERSION": "2.0.0",
+        },
+    )
     def test_env_var_override(self):
         """Test main settings environment variable override"""
         settings = CatalyticSettings()
@@ -350,7 +367,7 @@ class TestCatalyticSettings:
         settings = CatalyticSettings(environment=Environment.DEVELOPMENT)
         assert settings.debug is True
 
-    @patch('apps.catalytic.gpu.base.torch')
+    @patch("apps.catalytic.gpu.base.torch")
     def test_get_effective_gpu_backend_cuda_available(self, mock_torch):
         """Test getting effective GPU backend when CUDA available"""
         mock_torch.cuda.is_available.return_value = True
@@ -362,8 +379,8 @@ class TestCatalyticSettings:
 
     def test_get_effective_gpu_backend_cpu_fallback(self):
         """Test CPU fallback when no GPU available"""
-        with patch('apps.catalytic.gpu.base.torch', None):
-            with patch('apps.catalytic.gpu.base.cupy', None):
+        with patch("apps.catalytic.gpu.base.torch", None):
+            with patch("apps.catalytic.gpu.base.cupy", None):
                 settings = CatalyticSettings()
                 backend = settings.get_effective_gpu_backend()
 
@@ -375,11 +392,11 @@ class TestCatalyticSettings:
         settings_dict = settings.to_dict()
 
         assert isinstance(settings_dict, dict)
-        assert 'environment' in settings_dict
-        assert 'lattice' in settings_dict
-        assert 'gpu' in settings_dict
+        assert "environment" in settings_dict
+        assert "lattice" in settings_dict
+        assert "gpu" in settings_dict
 
-    @patch('pathlib.Path.mkdir')
+    @patch("pathlib.Path.mkdir")
     def test_path_creation(self, mock_mkdir):
         """Test that required paths are created"""
         CatalyticSettings()
@@ -407,14 +424,14 @@ class TestSettingsFunctions:
         assert settings1 is not settings2
         assert settings2 is settings3
 
-    @patch.dict(os.environ, {'CATALYTIC_APP_NAME': 'Initial'})
+    @patch.dict(os.environ, {"CATALYTIC_APP_NAME": "Initial"})
     def test_settings_reflect_env_changes_after_reload(self):
         """Test settings reflect environment changes after reload"""
         settings1 = reload_settings()
         assert settings1.app_name == "Initial"
 
         # Change environment
-        os.environ['CATALYTIC_APP_NAME'] = 'Updated'
+        os.environ["CATALYTIC_APP_NAME"] = "Updated"
 
         settings2 = reload_settings()
         assert settings2.app_name == "Updated"

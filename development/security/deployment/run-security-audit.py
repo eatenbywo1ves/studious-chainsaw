@@ -11,11 +11,11 @@ from pathlib import Path
 from datetime import datetime
 
 # Color codes
-GREEN = '\033[0;32m'
-YELLOW = '\033[1;33m'
-BLUE = '\033[0;34m'
-RED = '\033[0;31m'
-NC = '\033[0m'
+GREEN = "\033[0;32m"
+YELLOW = "\033[1;33m"
+BLUE = "\033[0;34m"
+RED = "\033[0;31m"
+NC = "\033[0m"
 
 
 class SecurityAuditor:
@@ -24,12 +24,7 @@ class SecurityAuditor:
     def __init__(self, environment: str = "staging"):
         self.environment = environment
         self.project_root = Path(__file__).parent.parent.parent
-        self.results = {
-            'passed': [],
-            'failed': [],
-            'warnings': [],
-            'info': []
-        }
+        self.results = {"passed": [], "failed": [], "warnings": [], "info": []}
         self.start_time = datetime.now()
 
     def print_header(self, message: str):
@@ -38,23 +33,23 @@ class SecurityAuditor:
         print(f"{BLUE}{'=' * 70}{NC}\n")
 
     def print_check(self, message: str):
-        print(f"{BLUE}[CHECK] {message}{NC}", end=' ')
+        print(f"{BLUE}[CHECK] {message}{NC}", end=" ")
 
     def print_pass(self, message: str = ""):
         print(f"{GREEN}PASS{NC} {message}")
-        self.results['passed'].append(message if message else "Check passed")
+        self.results["passed"].append(message if message else "Check passed")
 
     def print_fail(self, message: str):
         print(f"{RED}FAIL{NC} - {message}")
-        self.results['failed'].append(message)
+        self.results["failed"].append(message)
 
     def print_warn(self, message: str):
         print(f"{YELLOW}WARN{NC} - {message}")
-        self.results['warnings'].append(message)
+        self.results["warnings"].append(message)
 
     def print_info(self, message: str):
         print(f"{YELLOW}INFO{NC} - {message}")
-        self.results['info'].append(message)
+        self.results["info"].append(message)
 
     # ========================================================================
     # 1. AUTHENTICATION & AUTHORIZATION AUDITS
@@ -80,7 +75,7 @@ class SecurityAuditor:
         if private_key.exists():
             stat = os.stat(private_key)
             perms = oct(stat.st_mode)[-3:]
-            if perms == '600':
+            if perms == "600":
                 self.print_pass(f"Permissions correct: {perms}")
             else:
                 self.print_warn(f"Permissions should be 600, found: {perms}")
@@ -94,7 +89,7 @@ class SecurityAuditor:
             jwt_mgr = JWTSecurityManager(
                 private_key_path=str(private_key),
                 public_key_path=str(public_key),
-                security_level=SecurityLevel.ENHANCED
+                security_level=SecurityLevel.ENHANCED,
             )
 
             # Test token creation
@@ -102,13 +97,13 @@ class SecurityAuditor:
                 subject="audit",
                 user_id="audit_user",
                 roles=["admin"],
-                permissions=["read", "write"]
+                permissions=["read", "write"],
             )
 
             # Test verification
             decoded = jwt_mgr.verify_token(token)
 
-            if decoded and decoded.get('user_id') == 'audit_user':
+            if decoded and decoded.get("user_id") == "audit_user":
                 self.print_pass("JWT creation and verification working")
             else:
                 self.print_fail("JWT verification failed")
@@ -117,12 +112,19 @@ class SecurityAuditor:
 
         # Check token expiration settings
         self.print_check("Token expiration configuration")
-        env_file = self.project_root / "saas" / f".env.{self.environment}" if self.environment != "development" else self.project_root / "saas" / ".env"
+        env_file = (
+            self.project_root / "saas" / f".env.{self.environment}"
+            if self.environment != "development"
+            else self.project_root / "saas" / ".env"
+        )
 
         if env_file.exists():
-            with open(env_file, 'r') as f:
+            with open(env_file, "r") as f:
                 content = f.read()
-                if 'JWT_ACCESS_TOKEN_EXPIRE_MINUTES=15' in content or 'JWT_ACCESS_TOKEN_EXPIRE_MINUTES' in content:
+                if (
+                    "JWT_ACCESS_TOKEN_EXPIRE_MINUTES=15" in content
+                    or "JWT_ACCESS_TOKEN_EXPIRE_MINUTES" in content
+                ):
                     self.print_pass("Token expiration configured")
                 else:
                     self.print_warn("Token expiration not explicitly set")
@@ -141,6 +143,7 @@ class SecurityAuditor:
         self.print_check("Rate limiting module")
         try:
             from security.application.rate_limiting import AdvancedRateLimiter  # noqa: F401
+
             self.print_pass("Rate limiting module available")
         except ImportError as e:
             self.print_fail(f"Rate limiting module not found: {e}")
@@ -149,9 +152,9 @@ class SecurityAuditor:
         self.print_check("Redis configuration for rate limiting")
         env_file = self.project_root / "saas" / ".env"
         if env_file.exists():
-            with open(env_file, 'r') as f:
+            with open(env_file, "r") as f:
                 content = f.read()
-                if 'RATE_LIMIT_ENABLED=true' in content:
+                if "RATE_LIMIT_ENABLED=true" in content:
                     self.print_pass("Rate limiting enabled")
                 else:
                     self.print_warn("Rate limiting not enabled in config")
@@ -161,11 +164,12 @@ class SecurityAuditor:
         # Check rate limit values
         self.print_check("Rate limit thresholds")
         if env_file.exists():
-            with open(env_file, 'r') as f:
+            with open(env_file, "r") as f:
                 content = f.read()
-                if 'RATE_LIMIT_PER_MINUTE' in content:
+                if "RATE_LIMIT_PER_MINUTE" in content:
                     import re
-                    match = re.search(r'RATE_LIMIT_PER_MINUTE=(\d+)', content)
+
+                    match = re.search(r"RATE_LIMIT_PER_MINUTE=(\d+)", content)
                     if match:
                         limit = int(match.group(1))
                         if 30 <= limit <= 100:
@@ -185,6 +189,7 @@ class SecurityAuditor:
         self.print_check("Input validation module")
         try:
             from security.application.input_validation import SecurityInputValidator
+
             SecurityInputValidator()
             self.print_pass("Input validation module available")
         except ImportError as e:
@@ -194,6 +199,7 @@ class SecurityAuditor:
         self.print_check("Pydantic validation library")
         try:
             import pydantic
+
             self.print_pass(f"Pydantic {pydantic.VERSION} installed")
         except ImportError:
             self.print_fail("Pydantic not installed")
@@ -202,6 +208,7 @@ class SecurityAuditor:
         self.print_check("Email validation")
         try:
             import email_validator  # noqa: F401
+
             self.print_pass("Email validator available")
         except ImportError:
             self.print_warn("Email validator not installed")
@@ -210,6 +217,7 @@ class SecurityAuditor:
         self.print_check("HTML sanitization (XSS protection)")
         try:
             import bleach  # noqa: F401
+
             self.print_pass("Bleach library available for HTML sanitization")
         except ImportError:
             self.print_fail("Bleach library not installed - XSS risk")
@@ -238,6 +246,7 @@ class SecurityAuditor:
         try:
             import cryptography  # noqa: F401
             from cryptography import __version__
+
             self.print_pass(f"Cryptography {__version__} installed")
         except ImportError:
             self.print_fail("Cryptography library not installed")
@@ -262,13 +271,13 @@ class SecurityAuditor:
         dockerfile = self.project_root / "saas" / "api" / "Dockerfile"
 
         if dockerfile.exists():
-            with open(dockerfile, 'r') as f:
+            with open(dockerfile, "r") as f:
                 content = f.read()
 
                 checks = [
-                    ('distroless', 'Distroless base image'),
-                    ('USER', 'Non-root user'),
-                    ('--read-only', 'Read-only filesystem')
+                    ("distroless", "Distroless base image"),
+                    ("USER", "Non-root user"),
+                    ("--read-only", "Read-only filesystem"),
                 ]
 
                 for check, desc in checks:
@@ -284,9 +293,9 @@ class SecurityAuditor:
         compose_override = self.project_root / "saas" / "docker-compose.override.yml"
 
         if compose_override.exists():
-            with open(compose_override, 'r') as f:
+            with open(compose_override, "r") as f:
                 content = f.read()
-                if 'no-new-privileges' in content:
+                if "no-new-privileges" in content:
                     self.print_pass("Security options configured")
                 else:
                     self.print_warn("Security options not found")
@@ -335,12 +344,14 @@ class SecurityAuditor:
 
         # Check monitoring configuration
         self.print_check("Prometheus configuration")
-        monitoring_file = self.project_root / "security" / "deployment" / "monitoring-alerting-setup.yaml"
+        monitoring_file = (
+            self.project_root / "security" / "deployment" / "monitoring-alerting-setup.yaml"
+        )
 
         if monitoring_file.exists():
-            with open(monitoring_file, 'r') as f:
+            with open(monitoring_file, "r") as f:
                 content = f.read()
-                if 'prometheus' in content.lower():
+                if "prometheus" in content.lower():
                     self.print_pass("Prometheus configuration exists")
                 else:
                     self.print_warn("Prometheus not configured")
@@ -350,9 +361,9 @@ class SecurityAuditor:
         # Check alert rules
         self.print_check("Security alert rules")
         if monitoring_file.exists():
-            with open(monitoring_file, 'r') as f:
+            with open(monitoring_file, "r") as f:
                 content = f.read()
-                if 'HighFailedLoginRate' in content:
+                if "HighFailedLoginRate" in content:
                     self.print_pass("Security alerts configured")
                 else:
                     self.print_warn("Security alerts not found")
@@ -370,9 +381,9 @@ class SecurityAuditor:
         req_file = self.project_root / "security" / "security-requirements.txt"
 
         if req_file.exists():
-            with open(req_file, 'r') as f:
+            with open(req_file, "r") as f:
                 deps = f.readlines()
-                critical_deps = ['PyJWT', 'cryptography', 'pydantic', 'bleach']
+                critical_deps = ["PyJWT", "cryptography", "pydantic", "bleach"]
 
                 for dep in critical_deps:
                     if any(dep in line for line in deps):
@@ -395,10 +406,10 @@ class SecurityAuditor:
         self.print_header("Security Audit Report")
 
         total_checks = sum(len(v) for v in self.results.values())
-        passed = len(self.results['passed'])
-        failed = len(self.results['failed'])
-        warnings = len(self.results['warnings'])
-        info = len(self.results['info'])
+        passed = len(self.results["passed"])
+        failed = len(self.results["failed"])
+        warnings = len(self.results["warnings"])
+        info = len(self.results["info"])
 
         # Calculate score
         score = (passed / (passed + failed)) * 100 if (passed + failed) > 0 else 0
@@ -414,31 +425,38 @@ class SecurityAuditor:
         print(f"\n  Security Score: {score:.1f}%\n")
 
         # Detailed results
-        if self.results['failed']:
+        if self.results["failed"]:
             print(f"\n{RED}Failed Checks:{NC}")
-            for item in self.results['failed']:
+            for item in self.results["failed"]:
                 print(f"  - {item}")
 
-        if self.results['warnings']:
+        if self.results["warnings"]:
             print(f"\n{YELLOW}Warnings:{NC}")
-            for item in self.results['warnings']:
+            for item in self.results["warnings"]:
                 print(f"  - {item}")
 
         # Save report
-        report_file = self.project_root / f"security-audit-{self.environment}-{datetime.now().strftime('%Y%m%d-%H%M%S')}.json"
-        with open(report_file, 'w') as f:
-            json.dump({
-                'environment': self.environment,
-                'timestamp': datetime.now().isoformat(),
-                'duration_seconds': (datetime.now() - self.start_time).seconds,
-                'total_checks': total_checks,
-                'passed': passed,
-                'failed': failed,
-                'warnings': warnings,
-                'info': info,
-                'score': score,
-                'results': self.results
-            }, f, indent=2)
+        report_file = (
+            self.project_root
+            / f"security-audit-{self.environment}-{datetime.now().strftime('%Y%m%d-%H%M%S')}.json"
+        )
+        with open(report_file, "w") as f:
+            json.dump(
+                {
+                    "environment": self.environment,
+                    "timestamp": datetime.now().isoformat(),
+                    "duration_seconds": (datetime.now() - self.start_time).seconds,
+                    "total_checks": total_checks,
+                    "passed": passed,
+                    "failed": failed,
+                    "warnings": warnings,
+                    "info": info,
+                    "score": score,
+                    "results": self.results,
+                },
+                f,
+                indent=2,
+            )
 
         print(f"\n{BLUE}Report saved: {report_file}{NC}")
 
@@ -480,6 +498,7 @@ class SecurityAuditor:
         except Exception as e:
             print(f"\n{RED}Audit error: {e}{NC}")
             import traceback
+
             traceback.print_exc()
             return False
 
@@ -489,8 +508,12 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(description="Automated Security Audit")
-    parser.add_argument("environment", nargs="?", default="staging",
-                       help="Environment to audit (development, staging, production)")
+    parser.add_argument(
+        "environment",
+        nargs="?",
+        default="staging",
+        help="Environment to audit (development, staging, production)",
+    )
 
     args = parser.parse_args()
 

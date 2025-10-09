@@ -1,9 +1,11 @@
 """
 Integration tests for email service
 """
+
 import pytest
 import httpx
 import os
+
 
 class TestEmailService:
     """Test cases for email service integration"""
@@ -11,12 +13,12 @@ class TestEmailService:
     @pytest.fixture
     def api_base_url(self):
         """Get API base URL"""
-        return os.getenv('API_BASE_URL', 'http://localhost:8000')
+        return os.getenv("API_BASE_URL", "http://localhost:8000")
 
     @pytest.fixture
     def sendgrid_api_key(self):
         """Get SendGrid API key from environment"""
-        return os.getenv('SENDGRID_API_KEY', 'SG.test_key')
+        return os.getenv("SENDGRID_API_KEY", "SG.test_key")
 
     @pytest.mark.asyncio
     async def test_send_welcome_email(self, api_base_url):
@@ -24,17 +26,14 @@ class TestEmailService:
         email_data = {
             "to": "test@example.com",
             "template": "welcome",
-            "data": {
-                "user_name": "John Doe",
-                "login_url": "https://app.catalytic.dev/login"
-            }
+            "data": {"user_name": "John Doe", "login_url": "https://app.catalytic.dev/login"},
         }
 
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 f"{api_base_url}/api/email/send",
                 json=email_data,
-                headers={"Content-Type": "application/json"}
+                headers={"Content-Type": "application/json"},
             )
 
         assert response.status_code == 200
@@ -53,15 +52,15 @@ class TestEmailService:
                 "plan_name": "Pro Plan",
                 "amount": "$20.00",
                 "billing_period": "monthly",
-                "next_billing_date": "2024-01-15"
-            }
+                "next_billing_date": "2024-01-15",
+            },
         }
 
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 f"{api_base_url}/api/email/send",
                 json=email_data,
-                headers={"Content-Type": "application/json"}
+                headers={"Content-Type": "application/json"},
             )
 
         assert response.status_code == 200
@@ -77,15 +76,15 @@ class TestEmailService:
             "data": {
                 "user_name": "Bob Johnson",
                 "reset_link": "https://app.catalytic.dev/reset-password?token=abc123",
-                "expiry_time": "1 hour"
-            }
+                "expiry_time": "1 hour",
+            },
         }
 
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 f"{api_base_url}/api/email/send",
                 json=email_data,
-                headers={"Content-Type": "application/json"}
+                headers={"Content-Type": "application/json"},
             )
 
         assert response.status_code == 200
@@ -103,15 +102,15 @@ class TestEmailService:
                 "invoice_number": "INV-001",
                 "amount": "$20.00",
                 "due_date": "2024-01-15",
-                "download_link": "https://app.catalytic.dev/invoice/download/123"
-            }
+                "download_link": "https://app.catalytic.dev/invoice/download/123",
+            },
         }
 
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 f"{api_base_url}/api/email/send",
                 json=email_data,
-                headers={"Content-Type": "application/json"}
+                headers={"Content-Type": "application/json"},
             )
 
         assert response.status_code == 200
@@ -124,16 +123,14 @@ class TestEmailService:
         email_data = {
             "to": "invalid-email",
             "template": "welcome",
-            "data": {
-                "user_name": "Test User"
-            }
+            "data": {"user_name": "Test User"},
         }
 
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 f"{api_base_url}/api/email/send",
                 json=email_data,
-                headers={"Content-Type": "application/json"}
+                headers={"Content-Type": "application/json"},
             )
 
         assert response.status_code == 400
@@ -146,16 +143,14 @@ class TestEmailService:
         email_data = {
             "to": "test@example.com",
             "template": "nonexistent_template",
-            "data": {
-                "user_name": "Test User"
-            }
+            "data": {"user_name": "Test User"},
         }
 
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 f"{api_base_url}/api/email/send",
                 json=email_data,
-                headers={"Content-Type": "application/json"}
+                headers={"Content-Type": "application/json"},
             )
 
         assert response.status_code == 404
@@ -169,9 +164,7 @@ class TestEmailService:
         email_data = {
             "to": "test@example.com",
             "template": "welcome",
-            "data": {
-                "user_name": "Rate Limit Test"
-            }
+            "data": {"user_name": "Rate Limit Test"},
         }
 
         # Send multiple emails rapidly
@@ -181,7 +174,7 @@ class TestEmailService:
                 response = await client.post(
                     f"{api_base_url}/api/email/send",
                     json=email_data,
-                    headers={"Content-Type": "application/json"}
+                    headers={"Content-Type": "application/json"},
                 )
                 responses.append(response)
 
@@ -223,23 +216,14 @@ class TestEmailService:
         bulk_data = {
             "template": "newsletter",
             "recipients": [
-                {
-                    "to": "user1@example.com",
-                    "data": {"user_name": "User One"}
-                },
-                {
-                    "to": "user2@example.com",
-                    "data": {"user_name": "User Two"}
-                },
-                {
-                    "to": "user3@example.com",
-                    "data": {"user_name": "User Three"}
-                }
+                {"to": "user1@example.com", "data": {"user_name": "User One"}},
+                {"to": "user2@example.com", "data": {"user_name": "User Two"}},
+                {"to": "user3@example.com", "data": {"user_name": "User Three"}},
             ],
             "common_data": {
                 "newsletter_title": "Monthly Update",
-                "unsubscribe_link": "https://app.catalytic.dev/unsubscribe"
-            }
+                "unsubscribe_link": "https://app.catalytic.dev/unsubscribe",
+            },
         }
 
         async with httpx.AsyncClient() as client:
@@ -247,7 +231,7 @@ class TestEmailService:
                 f"{api_base_url}/api/email/bulk-send",
                 json=bulk_data,
                 headers={"Content-Type": "application/json"},
-                timeout=30.0  # Bulk operations may take longer
+                timeout=30.0,  # Bulk operations may take longer
             )
 
         assert response.status_code == 200

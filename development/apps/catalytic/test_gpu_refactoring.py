@@ -6,10 +6,9 @@ Validates the new architecture works correctly
 import sys
 import os
 import logging
-from typing import List
 
 # Add development directory to path
-dev_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+dev_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 if dev_dir not in sys.path:
     sys.path.insert(0, dev_dir)
 
@@ -18,15 +17,15 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Windows console encoding fix
-if sys.platform == 'win32':
-    sys.stdout.reconfigure(encoding='utf-8')
+if sys.platform == "win32":
+    sys.stdout.reconfigure(encoding="utf-8")
 
 
 def test_backend_selector():
     """Test backend selection strategies"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 1: Backend Selection Strategies")
-    print("="*70)
+    print("=" * 70)
 
     try:
         from apps.catalytic.gpu.backend_selector import (
@@ -39,10 +38,7 @@ def test_backend_selector():
 
         # Test 1: Auto selector
         print("\n[1] Testing AutoBackendSelector...")
-        requirements = BackendRequirements(
-            min_memory_mb=500,
-            allow_cpu_fallback=True
-        )
+        requirements = BackendRequirements(min_memory_mb=500, allow_cpu_fallback=True)
         selector = AutoBackendSelector()
         available_backends = [GPUBackend.PYTORCH, GPUBackend.CUPY, GPUBackend.CPU]
 
@@ -66,7 +62,7 @@ def test_backend_selector():
         strict_requirements = BackendRequirements(
             min_memory_mb=1000,
             require_tensor_cores=False,
-            allow_cpu_fallback=True  # Changed to True to avoid error
+            allow_cpu_fallback=True,  # Changed to True to avoid error
         )
         backend = selector.select_backend(strict_requirements, available_backends)
         print(f"   ✓ Strict requirements met: {backend.value}")
@@ -75,18 +71,19 @@ def test_backend_selector():
         return True
 
     except Exception as e:
-        print(f"\n❌ Backend Selector Tests: FAILED")
+        print("\n❌ Backend Selector Tests: FAILED")
         print(f"   Error: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
 
 def test_factory_builder():
     """Test builder pattern"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 2: Factory Builder Pattern")
-    print("="*70)
+    print("=" * 70)
 
     try:
         from apps.catalytic.gpu.factory_builder import LatticeBuilder
@@ -94,11 +91,9 @@ def test_factory_builder():
 
         # Test 1: Basic builder
         print("\n[1] Testing basic builder...")
-        builder = (LatticeBuilder()
-            .with_dimensions(4)
-            .with_size(5))
+        builder = LatticeBuilder().with_dimensions(4).with_size(5)
 
-        print(f"   ✓ Builder created")
+        print("   ✓ Builder created")
 
         # Test 2: Validation
         print("\n[2] Testing validation...")
@@ -108,7 +103,7 @@ def test_factory_builder():
         # Test 3: Description
         print("\n[3] Testing description...")
         description = builder.describe()
-        print(f"   ✓ Configuration:")
+        print("   ✓ Configuration:")
         for key, value in description.items():
             if value is not None:
                 print(f"      - {key}: {value}")
@@ -120,23 +115,25 @@ def test_factory_builder():
 
         # Test 5: Complex configuration
         print("\n[5] Testing complex configuration...")
-        complex_builder = (LatticeBuilder()
+        complex_builder = (
+            LatticeBuilder()
             .with_dimensions(4)
             .with_size(8)
             .prefer_backend(GPUBackend.CPU)  # Use CPU for testing
             .require_memory_mb(100)
             .allow_cpu_fallback(True)
-            .optimize_for_performance())
+            .optimize_for_performance()
+        )
 
         description = complex_builder.describe()
-        print(f"   ✓ Complex builder configured")
+        print("   ✓ Complex builder configured")
         print(f"      Strategy: {description['selection_strategy']}")
 
         # Test 6: Try building (CPU fallback)
         print("\n[6] Testing actual build (CPU fallback)...")
         try:
             lattice = complex_builder.build()
-            print(f"   ✓ Lattice built successfully")
+            print("   ✓ Lattice built successfully")
             print(f"      Type: {type(lattice).__name__}")
             print(f"      Dimensions: {lattice.dimensions}")
             print(f"      Size: {lattice.size}")
@@ -147,18 +144,19 @@ def test_factory_builder():
         return True
 
     except Exception as e:
-        print(f"\n❌ Factory Builder Tests: FAILED")
+        print("\n❌ Factory Builder Tests: FAILED")
         print(f"   Error: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
 
 def test_factory_refactored():
     """Test refactored factory"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 3: Refactored GPU Factory")
-    print("="*70)
+    print("=" * 70)
 
     try:
         from apps.catalytic.gpu.factory_refactored import GPUFactoryRefactored
@@ -179,12 +177,8 @@ def test_factory_refactored():
         # Test 3: Create with CPU backend (always available)
         print("\n[3] Creating lattice with CPU backend...")
         try:
-            lattice = GPUFactoryRefactored.create(
-                dimensions=3,
-                size=5,
-                backend=GPUBackend.CPU
-            )
-            print(f"   ✓ CPU lattice created")
+            lattice = GPUFactoryRefactored.create(dimensions=3, size=5, backend=GPUBackend.CPU)
+            print("   ✓ CPU lattice created")
             print(f"      Type: {type(lattice).__name__}")
             print(f"      Device ID: {lattice.device_id}")
         except Exception as create_error:
@@ -196,9 +190,9 @@ def test_factory_refactored():
             lattice = GPUFactoryRefactored.create(
                 dimensions=3,
                 size=5,
-                backend=None  # Auto-select
+                backend=None,  # Auto-select
             )
-            print(f"   ✓ Auto-selected lattice created")
+            print("   ✓ Auto-selected lattice created")
             print(f"      Type: {type(lattice).__name__}")
         except Exception as auto_error:
             print(f"   ⚠ Auto-selection failed: {auto_error}")
@@ -208,9 +202,7 @@ def test_factory_refactored():
         from apps.catalytic.gpu.factory_refactored import DeviceSelector
 
         device_id = DeviceSelector.select_device(
-            backend=GPUBackend.CPU,
-            device_id=None,
-            min_memory_mb=None
+            backend=GPUBackend.CPU, device_id=None, min_memory_mb=None
         )
         print(f"   ✓ Selected device ID: {device_id}")
 
@@ -218,18 +210,19 @@ def test_factory_refactored():
         return True
 
     except Exception as e:
-        print(f"\n❌ Refactored Factory Tests: FAILED")
+        print("\n❌ Refactored Factory Tests: FAILED")
         print(f"   Error: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
 
 def test_convenience_functions():
     """Test convenience functions"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 4: Convenience Functions")
-    print("="*70)
+    print("=" * 70)
 
     try:
         from apps.catalytic.gpu.factory_builder import (
@@ -257,58 +250,56 @@ def test_convenience_functions():
         return True
 
     except Exception as e:
-        print(f"\n❌ Convenience Functions Tests: FAILED")
+        print("\n❌ Convenience Functions Tests: FAILED")
         print(f"   Error: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
 
 def test_integration():
     """Integration test: Full workflow"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 5: Integration Test")
-    print("="*70)
+    print("=" * 70)
 
     try:
         from apps.catalytic.gpu.factory_builder import LatticeBuilder
-        from apps.catalytic.gpu.backend_selector import (
-            BackendRequirements,
-            AutoBackendSelector
-        )
+        from apps.catalytic.gpu.backend_selector import BackendRequirements
         from libs.config import GPUBackend
 
         print("\n[1] Building complex lattice with full workflow...")
 
         # Step 1: Define requirements
-        requirements = BackendRequirements(
-            preferred_backend=GPUBackend.CPU,
-            min_memory_mb=50,
-            allow_cpu_fallback=True
+        BackendRequirements(
+            preferred_backend=GPUBackend.CPU, min_memory_mb=50, allow_cpu_fallback=True
         )
-        print(f"   ✓ Requirements defined")
+        print("   ✓ Requirements defined")
 
         # Step 2: Create builder
-        builder = (LatticeBuilder()
+        builder = (
+            LatticeBuilder()
             .with_dimensions(3)
             .with_size(6)
             .prefer_backend(GPUBackend.CPU)
-            .allow_cpu_fallback(True))
+            .allow_cpu_fallback(True)
+        )
 
-        print(f"   ✓ Builder configured")
+        print("   ✓ Builder configured")
 
         # Step 3: Validate
         if not builder.validate():
-            print(f"   ✗ Validation failed")
+            print("   ✗ Validation failed")
             return False
-        print(f"   ✓ Configuration validated")
+        print("   ✓ Configuration validated")
 
         # Step 4: Build
         lattice = builder.build()
-        print(f"   ✓ Lattice built successfully")
+        print("   ✓ Lattice built successfully")
 
         # Step 5: Verify
-        print(f"\n[2] Verifying lattice properties...")
+        print("\n[2] Verifying lattice properties...")
         print(f"   ✓ Type: {type(lattice).__name__}")
         print(f"   ✓ Dimensions: {lattice.dimensions}")
         print(f"   ✓ Size: {lattice.size}")
@@ -318,18 +309,19 @@ def test_integration():
         return True
 
     except Exception as e:
-        print(f"\n❌ Integration Test: FAILED")
+        print("\n❌ Integration Test: FAILED")
         print(f"   Error: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
 
 def main():
     """Run all tests"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("GPU FACTORY REFACTORING VALIDATION")
-    print("="*70)
+    print("=" * 70)
     print("\nTesting refactored GPU factory implementation...")
 
     results = {
@@ -341,9 +333,9 @@ def main():
     }
 
     # Summary
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST SUMMARY")
-    print("="*70)
+    print("=" * 70)
 
     passed = sum(results.values())
     total = len(results)
@@ -352,9 +344,9 @@ def main():
         status = "✅ PASSED" if result else "❌ FAILED"
         print(f"{test_name:25s} {status}")
 
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print(f"OVERALL: {passed}/{total} tests passed")
-    print("="*70)
+    print("=" * 70)
 
     if passed == total:
         print("\n🎉 All refactoring tests passed!")

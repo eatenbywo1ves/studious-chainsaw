@@ -1,23 +1,24 @@
 #!/usr/bin/env python3
-'''
+"""
 Sample Ghidra-Claude Analysis Script
 Demonstrates binary analysis workflow
-'''
+"""
 
 import json
 from ghidra_claude_bridge import GhidraClaudeBridge
 
+
 def analyze_binary(binary_path):
-    '''Analyze a binary using Ghidra and Claude'''
+    """Analyze a binary using Ghidra and Claude"""
 
     # Initialize bridge
     bridge = GhidraClaudeBridge()
 
     # Load configuration
-    with open('ghidra_claude_config.json') as f:
+    with open("ghidra_claude_config.json") as f:
         config = json.load(f)
 
-    bridge.ghidra_home = config['ghidra_home']
+    bridge.ghidra_home = config["ghidra_home"]
 
     # Analyze binary
     print(f"Analyzing {binary_path}...")
@@ -26,18 +27,16 @@ def analyze_binary(binary_path):
     ghidra_data = bridge.analyze_with_ghidra(binary_path)
 
     # Get AI analysis
-    analysis = bridge.get_claude_analysis(
-        ghidra_data,
-        analysis_type='vulnerability'
-    )
+    analysis = bridge.get_claude_analysis(ghidra_data, analysis_type="vulnerability")
 
     # Save results
     output_file = f"{binary_path}.analysis.json"
-    with open(output_file, 'w') as f:
+    with open(output_file, "w") as f:
         json.dump(analysis, f, indent=2)
 
     print(f"Analysis saved to {output_file}")
     return analysis
+
 
 if __name__ == "__main__":
     # Example usage

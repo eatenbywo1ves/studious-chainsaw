@@ -46,7 +46,7 @@ class SecurityManager:
         redis_password: Optional[str] = None,
         enable_ddos_protection: bool = True,
         access_token_expire_minutes: int = 15,
-        refresh_token_expire_days: int = 7
+        refresh_token_expire_days: int = 7,
     ):
         """
         Initialize security manager with all components
@@ -64,12 +64,10 @@ class SecurityManager:
         """
         # Get configuration from environment or defaults
         self.private_key_path = private_key_path or os.getenv(
-            "JWT_PRIVATE_KEY_PATH",
-            "./security/keys/jwt_development_private.pem"
+            "JWT_PRIVATE_KEY_PATH", "./security/keys/jwt_development_private.pem"
         )
         self.public_key_path = public_key_path or os.getenv(
-            "JWT_PUBLIC_KEY_PATH",
-            "./security/keys/jwt_development_public.pem"
+            "JWT_PUBLIC_KEY_PATH", "./security/keys/jwt_development_public.pem"
         )
 
         # Parse security level from env if string
@@ -78,7 +76,7 @@ class SecurityManager:
             security_level = {
                 "basic": SecurityLevel.BASIC,
                 "enhanced": SecurityLevel.ENHANCED,
-                "strict": SecurityLevel.STRICT
+                "strict": SecurityLevel.STRICT,
             }.get(security_level_str, SecurityLevel.ENHANCED)
 
         self.security_level = security_level
@@ -109,7 +107,7 @@ class SecurityManager:
                 redis_client=self.redis,
                 access_token_expire_minutes=access_token_expire_minutes,
                 refresh_token_expire_days=refresh_token_expire_days,
-                security_level=self.security_level
+                security_level=self.security_level,
             )
             logger.info(f"JWT manager initialized with {self.security_level.value} security level")
         except Exception as e:
@@ -120,8 +118,7 @@ class SecurityManager:
         logger.info("Initializing rate limiter...")
         try:
             self.rate_limiter = AdvancedRateLimiter(
-                redis_client=self.redis,
-                enable_ddos_protection=enable_ddos_protection
+                redis_client=self.redis, enable_ddos_protection=enable_ddos_protection
             )
             logger.info("Rate limiter initialized")
         except Exception as e:
@@ -150,21 +147,21 @@ class SecurityManager:
             "redis": {
                 "available": self.redis.is_available if self.redis else False,
                 "host": self.redis_host,
-                "port": self.redis_port
+                "port": self.redis_port,
             },
             "jwt": {
                 "initialized": self.jwt is not None,
                 "security_level": self.security_level.value,
-                "using_redis": self.jwt.use_redis if self.jwt else False
+                "using_redis": self.jwt.use_redis if self.jwt else False,
             },
             "rate_limiter": {
                 "initialized": self.rate_limiter is not None,
-                "ddos_protection": self.rate_limiter.enable_ddos_protection if self.rate_limiter else False,
-                "using_redis": self.rate_limiter.use_redis if self.rate_limiter else False
+                "ddos_protection": self.rate_limiter.enable_ddos_protection
+                if self.rate_limiter
+                else False,
+                "using_redis": self.rate_limiter.use_redis if self.rate_limiter else False,
             },
-            "validator": {
-                "initialized": self.validator is not None
-            }
+            "validator": {"initialized": self.validator is not None},
         }
 
     def __repr__(self) -> str:
@@ -185,7 +182,7 @@ def get_security_manager(
     enable_ddos_protection: bool = True,
     access_token_expire_minutes: int = 15,
     refresh_token_expire_days: int = 7,
-    force_reinit: bool = False
+    force_reinit: bool = False,
 ) -> SecurityManager:
     """
     Get or create singleton SecurityManager instance
@@ -219,7 +216,7 @@ def get_security_manager(
             redis_password=redis_password,
             enable_ddos_protection=enable_ddos_protection,
             access_token_expire_minutes=access_token_expire_minutes,
-            refresh_token_expire_days=refresh_token_expire_days
+            refresh_token_expire_days=refresh_token_expire_days,
         )
 
     return _security_manager
@@ -254,8 +251,7 @@ def get_security():
 if __name__ == "__main__":
     # Configure logging
     logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     )
 
     # Initialize security manager
@@ -265,6 +261,7 @@ if __name__ == "__main__":
     # Check health
     print("\nHealth Check:")
     import json
+
     print(json.dumps(security.health_check(), indent=2))
 
     # Test JWT creation
@@ -274,7 +271,7 @@ if __name__ == "__main__":
             subject="test_user",
             user_id="user_12345",
             roles=["user", "premium"],
-            permissions=["read", "write"]
+            permissions=["read", "write"],
         )
         print(f"✓ Token created: {token[:50]}...")
 

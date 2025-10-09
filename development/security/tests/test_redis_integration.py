@@ -42,9 +42,7 @@ def jwt_keys(tmp_path):
 
     # Generate private key
     private_key = rsa.generate_private_key(
-        public_exponent=65537,
-        key_size=2048,
-        backend=default_backend()
+        public_exponent=65537, key_size=2048, backend=default_backend()
     )
 
     # Generate public key
@@ -58,14 +56,14 @@ def jwt_keys(tmp_path):
         private_key.private_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PrivateFormat.PKCS8,
-            encryption_algorithm=serialization.NoEncryption()
+            encryption_algorithm=serialization.NoEncryption(),
         )
     )
 
     public_key_path.write_bytes(
         public_key.public_bytes(
             encoding=serialization.Encoding.PEM,
-            format=serialization.PublicFormat.SubjectPublicKeyInfo
+            format=serialization.PublicFormat.SubjectPublicKeyInfo,
         )
     )
 
@@ -127,15 +125,12 @@ class TestJWTRedisIntegration:
             private_key_path=private_key_path,
             public_key_path=public_key_path,
             redis_client=redis_client,
-            security_level=SecurityLevel.ENHANCED
+            security_level=SecurityLevel.ENHANCED,
         )
 
         # Create token
         token = jwt_mgr1.create_access_token(
-            subject="test_user",
-            user_id="user_123",
-            roles=["user"],
-            permissions=["read"]
+            subject="test_user", user_id="user_123", roles=["user"], permissions=["read"]
         )
 
         # Verify token is valid
@@ -155,7 +150,7 @@ class TestJWTRedisIntegration:
             private_key_path=private_key_path,
             public_key_path=public_key_path,
             redis_client=redis_client,
-            security_level=SecurityLevel.ENHANCED
+            security_level=SecurityLevel.ENHANCED,
         )
 
         # Verify token is STILL revoked on new instance (Redis persistence)
@@ -174,15 +169,12 @@ class TestJWTRedisIntegration:
             private_key_path=private_key_path,
             public_key_path=public_key_path,
             redis_client=None,  # No Redis
-            security_level=SecurityLevel.ENHANCED
+            security_level=SecurityLevel.ENHANCED,
         )
 
         # Create token
         token = jwt_mgr.create_access_token(
-            subject="test_user",
-            user_id="user_456",
-            roles=["user"],
-            permissions=["read"]
+            subject="test_user", user_id="user_456", roles=["user"], permissions=["read"]
         )
 
         # Verify token is valid with expected token type
@@ -210,15 +202,12 @@ class TestJWTRedisIntegration:
             public_key_path=public_key_path,
             redis_client=redis_client,
             access_token_expire_minutes=0.001,  # ~60ms
-            security_level=SecurityLevel.ENHANCED
+            security_level=SecurityLevel.ENHANCED,
         )
 
         # Create token
         token = jwt_mgr.create_access_token(
-            subject="test_user",
-            user_id="user_789",
-            roles=["user"],
-            permissions=["read"]
+            subject="test_user", user_id="user_789", roles=["user"], permissions=["read"]
         )
 
         # Wait for token to expire
@@ -243,9 +232,7 @@ class TestRateLimitingRedisIntegration:
 
         # Define test rate limit (5 requests per 60 seconds)
         rate_limit = RateLimit(
-            requests=5,
-            window_seconds=60,
-            strategy=RateLimitStrategy.SLIDING_WINDOW
+            requests=5, window_seconds=60, strategy=RateLimitStrategy.SLIDING_WINDOW
         )
 
         identifier = "test_user_distributed"
@@ -261,7 +248,7 @@ class TestRateLimitingRedisIntegration:
         # Make 5 requests on instance 1
         for i in range(5):
             result = await limiter1.check_rate_limit(identifier, endpoint, LimitType.PER_USER)
-            assert result.allowed is True, f"Request {i+1} should be allowed"
+            assert result.allowed is True, f"Request {i + 1} should be allowed"
 
         # 6th request on instance 1 should be blocked
         result = await limiter1.check_rate_limit(identifier, endpoint, LimitType.PER_USER)
@@ -284,7 +271,7 @@ class TestRateLimitingRedisIntegration:
             requests=10,
             window_seconds=60,
             strategy=RateLimitStrategy.TOKEN_BUCKET,
-            burst_allowance=0  # No burst for predictable testing
+            burst_allowance=0,  # No burst for predictable testing
         )
 
         identifier = "test_token_bucket"
@@ -292,7 +279,7 @@ class TestRateLimitingRedisIntegration:
         # Consume 10 tokens on instance 1
         for i in range(10):
             result = await limiter1._check_token_bucket(identifier, rate_limit)
-            assert result.allowed is True, f"Token bucket request {i+1} should be allowed"
+            assert result.allowed is True, f"Token bucket request {i + 1} should be allowed"
 
         # Next request on instance 2 should be blocked (tokens exhausted)
         result = await limiter2._check_token_bucket(identifier, rate_limit)
@@ -307,13 +294,13 @@ class TestRateLimitingRedisIntegration:
             redis_client=redis_client,
             enable_ddos_protection=True,
             suspicious_threshold=10,  # Low threshold for testing
-            block_duration_minutes=1
+            block_duration_minutes=1,
         )
         limiter2 = AdvancedRateLimiter(
             redis_client=redis_client,
             enable_ddos_protection=True,
             suspicious_threshold=10,
-            block_duration_minutes=1
+            block_duration_minutes=1,
         )
 
         test_ip = "192.168.1.100"
@@ -342,9 +329,7 @@ class TestRateLimitingRedisIntegration:
         limiter = AdvancedRateLimiter(redis_client=None)
 
         rate_limit = RateLimit(
-            requests=3,
-            window_seconds=60,
-            strategy=RateLimitStrategy.SLIDING_WINDOW
+            requests=3, window_seconds=60, strategy=RateLimitStrategy.SLIDING_WINDOW
         )
 
         identifier = "test_user_no_redis"
@@ -379,7 +364,7 @@ class TestSecurityManagerIntegration:
             redis_host="localhost",
             redis_port=6379,
             security_level=SecurityLevel.ENHANCED,
-            enable_ddos_protection=True
+            enable_ddos_protection=True,
         )
 
         # Verify all components initialized
@@ -395,8 +380,7 @@ class TestSecurityManagerIntegration:
         private_key_path, public_key_path = jwt_keys
 
         security = SecurityManager(
-            private_key_path=private_key_path,
-            public_key_path=public_key_path
+            private_key_path=private_key_path, public_key_path=public_key_path
         )
 
         # Get health status
@@ -421,9 +405,7 @@ class TestSecurityManagerIntegration:
 
         # Get first instance
         security1 = get_security_manager(
-            private_key_path=private_key_path,
-            public_key_path=public_key_path,
-            force_reinit=True
+            private_key_path=private_key_path, public_key_path=public_key_path, force_reinit=True
         )
 
         # Get second instance (should be same)
@@ -448,7 +430,7 @@ class TestEndToEndScenarios:
             private_key_path=private_key_path,
             public_key_path=public_key_path,
             redis_host="localhost",
-            redis_port=6379
+            redis_port=6379,
         )
 
         # 1. Create access token
@@ -456,7 +438,7 @@ class TestEndToEndScenarios:
             subject="end2end_user",
             user_id="user_e2e_123",
             roles=["user", "premium"],
-            permissions=["read", "write"]
+            permissions=["read", "write"],
         )
 
         assert token is not None
@@ -472,7 +454,7 @@ class TestEndToEndScenarios:
             identifier="user_e2e_123",
             endpoint="/api/data",
             limit_type=LimitType.PER_USER,
-            ip_address="192.168.1.50"
+            ip_address="192.168.1.50",
         )
         assert result.allowed is True
         print("✓ Rate limit check passed")
@@ -504,7 +486,7 @@ class TestEndToEndScenarios:
             private_key_path=private_key_path,
             public_key_path=public_key_path,
             redis_host="localhost",
-            redis_port=6379
+            redis_port=6379,
         )
 
         # Simulate Server 2 (different instance) - create new instance
@@ -512,7 +494,7 @@ class TestEndToEndScenarios:
             private_key_path=private_key_path,
             public_key_path=public_key_path,
             redis_host="localhost",
-            redis_port=6379
+            redis_port=6379,
         )
 
         # 1. Create token on server 1
@@ -520,7 +502,7 @@ class TestEndToEndScenarios:
             subject="multi_server_user",
             user_id="user_ms_456",
             roles=["admin"],
-            permissions=["read", "write", "delete"]
+            permissions=["read", "write", "delete"],
         )
 
         # 2. Verify token on server 2 (should work)
@@ -543,17 +525,13 @@ class TestEndToEndScenarios:
         # Hit rate limit on server 1
         for i in range(5):
             result = await server1.rate_limiter.check_rate_limit(
-                identifier=user_id,
-                endpoint="/api/compute",
-                limit_type=LimitType.PER_USER
+                identifier=user_id, endpoint="/api/compute", limit_type=LimitType.PER_USER
             )
             assert result.allowed is True
 
         # Rate limit should apply on server 2
         result = await server2.rate_limiter.check_rate_limit(
-            identifier=user_id,
-            endpoint="/api/compute",
-            limit_type=LimitType.PER_USER
+            identifier=user_id, endpoint="/api/compute", limit_type=LimitType.PER_USER
         )
         # Note: Depending on endpoint config, this might still allow some requests
         print(f"✓ Rate limit state shared across servers: {result.remaining} remaining")

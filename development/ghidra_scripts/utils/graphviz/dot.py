@@ -31,18 +31,18 @@ graph {
 from . import lang
 from . import files
 
-__all__ = ['Graph', 'Digraph']
+__all__ = ["Graph", "Digraph"]
 
 
 class Dot(files.File):
     """Assemble, save, and render DOT source code, open result in viewer."""
 
-    _comment = '// %s'
-    _subgraph = 'subgraph %s{'
-    _subgraph_plain = '%s{'
-    _node = _attr = '\t%s%s'
-    _attr_plain = _attr % ('%s', '')
-    _tail = '}'
+    _comment = "// %s"
+    _subgraph = "subgraph %s{"
+    _subgraph_plain = "%s{"
+    _node = _attr = "\t%s%s"
+    _attr_plain = _attr % ("%s", "")
+    _tail = "}"
 
     _quote = staticmethod(lang.quote)
     _quote_edge = staticmethod(lang.quote_edge)
@@ -50,11 +50,21 @@ class Dot(files.File):
     _a_list = staticmethod(lang.a_list)
     _attr_list = staticmethod(lang.attr_list)
 
-    def __init__(self, name=None, comment=None,
-                 filename=None, directory=None,
-                 format=None, engine=None, encoding=files.ENCODING,
-                 graph_attr=None, node_attr=None, edge_attr=None, body=None,
-                 strict=False):
+    def __init__(
+        self,
+        name=None,
+        comment=None,
+        filename=None,
+        directory=None,
+        format=None,
+        engine=None,
+        encoding=files.ENCODING,
+        graph_attr=None,
+        node_attr=None,
+        edge_attr=None,
+        body=None,
+        strict=False,
+    ):
         self.name = name
         self.comment = comment
 
@@ -70,13 +80,15 @@ class Dot(files.File):
 
     def _kwargs(self):
         result = super(Dot, self)._kwargs()
-        result.update(name=self.name,
-                      comment=self.comment,
-                      graph_attr=dict(self.graph_attr),
-                      node_attr=dict(self.node_attr),
-                      edge_attr=dict(self.edge_attr),
-                      body=list(self.body),
-                      strict=self.strict)
+        result.update(
+            name=self.name,
+            comment=self.comment,
+            graph_attr=dict(self.graph_attr),
+            node_attr=dict(self.node_attr),
+            edge_attr=dict(self.edge_attr),
+            body=list(self.body),
+            strict=self.strict,
+        )
         return result
 
     def clear(self, keep_attrs=False):
@@ -97,14 +109,14 @@ class Dot(files.File):
 
         if subgraph:
             if self.strict:
-                raise ValueError('subgraphs cannot be strict')
+                raise ValueError("subgraphs cannot be strict")
             head = self._subgraph if self.name else self._subgraph_plain
         else:
             head = self._head_strict if self.strict else self._head
-        yield head % (self._quote(self.name) + ' ' if self.name else '')
+        yield head % (self._quote(self.name) + " " if self.name else "")
 
-        for kw in ('graph', 'node', 'edge'):
-            attrs = getattr(self, '%s_attr' % kw)
+        for kw in ("graph", "node", "edge"):
+            attrs = getattr(self, "%s_attr" % kw)
             if attrs:
                 yield self._attr % (kw, self._attr_list(None, attrs))
 
@@ -115,7 +127,7 @@ class Dot(files.File):
 
     def __str__(self):
         """The DOT source code as string."""
-        return '\n'.join(self)
+        return "\n".join(self)
 
     source = property(__str__, doc=__str__.__doc__)
 
@@ -167,9 +179,8 @@ class Dot(files.File):
 
         See the :ref:`usage examples in the User Guide <attributes>`.
         """
-        if kw is not None and kw.lower() not in ('graph', 'node', 'edge'):
-            raise ValueError('attr statement must target graph, node, or edge: '
-                '%r' % kw)
+        if kw is not None and kw.lower() not in ("graph", "node", "edge"):
+            raise ValueError("attr statement must target graph, node, or edge: %r" % kw)
         if attrs or _attributes:
             if kw is None:
                 a_list = self._a_list(None, attrs, _attributes)
@@ -179,8 +190,16 @@ class Dot(files.File):
                 line = self._attr % (kw, attr_list)
             self.body.append(line)
 
-    def subgraph(self, graph=None, name=None, comment=None,
-                 graph_attr=None, node_attr=None, edge_attr=None, body=None):
+    def subgraph(
+        self,
+        graph=None,
+        name=None,
+        comment=None,
+        graph_attr=None,
+        node_attr=None,
+        edge_attr=None,
+        body=None,
+    ):
         """Add the current content of the given sole ``graph`` argument as subgraph \
            or return a context manager returning a new graph instance created \
            with the given (``name``, ``comment``, etc.) arguments whose content is \
@@ -203,22 +222,26 @@ class Dot(files.File):
             the layout engine will treat it as a special cluster subgraph.
         """
         if graph is None:
-            return SubgraphContext(self, {'name': name,
-                                          'comment': comment,
-                                          'graph_attr': graph_attr,
-                                          'node_attr': node_attr,
-                                          'edge_attr': edge_attr,
-                                          'body': body})
+            return SubgraphContext(
+                self,
+                {
+                    "name": name,
+                    "comment": comment,
+                    "graph_attr": graph_attr,
+                    "node_attr": node_attr,
+                    "edge_attr": edge_attr,
+                    "body": body,
+                },
+            )
 
         args = [name, comment, graph_attr, node_attr, edge_attr, body]
         if not all(a is None for a in args):
-            raise ValueError('graph must be sole argument of subgraph()')
+            raise ValueError("graph must be sole argument of subgraph()")
 
         if graph.directed != self.directed:
-            raise ValueError('%r cannot add subgraph of different kind:'
-                             ' %r' % (self, graph))
+            raise ValueError("%r cannot add subgraph of different kind: %r" % (self, graph))
 
-        lines = ['\t' + line for line in graph.__iter__(subgraph=True)]
+        lines = ["\t" + line for line in graph.__iter__(subgraph=True)]
         self.body.extend(lines)
 
 
@@ -259,10 +282,10 @@ class Graph(Dot):
         corresponding attribute name after instance creation.
     """
 
-    _head = 'graph %s{'
-    _head_strict = 'strict %s' % _head
-    _edge = '\t%s -- %s%s'
-    _edge_plain = _edge % ('%s', '%s', '')
+    _head = "graph %s{"
+    _head_strict = "strict %s" % _head
+    _edge = "\t%s -- %s%s"
+    _edge_plain = _edge % ("%s", "%s", "")
 
     @property
     def directed(self):
@@ -274,12 +297,12 @@ class Digraph(Dot):
     """Directed graph source code in the DOT language."""
 
     if Graph.__doc__ is not None:
-        __doc__ += Graph.__doc__.partition('.')[2]
+        __doc__ += Graph.__doc__.partition(".")[2]
 
-    _head = 'digraph %s{'
-    _head_strict = 'strict %s' % _head
-    _edge = '\t%s -> %s%s'
-    _edge_plain = _edge % ('%s', '%s', '')
+    _head = "digraph %s{"
+    _head_strict = "strict %s" % _head
+    _edge = "\t%s -> %s%s"
+    _edge_plain = _edge % ("%s", "%s", "")
 
     @property
     def directed(self):

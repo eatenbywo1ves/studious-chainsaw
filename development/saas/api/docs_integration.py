@@ -203,23 +203,20 @@ Available metrics:
             """,
             routes=app.routes,
             servers=[
-                {
-                    "url": "http://localhost:8000",
-                    "description": "Development server"
-                },
+                {"url": "http://localhost:8000", "description": "Development server"},
                 {
                     "url": "https://api.catalyticcomputing.example.com",
-                    "description": "Production server"
-                }
+                    "description": "Production server",
+                },
             ],
             contact={
                 "name": "Catalytic Computing Support",
-                "email": "support@catalyticcomputing.example.com"
+                "email": "support@catalyticcomputing.example.com",
             },
             license_info={
                 "name": "Proprietary",
-                "url": "https://catalyticcomputing.example.com/license"
-            }
+                "url": "https://catalyticcomputing.example.com/license",
+            },
         )
 
         # Customize schema with security schemes
@@ -228,7 +225,7 @@ Available metrics:
                 "type": "http",
                 "scheme": "bearer",
                 "bearerFormat": "JWT",
-                "description": "JWT access token from /api/auth/login endpoint"
+                "description": "JWT access token from /api/auth/login endpoint",
             }
         }
 
@@ -239,41 +236,41 @@ Available metrics:
                 "description": "Authentication and authorization operations",
                 "externalDocs": {
                     "description": "Authentication guide",
-                    "url": "https://docs.catalyticcomputing.example.com/auth"
-                }
+                    "url": "https://docs.catalyticcomputing.example.com/auth",
+                },
             },
             {
                 "name": "tenants",
                 "description": "Tenant management and registration",
                 "externalDocs": {
                     "description": "Multi-tenancy guide",
-                    "url": "https://docs.catalyticcomputing.example.com/tenants"
-                }
+                    "url": "https://docs.catalyticcomputing.example.com/tenants",
+                },
             },
             {
                 "name": "lattices",
                 "description": "Knowledge Algebra lattice operations",
                 "externalDocs": {
                     "description": "Lattice operations guide",
-                    "url": "https://docs.catalyticcomputing.example.com/lattices"
-                }
+                    "url": "https://docs.catalyticcomputing.example.com/lattices",
+                },
             },
             {
                 "name": "subscriptions",
                 "description": "Subscription and billing management",
                 "externalDocs": {
                     "description": "Billing guide",
-                    "url": "https://docs.catalyticcomputing.example.com/billing"
-                }
+                    "url": "https://docs.catalyticcomputing.example.com/billing",
+                },
             },
             {
                 "name": "monitoring",
                 "description": "Health checks, metrics, and monitoring",
                 "externalDocs": {
                     "description": "Monitoring guide",
-                    "url": "https://docs.catalyticcomputing.example.com/monitoring"
-                }
-            }
+                    "url": "https://docs.catalyticcomputing.example.com/monitoring",
+                },
+            },
         ]
 
         app.openapi_schema = openapi_schema
@@ -320,10 +317,7 @@ def get_openapi_metadata() -> Dict[str, Any]:
         "contact": {
             "name": "Catalytic Computing Support",
             "email": "support@catalyticcomputing.example.com",
-            "url": "https://catalyticcomputing.example.com/support"
+            "url": "https://catalyticcomputing.example.com/support",
         },
-        "license": {
-            "name": "Proprietary",
-            "url": "https://catalyticcomputing.example.com/license"
-        }
+        "license": {"name": "Proprietary", "url": "https://catalyticcomputing.example.com/license"},
     }

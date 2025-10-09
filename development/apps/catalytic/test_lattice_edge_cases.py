@@ -8,14 +8,13 @@ import time
 import sys
 import unittest
 import warnings
-warnings.filterwarnings('ignore')
+
+warnings.filterwarnings("ignore")
 
 # Import lattice components
 try:
-    from catalytic_lattice_graph import (
-        CatalyticLatticeGraph,
-        GraphAcceleratedCatalyticComputer
-    )
+    from catalytic_lattice_graph import CatalyticLatticeGraph, GraphAcceleratedCatalyticComputer
+
     IGRAPH_AVAILABLE = True
 except ImportError:
     IGRAPH_AVAILABLE = False
@@ -82,7 +81,7 @@ class TestLatticeEdgeCases(unittest.TestCase):
         computer = GraphAcceleratedCatalyticComputer(
             dimensions=3,
             lattice_size=3,
-            aux_memory_mb=0.001  # 1KB
+            aux_memory_mb=0.001,  # 1KB
         )
 
         min_size = computer.aux_memory.nbytes
@@ -94,8 +93,9 @@ class TestLatticeEdgeCases(unittest.TestCase):
         path, _ = computer.catalytic_graph_traversal(0, 26)
         final = computer.aux_memory[:10]
 
-        self.assertTrue(np.array_equal(initial, final),
-                       "Memory should be restored even with minimal size")
+        self.assertTrue(
+            np.array_equal(initial, final), "Memory should be restored even with minimal size"
+        )
         print("  [OK] Catalytic property preserved with minimal memory")
 
     def test_extreme_dimensions(self):
@@ -107,14 +107,14 @@ class TestLatticeEdgeCases(unittest.TestCase):
         print("-" * 40)
 
         test_cases = [
-            (1, 100),   # 1D with many points
-            (20, 2),    # Very high dimension, minimal size
-            (8, 3),     # Moderate high dimension
+            (1, 100),  # 1D with many points
+            (20, 2),  # Very high dimension, minimal size
+            (8, 3),  # Moderate high dimension
         ]
 
         for dims, size in test_cases:
             try:
-                n_points = size ** dims
+                n_points = size**dims
                 if n_points > 10000:
                     print(f"  [SKIP] {dims}D x {size}: Too many points ({n_points})")
                     continue
@@ -126,8 +126,9 @@ class TestLatticeEdgeCases(unittest.TestCase):
                     path, _ = graph.find_shortest_path(0, graph.n_points - 1)
                     self.assertGreater(len(path), 0)
 
-                print(f"  [OK] {dims}D x {size}: {graph.n_points} points, "
-                      f"{len(graph.graph.es)} edges")
+                print(
+                    f"  [OK] {dims}D x {size}: {graph.n_points} points, {len(graph.graph.es)} edges"
+                )
 
             except (MemoryError, OverflowError) as e:
                 print(f"  [EXPECTED] {dims}D x {size}: {type(e).__name__}")
@@ -183,7 +184,7 @@ class TestLatticeEdgeCases(unittest.TestCase):
         # Repeated community detection
         community_counts = []
         for _ in range(3):
-            communities = graph.find_communities('multilevel')
+            communities = graph.find_communities("multilevel")
             community_counts.append(len(communities))
 
         # Community detection can vary slightly but should be similar
@@ -199,11 +200,7 @@ class TestLatticeEdgeCases(unittest.TestCase):
         print("\n[EDGE CASE] Numerical Precision")
         print("-" * 40)
 
-        computer = GraphAcceleratedCatalyticComputer(
-            dimensions=4,
-            lattice_size=3,
-            aux_memory_mb=1
-        )
+        computer = GraphAcceleratedCatalyticComputer(dimensions=4, lattice_size=3, aux_memory_mb=1)
 
         # Test XOR operations maintain precision
         original = computer.aux_memory[:100].copy()
@@ -213,8 +210,10 @@ class TestLatticeEdgeCases(unittest.TestCase):
         temp = computer.aux_memory[:100] ^ key
         computer.aux_memory[:100] = temp ^ key
 
-        self.assertTrue(np.array_equal(original, computer.aux_memory[:100]),
-                       "XOR should be perfectly reversible")
+        self.assertTrue(
+            np.array_equal(original, computer.aux_memory[:100]),
+            "XOR should be perfectly reversible",
+        )
         print("  [OK] XOR operations maintain perfect precision")
 
         # Test floating point distances
@@ -231,20 +230,16 @@ class TestLatticeEdgeCases(unittest.TestCase):
         print("\n[EDGE CASE] Parallel Processing")
         print("-" * 40)
 
-        computer = GraphAcceleratedCatalyticComputer(
-            dimensions=2,
-            lattice_size=3,
-            aux_memory_mb=1
-        )
+        computer = GraphAcceleratedCatalyticComputer(dimensions=2, lattice_size=3, aux_memory_mb=1)
 
         # Single vertex group
-        results = computer.parallel_lattice_operation('compute')
+        results = computer.parallel_lattice_operation("compute")
         total = sum(len(r) for r in results)
         self.assertEqual(total, computer.graph.n_points)
         print(f"  [OK] All {total} vertices processed in {len(results)} groups")
 
         # Empty operation
-        results = computer.parallel_lattice_operation('noop')
+        results = computer.parallel_lattice_operation("noop")
         self.assertIsNotNone(results)
         print("  [OK] Unknown operation handled gracefully")
 
@@ -275,7 +270,7 @@ class TestLatticeEdgeCases(unittest.TestCase):
 
         # Invalid community method
         try:
-            communities = graph.find_communities('invalid_method')
+            communities = graph.find_communities("invalid_method")
             # If it doesn't fail, check it used a default
             self.assertGreater(len(communities), 0)
             print("  [OK] Invalid method falls back to default")
@@ -306,9 +301,9 @@ class TestLatticeEdgeCases(unittest.TestCase):
 
         # Cache should make it faster (or at least not slower)
         if time2 < time1 * 1.5:  # Allow some variation
-            print(f"  [OK] Caching effective: {time1*1000:.2f}ms -> {time2*1000:.2f}ms")
+            print(f"  [OK] Caching effective: {time1 * 1000:.2f}ms -> {time2 * 1000:.2f}ms")
         else:
-            print(f"  [INFO] Cache performance similar: {time1*1000:.2f}ms, {time2*1000:.2f}ms")
+            print(f"  [INFO] Cache performance similar: {time1 * 1000:.2f}ms, {time2 * 1000:.2f}ms")
 
 
 class TestLatticeRobustness(unittest.TestCase):
@@ -322,11 +317,7 @@ class TestLatticeRobustness(unittest.TestCase):
         print("\n[ROBUSTNESS] Concurrent Operations")
         print("-" * 40)
 
-        computer = GraphAcceleratedCatalyticComputer(
-            dimensions=3,
-            lattice_size=4,
-            aux_memory_mb=5
-        )
+        computer = GraphAcceleratedCatalyticComputer(dimensions=3, lattice_size=4, aux_memory_mb=5)
 
         # Simulate multiple operations
         operations = []
@@ -340,8 +331,10 @@ class TestLatticeRobustness(unittest.TestCase):
 
         path, _ = computer.catalytic_graph_traversal(0, 63)
 
-        self.assertTrue(np.array_equal(computer.aux_memory[:100], initial),
-                       "Memory should be restored after multiple operations")
+        self.assertTrue(
+            np.array_equal(computer.aux_memory[:100], initial),
+            "Memory should be restored after multiple operations",
+        )
 
         print(f"  [OK] {len(operations)} operations completed successfully")
         print("  [OK] Memory integrity maintained")
@@ -357,7 +350,7 @@ class TestLatticeRobustness(unittest.TestCase):
         # Test with many communities
         graph = CatalyticLatticeGraph(dimensions=2, lattice_size=10)
 
-        methods = ['fast_greedy', 'multilevel', 'walktrap']
+        methods = ["fast_greedy", "multilevel", "walktrap"]
         for method in methods:
             try:
                 communities = graph.find_communities(method)
@@ -377,10 +370,10 @@ class TestLatticeRobustness(unittest.TestCase):
 
         # Test with invalid dimensions
         invalid_configs = [
-            (0, 5),    # Zero dimensions
-            (-1, 5),   # Negative dimensions
-            (3, 0),    # Zero size
-            (3, -1),   # Negative size
+            (0, 5),  # Zero dimensions
+            (-1, 5),  # Negative dimensions
+            (3, 0),  # Zero size
+            (3, -1),  # Negative size
         ]
 
         for dims, size in invalid_configs:
@@ -393,9 +386,9 @@ class TestLatticeRobustness(unittest.TestCase):
 
 def run_edge_case_tests():
     """Run edge case and robustness tests"""
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print(" LATTICE ALGORITHM EDGE CASE TEST SUITE")
-    print("="*60)
+    print("=" * 60)
 
     # Create test suites
     edge_suite = unittest.TestLoader().loadTestsFromTestCase(TestLatticeEdgeCases)
@@ -409,14 +402,14 @@ def run_edge_case_tests():
     result = runner.run(all_tests)
 
     # Summary
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     if result.wasSuccessful():
         print(" ALL EDGE CASE TESTS PASSED")
         print(" System demonstrates good robustness and error handling")
     else:
         print(f" {len(result.failures)} failures, {len(result.errors)} errors")
         print(" Review failures for improvement opportunities")
-    print("="*60)
+    print("=" * 60)
 
     return result.wasSuccessful()
 

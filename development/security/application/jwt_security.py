@@ -18,11 +18,13 @@ import logging
 # Import Redis manager for distributed token blacklist
 try:
     from .redis_manager import RedisConnectionManager, get_redis
+
     REDIS_AVAILABLE = True
 except ImportError:
     REDIS_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
+
 
 class TokenType(Enum):
     ACCESS = "access"
@@ -30,10 +32,12 @@ class TokenType(Enum):
     API_KEY = "api_key"
     RESET = "reset"
 
+
 class SecurityLevel(Enum):
     BASIC = "basic"
     ENHANCED = "enhanced"
     STRICT = "strict"
+
 
 class JWTSecurityManager:
     """
@@ -44,11 +48,11 @@ class JWTSecurityManager:
         self,
         private_key_path: str,
         public_key_path: str,
-        redis_client: Optional['RedisConnectionManager'] = None,
+        redis_client: Optional["RedisConnectionManager"] = None,
         algorithm: str = "RS256",
         access_token_expire_minutes: int = 15,
         refresh_token_expire_days: int = 7,
-        security_level: SecurityLevel = SecurityLevel.ENHANCED
+        security_level: SecurityLevel = SecurityLevel.ENHANCED,
     ):
         self.algorithm = algorithm
         self.access_token_expire_minutes = access_token_expire_minutes
@@ -70,7 +74,9 @@ class JWTSecurityManager:
         else:
             self.redis_client = None
             self.use_redis = False
-            logger.warning("Redis module not available, using in-memory blacklist (NOT for production!)")
+            logger.warning(
+                "Redis module not available, using in-memory blacklist (NOT for production!)"
+            )
 
         # Fallback: In-memory token blacklist (only used if Redis unavailable)
         self.blacklisted_tokens: set = set()
@@ -83,11 +89,9 @@ class JWTSecurityManager:
     def _load_private_key(self, key_path: str):
         """Load RSA private key from file"""
         try:
-            with open(key_path, 'rb') as key_file:
+            with open(key_path, "rb") as key_file:
                 private_key = serialization.load_pem_private_key(
-                    key_file.read(),
-                    password=None,
-                    backend=default_backend()
+                    key_file.read(), password=None, backend=default_backend()
                 )
             return private_key
         except Exception as e:
@@ -97,10 +101,9 @@ class JWTSecurityManager:
     def _load_public_key(self, key_path: str):
         """Load RSA public key from file"""
         try:
-            with open(key_path, 'rb') as key_file:
+            with open(key_path, "rb") as key_file:
                 public_key = serialization.load_pem_public_key(
-                    key_file.read(),
-                    backend=default_backend()
+                    key_file.read(), backend=default_backend()
                 )
             return public_key
         except Exception as e:
@@ -113,7 +116,7 @@ class JWTSecurityManager:
         user_id: str,
         roles: List[str],
         permissions: List[str],
-        additional_claims: Optional[Dict[str, Any]] = None
+        additional_claims: Optional[Dict[str, Any]] = None,
     ) -> str:
         """
         Create a secure access token with comprehensive claims
@@ -141,11 +144,13 @@ class JWTSecurityManager:
 
         # Add security metadata based on level
         if self.security_level in [SecurityLevel.ENHANCED, SecurityLevel.STRICT]:
-            claims.update({
-                "security_level": self.security_level.value,
-                "token_version": "2.0",
-                "created_at": now.isoformat(),
-            })
+            claims.update(
+                {
+                    "security_level": self.security_level.value,
+                    "token_version": "2.0",
+                    "created_at": now.isoformat(),
+                }
+            )
 
         # Add additional claims if provided
         if additional_claims:
@@ -191,11 +196,7 @@ class JWTSecurityManager:
             raise
 
     def create_api_key_token(
-        self,
-        user_id: str,
-        api_key_name: str,
-        scopes: List[str],
-        expire_days: Optional[int] = None
+        self, user_id: str, api_key_name: str, scopes: List[str], expire_days: Optional[int] = None
     ) -> str:
         """
         Create a long-lived API key token
@@ -253,7 +254,7 @@ class JWTSecurityManager:
                     "require_exp": True,
                     "require_iat": True,
                     "require_nbf": True,
-                }
+                },
             )
 
             # Check if token is blacklisted (Redis-backed check for distributed revocation)
@@ -310,7 +311,9 @@ class JWTSecurityManager:
         if self.security_level == SecurityLevel.STRICT:
             iat = payload.get("iat")
             if iat:
-                token_age = datetime.now(timezone.utc) - datetime.fromtimestamp(iat, tz=timezone.utc)
+                token_age = datetime.now(timezone.utc) - datetime.fromtimestamp(
+                    iat, tz=timezone.utc
+                )
                 max_age = timedelta(hours=24)  # Maximum token age
                 if token_age > max_age:
                     raise jwt.InvalidTokenError("Token is too old")
@@ -326,11 +329,7 @@ class JWTSecurityManager:
                 token,
                 self.public_key,
                 algorithms=[self.algorithm],
-                options={
-                    "verify_exp": False,
-                    "verify_aud": False,
-                    "verify_iss": False
-                }
+                options={"verify_exp": False, "verify_aud": False, "verify_iss": False},
             )
             jti = payload.get("jti")
             exp = payload.get("exp")
@@ -367,7 +366,7 @@ class JWTSecurityManager:
         refresh_token: str,
         fingerprint: str,
         user_roles: List[str],
-        user_permissions: List[str]
+        user_permissions: List[str],
     ) -> Optional[str]:
         """
         Create new access token from refresh token
@@ -384,17 +383,16 @@ class JWTSecurityManager:
             # Create new access token
             user_id = payload["user_id"]
             return self.create_access_token(
-                subject=user_id,
-                user_id=user_id,
-                roles=user_roles,
-                permissions=user_permissions
+                subject=user_id, user_id=user_id, roles=user_roles, permissions=user_permissions
             )
 
         except Exception as e:
             logger.error(f"Failed to refresh access token: {e}")
             return None
 
-    def check_rate_limit(self, identifier: str, max_attempts: int = 5, window_minutes: int = 15) -> bool:
+    def check_rate_limit(
+        self, identifier: str, max_attempts: int = 5, window_minutes: int = 15
+    ) -> bool:
         """
         Check if identifier is within rate limits
         """
@@ -404,7 +402,8 @@ class JWTSecurityManager:
         # Clean old attempts
         if identifier in self.failed_attempts:
             self.failed_attempts[identifier] = [
-                timestamp for timestamp in self.failed_attempts[identifier]
+                timestamp
+                for timestamp in self.failed_attempts[identifier]
                 if timestamp > window_start
             ]
 
@@ -432,9 +431,7 @@ class JWTSecurityManager:
         Generate RSA key pair for JWT signing
         """
         private_key = rsa.generate_private_key(
-            public_exponent=65537,
-            key_size=key_size,
-            backend=default_backend()
+            public_exponent=65537, key_size=key_size, backend=default_backend()
         )
 
         public_key = private_key.public_key()
@@ -443,15 +440,16 @@ class JWTSecurityManager:
         private_pem = private_key.private_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PrivateFormat.PKCS8,
-            encryption_algorithm=serialization.NoEncryption()
+            encryption_algorithm=serialization.NoEncryption(),
         )
 
         public_pem = public_key.public_bytes(
             encoding=serialization.Encoding.PEM,
-            format=serialization.PublicFormat.SubjectPublicKeyInfo
+            format=serialization.PublicFormat.SubjectPublicKeyInfo,
         )
 
         return private_pem, public_pem
+
 
 # Example usage and testing
 if __name__ == "__main__":
@@ -459,7 +457,7 @@ if __name__ == "__main__":
     jwt_manager = JWTSecurityManager(
         private_key_path="./security/secrets/jwt_private_key.pem",
         public_key_path="./security/secrets/jwt_public_key.pem",
-        security_level=SecurityLevel.ENHANCED
+        security_level=SecurityLevel.ENHANCED,
     )
 
     # Example token creation
@@ -468,7 +466,7 @@ if __name__ == "__main__":
         user_id="user123",
         roles=["user", "premium"],
         permissions=["read", "write", "api_access"],
-        additional_claims={"plan": "premium", "region": "us-east-1"}
+        additional_claims={"plan": "premium", "region": "us-east-1"},
     )
 
     print(f"Generated access token: {access_token[:50]}...")

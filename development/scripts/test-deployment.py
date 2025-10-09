@@ -11,8 +11,9 @@ import sys
 from pathlib import Path
 import logging
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
+
 
 def test_dashboard_structure():
     """Test dashboard file structure and content."""
@@ -39,20 +40,23 @@ def test_dashboard_structure():
         with open(dashboard_file) as f:
             dashboard_data = json.load(f)
 
-        dashboard = dashboard_data['dashboard']
+        dashboard = dashboard_data["dashboard"]
 
         # Check key properties
-        if 'title' not in dashboard:
+        if "title" not in dashboard:
             logger.error(f"❌ {dashboard_file.name}: Missing title")
             return False
 
-        if 'panels' not in dashboard or len(dashboard['panels']) == 0:
+        if "panels" not in dashboard or len(dashboard["panels"]) == 0:
             logger.error(f"❌ {dashboard_file.name}: No panels found")
             return False
 
-        logger.info(f"✅ {dashboard_file.name}: {dashboard['title']} - {len(dashboard['panels'])} panels")
+        logger.info(
+            f"✅ {dashboard_file.name}: {dashboard['title']} - {len(dashboard['panels'])} panels"
+        )
 
     return True
+
 
 def test_prometheus_queries():
     """Test Prometheus queries in dashboards."""
@@ -68,22 +72,23 @@ def test_prometheus_queries():
         with open(dashboard_file) as f:
             dashboard_data = json.load(f)
 
-        dashboard = dashboard_data['dashboard']
+        dashboard = dashboard_data["dashboard"]
 
-        for panel in dashboard.get('panels', []):
-            for target in panel.get('targets', []):
-                if 'expr' in target:
+        for panel in dashboard.get("panels", []):
+            for target in panel.get("targets", []):
+                if "expr" in target:
                     total_queries += 1
-                    query = target['expr']
+                    query = target["expr"]
 
                     # Basic query validation
-                    if query.strip() and '(' in query and ')' in query:
+                    if query.strip() and "(" in query and ")" in query:
                         valid_queries += 1
                     else:
                         logger.warning(f"⚠️ Potentially invalid query: {query[:50]}...")
 
     logger.info(f"✅ Validated {valid_queries}/{total_queries} Prometheus queries")
     return valid_queries == total_queries
+
 
 def test_deployment_scripts():
     """Test deployment script availability."""
@@ -97,7 +102,7 @@ def test_deployment_scripts():
         "validate-dashboards.py",
         "setup-monitoring.py",
         "deploy-dashboards.sh",
-        "deploy-dashboards.bat"
+        "deploy-dashboards.bat",
     ]
 
     for script in required_scripts:
@@ -109,6 +114,7 @@ def test_deployment_scripts():
         logger.info(f"✅ Found: {script}")
 
     return True
+
 
 def test_provisioning_config():
     """Test Grafana provisioning configuration."""
@@ -131,6 +137,7 @@ def test_provisioning_config():
 
     logger.info("✅ Provisioning configurations found")
     return True
+
 
 def test_docker_integration():
     """Test Docker Compose integration."""
@@ -158,6 +165,7 @@ def test_docker_integration():
     logger.info("✅ Docker integration configured")
     return True
 
+
 def main():
     """Run all deployment tests."""
     logger.info("🚀 Starting comprehensive deployment test...")
@@ -167,7 +175,7 @@ def main():
         ("Prometheus Queries", test_prometheus_queries),
         ("Deployment Scripts", test_deployment_scripts),
         ("Provisioning Config", test_provisioning_config),
-        ("Docker Integration", test_docker_integration)
+        ("Docker Integration", test_docker_integration),
     ]
 
     passed = 0
@@ -187,9 +195,9 @@ def main():
             logger.error(f"💥 {test_name}: ERROR - {e}")
 
     # Summary
-    logger.info("\n" + "="*50)
+    logger.info("\n" + "=" * 50)
     logger.info("🧪 TEST SUMMARY")
-    logger.info("="*50)
+    logger.info("=" * 50)
     logger.info(f"✅ Tests passed: {passed}")
     logger.info(f"❌ Tests failed: {failed}")
     logger.info(f"📊 Success rate: {passed / (passed + failed) * 100:.1f}%")
@@ -208,6 +216,7 @@ def main():
         logger.error(f"\n💥 {failed} tests failed. Please fix issues before deployment.")
         return False
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     success = main()
     sys.exit(0 if success else 1)

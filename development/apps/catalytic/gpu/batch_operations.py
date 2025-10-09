@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 class BatchOperationError(Exception):
     """Raised when batch operation fails"""
+
     pass
 
 
@@ -49,6 +50,7 @@ class GPUBatchOperations:
         """Detect available GPU backends"""
         try:
             import torch
+
             if torch.cuda.is_available():
                 self.pytorch_available = True
         except ImportError:
@@ -56,15 +58,14 @@ class GPUBatchOperations:
 
         try:
             import cupy as cp
+
             if cp.cuda.is_available():
                 self.cupy_available = True
         except ImportError:
             pass
 
     def batch_xor_transform(
-        self,
-        data_list: List[np.ndarray],
-        key_list: Optional[List[np.ndarray]] = None
+        self, data_list: List[np.ndarray], key_list: Optional[List[np.ndarray]] = None
     ) -> List[np.ndarray]:
         """
         Batch XOR transformation on multiple arrays
@@ -92,20 +93,20 @@ class GPUBatchOperations:
         elapsed_ms = (time.time() - start_time) * 1000
         self._record_stats(len(data_list), elapsed_ms)
 
-        logger.debug(f"Batch XOR: {len(data_list)} arrays in {elapsed_ms:.2f}ms "
-                    f"({elapsed_ms/len(data_list):.2f}ms per array)")
+        logger.debug(
+            f"Batch XOR: {len(data_list)} arrays in {elapsed_ms:.2f}ms "
+            f"({elapsed_ms / len(data_list):.2f}ms per array)"
+        )
 
         return results
 
     def _batch_xor_pytorch(
-        self,
-        data_list: List[np.ndarray],
-        key_list: Optional[List[np.ndarray]]
+        self, data_list: List[np.ndarray], key_list: Optional[List[np.ndarray]]
     ) -> List[np.ndarray]:
         """PyTorch implementation of batch XOR"""
         import torch
 
-        device = torch.device(f'cuda:{self.device_id}')
+        device = torch.device(f"cuda:{self.device_id}")
         results = []
 
         try:
@@ -120,8 +121,9 @@ class GPUBatchOperations:
                     keys_tensor = torch.from_numpy(batch_keys).to(device)
                 else:
                     # Generate random keys for entire batch
-                    keys_tensor = torch.randint(0, 256, batch_tensor.shape,
-                                               dtype=torch.uint8, device=device)
+                    keys_tensor = torch.randint(
+                        0, 256, batch_tensor.shape, dtype=torch.uint8, device=device
+                    )
 
                 # Parallel XOR on entire batch
                 result_tensor = torch.bitwise_xor(batch_tensor, keys_tensor)
@@ -140,8 +142,9 @@ class GPUBatchOperations:
                         key = key_list[i].astype(np.uint8)
                         key_tensor = torch.from_numpy(key).to(device)
                     else:
-                        key_tensor = torch.randint(0, 256, data_tensor.shape,
-                                                   dtype=torch.uint8, device=device)
+                        key_tensor = torch.randint(
+                            0, 256, data_tensor.shape, dtype=torch.uint8, device=device
+                        )
 
                     result = torch.bitwise_xor(data_tensor, key_tensor)
                     results.append(result.cpu().numpy())
@@ -153,9 +156,7 @@ class GPUBatchOperations:
         return results
 
     def _batch_xor_cupy(
-        self,
-        data_list: List[np.ndarray],
-        key_list: Optional[List[np.ndarray]]
+        self, data_list: List[np.ndarray], key_list: Optional[List[np.ndarray]]
     ) -> List[np.ndarray]:
         """CuPy implementation of batch XOR"""
         import cupy as cp
@@ -183,9 +184,7 @@ class GPUBatchOperations:
         return results
 
     def _batch_xor_cpu(
-        self,
-        data_list: List[np.ndarray],
-        key_list: Optional[List[np.ndarray]]
+        self, data_list: List[np.ndarray], key_list: Optional[List[np.ndarray]]
     ) -> List[np.ndarray]:
         """CPU fallback for batch XOR"""
         results = []
@@ -203,9 +202,7 @@ class GPUBatchOperations:
         return results
 
     def batch_matrix_multiply(
-        self,
-        a_list: List[np.ndarray],
-        b_list: List[np.ndarray]
+        self, a_list: List[np.ndarray], b_list: List[np.ndarray]
     ) -> List[np.ndarray]:
         """
         Batch matrix multiplication
@@ -240,22 +237,21 @@ class GPUBatchOperations:
         return results
 
     def _batch_matmul_pytorch(
-        self,
-        a_list: List[np.ndarray],
-        b_list: List[np.ndarray]
+        self, a_list: List[np.ndarray], b_list: List[np.ndarray]
     ) -> List[np.ndarray]:
         """PyTorch batch matrix multiplication"""
         import torch
 
-        device = torch.device(f'cuda:{self.device_id}')
+        device = torch.device(f"cuda:{self.device_id}")
         results = []
 
         try:
             # Check if all matrices are same size (can use bmm)
-            if (self._arrays_same_size(a_list) and
-                self._arrays_same_size(b_list) and
-                len(a_list) > 1):
-
+            if (
+                self._arrays_same_size(a_list)
+                and self._arrays_same_size(b_list)
+                and len(a_list) > 1
+            ):
                 # Use batch matrix multiply (bmm) - much faster!
                 a_batch = torch.from_numpy(np.stack(a_list)).float().to(device)
                 b_batch = torch.from_numpy(np.stack(b_list)).float().to(device)
@@ -280,9 +276,7 @@ class GPUBatchOperations:
         return results
 
     def _batch_matmul_cupy(
-        self,
-        a_list: List[np.ndarray],
-        b_list: List[np.ndarray]
+        self, a_list: List[np.ndarray], b_list: List[np.ndarray]
     ) -> List[np.ndarray]:
         """CuPy batch matrix multiplication"""
         import cupy as cp
@@ -303,18 +297,13 @@ class GPUBatchOperations:
         return results
 
     def _batch_matmul_cpu(
-        self,
-        a_list: List[np.ndarray],
-        b_list: List[np.ndarray]
+        self, a_list: List[np.ndarray], b_list: List[np.ndarray]
     ) -> List[np.ndarray]:
         """CPU fallback for batch matmul"""
         return [np.dot(a, b) for a, b in zip(a_list, b_list)]
 
     def batch_element_wise_op(
-        self,
-        arrays: List[np.ndarray],
-        operation: str,
-        scalar: Optional[float] = None
+        self, arrays: List[np.ndarray], operation: str, scalar: Optional[float] = None
     ) -> List[np.ndarray]:
         """
         Batch element-wise operations
@@ -345,15 +334,12 @@ class GPUBatchOperations:
         return results
 
     def _batch_elementwise_pytorch(
-        self,
-        arrays: List[np.ndarray],
-        operation: str,
-        scalar: Optional[float]
+        self, arrays: List[np.ndarray], operation: str, scalar: Optional[float]
     ) -> List[np.ndarray]:
         """PyTorch batch element-wise operations"""
         import torch
 
-        device = torch.device(f'cuda:{self.device_id}')
+        device = torch.device(f"cuda:{self.device_id}")
         results = []
 
         try:
@@ -366,7 +352,7 @@ class GPUBatchOperations:
                 elif operation == "multiply" and scalar is not None:
                     result = batch * scalar
                 elif operation == "square":
-                    result = batch ** 2
+                    result = batch**2
                 elif operation == "sqrt":
                     result = torch.sqrt(batch)
                 elif operation == "exp":
@@ -387,7 +373,7 @@ class GPUBatchOperations:
                     elif operation == "multiply" and scalar is not None:
                         result = tensor * scalar
                     elif operation == "square":
-                        result = tensor ** 2
+                        result = tensor**2
                     elif operation == "sqrt":
                         result = torch.sqrt(tensor)
                     elif operation == "exp":
@@ -404,10 +390,7 @@ class GPUBatchOperations:
         return results
 
     def _batch_elementwise_cupy(
-        self,
-        arrays: List[np.ndarray],
-        operation: str,
-        scalar: Optional[float]
+        self, arrays: List[np.ndarray], operation: str, scalar: Optional[float]
     ) -> List[np.ndarray]:
         """CuPy batch element-wise operations"""
         import cupy as cp
@@ -423,7 +406,7 @@ class GPUBatchOperations:
                 elif operation == "multiply" and scalar is not None:
                     result = arr_gpu * scalar
                 elif operation == "square":
-                    result = arr_gpu ** 2
+                    result = arr_gpu**2
                 elif operation == "sqrt":
                     result = cp.sqrt(arr_gpu)
                 elif operation == "exp":
@@ -440,10 +423,7 @@ class GPUBatchOperations:
         return results
 
     def _batch_elementwise_cpu(
-        self,
-        arrays: List[np.ndarray],
-        operation: str,
-        scalar: Optional[float]
+        self, arrays: List[np.ndarray], operation: str, scalar: Optional[float]
     ) -> List[np.ndarray]:
         """CPU fallback for batch element-wise"""
         results = []
@@ -454,7 +434,7 @@ class GPUBatchOperations:
             elif operation == "multiply" and scalar is not None:
                 result = arr * scalar
             elif operation == "square":
-                result = arr ** 2
+                result = arr**2
             elif operation == "sqrt":
                 result = np.sqrt(arr)
             elif operation == "exp":
@@ -489,16 +469,19 @@ class GPUBatchOperations:
         else:
             avg_batch_size = self._total_items_processed / self._total_batch_ops
             avg_time_ms = self._total_time_ms / self._total_batch_ops
-            avg_per_item_ms = (self._total_time_ms / self._total_items_processed
-                              if self._total_items_processed > 0 else 0)
+            avg_per_item_ms = (
+                self._total_time_ms / self._total_items_processed
+                if self._total_items_processed > 0
+                else 0
+            )
 
         return {
-            'total_batch_ops': self._total_batch_ops,
-            'total_items_processed': self._total_items_processed,
-            'avg_batch_size': avg_batch_size,
-            'avg_time_ms': avg_time_ms,
-            'avg_per_item_ms': avg_per_item_ms,
-            'total_time_ms': self._total_time_ms
+            "total_batch_ops": self._total_batch_ops,
+            "total_items_processed": self._total_items_processed,
+            "avg_batch_size": avg_batch_size,
+            "avg_time_ms": avg_time_ms,
+            "avg_per_item_ms": avg_per_item_ms,
+            "total_time_ms": self._total_time_ms,
         }
 
     def reset_stats(self):

@@ -15,6 +15,7 @@ from redis_connection_pool_optimized import (
 # EXAMPLE 1: Replace jwt_auth.py Redis client
 # ============================================================================
 
+
 def example_jwt_auth_integration():
     """
     Replace the current redis_manager in jwt_auth.py with OptimizedRedisPool
@@ -51,6 +52,7 @@ def example_jwt_auth_integration():
 # ============================================================================
 # EXAMPLE 2: Update mock_auth_server_redis.py
 # ============================================================================
+
 
 def example_mock_server_integration():
     """
@@ -93,6 +95,7 @@ def example_mock_server_integration():
 # EXAMPLE 3: Add pool monitoring to FastAPI app
 # ============================================================================
 
+
 def example_fastapi_health_endpoint():
     """
     Add pool health monitoring to your FastAPI health endpoint
@@ -125,13 +128,9 @@ def example_fastapi_health_endpoint():
 
         util = status.get("utilization_percent", 0)
         if util > 80:
-            recommendations.append(
-                "CRITICAL: Pool utilization > 80%. Increase max_connections."
-            )
+            recommendations.append("CRITICAL: Pool utilization > 80%. Increase max_connections.")
         elif util > 60:
-            recommendations.append(
-                "WARNING: Pool utilization > 60%. Monitor for growth."
-            )
+            recommendations.append("WARNING: Pool utilization > 60%. Monitor for growth.")
 
         if status.get("metrics", {}).get("pool_exhausted_count", 0) > 0:
             recommendations.append(
@@ -154,6 +153,7 @@ def example_fastapi_health_endpoint():
 # ============================================================================
 # EXAMPLE 4: Environment-specific configuration
 # ============================================================================
+
 
 def example_environment_configuration():
     """
@@ -179,15 +179,14 @@ def example_environment_configuration():
     # PRODUCTION (4 workers, 10K users)
     os.environ["DEPLOYMENT_ENV"] = "production"
     prod_pool = OptimizedRedisPool(environment=DeploymentEnvironment.PRODUCTION)
-    print(
-        f"Production: {prod_pool.max_connections} connections for {prod_pool.target_users} users"
-    )
+    print(f"Production: {prod_pool.max_connections} connections for {prod_pool.target_users} users")
     # Output: Production: 160 connections for 10000 users
 
 
 # ============================================================================
 # EXAMPLE 5: Monitoring loop for production
 # ============================================================================
+
 
 def example_monitoring_loop():
     """
@@ -238,6 +237,7 @@ def example_monitoring_loop():
 # ============================================================================
 # EXAMPLE 6: Load testing with optimized pool
 # ============================================================================
+
 
 def example_load_testing_setup():
     """

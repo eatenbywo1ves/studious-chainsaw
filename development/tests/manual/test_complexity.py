@@ -9,72 +9,68 @@ import io
 from pathlib import Path
 
 # Set UTF-8 encoding for stdout to handle mathematical symbols
-if sys.platform == 'win32':
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+if sys.platform == "win32":
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from libs.gpu import (
-    get_complexity_analyzer,
-    ComplexityTier,
-    get_profiler
-)
+from libs.gpu import get_complexity_analyzer, ComplexityTier, get_profiler
 import time
 
 
 def test_complexity_tier_classification():
     """Test 1: Complexity tier classification"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 1: Complexity Tier Classification")
-    print("="*70)
+    print("=" * 70)
 
     analyzer = get_complexity_analyzer()
 
     # Test known operations
     test_cases = [
-        ('hash_lookup', ComplexityTier.TRIVIAL),
-        ('array_access', ComplexityTier.TRIVIAL),
-        ('xor_transform', ComplexityTier.LINEAR),
-        ('quicksort', ComplexityTier.LINEAR),
-        ('matrix_multiply', ComplexityTier.POLYNOMIAL),
-        ('nested_loop', ComplexityTier.POLYNOMIAL),
-        ('graph_search', ComplexityTier.EXPONENTIAL),
-        ('traveling_salesman', ComplexityTier.EXPONENTIAL)
+        ("hash_lookup", ComplexityTier.TRIVIAL),
+        ("array_access", ComplexityTier.TRIVIAL),
+        ("xor_transform", ComplexityTier.LINEAR),
+        ("quicksort", ComplexityTier.LINEAR),
+        ("matrix_multiply", ComplexityTier.POLYNOMIAL),
+        ("nested_loop", ComplexityTier.POLYNOMIAL),
+        ("graph_search", ComplexityTier.EXPONENTIAL),
+        ("traveling_salesman", ComplexityTier.EXPONENTIAL),
     ]
 
     for operation, expected_tier in test_cases:
         complexity = analyzer.classify_algorithm(operation)
-        assert complexity.tier == expected_tier, \
+        assert complexity.tier == expected_tier, (
             f"{operation} should be {expected_tier.name}, got {complexity.tier.name}"
+        )
         print(f"  [OK] {operation:<25} → Tier {complexity.tier.value} ({complexity.tier.name})")
-        print(f"       Time: {complexity.time_complexity}, Class: {complexity.complexity_class.value}")
+        print(
+            f"       Time: {complexity.time_complexity}, Class: {complexity.complexity_class.value}"
+        )
 
     print("\n  TEST 1 PASSED [OK]")
 
 
 def test_complexity_scoring():
     """Test 2: Complexity scoring with multiplicative hierarchy"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 2: Complexity Scoring")
-    print("="*70)
+    print("=" * 70)
 
     analyzer = get_complexity_analyzer()
 
     # Test base scores for each tier
     test_operations = [
-        ('hash_lookup', ComplexityTier.TRIVIAL, 1.0),
-        ('xor_transform', ComplexityTier.LINEAR, 10.0),
-        ('matrix_multiply', ComplexityTier.POLYNOMIAL, 100.0),
-        ('graph_search', ComplexityTier.EXPONENTIAL, 1000.0)
+        ("hash_lookup", ComplexityTier.TRIVIAL, 1.0),
+        ("xor_transform", ComplexityTier.LINEAR, 10.0),
+        ("matrix_multiply", ComplexityTier.POLYNOMIAL, 100.0),
+        ("graph_search", ComplexityTier.EXPONENTIAL, 1000.0),
     ]
 
     for operation, expected_tier, expected_base_score in test_operations:
         algorithmic = analyzer.classify_algorithm(operation)
         operational = analyzer.compute_operational_complexity(
-            duration_ms=10.0,
-            memory_mb=10.0,
-            device='cpu',
-            metadata={}
+            duration_ms=10.0, memory_mb=10.0, device="cpu", metadata={}
         )
 
         score = analyzer.compute_complexity_score(algorithmic, operational)
@@ -87,17 +83,16 @@ def test_complexity_scoring():
         print(f"    Grade: {score.complexity_grade}")
         print(f"    Bottleneck: {score.bottleneck}")
 
-        assert score.tier == expected_tier, \
-            f"Score tier mismatch for {operation}"
+        assert score.tier == expected_tier, f"Score tier mismatch for {operation}"
 
     print("\n  TEST 2 PASSED [OK]")
 
 
 def test_algorithmic_complexity_inference():
     """Test 3: Infer complexity from runtime metrics"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 3: Algorithmic Complexity Inference")
-    print("="*70)
+    print("=" * 70)
 
     analyzer = get_complexity_analyzer()
 
@@ -106,7 +101,7 @@ def test_algorithmic_complexity_inference():
         (0.1, 0.001, ComplexityTier.TRIVIAL, "Very fast, tiny data"),
         (10.0, 1.0, ComplexityTier.LINEAR, "Linear scaling"),
         (150.0, 10.0, ComplexityTier.POLYNOMIAL, "Quadratic scaling"),
-        (1000.0, 1.0, ComplexityTier.EXPONENTIAL, "Exponential scaling")
+        (1000.0, 1.0, ComplexityTier.EXPONENTIAL, "Exponential scaling"),
     ]
 
     for duration, data_size, expected_tier, description in test_cases:
@@ -115,17 +110,18 @@ def test_algorithmic_complexity_inference():
         print(f"    Duration: {duration}ms, Data: {data_size}MB")
         print(f"    Inferred: Tier {inferred.value} ({inferred.name})")
 
-        assert inferred == expected_tier, \
+        assert inferred == expected_tier, (
             f"Inference mismatch: expected {expected_tier.name}, got {inferred.name}"
+        )
 
     print("\n  TEST 3 PASSED [OK]")
 
 
 def test_operational_complexity_tracking():
     """Test 4: Track operational complexity"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 4: Operational Complexity Tracking")
-    print("="*70)
+    print("=" * 70)
 
     analyzer = get_complexity_analyzer()
 
@@ -133,11 +129,8 @@ def test_operational_complexity_tracking():
     operational = analyzer.compute_operational_complexity(
         duration_ms=50.0,
         memory_mb=100.0,
-        device='gpu',
-        metadata={
-            'branching_factor': 5,
-            'loop_depth': 3
-        }
+        device="gpu",
+        metadata={"branching_factor": 5, "loop_depth": 3},
     )
 
     print(f"  Data size: {operational.data_size_mb:.2f}MB")
@@ -158,15 +151,15 @@ def test_operational_complexity_tracking():
 
 def test_transformation_chain_tracking():
     """Test 5: Track complexity through transformation chain"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 5: Transformation Chain Complexity")
-    print("="*70)
+    print("=" * 70)
 
     analyzer = get_complexity_analyzer()
 
     # Original complexity
-    original_algo = analyzer.classify_algorithm('matrix_multiply')
-    original_ops = analyzer.compute_operational_complexity(150.0, 100.0, 'gpu')
+    original_algo = analyzer.classify_algorithm("matrix_multiply")
+    original_ops = analyzer.compute_operational_complexity(150.0, 100.0, "gpu")
     original_score = analyzer.compute_complexity_score(original_algo, original_ops)
 
     print("  Original:")
@@ -174,37 +167,30 @@ def test_transformation_chain_tracking():
     print(f"    Tier: {original_score.tier.name}")
 
     # After transformation 1
-    new_ops_1 = analyzer.compute_operational_complexity(120.0, 100.0, 'gpu')
+    new_ops_1 = analyzer.compute_operational_complexity(120.0, 100.0, "gpu")
     new_score_1 = analyzer.compute_complexity_score(original_algo, new_ops_1)
 
-    chain_1 = analyzer.track_transformation_complexity(
-        original_score,
-        "DeviceRouting",
-        new_score_1
-    )
+    chain_1 = analyzer.track_transformation_complexity(original_score, "DeviceRouting", new_score_1)
 
     print("\n  After DeviceRouting:")
     print(f"    Score: {new_score_1.total_score:.2f}")
     print(f"    Chain: {chain_1.transformation_chain}")
     print(f"    Depth: {chain_1.chain_depth}")
-    print(f"    Reduction: {chain_1.complexity_reduction*100:.1f}%")
+    print(f"    Reduction: {chain_1.complexity_reduction * 100:.1f}%")
 
     # After transformation 2
-    new_ops_2 = analyzer.compute_operational_complexity(80.0, 100.0, 'gpu')
+    new_ops_2 = analyzer.compute_operational_complexity(80.0, 100.0, "gpu")
     new_score_2 = analyzer.compute_complexity_score(original_algo, new_ops_2)
 
     chain_2 = analyzer.track_transformation_complexity(
-        original_score,
-        "BatchFusion",
-        new_score_2,
-        chain_1
+        original_score, "BatchFusion", new_score_2, chain_1
     )
 
     print("\n  After BatchFusion:")
     print(f"    Score: {new_score_2.total_score:.2f}")
     print(f"    Chain: {chain_2.transformation_chain}")
     print(f"    Depth: {chain_2.chain_depth}")
-    print(f"    Reduction: {chain_2.complexity_reduction*100:.1f}%")
+    print(f"    Reduction: {chain_2.complexity_reduction * 100:.1f}%")
 
     assert chain_1.chain_depth == 1
     assert chain_2.chain_depth == 2
@@ -215,9 +201,9 @@ def test_transformation_chain_tracking():
 
 def test_hierarchy_building():
     """Test 6: Build complexity hierarchy"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 6: Complexity Hierarchy Building")
-    print("="*70)
+    print("=" * 70)
 
     analyzer = get_complexity_analyzer()
     from libs.gpu import ComplexityHierarchy
@@ -226,22 +212,21 @@ def test_hierarchy_building():
 
     # Create mock operations with complexity scores
     operations = []
-    for i, (op_name, tier_val) in enumerate([
-        ('hash_lookup', 0),
-        ('quicksort', 1),
-        ('matrix_multiply', 2),
-        ('graph_search', 3),
-        ('xor_transform', 1),
-        ('nested_loop', 2)
-    ]):
+    for i, (op_name, tier_val) in enumerate(
+        [
+            ("hash_lookup", 0),
+            ("quicksort", 1),
+            ("matrix_multiply", 2),
+            ("graph_search", 3),
+            ("xor_transform", 1),
+            ("nested_loop", 2),
+        ]
+    ):
         algo = analyzer.classify_algorithm(op_name)
-        ops = analyzer.compute_operational_complexity(10.0 * (i+1), 10.0, 'cpu')
+        ops = analyzer.compute_operational_complexity(10.0 * (i + 1), 10.0, "cpu")
         score = analyzer.compute_complexity_score(algo, ops)
 
-        operations.append({
-            'operation': op_name,
-            'complexity_score': score.to_dict()
-        })
+        operations.append({"operation": op_name, "complexity_score": score.to_dict()})
 
     hierarchy = hierarchy_mgr.build_hierarchy(operations)
 
@@ -251,22 +236,22 @@ def test_hierarchy_building():
 
     print("\n  Operations by tier:")
     for tier_val in [3, 2, 1, 0]:
-        tier_ops = hierarchy['tiers'][tier_val]
+        tier_ops = hierarchy["tiers"][tier_val]
         print(f"    Tier {tier_val}: {len(tier_ops)} operation(s)")
         for op in tier_ops:
             print(f"      - {op['operation']}: {op['score']:.2f}")
 
-    assert hierarchy['total_operations'] == 6
-    assert hierarchy['total_complexity_score'] > 0
+    assert hierarchy["total_operations"] == 6
+    assert hierarchy["total_complexity_score"] > 0
 
     print("\n  TEST 6 PASSED [OK]")
 
 
 def test_bottleneck_detection():
     """Test 7: Detect complexity bottlenecks"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 7: Complexity Bottleneck Detection")
-    print("="*70)
+    print("=" * 70)
 
     analyzer = get_complexity_analyzer()
     from libs.gpu import ComplexityHierarchy
@@ -275,27 +260,26 @@ def test_bottleneck_detection():
 
     # Create operations with varying complexity
     operations = []
-    high_complexity_ops = ['matrix_multiply', 'graph_search']
+    high_complexity_ops = ["matrix_multiply", "graph_search"]
 
-    for op_name in ['hash_lookup', 'xor_transform', 'matrix_multiply', 'graph_search']:
+    for op_name in ["hash_lookup", "xor_transform", "matrix_multiply", "graph_search"]:
         algo = analyzer.classify_algorithm(op_name)
         # Give high complexity ops more data
         data_size = 100.0 if op_name in high_complexity_ops else 1.0
-        ops = analyzer.compute_operational_complexity(50.0, data_size, 'cpu')
+        ops = analyzer.compute_operational_complexity(50.0, data_size, "cpu")
         score = analyzer.compute_complexity_score(algo, ops)
 
-        operations.append({
-            'operation': op_name,
-            'complexity_score': score.to_dict()
-        })
+        operations.append({"operation": op_name, "complexity_score": score.to_dict()})
 
     hierarchy = hierarchy_mgr.build_hierarchy(operations)
     bottlenecks = hierarchy_mgr.find_complexity_bottlenecks(hierarchy, threshold=100.0)
 
     print(f"  Found {len(bottlenecks)} bottleneck(s) (threshold: 100.0)")
     for bottleneck in bottlenecks:
-        print(f"    - {bottleneck['operation']}: Score {bottleneck['score']:.2f}, "
-              f"Grade {bottleneck['grade']}")
+        print(
+            f"    - {bottleneck['operation']}: Score {bottleneck['score']:.2f}, "
+            f"Grade {bottleneck['grade']}"
+        )
 
     assert len(bottlenecks) > 0, "Should find at least one bottleneck"
 
@@ -304,9 +288,9 @@ def test_bottleneck_detection():
 
 def test_complexity_reduction_suggestions():
     """Test 8: Generate complexity reduction suggestions"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 8: Complexity Reduction Suggestions")
-    print("="*70)
+    print("=" * 70)
 
     analyzer = get_complexity_analyzer()
     from libs.gpu import ComplexityHierarchy, ComplexityScore
@@ -315,9 +299,9 @@ def test_complexity_reduction_suggestions():
 
     # Test suggestions for different complexity tiers and bottlenecks
     test_cases = [
-        ('graph_search', ComplexityTier.EXPONENTIAL, 'compute'),
-        ('matrix_multiply', ComplexityTier.POLYNOMIAL, 'memory'),
-        ('xor_transform', ComplexityTier.LINEAR, 'transfer')
+        ("graph_search", ComplexityTier.EXPONENTIAL, "compute"),
+        ("matrix_multiply", ComplexityTier.POLYNOMIAL, "memory"),
+        ("xor_transform", ComplexityTier.LINEAR, "transfer"),
     ]
 
     for operation, tier, bottleneck in test_cases:
@@ -329,9 +313,9 @@ def test_complexity_reduction_suggestions():
             parallelism_score=10.0,
             total_score=185.0,
             normalized_score=0.8,
-            complexity_grade='D',
+            complexity_grade="D",
             tier=tier,
-            bottleneck=bottleneck
+            bottleneck=bottleneck,
         )
 
         suggestions = hierarchy_mgr.suggest_complexity_reductions(operation, mock_score)
@@ -348,9 +332,9 @@ def test_complexity_reduction_suggestions():
 
 def test_profiler_integration():
     """Test 9: Integration with GPUProfiler"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 9: Profiler Integration")
-    print("="*70)
+    print("=" * 70)
 
     profiler = get_profiler(enabled=True)
     profiler.reset()
@@ -387,7 +371,7 @@ def test_profiler_integration():
         print("\n  Complexity hierarchy:")
         print(f"    Total operations: {hierarchy['total_operations']}")
         print(f"    Total score: {hierarchy['total_complexity_score']:.2f}")
-        assert hierarchy['total_operations'] == len(entries)
+        assert hierarchy["total_operations"] == len(entries)
     else:
         print("\n  [WARNING] No complexity hierarchy generated")
 
@@ -396,9 +380,9 @@ def test_profiler_integration():
 
 def test_complexity_export():
     """Test 10: Export complexity data"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST 10: Complexity Data Export")
-    print("="*70)
+    print("=" * 70)
 
     import os
     import json
@@ -420,19 +404,19 @@ def test_complexity_export():
     assert os.path.exists(output_file), "Export file should exist"
 
     # Verify contents
-    with open(output_file, 'r') as f:
+    with open(output_file, "r") as f:
         data = json.load(f)
 
     print(f"  Exported {len(data['entries'])} entries")
     print(f"  Has complexity hierarchy: {'complexity_hierarchy' in data}")
 
-    assert 'entries' in data
-    assert 'complexity_hierarchy' in data
+    assert "entries" in data
+    assert "complexity_hierarchy" in data
 
     # Check entry has complexity data
-    for entry in data['entries']:
+    for entry in data["entries"]:
         print(f"\n  {entry['operation']}:")
-        if 'complexity_score' in entry:
+        if "complexity_score" in entry:
             print("    Has complexity_score: True")
             print(f"    Has algorithmic_complexity: {'algorithmic_complexity' in entry}")
             print(f"    Has operational_complexity: {'operational_complexity' in entry}")
@@ -449,11 +433,11 @@ def test_complexity_export():
 def main():
     """Run all complexity tests"""
     print("\n")
-    print("*"*70)
-    print("*" + " "*68 + "*")
+    print("*" * 70)
+    print("*" + " " * 68 + "*")
     print("*" + "  PHASE 3: COMPLEXITY METRICS TESTS  ".center(68) + "*")
-    print("*" + " "*68 + "*")
-    print("*"*70)
+    print("*" + " " * 68 + "*")
+    print("*" * 70)
 
     tests = [
         ("Complexity Tier Classification", test_complexity_tier_classification),
@@ -465,7 +449,7 @@ def main():
         ("Bottleneck Detection", test_bottleneck_detection),
         ("Complexity Reduction Suggestions", test_complexity_reduction_suggestions),
         ("Profiler Integration", test_profiler_integration),
-        ("Complexity Data Export", test_complexity_export)
+        ("Complexity Data Export", test_complexity_export),
     ]
 
     passed = 0
@@ -481,12 +465,13 @@ def main():
         except Exception as e:
             print(f"\n  [X] TEST ERROR: {e}")
             import traceback
+
             traceback.print_exc()
             failed += 1
 
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST SUMMARY")
-    print("="*70)
+    print("=" * 70)
     print(f"  Passed: {passed}/{len(tests)}")
     print(f"  Failed: {failed}/{len(tests)}")
 
@@ -495,7 +480,7 @@ def main():
     else:
         print(f"\n  [X] {failed} TEST(S) FAILED")
 
-    print("="*70 + "\n")
+    print("=" * 70 + "\n")
 
     return failed == 0
 

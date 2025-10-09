@@ -19,6 +19,7 @@ except ImportError:
 
 class Environment(str, Enum):
     """Application environment types"""
+
     DEVELOPMENT = "development"
     TESTING = "testing"
     STAGING = "staging"
@@ -27,6 +28,7 @@ class Environment(str, Enum):
 
 class GPUBackend(str, Enum):
     """Available GPU backend implementations"""
+
     CUDA = "cuda"
     CUPY = "cupy"
     PYTORCH = "pytorch"
@@ -36,6 +38,7 @@ class GPUBackend(str, Enum):
 
 class StorageBackend(str, Enum):
     """Available storage backends"""
+
     MEMORY = "memory"
     REDIS = "redis"
     POSTGRES = "postgres"
@@ -57,13 +60,23 @@ class LatticeConfig(BaseSettings):
 
     # Memory settings
     min_aux_memory_mb: float = Field(0.1, ge=0.01, description="Minimum auxiliary memory in MB")
-    max_aux_memory_mb: float = Field(1024.0, le=10240.0, description="Maximum auxiliary memory in MB")
-    default_aux_memory_mb: float = Field(10.0, ge=0.1, le=1024.0, description="Default auxiliary memory")
+    max_aux_memory_mb: float = Field(
+        1024.0, le=10240.0, description="Maximum auxiliary memory in MB"
+    )
+    default_aux_memory_mb: float = Field(
+        10.0, ge=0.1, le=1024.0, description="Default auxiliary memory"
+    )
 
     # Performance settings
-    max_path_finding_timeout: float = Field(60.0, ge=1.0, description="Maximum pathfinding timeout in seconds")
-    default_computation_timeout: float = Field(30.0, ge=1.0, description="Default computation timeout")
-    parallel_cores: int = Field(default_factory=lambda: os.cpu_count() or 4, description="Number of parallel cores")
+    max_path_finding_timeout: float = Field(
+        60.0, ge=1.0, description="Maximum pathfinding timeout in seconds"
+    )
+    default_computation_timeout: float = Field(
+        30.0, ge=1.0, description="Default computation timeout"
+    )
+    parallel_cores: int = Field(
+        default_factory=lambda: os.cpu_count() or 4, description="Number of parallel cores"
+    )
 
     # Algorithm settings
     default_path_algorithm: str = Field("dijkstra", description="Default pathfinding algorithm")
@@ -81,18 +94,22 @@ class GPUConfig(BaseSettings):
     preferred_backend: GPUBackend = Field(GPUBackend.CUDA, description="Preferred GPU backend")
     fallback_backends: List[GPUBackend] = Field(
         [GPUBackend.CUPY, GPUBackend.PYTORCH, GPUBackend.NUMBA, GPUBackend.CPU],
-        description="Fallback backends in priority order"
+        description="Fallback backends in priority order",
     )
 
     # CUDA settings
     cuda_device_id: int = Field(0, ge=0, description="CUDA device ID to use")
-    max_threads_per_block: int = Field(256, ge=32, le=1024, description="Maximum threads per CUDA block")
+    max_threads_per_block: int = Field(
+        256, ge=32, le=1024, description="Maximum threads per CUDA block"
+    )
     default_block_size: int = Field(128, ge=32, le=512, description="Default CUDA block size")
 
     # Memory settings
     min_gpu_memory_mb: int = Field(512, ge=256, description="Minimum required GPU memory")
     max_gpu_memory_mb: int = Field(8192, le=65536, description="Maximum GPU memory to use")
-    memory_safety_margin: float = Field(0.9, ge=0.5, le=0.95, description="GPU memory safety margin")
+    memory_safety_margin: float = Field(
+        0.9, ge=0.5, le=0.95, description="GPU memory safety margin"
+    )
 
     # Performance settings
     enable_gpu_profiling: bool = Field(False, description="Enable GPU performance profiling")
@@ -101,11 +118,17 @@ class GPUConfig(BaseSettings):
 
     # Smart Routing Configuration
     enable_smart_routing: bool = Field(True, description="Enable smart GPU/CPU operation routing")
-    gpu_threshold_elements: int = Field(1000, ge=10, description="Min elements for GPU consideration")
-    gpu_optimal_threshold: int = Field(10000, ge=100, description="Elements for optimal GPU performance")
-    routing_overhead_tolerance_ms: float = Field(10.0, ge=0.1, description="Max acceptable routing overhead")
+    gpu_threshold_elements: int = Field(
+        1000, ge=10, description="Min elements for GPU consideration"
+    )
+    gpu_optimal_threshold: int = Field(
+        10000, ge=100, description="Elements for optimal GPU performance"
+    )
+    routing_overhead_tolerance_ms: float = Field(
+        10.0, ge=0.1, description="Max acceptable routing overhead"
+    )
 
-    @field_validator('preferred_backend')
+    @field_validator("preferred_backend")
     @classmethod
     def validate_backend_availability(cls, v):
         """Validate that the preferred backend is available"""
@@ -197,7 +220,7 @@ class StorageConfig(BaseSettings):
     # Filesystem settings
     filesystem_base_path: Path = Field(
         default_factory=lambda: Path.home() / ".catalytic" / "storage",
-        description="Base path for filesystem storage"
+        description="Base path for filesystem storage",
     )
 
     class Config:
@@ -247,19 +270,18 @@ class CatalyticSettings(BaseSettings):
     # Paths
     base_path: Path = Field(default_factory=Path.cwd, description="Base application path")
     data_path: Path = Field(
-        default_factory=lambda: Path.home() / ".catalytic" / "data",
-        description="Data storage path"
+        default_factory=lambda: Path.home() / ".catalytic" / "data", description="Data storage path"
     )
 
-    @field_validator('debug')
+    @field_validator("debug")
     @classmethod
     def set_debug_from_env(cls, v, info):
         """Set debug based on environment"""
-        if info.data.get('environment') == Environment.DEVELOPMENT:
+        if info.data.get("environment") == Environment.DEVELOPMENT:
             return True
         return v
 
-    @field_validator('data_path', 'base_path')
+    @field_validator("data_path", "base_path")
     @classmethod
     def ensure_paths_exist(cls, v):
         """Ensure required paths exist"""
@@ -275,6 +297,7 @@ class CatalyticSettings(BaseSettings):
             if backend == GPUBackend.CUDA:
                 try:
                     import torch
+
                     if torch.cuda.is_available():
                         return backend
                 except ImportError:
@@ -282,6 +305,7 @@ class CatalyticSettings(BaseSettings):
             elif backend == GPUBackend.CUPY:
                 try:
                     import cupy
+
                     return backend
                 except ImportError:
                     pass

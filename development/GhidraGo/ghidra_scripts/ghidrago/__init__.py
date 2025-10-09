@@ -18,13 +18,13 @@ from .exceptions import (
 )
 
 __all__ = [
-    'GhidraGoError',
-    'MemoryAccessError',
-    'InvalidBinaryError',
-    'ParseError',
-    'UnsupportedVersionError',
-    'StructureNotFoundError',
-    'TypeResolutionError',
+    "GhidraGoError",
+    "MemoryAccessError",
+    "InvalidBinaryError",
+    "ParseError",
+    "UnsupportedVersionError",
+    "StructureNotFoundError",
+    "TypeResolutionError",
 ]
 
 __version__ = "2.0.0"

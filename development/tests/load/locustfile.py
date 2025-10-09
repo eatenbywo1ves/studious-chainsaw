@@ -67,19 +67,19 @@ PERFORMANCE_TARGETS = {
     "p95_latency_ms": 500,
     "p99_latency_ms": 1000,
     "target_throughput_rps": 1000,
-    "max_error_rate_pct": 1.0
+    "max_error_rate_pct": 1.0,
 }
 
 # Logging Configuration
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
 # ============================================================================
 # TEST DATA GENERATION
 # ============================================================================
+
 
 class TestDataGenerator:
     """Generate realistic test data for load testing"""
@@ -108,7 +108,7 @@ class TestDataGenerator:
             "password": TestDataGenerator.generate_password(),
             "first_name": f"User{user_id}",
             "last_name": f"LoadTest{user_id}",
-            "plan_code": random.choice(TEST_PLANS)
+            "plan_code": random.choice(TEST_PLANS),
         }
 
     @staticmethod
@@ -120,12 +120,14 @@ class TestDataGenerator:
             "size": random.choice([100, 500, 1000, 2000]),
             "field_type": random.choice(["real", "complex"]),
             "geometry": random.choice(["euclidean", "hyperbolic", "spherical"]),
-            "enable_gpu": random.choice([True, False])
+            "enable_gpu": random.choice([True, False]),
         }
+
 
 # ============================================================================
 # METRICS TRACKING
 # ============================================================================
+
 
 class LoadTestMetrics:
     """Track detailed metrics during load testing"""
@@ -187,8 +189,9 @@ class LoadTestMetrics:
             "lattice_operations": self.lattice_operations,
             "token_operations": self.token_operations,
             "errors": self.errors_by_status,
-            "performance_targets": PERFORMANCE_TARGETS
+            "performance_targets": PERFORMANCE_TARGETS,
         }
+
 
 # Global metrics instance
 metrics = LoadTestMetrics()
@@ -196,6 +199,7 @@ metrics = LoadTestMetrics()
 # ============================================================================
 # EVENT HANDLERS
 # ============================================================================
+
 
 @events.test_start.add_listener
 def on_test_start(environment, **kwargs):
@@ -214,6 +218,7 @@ def on_test_start(environment, **kwargs):
     logger.info("=" * 80)
     metrics.reset()
 
+
 @events.test_stop.add_listener
 def on_test_stop(environment, **kwargs):
     """Called when load test stops"""
@@ -224,7 +229,9 @@ def on_test_stop(environment, **kwargs):
     summary = metrics.get_summary()
 
     logger.info("\nAuthentication Metrics:")
-    logger.info(f"  Registrations: {summary['registrations']['successful']}/{summary['registrations']['total']}")
+    logger.info(
+        f"  Registrations: {summary['registrations']['successful']}/{summary['registrations']['total']}"
+    )
     logger.info(f"  Logins: {summary['logins']['successful']}/{summary['logins']['total']}")
 
     logger.info("\nLattice Operations:")
@@ -233,9 +240,9 @@ def on_test_stop(environment, **kwargs):
     logger.info(f"  Retrieved: {summary['lattice_operations']['retrieved']}")
     logger.info(f"  Deleted: {summary['lattice_operations']['deleted']}")
 
-    if summary['errors']:
+    if summary["errors"]:
         logger.info("\nErrors by Status Code:")
-        for error_type, count in summary['errors'].items():
+        for error_type, count in summary["errors"].items():
             logger.info(f"  {error_type}: {count}")
 
     logger.info("\n" + "=" * 80)
@@ -244,13 +251,15 @@ def on_test_stop(environment, **kwargs):
 
     # Export metrics to JSON
     metrics_file = f"load_test_metrics_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-    with open(metrics_file, 'w') as f:
+    with open(metrics_file, "w") as f:
         json.dump(summary, f, indent=2)
     logger.info(f"\nMetrics exported to: {metrics_file}\n")
+
 
 # ============================================================================
 # BASE USER CLASS
 # ============================================================================
+
 
 class SaaSUser(HttpUser):
     """Base class for all load test users"""
@@ -270,10 +279,7 @@ class SaaSUser(HttpUser):
         user_data = TestDataGenerator.generate_user_data(self.user_id)
 
         with self.client.post(
-            "/api/auth/register",
-            json=user_data,
-            catch_response=True,
-            timeout=API_TIMEOUT
+            "/api/auth/register", json=user_data, catch_response=True, timeout=API_TIMEOUT
         ) as response:
             if response.status_code == 201:
                 data = response.json()
@@ -293,14 +299,11 @@ class SaaSUser(HttpUser):
         """Helper: Login existing user"""
         login_data = {
             "email": TestDataGenerator.generate_email(self.user_id),
-            "password": TestDataGenerator.generate_password()
+            "password": TestDataGenerator.generate_password(),
         }
 
         with self.client.post(
-            "/api/auth/login",
-            json=login_data,
-            catch_response=True,
-            timeout=API_TIMEOUT
+            "/api/auth/login", json=login_data, catch_response=True, timeout=API_TIMEOUT
         ) as response:
             if response.status_code == 200:
                 data = response.json()
@@ -321,11 +324,13 @@ class SaaSUser(HttpUser):
             return {"Authorization": f"Bearer {self.access_token}"}
         return {}
 
+
 # ============================================================================
 # SCENARIO 1: BASELINE TEST (100 users, 10 minutes)
 # ============================================================================
 
-@tag('baseline', 'normal')
+
+@tag("baseline", "normal")
 class BaselineTest(SaaSUser):
     """
     Baseline Load Test
@@ -366,7 +371,7 @@ class BaselineTest(SaaSUser):
             headers=self.get_auth_headers(),
             catch_response=True,
             timeout=API_TIMEOUT,
-            name="/api/lattices [CREATE]"
+            name="/api/lattices [CREATE]",
         ) as response:
             if response.status_code == 201:
                 data = response.json()
@@ -388,7 +393,7 @@ class BaselineTest(SaaSUser):
             headers=self.get_auth_headers(),
             catch_response=True,
             timeout=API_TIMEOUT,
-            name="/api/lattices [LIST]"
+            name="/api/lattices [LIST]",
         ) as response:
             if response.status_code == 200:
                 metrics.record_lattice_listed()
@@ -410,7 +415,7 @@ class BaselineTest(SaaSUser):
             headers=self.get_auth_headers(),
             catch_response=True,
             timeout=API_TIMEOUT,
-            name="/api/lattices/{id} [GET]"
+            name="/api/lattices/{id} [GET]",
         ) as response:
             if response.status_code == 200:
                 metrics.record_lattice_retrieved()
@@ -432,7 +437,7 @@ class BaselineTest(SaaSUser):
             headers=self.get_auth_headers(),
             catch_response=True,
             timeout=API_TIMEOUT,
-            name="/api/lattices/{id} [DELETE]"
+            name="/api/lattices/{id} [DELETE]",
         ) as response:
             if response.status_code == 204:
                 metrics.record_lattice_deleted()
@@ -445,21 +450,20 @@ class BaselineTest(SaaSUser):
     def check_health(self):
         """Task: Check system health"""
         with self.client.get(
-            "/health",
-            catch_response=True,
-            timeout=API_TIMEOUT,
-            name="/health"
+            "/health", catch_response=True, timeout=API_TIMEOUT, name="/health"
         ) as response:
             if response.status_code == 200:
                 response.success()
             else:
                 response.failure(f"Health check failed: {response.status_code}")
 
+
 # ============================================================================
 # SCENARIO 2: STRESS TEST (500 users, 5 minutes)
 # ============================================================================
 
-@tag('stress', 'high-load')
+
+@tag("stress", "high-load")
 class StressTest(SaaSUser):
     """
     Stress Test
@@ -497,7 +501,7 @@ class StressTest(SaaSUser):
             headers=self.get_auth_headers(),
             catch_response=True,
             timeout=API_TIMEOUT,
-            name="/api/lattices [STRESS-CREATE]"
+            name="/api/lattices [STRESS-CREATE]",
         ) as response:
             if response.status_code == 201:
                 data = response.json()
@@ -519,7 +523,7 @@ class StressTest(SaaSUser):
             headers=self.get_auth_headers(),
             catch_response=True,
             timeout=API_TIMEOUT,
-            name="/api/lattices [STRESS-LIST]"
+            name="/api/lattices [STRESS-LIST]",
         ) as response:
             if response.status_code == 200:
                 metrics.record_lattice_listed()
@@ -541,7 +545,7 @@ class StressTest(SaaSUser):
             headers=self.get_auth_headers(),
             catch_response=True,
             timeout=API_TIMEOUT,
-            name="/api/lattices/{id} [STRESS-GET]"
+            name="/api/lattices/{id} [STRESS-GET]",
         ) as response:
             if response.status_code == 200:
                 metrics.record_lattice_retrieved()
@@ -550,11 +554,13 @@ class StressTest(SaaSUser):
                 metrics.record_error(response.status_code)
                 response.failure(f"Stress get failed: {response.status_code}")
 
+
 # ============================================================================
 # SCENARIO 3: SPIKE TEST (0→1000 users in 1 minute)
 # ============================================================================
 
-@tag('spike', 'burst')
+
+@tag("spike", "burst")
 class SpikeTest(SaaSUser):
     """
     Spike Test
@@ -594,7 +600,7 @@ class SpikeTest(SaaSUser):
             headers=self.get_auth_headers(),
             catch_response=True,
             timeout=API_TIMEOUT,
-            name="/api/lattices [SPIKE-CREATE]"
+            name="/api/lattices [SPIKE-CREATE]",
         ) as response:
             if response.status_code == 201:
                 data = response.json()
@@ -619,7 +625,7 @@ class SpikeTest(SaaSUser):
             headers=self.get_auth_headers(),
             catch_response=True,
             timeout=API_TIMEOUT,
-            name="/api/lattices [SPIKE-READ]"
+            name="/api/lattices [SPIKE-READ]",
         ) as response:
             if response.status_code == 200:
                 metrics.record_lattice_listed()
@@ -631,11 +637,13 @@ class SpikeTest(SaaSUser):
                 metrics.record_error(response.status_code)
                 response.failure(f"Spike read failed: {response.status_code}")
 
+
 # ============================================================================
 # SCENARIO 4: SOAK TEST (50 users, 4 hours)
 # ============================================================================
 
-@tag('soak', 'stability', 'endurance')
+
+@tag("soak", "stability", "endurance")
 class SoakTest(SaaSUser):
     """
     Soak Test (Endurance Test)
@@ -676,7 +684,7 @@ class SoakTest(SaaSUser):
             headers=self.get_auth_headers(),
             catch_response=True,
             timeout=API_TIMEOUT,
-            name="/api/lattices [SOAK-CREATE]"
+            name="/api/lattices [SOAK-CREATE]",
         ) as response:
             if response.status_code == 201:
                 data = response.json()
@@ -698,7 +706,7 @@ class SoakTest(SaaSUser):
             headers=self.get_auth_headers(),
             catch_response=True,
             timeout=API_TIMEOUT,
-            name="/api/lattices [SOAK-READ]"
+            name="/api/lattices [SOAK-READ]",
         ) as response:
             if response.status_code == 200:
                 metrics.record_lattice_listed()
@@ -720,7 +728,7 @@ class SoakTest(SaaSUser):
             headers=self.get_auth_headers(),
             catch_response=True,
             timeout=API_TIMEOUT,
-            name="/api/lattices/{id} [SOAK-GET]"
+            name="/api/lattices/{id} [SOAK-GET]",
         ) as response:
             if response.status_code == 200:
                 metrics.record_lattice_retrieved()
@@ -742,7 +750,7 @@ class SoakTest(SaaSUser):
             headers=self.get_auth_headers(),
             catch_response=True,
             timeout=API_TIMEOUT,
-            name="/api/lattices/{id} [SOAK-DELETE]"
+            name="/api/lattices/{id} [SOAK-DELETE]",
         ) as response:
             if response.status_code == 204:
                 metrics.record_lattice_deleted()
@@ -751,11 +759,13 @@ class SoakTest(SaaSUser):
                 metrics.record_error(response.status_code)
                 response.failure(f"Soak delete failed: {response.status_code}")
 
+
 # ============================================================================
 # SCENARIO 5: MIXED WORKLOAD (Realistic Production)
 # ============================================================================
 
-@tag('mixed', 'production', 'realistic')
+
+@tag("mixed", "production", "realistic")
 class MixedWorkloadTest(SaaSUser):
     """
     Mixed Workload Test
@@ -791,7 +801,7 @@ class MixedWorkloadTest(SaaSUser):
                 json={"refresh_token": self.refresh_token},
                 catch_response=True,
                 timeout=API_TIMEOUT,
-                name="/api/auth/refresh [MIXED]"
+                name="/api/auth/refresh [MIXED]",
             ) as response:
                 if response.status_code == 200:
                     data = response.json()
@@ -810,7 +820,7 @@ class MixedWorkloadTest(SaaSUser):
             headers=self.get_auth_headers(),
             catch_response=True,
             timeout=API_TIMEOUT,
-            name="/api/lattices [MIXED-LIST]"
+            name="/api/lattices [MIXED-LIST]",
         ) as response:
             if response.status_code == 200:
                 metrics.record_lattice_listed()
@@ -832,7 +842,7 @@ class MixedWorkloadTest(SaaSUser):
             headers=self.get_auth_headers(),
             catch_response=True,
             timeout=API_TIMEOUT,
-            name="/api/lattices/{id} [MIXED-GET]"
+            name="/api/lattices/{id} [MIXED-GET]",
         ) as response:
             if response.status_code == 200:
                 metrics.record_lattice_retrieved()
@@ -855,7 +865,7 @@ class MixedWorkloadTest(SaaSUser):
             headers=self.get_auth_headers(),
             catch_response=True,
             timeout=API_TIMEOUT,
-            name="/api/lattices [MIXED-CREATE]"
+            name="/api/lattices [MIXED-CREATE]",
         ) as response:
             if response.status_code == 201:
                 data = response.json()
@@ -879,7 +889,7 @@ class MixedWorkloadTest(SaaSUser):
             headers=self.get_auth_headers(),
             catch_response=True,
             timeout=API_TIMEOUT,
-            name="/api/lattices/{id} [MIXED-DELETE]"
+            name="/api/lattices/{id} [MIXED-DELETE]",
         ) as response:
             if response.status_code == 204:
                 metrics.record_lattice_deleted()
@@ -887,6 +897,7 @@ class MixedWorkloadTest(SaaSUser):
             else:
                 metrics.record_error(response.status_code)
                 response.failure(f"Mixed delete failed: {response.status_code}")
+
 
 # ============================================================================
 # MAIN ENTRY POINT

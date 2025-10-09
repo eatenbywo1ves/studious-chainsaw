@@ -11,20 +11,25 @@ from pydantic import BaseModel, Field, validator
 from pydantic.types import conint, confloat
 
 from libs.constants.constants import (
-    MIN_DIMENSIONS, MAX_DIMENSIONS,
-    MIN_LATTICE_SIZE, MAX_LATTICE_SIZE,
-    MIN_AUX_MEMORY_MB, MAX_AUX_MEMORY_MB,
-    MIN_PORT, MAX_PORT,
+    MIN_DIMENSIONS,
+    MAX_DIMENSIONS,
+    MIN_LATTICE_SIZE,
+    MAX_LATTICE_SIZE,
+    MIN_AUX_MEMORY_MB,
+    MAX_AUX_MEMORY_MB,
+    MIN_PORT,
+    MAX_PORT,
     ValidationRange,
     WebhookEvent,
-    LatticeAlgorithm
+    LatticeAlgorithm,
 )
 from libs.utils.exceptions import ValidationError as CustomValidationError
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 # === Pydantic Models for Validation ===
+
 
 class LatticeParameters(BaseModel):
     """Validated parameters for lattice creation"""
@@ -36,23 +41,20 @@ class LatticeParameters(BaseModel):
         description="Size in each dimension"
     )
     auxiliary_memory: Optional[confloat(ge=MIN_AUX_MEMORY_MB, le=MAX_AUX_MEMORY_MB)] = Field(
-        default=10.0,
-        description="Auxiliary memory in MB"
+        default=10.0, description="Auxiliary memory in MB"
     )
     algorithm: Optional[LatticeAlgorithm] = Field(
-        default=LatticeAlgorithm.DIJKSTRA,
-        description="Algorithm to use for pathfinding"
+        default=LatticeAlgorithm.DIJKSTRA, description="Algorithm to use for pathfinding"
     )
 
-    @validator('dimensions')
+    @validator("dimensions")
     def validate_dimensions_for_size(cls, v: int, values: dict) -> int:
         """Ensure dimensions and size create manageable lattice"""
-        if 'size' in values:
-            total_points = values['size'] ** v
+        if "size" in values:
+            total_points = values["size"] ** v
             if total_points > 1_000_000:
                 raise ValueError(
-                    f"Lattice too large: {total_points} points. "
-                    f"Maximum 1,000,000 points allowed."
+                    f"Lattice too large: {total_points} points. Maximum 1,000,000 points allowed."
                 )
         return v
 
@@ -63,7 +65,7 @@ class LatticeParameters(BaseModel):
                 "dimensions": 4,
                 "size": 10,
                 "auxiliary_memory": 20.0,
-                "algorithm": "dijkstra"
+                "algorithm": "dijkstra",
             }
         }
 
@@ -72,15 +74,13 @@ class CoordinateList(BaseModel):
     """Validated list of coordinates"""
 
     coordinates: List[int] = Field(
-        min_items=1,
-        max_items=MAX_DIMENSIONS,
-        description="List of coordinate values"
+        min_items=1, max_items=MAX_DIMENSIONS, description="List of coordinate values"
     )
 
-    @validator('coordinates', each_item=True)
+    @validator("coordinates", each_item=True)
     def validate_coordinate_range(cls, v: int) -> int:
         """Ensure each coordinate is within valid range"""
-        if not 0 <= v < MAX_LATTICE_SIZE ** MAX_DIMENSIONS:
+        if not 0 <= v < MAX_LATTICE_SIZE**MAX_DIMENSIONS:
             raise ValueError(f"Coordinate {v} out of range")
         return v
 
@@ -88,26 +88,23 @@ class CoordinateList(BaseModel):
 class WebhookConfig(BaseModel):
     """Validated webhook configuration"""
 
-    url: Annotated[str, Field(pattern=r'^https?://[^\s]+$', max_length=2048)] = Field(
+    url: Annotated[str, Field(pattern=r"^https?://[^\s]+$", max_length=2048)] = Field(
         description="Webhook URL"
     )
-    events: List[WebhookEvent] = Field(
-        min_items=1,
-        description="Events to subscribe to"
-    )
+    events: List[WebhookEvent] = Field(min_items=1, description="Events to subscribe to")
     secret: Optional[Annotated[str, Field(min_length=16, max_length=256)]] = Field(
-        default=None,
-        description="Webhook secret for signature validation"
+        default=None, description="Webhook secret for signature validation"
     )
     active: bool = Field(default=True, description="Whether webhook is active")
     retry_count: conint(ge=0, le=10) = Field(default=3, description="Number of retries")
     timeout: conint(ge=5, le=300) = Field(default=30, description="Request timeout in seconds")
 
-    @validator('url')
+    @validator("url")
     def validate_url_accessibility(cls, v: str) -> str:
         """Basic URL validation"""
-        if 'localhost' in v.lower() or '127.0.0.1' in v:
+        if "localhost" in v.lower() or "127.0.0.1" in v:
             import warnings
+
             warnings.warn("Using localhost URL for webhook", UserWarning)
         return v
 
@@ -133,6 +130,7 @@ class PaginationParams(BaseModel):
 
 # === Validation Decorators ===
 
+
 def validate_input(**validators: Callable) -> Callable:
     """
     Decorator to validate function inputs
@@ -145,11 +143,13 @@ def validate_input(**validators: Callable) -> Callable:
         def create_lattice(dimensions: int, size: int):
             pass
     """
+
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         def wrapper(*args, **kwargs):
             # Get function signature
             import inspect
+
             sig = inspect.signature(func)
             bound = sig.bind(*args, **kwargs)
             bound.apply_defaults()
@@ -162,11 +162,13 @@ def validate_input(**validators: Callable) -> Callable:
                         raise CustomValidationError(
                             field=param_name,
                             value=value,
-                            reason=f"Validation failed for {param_name}"
+                            reason=f"Validation failed for {param_name}",
                         )
 
             return func(*args, **kwargs)
+
         return wrapper
+
     return decorator
 
 
@@ -179,10 +181,12 @@ def validate_type(*expected_types: type) -> Callable:
         def process(a: int, b: str, c: float):
             pass
     """
+
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         def wrapper(*args, **kwargs):
             import inspect
+
             sig = inspect.signature(func)
             params = list(sig.parameters.values())
 
@@ -196,11 +200,14 @@ def validate_type(*expected_types: type) -> Callable:
                     )
 
             return func(*args, **kwargs)
+
         return wrapper
+
     return decorator
 
 
 # === Core Validation Functions ===
+
 
 def validate_dimensions(dimensions: Any) -> int:
     """
@@ -219,16 +226,14 @@ def validate_dimensions(dimensions: Any) -> int:
         dims = int(dimensions)
     except (TypeError, ValueError):
         raise CustomValidationError(
-            field="dimensions",
-            value=dimensions,
-            reason="Dimensions must be an integer"
+            field="dimensions", value=dimensions, reason="Dimensions must be an integer"
         )
 
     if dims not in ValidationRange.DIMENSIONS:
         raise CustomValidationError(
             field="dimensions",
             value=dims,
-            reason=f"Dimensions must be between {MIN_DIMENSIONS} and {MAX_DIMENSIONS}"
+            reason=f"Dimensions must be between {MIN_DIMENSIONS} and {MAX_DIMENSIONS}",
         )
 
     return dims
@@ -251,37 +256,29 @@ def validate_lattice_size(size: Any, dimensions: Optional[int] = None) -> int:
     try:
         lattice_size = int(size)
     except (TypeError, ValueError):
-        raise CustomValidationError(
-            field="size",
-            value=size,
-            reason="Size must be an integer"
-        )
+        raise CustomValidationError(field="size", value=size, reason="Size must be an integer")
 
     if lattice_size not in ValidationRange.LATTICE_SIZE:
         raise CustomValidationError(
             field="size",
             value=lattice_size,
-            reason=f"Size must be between {MIN_LATTICE_SIZE} and {MAX_LATTICE_SIZE}"
+            reason=f"Size must be between {MIN_LATTICE_SIZE} and {MAX_LATTICE_SIZE}",
         )
 
     # Check total points if dimensions provided
     if dimensions is not None:
-        total_points = lattice_size ** dimensions
+        total_points = lattice_size**dimensions
         if total_points > 1_000_000:
             raise CustomValidationError(
                 field="size",
                 value=lattice_size,
-                reason=f"Total points ({total_points}) exceeds maximum of 1,000,000"
+                reason=f"Total points ({total_points}) exceeds maximum of 1,000,000",
             )
 
     return lattice_size
 
 
-def validate_coordinates(
-    coordinates: List[Any],
-    dimensions: int,
-    lattice_size: int
-) -> List[int]:
+def validate_coordinates(coordinates: List[Any], dimensions: int, lattice_size: int) -> List[int]:
     """
     Validate coordinate list
 
@@ -298,16 +295,14 @@ def validate_coordinates(
     """
     if not isinstance(coordinates, list):
         raise CustomValidationError(
-            field="coordinates",
-            value=coordinates,
-            reason="Coordinates must be a list"
+            field="coordinates", value=coordinates, reason="Coordinates must be a list"
         )
 
     if len(coordinates) != dimensions:
         raise CustomValidationError(
             field="coordinates",
             value=coordinates,
-            reason=f"Expected {dimensions} coordinates, got {len(coordinates)}"
+            reason=f"Expected {dimensions} coordinates, got {len(coordinates)}",
         )
 
     validated = []
@@ -316,16 +311,14 @@ def validate_coordinates(
             c = int(coord)
         except (TypeError, ValueError):
             raise CustomValidationError(
-                field=f"coordinates[{i}]",
-                value=coord,
-                reason="Coordinate must be an integer"
+                field=f"coordinates[{i}]", value=coord, reason="Coordinate must be an integer"
             )
 
         if not 0 <= c < lattice_size:
             raise CustomValidationError(
                 field=f"coordinates[{i}]",
                 value=c,
-                reason=f"Coordinate must be between 0 and {lattice_size - 1}"
+                reason=f"Coordinate must be between 0 and {lattice_size - 1}",
             )
 
         validated.append(c)
@@ -349,17 +342,11 @@ def validate_port(port: Any) -> int:
     try:
         port_num = int(port)
     except (TypeError, ValueError):
-        raise CustomValidationError(
-            field="port",
-            value=port,
-            reason="Port must be an integer"
-        )
+        raise CustomValidationError(field="port", value=port, reason="Port must be an integer")
 
     if port_num not in ValidationRange.PORT:
         raise CustomValidationError(
-            field="port",
-            value=port_num,
-            reason=f"Port must be between {MIN_PORT} and {MAX_PORT}"
+            field="port", value=port_num, reason=f"Port must be between {MIN_PORT} and {MAX_PORT}"
         )
 
     return port_num
@@ -380,33 +367,19 @@ def validate_url(url: Any, require_https: bool = False) -> str:
         CustomValidationError: If validation fails
     """
     if not isinstance(url, str):
-        raise CustomValidationError(
-            field="url",
-            value=url,
-            reason="URL must be a string"
-        )
+        raise CustomValidationError(field="url", value=url, reason="URL must be a string")
 
     # Basic URL pattern
-    url_pattern = r'^https?://[^\s/$.?#].[^\s]*$'
+    url_pattern = r"^https?://[^\s/$.?#].[^\s]*$"
     if not re.match(url_pattern, url):
-        raise CustomValidationError(
-            field="url",
-            value=url,
-            reason="Invalid URL format"
-        )
+        raise CustomValidationError(field="url", value=url, reason="Invalid URL format")
 
-    if require_https and not url.startswith('https://'):
-        raise CustomValidationError(
-            field="url",
-            value=url,
-            reason="HTTPS is required"
-        )
+    if require_https and not url.startswith("https://"):
+        raise CustomValidationError(field="url", value=url, reason="HTTPS is required")
 
     if len(url) > 2048:
         raise CustomValidationError(
-            field="url",
-            value=url,
-            reason="URL exceeds maximum length of 2048 characters"
+            field="url", value=url, reason="URL exceeds maximum length of 2048 characters"
         )
 
     return url
@@ -426,20 +399,12 @@ def validate_email(email: Any) -> str:
         CustomValidationError: If validation fails
     """
     if not isinstance(email, str):
-        raise CustomValidationError(
-            field="email",
-            value=email,
-            reason="Email must be a string"
-        )
+        raise CustomValidationError(field="email", value=email, reason="Email must be a string")
 
     # Basic email pattern
-    email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    email_pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
     if not re.match(email_pattern, email):
-        raise CustomValidationError(
-            field="email",
-            value=email,
-            reason="Invalid email format"
-        )
+        raise CustomValidationError(field="email", value=email, reason="Invalid email format")
 
     return email.lower()
 
@@ -448,20 +413,18 @@ def validate_email(email: Any) -> str:
 
 __all__ = [
     # Models
-    'LatticeParameters',
-    'CoordinateList',
-    'WebhookConfig',
-    'PaginationParams',
-
+    "LatticeParameters",
+    "CoordinateList",
+    "WebhookConfig",
+    "PaginationParams",
     # Decorators
-    'validate_input',
-    'validate_type',
-
+    "validate_input",
+    "validate_type",
     # Functions
-    'validate_dimensions',
-    'validate_lattice_size',
-    'validate_coordinates',
-    'validate_port',
-    'validate_url',
-    'validate_email',
+    "validate_dimensions",
+    "validate_lattice_size",
+    "validate_coordinates",
+    "validate_port",
+    "validate_url",
+    "validate_email",
 ]

@@ -23,9 +23,9 @@ except ImportError:
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 
 if not stripe.api_key or stripe.api_key == "sk_test_YOUR_SECRET_KEY_HERE":
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("STRIPE CONFIGURATION REQUIRED")
-    print("="*70)
+    print("=" * 70)
     print("\nTo use this script, you need to:")
     print("\n1. Create a Stripe account (or use existing):")
     print("   https://dashboard.stripe.com/register")
@@ -47,7 +47,7 @@ if not stripe.api_key or stripe.api_key == "sk_test_YOUR_SECRET_KEY_HERE":
     print("     - customer.updated")
     print("\n5. Add webhook secret to .env:")
     print("   STRIPE_WEBHOOK_SECRET=whsec_YOUR_WEBHOOK_SECRET")
-    print("\n" + "="*70 + "\n")
+    print("\n" + "=" * 70 + "\n")
     sys.exit(1)
 
 
@@ -55,11 +55,7 @@ def create_product(name, description):
     """Create a Stripe product"""
     try:
         product = stripe.Product.create(
-            name=name,
-            description=description,
-            metadata={
-                "app": "catalytic_computing_saas"
-            }
+            name=name, description=description, metadata={"app": "catalytic_computing_saas"}
         )
         print(f"[OK] Created product: {name} (ID: {product.id})")
         return product
@@ -77,12 +73,7 @@ def create_price(product_id, amount, interval, currency="usd"):
         if amount_cents == 0:
             # Free tier - create without recurring
             price = stripe.Price.create(
-                product=product_id,
-                unit_amount=0,
-                currency=currency,
-                metadata={
-                    "plan": "free"
-                }
+                product=product_id, unit_amount=0, currency=currency, metadata={"plan": "free"}
             )
         else:
             price = stripe.Price.create(
@@ -90,9 +81,7 @@ def create_price(product_id, amount, interval, currency="usd"):
                 unit_amount=amount_cents,
                 currency=currency,
                 recurring={"interval": interval},
-                metadata={
-                    "interval": interval
-                }
+                metadata={"interval": interval},
             )
 
         print(f"  [OK] Created price: ${amount}/{interval} (ID: {price.id})")
@@ -104,9 +93,9 @@ def create_price(product_id, amount, interval, currency="usd"):
 
 def setup_subscription_plans():
     """Create all subscription plans in Stripe"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("CREATING STRIPE PRODUCTS AND PRICES")
-    print("="*70 + "\n")
+    print("=" * 70 + "\n")
 
     plans = [
         {
@@ -114,29 +103,29 @@ def setup_subscription_plans():
             "description": "Free tier for individual developers - 100 API calls/month, 1 lattice, 1 user",
             "price_monthly": Decimal("0.00"),
             "price_yearly": Decimal("0.00"),
-            "code": "free"
+            "code": "free",
         },
         {
             "name": "Starter",
             "description": "For growing teams and projects - 1K API calls/month, 5 lattices, 3 users",
             "price_monthly": Decimal("29.00"),
             "price_yearly": Decimal("290.00"),
-            "code": "starter"
+            "code": "starter",
         },
         {
             "name": "Professional",
             "description": "For professional teams - 10K API calls/month, 25 lattices, 10 users",
             "price_monthly": Decimal("99.00"),
             "price_yearly": Decimal("990.00"),
-            "code": "professional"
+            "code": "professional",
         },
         {
             "name": "Enterprise",
             "description": "For large organizations - Unlimited resources, dedicated support",
             "price_monthly": Decimal("499.00"),
             "price_yearly": Decimal("4990.00"),
-            "code": "enterprise"
-        }
+            "code": "enterprise",
+        },
     ]
 
     results = {}
@@ -146,30 +135,22 @@ def setup_subscription_plans():
         print("-" * 70)
 
         # Create product
-        product = create_product(plan['name'], plan['description'])
+        product = create_product(plan["name"], plan["description"])
         if not product:
             continue
 
         # Create monthly price
-        monthly_price = create_price(
-            product.id,
-            plan['price_monthly'],
-            "month"
-        )
+        monthly_price = create_price(product.id, plan["price_monthly"], "month")
 
         # Create yearly price (if not free)
         yearly_price = None
-        if plan['price_yearly'] > 0:
-            yearly_price = create_price(
-                product.id,
-                plan['price_yearly'],
-                "year"
-            )
+        if plan["price_yearly"] > 0:
+            yearly_price = create_price(product.id, plan["price_yearly"], "year")
 
-        results[plan['code']] = {
-            'product_id': product.id,
-            'monthly_price_id': monthly_price.id if monthly_price else None,
-            'yearly_price_id': yearly_price.id if yearly_price else None
+        results[plan["code"]] = {
+            "product_id": product.id,
+            "monthly_price_id": monthly_price.id if monthly_price else None,
+            "yearly_price_id": yearly_price.id if yearly_price else None,
         }
 
     return results
@@ -177,17 +158,17 @@ def setup_subscription_plans():
 
 def update_env_file(results):
     """Update .env file with Stripe price IDs"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("UPDATING ENVIRONMENT CONFIGURATION")
-    print("="*70 + "\n")
+    print("=" * 70 + "\n")
 
     env_additions = "\n# Stripe Product and Price IDs (Generated)\n"
 
     for code, ids in results.items():
         env_additions += f"STRIPE_{code.upper()}_PRODUCT_ID={ids['product_id']}\n"
-        if ids['monthly_price_id']:
+        if ids["monthly_price_id"]:
             env_additions += f"STRIPE_{code.upper()}_PRICE_MONTHLY_ID={ids['monthly_price_id']}\n"
-        if ids['yearly_price_id']:
+        if ids["yearly_price_id"]:
             env_additions += f"STRIPE_{code.upper()}_PRICE_YEARLY_ID={ids['yearly_price_id']}\n"
 
     print("Add these to your .env file:")
@@ -197,9 +178,9 @@ def update_env_file(results):
     env_path = os.path.join(os.path.dirname(__file__), ".env")
     response = input("\nWould you like to automatically append these to .env? (y/N): ")
 
-    if response.lower() == 'y':
+    if response.lower() == "y":
         try:
-            with open(env_path, 'a') as f:
+            with open(env_path, "a") as f:
                 f.write(env_additions)
             print("[OK] Updated .env file")
         except Exception as e:
@@ -208,9 +189,9 @@ def update_env_file(results):
 
 def list_existing_products():
     """List existing Stripe products"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("EXISTING STRIPE PRODUCTS")
-    print("="*70 + "\n")
+    print("=" * 70 + "\n")
 
     try:
         products = stripe.Product.list(limit=100)
@@ -228,7 +209,9 @@ def list_existing_products():
             prices = stripe.Price.list(product=product.id)
             for price in prices.data:
                 amount = price.unit_amount / 100 if price.unit_amount else 0
-                interval = price.recurring.get('interval', 'one-time') if price.recurring else 'one-time'
+                interval = (
+                    price.recurring.get("interval", "one-time") if price.recurring else "one-time"
+                )
                 print(f"  Price: ${amount:.2f}/{interval} (ID: {price.id})")
 
     except stripe.error.StripeError as e:
@@ -237,9 +220,9 @@ def list_existing_products():
 
 def test_stripe_connection():
     """Test Stripe API connection"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TESTING STRIPE CONNECTION")
-    print("="*70 + "\n")
+    print("=" * 70 + "\n")
 
     try:
         account = stripe.Account.retrieve()
@@ -260,9 +243,9 @@ def test_stripe_connection():
 
 def main():
     """Main setup function"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("CATALYTIC COMPUTING SAAS - STRIPE SETUP")
-    print("="*70)
+    print("=" * 70)
 
     # Test connection
     if not test_stripe_connection():
@@ -272,10 +255,10 @@ def main():
     list_existing_products()
 
     # Ask to create new products
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     response = input("\nCreate subscription products and prices? (y/N): ")
 
-    if response.lower() != 'y':
+    if response.lower() != "y":
         print("Setup cancelled.")
         sys.exit(0)
 
@@ -285,15 +268,15 @@ def main():
     # Update .env file
     update_env_file(results)
 
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("STRIPE SETUP COMPLETE")
-    print("="*70)
+    print("=" * 70)
     print("\nNext steps:")
     print("1. Test checkout flow: http://localhost:3000")
     print("2. Configure webhook endpoint in Stripe Dashboard")
     print("3. Add STRIPE_WEBHOOK_SECRET to .env")
     print("4. Test webhook delivery with Stripe CLI or test mode")
-    print("\n" + "="*70 + "\n")
+    print("\n" + "=" * 70 + "\n")
 
 
 if __name__ == "__main__":

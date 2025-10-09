@@ -17,7 +17,7 @@ from security.application.api_validators_v2 import (
     PaginationParams,
     sanitize_string,
     validate_uuid,
-    validate_json_structure
+    validate_json_structure,
 )
 
 
@@ -25,15 +25,14 @@ from security.application.api_validators_v2 import (
 # AUTHENTICATION VALIDATOR TESTS
 # ============================================================================
 
+
 class TestLoginRequest:
     """Test LoginRequest validator"""
 
     def test_valid_login(self):
         """Test valid login request"""
         req = LoginRequest(
-            email="user@example.com",
-            password="SecurePass123!",
-            tenant_slug="acme-corp"
+            email="user@example.com", password="SecurePass123!", tenant_slug="acme-corp"
         )
         assert req.email == "user@example.com"
         assert req.password == "SecurePass123!"
@@ -41,43 +40,30 @@ class TestLoginRequest:
 
     def test_email_normalization(self):
         """Test email is lowercased and trimmed"""
-        req = LoginRequest(
-            email="  USER@EXAMPLE.COM  ",
-            password="SecurePass123!"
-        )
+        req = LoginRequest(email="  USER@EXAMPLE.COM  ", password="SecurePass123!")
         assert req.email == "user@example.com"
 
     def test_invalid_email(self):
         """Test invalid email format"""
         with pytest.raises(ValidationError):
-            LoginRequest(
-                email="not-an-email",
-                password="SecurePass123!"
-            )
+            LoginRequest(email="not-an-email", password="SecurePass123!")
 
     def test_password_too_short(self):
         """Test password minimum length"""
         with pytest.raises(ValidationError):
-            LoginRequest(
-                email="user@example.com",
-                password="short"
-            )
+            LoginRequest(email="user@example.com", password="short")
 
     def test_invalid_tenant_slug(self):
         """Test invalid tenant slug format"""
         with pytest.raises(ValidationError):
             LoginRequest(
-                email="user@example.com",
-                password="SecurePass123!",
-                tenant_slug="INVALID_SLUG!"
+                email="user@example.com", password="SecurePass123!", tenant_slug="INVALID_SLUG!"
             )
 
     def test_tenant_slug_normalization(self):
         """Test tenant slug is lowercased"""
         req = LoginRequest(
-            email="user@example.com",
-            password="SecurePass123!",
-            tenant_slug="Acme-Corp"
+            email="user@example.com", password="SecurePass123!", tenant_slug="Acme-Corp"
         )
         assert req.tenant_slug == "acme-corp"
 
@@ -106,85 +92,56 @@ class TestRefreshRequest:
 # LATTICE VALIDATOR TESTS
 # ============================================================================
 
+
 class TestLatticeCreateRequest:
     """Test LatticeCreateRequest validator"""
 
     def test_valid_lattice(self):
         """Test valid lattice creation"""
-        req = LatticeCreateRequest(
-            name="Test Lattice",
-            dimensions=3,
-            size=10
-        )
+        req = LatticeCreateRequest(name="Test Lattice", dimensions=3, size=10)
         assert req.name == "Test Lattice"
         assert req.dimensions == 3
         assert req.size == 10
 
     def test_name_sanitization(self):
         """Test name is trimmed and sanitized"""
-        req = LatticeCreateRequest(
-            name="  Test  Lattice  ",
-            dimensions=2,
-            size=5
-        )
+        req = LatticeCreateRequest(name="  Test  Lattice  ", dimensions=2, size=5)
         assert req.name == "Test  Lattice"
 
     def test_empty_name_rejected(self):
         """Test empty name is rejected"""
         with pytest.raises(ValidationError):
-            LatticeCreateRequest(
-                name="   ",
-                dimensions=2,
-                size=5
-            )
+            LatticeCreateRequest(name="   ", dimensions=2, size=5)
 
     def test_dimensions_too_low(self):
         """Test dimensions minimum"""
         with pytest.raises(ValidationError):
-            LatticeCreateRequest(
-                dimensions=0,
-                size=5
-            )
+            LatticeCreateRequest(dimensions=0, size=5)
 
     def test_dimensions_too_high(self):
         """Test dimensions maximum"""
         with pytest.raises(ValidationError):
-            LatticeCreateRequest(
-                dimensions=11,
-                size=5
-            )
+            LatticeCreateRequest(dimensions=11, size=5)
 
     def test_size_too_low(self):
         """Test size minimum"""
         with pytest.raises(ValidationError):
-            LatticeCreateRequest(
-                dimensions=2,
-                size=1
-            )
+            LatticeCreateRequest(dimensions=2, size=1)
 
     def test_size_too_high(self):
         """Test size maximum"""
         with pytest.raises(ValidationError):
-            LatticeCreateRequest(
-                dimensions=2,
-                size=101
-            )
+            LatticeCreateRequest(dimensions=2, size=101)
 
     def test_vertex_limit_exceeded(self):
         """Test total vertex limit"""
         with pytest.raises(ValidationError):
             # 100^5 = 10B vertices (exceeds 1M limit)
-            LatticeCreateRequest(
-                dimensions=5,
-                size=100
-            )
+            LatticeCreateRequest(dimensions=5, size=100)
 
     def test_vertex_limit_ok(self):
         """Test acceptable vertex count"""
-        req = LatticeCreateRequest(
-            dimensions=3,
-            size=100
-        )
+        req = LatticeCreateRequest(dimensions=3, size=100)
         # 100^3 = 1M vertices (exactly at limit)
         assert req.dimensions == 3
         assert req.size == 100
@@ -195,64 +152,41 @@ class TestPathFindRequest:
 
     def test_valid_pathfind(self):
         """Test valid pathfinding request"""
-        req = PathFindRequest(
-            lattice_id="lattice-123",
-            start=[0, 0, 0],
-            end=[5, 5, 5]
-        )
+        req = PathFindRequest(lattice_id="lattice-123", start=[0, 0, 0], end=[5, 5, 5])
         assert req.lattice_id == "lattice-123"
         assert req.start == [0, 0, 0]
         assert req.end == [5, 5, 5]
 
     def test_lattice_id_sanitization(self):
         """Test lattice ID is trimmed"""
-        req = PathFindRequest(
-            lattice_id="  lattice-123  ",
-            start=[0],
-            end=[1]
-        )
+        req = PathFindRequest(lattice_id="  lattice-123  ", start=[0], end=[1])
         assert req.lattice_id == "lattice-123"
 
     def test_invalid_lattice_id(self):
         """Test invalid lattice ID characters"""
         with pytest.raises(ValidationError):
-            PathFindRequest(
-                lattice_id="lattice/123",
-                start=[0],
-                end=[1]
-            )
+            PathFindRequest(lattice_id="lattice/123", start=[0], end=[1])
 
     def test_negative_coordinates(self):
         """Test negative coordinates rejected"""
         with pytest.raises(ValidationError):
-            PathFindRequest(
-                lattice_id="lattice-123",
-                start=[-1, 0],
-                end=[1, 1]
-            )
+            PathFindRequest(lattice_id="lattice-123", start=[-1, 0], end=[1, 1])
 
     def test_coordinate_too_large(self):
         """Test coordinate maximum"""
         with pytest.raises(ValidationError):
-            PathFindRequest(
-                lattice_id="lattice-123",
-                start=[0, 0],
-                end=[1000, 1000]
-            )
+            PathFindRequest(lattice_id="lattice-123", start=[0, 0], end=[1000, 1000])
 
     def test_dimension_mismatch(self):
         """Test start/end dimension mismatch"""
         with pytest.raises(ValidationError):
-            PathFindRequest(
-                lattice_id="lattice-123",
-                start=[0, 0],
-                end=[1, 1, 1]
-            )
+            PathFindRequest(lattice_id="lattice-123", start=[0, 0], end=[1, 1, 1])
 
 
 # ============================================================================
 # TENANT VALIDATOR TESTS
 # ============================================================================
+
 
 class TestTenantCreateRequest:
     """Test TenantCreateRequest validator"""
@@ -263,7 +197,7 @@ class TestTenantCreateRequest:
             company_name="Acme Corporation",
             slug="acme-corp",
             contact_email="admin@acme.com",
-            subscription_plan="pro"
+            subscription_plan="pro",
         )
         assert req.company_name == "Acme Corporation"
         assert req.slug == "acme-corp"
@@ -272,9 +206,7 @@ class TestTenantCreateRequest:
     def test_slug_normalization(self):
         """Test slug is lowercased"""
         req = TenantCreateRequest(
-            company_name="Acme Corporation",
-            slug="Acme-Corp",
-            contact_email="admin@acme.com"
+            company_name="Acme Corporation", slug="Acme-Corp", contact_email="admin@acme.com"
         )
         assert req.slug == "acme-corp"
 
@@ -282,35 +214,27 @@ class TestTenantCreateRequest:
         """Test slug minimum length"""
         with pytest.raises(ValidationError):
             TenantCreateRequest(
-                company_name="Acme Corporation",
-                slug="ab",
-                contact_email="admin@acme.com"
+                company_name="Acme Corporation", slug="ab", contact_email="admin@acme.com"
             )
 
     def test_invalid_slug_characters(self):
         """Test invalid slug characters"""
         with pytest.raises(ValidationError):
             TenantCreateRequest(
-                company_name="Acme Corporation",
-                slug="acme_corp!",
-                contact_email="admin@acme.com"
+                company_name="Acme Corporation", slug="acme_corp!", contact_email="admin@acme.com"
             )
 
     def test_slug_consecutive_hyphens(self):
         """Test slug cannot have consecutive hyphens"""
         with pytest.raises(ValidationError):
             TenantCreateRequest(
-                company_name="Acme Corporation",
-                slug="acme--corp",
-                contact_email="admin@acme.com"
+                company_name="Acme Corporation", slug="acme--corp", contact_email="admin@acme.com"
             )
 
     def test_company_name_sanitization(self):
         """Test company name is trimmed"""
         req = TenantCreateRequest(
-            company_name="  Acme Corp  ",
-            slug="acme-corp",
-            contact_email="admin@acme.com"
+            company_name="  Acme Corp  ", slug="acme-corp", contact_email="admin@acme.com"
         )
         assert req.company_name == "Acme Corp"
 
@@ -318,6 +242,7 @@ class TestTenantCreateRequest:
 # ============================================================================
 # USER VALIDATOR TESTS
 # ============================================================================
+
 
 class TestUserCreateRequest:
     """Test UserCreateRequest validator"""
@@ -329,7 +254,7 @@ class TestUserCreateRequest:
             password="SecurePass123!",
             first_name="John",
             last_name="Doe",
-            role="user"
+            role="user",
         )
         assert req.email == "user@example.com"
         assert req.first_name == "John"
@@ -343,7 +268,7 @@ class TestUserCreateRequest:
                 email="user@example.com",
                 password="securepass123!",
                 first_name="John",
-                last_name="Doe"
+                last_name="Doe",
             )
         assert "uppercase" in str(exc.value).lower()
 
@@ -353,17 +278,14 @@ class TestUserCreateRequest:
                 email="user@example.com",
                 password="SECUREPASS123!",
                 first_name="John",
-                last_name="Doe"
+                last_name="Doe",
             )
         assert "lowercase" in str(exc.value).lower()
 
         # Missing digit
         with pytest.raises(ValidationError) as exc:
             UserCreateRequest(
-                email="user@example.com",
-                password="SecurePass!",
-                first_name="John",
-                last_name="Doe"
+                email="user@example.com", password="SecurePass!", first_name="John", last_name="Doe"
             )
         assert "digit" in str(exc.value).lower()
 
@@ -373,7 +295,7 @@ class TestUserCreateRequest:
                 email="user@example.com",
                 password="SecurePass123",
                 first_name="John",
-                last_name="Doe"
+                last_name="Doe",
             )
         assert "special" in str(exc.value).lower()
 
@@ -383,7 +305,7 @@ class TestUserCreateRequest:
             email="user@example.com",
             password="SecurePass123!",
             first_name="  John  ",
-            last_name="O'Brien"
+            last_name="O'Brien",
         )
         assert req.first_name == "John"
         assert req.last_name == "O'Brien"
@@ -396,7 +318,7 @@ class TestUserCreateRequest:
                 password="SecurePass123!",
                 first_name="John",
                 last_name="Doe",
-                role="superuser"
+                role="superuser",
             )
 
 
@@ -404,16 +326,15 @@ class TestUserCreateRequest:
 # METADATA VALIDATOR TESTS
 # ============================================================================
 
+
 class TestMetadataValidator:
     """Test MetadataValidator"""
 
     def test_valid_metadata(self):
         """Test valid metadata"""
-        req = MetadataValidator(metadata={
-            "key1": "value1",
-            "key2": 123,
-            "key3": {"nested": "value"}
-        })
+        req = MetadataValidator(
+            metadata={"key1": "value1", "key2": 123, "key3": {"nested": "value"}}
+        )
         assert req.metadata["key1"] == "value1"
 
     def test_too_many_keys(self):
@@ -425,34 +346,23 @@ class TestMetadataValidator:
     def test_value_too_long(self):
         """Test metadata value length limit"""
         with pytest.raises(ValidationError):
-            MetadataValidator(metadata={
-                "key": "x" * 1001
-            })
+            MetadataValidator(metadata={"key": "x" * 1001})
 
     def test_nested_too_deep(self):
         """Test nesting depth limit"""
         with pytest.raises(ValidationError):
-            MetadataValidator(metadata={
-                "level1": {
-                    "level2": {
-                        "level3": {
-                            "level4": "too deep"
-                        }
-                    }
-                }
-            })
+            MetadataValidator(metadata={"level1": {"level2": {"level3": {"level4": "too deep"}}}})
 
     def test_list_too_long(self):
         """Test list length limit"""
         with pytest.raises(ValidationError):
-            MetadataValidator(metadata={
-                "list": list(range(101))
-            })
+            MetadataValidator(metadata={"list": list(range(101))})
 
 
 # ============================================================================
 # PAGINATION VALIDATOR TESTS
 # ============================================================================
+
 
 class TestPaginationParams:
     """Test PaginationParams validator"""
@@ -494,6 +404,7 @@ class TestPaginationParams:
 # UTILITY FUNCTION TESTS
 # ============================================================================
 
+
 class TestUtilityFunctions:
     """Test utility validation functions"""
 
@@ -520,26 +431,12 @@ class TestUtilityFunctions:
 
     def test_validate_json_structure_valid(self):
         """Test valid JSON structure"""
-        data = {
-            "level1": {
-                "level2": {
-                    "level3": "value"
-                }
-            }
-        }
+        data = {"level1": {"level2": {"level3": "value"}}}
         assert validate_json_structure(data) is True
 
     def test_validate_json_structure_too_deep(self):
         """Test JSON nesting limit"""
-        data = {
-            "l1": {
-                "l2": {
-                    "l3": {
-                        "l4": "too deep"
-                    }
-                }
-            }
-        }
+        data = {"l1": {"l2": {"l3": {"l4": "too deep"}}}}
         with pytest.raises(ValueError):
             validate_json_structure(data)
 

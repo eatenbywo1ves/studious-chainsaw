@@ -12,11 +12,8 @@ logger = logging.getLogger(__name__)
 
 @contextmanager
 def lattice_context(
-    dimensions: int,
-    size: int,
-    enable_gpu: bool = True,
-    **kwargs: Any
-) -> Generator['UnifiedCatalyticLattice', None, None]:
+    dimensions: int, size: int, enable_gpu: bool = True, **kwargs: Any
+) -> Generator["UnifiedCatalyticLattice", None, None]:
     """
     Context manager for automatic lattice cleanup
 
@@ -40,10 +37,7 @@ def lattice_context(
     lattice = None
     try:
         lattice = UnifiedCatalyticLattice(
-            dimensions=dimensions,
-            size=size,
-            enable_gpu=enable_gpu,
-            **kwargs
+            dimensions=dimensions, size=size, enable_gpu=enable_gpu, **kwargs
         )
         logger.debug(f"Created lattice context: {dimensions}D, size={size}, GPU={enable_gpu}")
         yield lattice
@@ -60,9 +54,7 @@ def lattice_context(
 
 
 @contextmanager
-def gpu_memory_context(
-    backend: Optional[str] = None
-) -> Generator[Optional[Any], None, None]:
+def gpu_memory_context(backend: Optional[str] = None) -> Generator[Optional[Any], None, None]:
     """
     Context manager for GPU memory management
 
@@ -100,8 +92,7 @@ def gpu_memory_context(
 
 @contextmanager
 def cuda_environment_context(
-    force_init: bool = False,
-    verbose: bool = False
+    force_init: bool = False, verbose: bool = False
 ) -> Generator[bool, None, None]:
     """
     Context manager for CUDA environment initialization
@@ -136,10 +127,7 @@ def cuda_environment_context(
 
 @contextmanager
 def ssh_connection_context(
-    hostname: str,
-    port: int = 22,
-    user: Optional[str] = None,
-    timeout: int = 10
+    hostname: str, port: int = 22, user: Optional[str] = None, timeout: int = 10
 ) -> Generator[bool, None, None]:
     """
     Context manager for SSH connection testing
@@ -164,25 +152,23 @@ def ssh_connection_context(
     connected = False
     try:
         # Test SSH connection
-        ssh_cmd = ['ssh', '-o', f'ConnectTimeout={timeout}', '-o', 'StrictHostKeyChecking=no']
+        ssh_cmd = ["ssh", "-o", f"ConnectTimeout={timeout}", "-o", "StrictHostKeyChecking=no"]
         if port != 22:
-            ssh_cmd.extend(['-p', str(port)])
+            ssh_cmd.extend(["-p", str(port)])
 
         if user:
-            ssh_cmd.append(f'{user}@{hostname}')
+            ssh_cmd.append(f"{user}@{hostname}")
         else:
             ssh_cmd.append(hostname)
 
         ssh_cmd.append('echo "connected"')
 
-        result = subprocess.run(
-            ssh_cmd,
-            capture_output=True,
-            timeout=timeout + 5
-        )
+        result = subprocess.run(ssh_cmd, capture_output=True, timeout=timeout + 5)
 
-        connected = result.returncode == 0 and 'connected' in result.stdout.decode()
-        logger.debug(f"SSH connection to {hostname}:{port} - {'success' if connected else 'failed'}")
+        connected = result.returncode == 0 and "connected" in result.stdout.decode()
+        logger.debug(
+            f"SSH connection to {hostname}:{port} - {'success' if connected else 'failed'}"
+        )
         yield connected
 
     except Exception as e:
@@ -193,10 +179,7 @@ def ssh_connection_context(
 
 
 @contextmanager
-def timed_operation(
-    operation_name: str,
-    log_level: str = "INFO"
-) -> Generator[None, None, None]:
+def timed_operation(operation_name: str, log_level: str = "INFO") -> Generator[None, None, None]:
     """
     Context manager for timing operations
 
@@ -268,9 +251,7 @@ def temporary_gpu_device(device_id: int) -> Generator[int, None, None]:
 
 @contextmanager
 def error_handler(
-    operation: str,
-    fallback_value: Any = None,
-    reraise: bool = False
+    operation: str, fallback_value: Any = None, reraise: bool = False
 ) -> Generator[dict, None, None]:
     """
     Context manager for consistent error handling
@@ -289,17 +270,17 @@ def error_handler(
     Yields:
         dict: Dictionary to store result {'result': value, 'error': exception}
     """
-    handler = {'result': fallback_value, 'error': None}
+    handler = {"result": fallback_value, "error": None}
 
     try:
         yield handler
     except Exception as e:
-        handler['error'] = e
+        handler["error"] = e
         logger.error(f"Error in {operation}: {e}", exc_info=True)
         if reraise:
             raise
     finally:
-        if handler['error'] and not reraise:
+        if handler["error"] and not reraise:
             logger.info(f"{operation} completed with fallback value")
 
 
@@ -335,12 +316,12 @@ def batch_operations(batch_size: int = 100) -> Generator[list, None, None]:
 
 # Export all context managers
 __all__ = [
-    'lattice_context',
-    'gpu_memory_context',
-    'cuda_environment_context',
-    'ssh_connection_context',
-    'timed_operation',
-    'temporary_gpu_device',
-    'error_handler',
-    'batch_operations',
+    "lattice_context",
+    "gpu_memory_context",
+    "cuda_environment_context",
+    "ssh_connection_context",
+    "timed_operation",
+    "temporary_gpu_device",
+    "error_handler",
+    "batch_operations",
 ]

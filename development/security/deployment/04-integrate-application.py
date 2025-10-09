@@ -10,11 +10,11 @@ import re
 from pathlib import Path
 
 # Color codes
-GREEN = '\033[0;32m'
-YELLOW = '\033[1;33m'
-BLUE = '\033[0;34m'
-RED = '\033[0;31m'
-NC = '\033[0m'  # No Color
+GREEN = "\033[0;32m"
+YELLOW = "\033[1;33m"
+BLUE = "\033[0;34m"
+RED = "\033[0;31m"
+NC = "\033[0m"  # No Color
 
 
 class SecurityIntegrator:
@@ -85,7 +85,7 @@ argon2-cffi==23.1.0  # Password hashing
 """
 
         req_file = self.security_dir / "security-requirements.txt"
-        with open(req_file, 'w') as f:
+        with open(req_file, "w") as f:
             f.write(requirements)
 
         self.print_success(f"Security requirements file created: {req_file}")
@@ -94,7 +94,7 @@ argon2-cffi==23.1.0  # Password hashing
         saas_req = self.saas_dir / "api" / "requirements.txt"
         if saas_req.exists():
             self.print_step("Merging with existing requirements...")
-            with open(saas_req, 'a') as f:
+            with open(saas_req, "a") as f:
                 f.write("\n# Security dependencies\n")
                 f.write(requirements)
             self.print_success("Requirements merged")
@@ -113,7 +113,7 @@ argon2-cffi==23.1.0  # Password hashing
         self.backup_file(api_server)
 
         # Read current content
-        with open(api_server, 'r') as f:
+        with open(api_server, "r") as f:
             content = f.read()
 
         # Add imports if not present
@@ -140,12 +140,7 @@ from security.application.input_validation import (
 )
 """
             # Insert after existing imports
-            content = re.sub(
-                r'(from fastapi import.*?\n)',
-                r'\1' + import_block,
-                content,
-                count=1
-            )
+            content = re.sub(r"(from fastapi import.*?\n)", r"\1" + import_block, content, count=1)
 
         # Add JWT manager initialization
         if "jwt_manager = JWTSecurityManager" not in content:
@@ -166,10 +161,7 @@ input_validator = SecureInputValidator(
 """
             # Insert after app creation
             content = re.sub(
-                r'(app = FastAPI\(.*?\))',
-                r'\1\n' + jwt_init,
-                content,
-                flags=re.DOTALL
+                r"(app = FastAPI\(.*?\))", r"\1\n" + jwt_init, content, flags=re.DOTALL
             )
 
         # Add middleware
@@ -190,15 +182,15 @@ if os.getenv("DDOS_PROTECTION_ENABLED", "true").lower() == "true":
 """
             # Insert after middleware section
             content = re.sub(
-                r'(app\.add_middleware\(CORSMiddleware.*?\))',
-                r'\1\n' + middleware_block,
+                r"(app\.add_middleware\(CORSMiddleware.*?\))",
+                r"\1\n" + middleware_block,
                 content,
                 flags=re.DOTALL,
-                count=1
+                count=1,
             )
 
         # Write updated content
-        with open(api_server, 'w') as f:
+        with open(api_server, "w") as f:
             f.write(content)
 
         self.print_success("JWT security integrated into API server")
@@ -218,7 +210,7 @@ if os.getenv("DDOS_PROTECTION_ENABLED", "true").lower() == "true":
         if env_file.exists():
             self.print_warning(f".env file already exists: {env_file}")
             response = input("Overwrite? (y/N): ")
-            if response.lower() != 'y':
+            if response.lower() != "y":
                 return
 
         shutil.copy2(env_template, env_file)
@@ -273,7 +265,7 @@ services:
 """
 
         override_file = self.saas_dir / "docker-compose.override.yml"
-        with open(override_file, 'w') as f:
+        with open(override_file, "w") as f:
             f.write(override_content)
 
         self.print_success(f"Docker compose override created: {override_file}")
@@ -386,12 +378,10 @@ Environment: {env}
 """
 
         docs_file = self.security_dir / "deployment" / "README.md"
-        with open(docs_file, 'w') as f:
+        with open(docs_file, "w") as f:
             from datetime import datetime
-            content = docs_content.format(
-                date=datetime.now().strftime("%Y-%m-%d"),
-                env=self.env
-            )
+
+            content = docs_content.format(date=datetime.now().strftime("%Y-%m-%d"), env=self.env)
             f.write(content)
 
         self.print_success(f"Deployment documentation created: {docs_file}")
@@ -416,14 +406,19 @@ Environment: {env}
             print("Next steps:")
             print("  1. Review generated files")
             print("  2. Customize .env file with your configuration")
-            print("  3. Install security dependencies: pip install -r security/security-requirements.txt")
+            print(
+                "  3. Install security dependencies: pip install -r security/security-requirements.txt"
+            )
             print("  4. Test application with security enabled")
             print()
-            print(f"{YELLOW}Important: Review all generated code before deploying to production!{NC}")
+            print(
+                f"{YELLOW}Important: Review all generated code before deploying to production!{NC}"
+            )
 
         except Exception as e:
             self.print_error(f"Integration failed: {e}")
             import traceback
+
             traceback.print_exc()
             sys.exit(1)
 
@@ -433,11 +428,18 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(description="Integrate security components into application")
-    parser.add_argument("env", nargs="?", default="development",
-                       help="Environment (development, staging, production)")
-    parser.add_argument("--project-root", type=Path,
-                       default=Path(__file__).parent.parent.parent,
-                       help="Project root directory")
+    parser.add_argument(
+        "env",
+        nargs="?",
+        default="development",
+        help="Environment (development, staging, production)",
+    )
+    parser.add_argument(
+        "--project-root",
+        type=Path,
+        default=Path(__file__).parent.parent.parent,
+        help="Project root directory",
+    )
 
     args = parser.parse_args()
 

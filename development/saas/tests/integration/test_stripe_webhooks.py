@@ -1,6 +1,7 @@
 """
 Integration tests for Stripe webhook endpoints
 """
+
 import pytest
 import httpx
 import json
@@ -9,22 +10,24 @@ import time
 import hashlib
 import hmac
 
+
 class TestStripeWebhooks:
     """Test cases for Stripe webhook integration"""
 
     @pytest.fixture
     def webhook_secret(self):
         """Get webhook secret from environment"""
-        return os.getenv('STRIPE_WEBHOOK_SECRET', 'whsec_test_secret')
+        return os.getenv("STRIPE_WEBHOOK_SECRET", "whsec_test_secret")
 
     @pytest.fixture
     def api_base_url(self):
         """Get API base URL"""
-        return os.getenv('API_BASE_URL', 'http://localhost:8000')
+        return os.getenv("API_BASE_URL", "http://localhost:8000")
 
     @pytest.fixture
     def stripe_signature(self, webhook_secret):
         """Generate Stripe signature for webhook payload"""
+
         def _generate_signature(payload: str, timestamp: int = None):
             if timestamp is None:
                 timestamp = int(time.time())
@@ -34,9 +37,7 @@ class TestStripeWebhooks:
 
             # Generate signature
             signature = hmac.new(
-                webhook_secret.encode('utf-8'),
-                signed_payload.encode('utf-8'),
-                hashlib.sha256
+                webhook_secret.encode("utf-8"), signed_payload.encode("utf-8"), hashlib.sha256
             ).hexdigest()
 
             return f"t={timestamp},v1={signature}"
@@ -61,16 +62,13 @@ class TestStripeWebhooks:
                         "data": [
                             {
                                 "id": "si_test123",
-                                "price": {
-                                    "id": "price_test123",
-                                    "nickname": "Pro Plan"
-                                }
+                                "price": {"id": "price_test123", "nickname": "Pro Plan"},
                             }
                         ]
-                    }
+                    },
                 }
             },
-            "type": "customer.subscription.created"
+            "type": "customer.subscription.created",
         }
 
         payload_str = json.dumps(payload)
@@ -80,10 +78,7 @@ class TestStripeWebhooks:
             response = await client.post(
                 f"{api_base_url}/api/stripe/webhooks",
                 content=payload_str,
-                headers={
-                    "Content-Type": "application/json",
-                    "Stripe-Signature": signature
-                }
+                headers={"Content-Type": "application/json", "Stripe-Signature": signature},
             )
 
         assert response.status_code == 200
@@ -108,16 +103,13 @@ class TestStripeWebhooks:
                         "data": [
                             {
                                 "id": "si_test123",
-                                "price": {
-                                    "id": "price_test123",
-                                    "nickname": "Pro Plan"
-                                }
+                                "price": {"id": "price_test123", "nickname": "Pro Plan"},
                             }
                         ]
-                    }
+                    },
                 }
             },
-            "type": "customer.subscription.updated"
+            "type": "customer.subscription.updated",
         }
 
         payload_str = json.dumps(payload)
@@ -127,10 +119,7 @@ class TestStripeWebhooks:
             response = await client.post(
                 f"{api_base_url}/api/stripe/webhooks",
                 content=payload_str,
-                headers={
-                    "Content-Type": "application/json",
-                    "Stripe-Signature": signature
-                }
+                headers={"Content-Type": "application/json", "Stripe-Signature": signature},
             )
 
         assert response.status_code == 200
@@ -153,10 +142,10 @@ class TestStripeWebhooks:
                     "subscription": "sub_test123",
                     "status": "paid",
                     "amount_paid": 2000,
-                    "currency": "usd"
+                    "currency": "usd",
                 }
             },
-            "type": "invoice.payment_succeeded"
+            "type": "invoice.payment_succeeded",
         }
 
         payload_str = json.dumps(payload)
@@ -166,10 +155,7 @@ class TestStripeWebhooks:
             response = await client.post(
                 f"{api_base_url}/api/stripe/webhooks",
                 content=payload_str,
-                headers={
-                    "Content-Type": "application/json",
-                    "Stripe-Signature": signature
-                }
+                headers={"Content-Type": "application/json", "Stripe-Signature": signature},
             )
 
         assert response.status_code == 200
@@ -182,7 +168,7 @@ class TestStripeWebhooks:
         payload = {
             "id": "evt_test_invalid",
             "object": "event",
-            "type": "customer.subscription.created"
+            "type": "customer.subscription.created",
         }
 
         payload_str = json.dumps(payload)
@@ -193,8 +179,8 @@ class TestStripeWebhooks:
                 content=payload_str,
                 headers={
                     "Content-Type": "application/json",
-                    "Stripe-Signature": "invalid_signature"
-                }
+                    "Stripe-Signature": "invalid_signature",
+                },
             )
 
         assert response.status_code == 400
@@ -212,10 +198,10 @@ class TestStripeWebhooks:
                     "id": "sub_test123",
                     "object": "subscription",
                     "customer": "cus_test123",
-                    "status": "active"
+                    "status": "active",
                 }
             },
-            "type": "customer.subscription.created"
+            "type": "customer.subscription.created",
         }
 
         payload_str = json.dumps(payload)
@@ -226,20 +212,14 @@ class TestStripeWebhooks:
             response1 = await client.post(
                 f"{api_base_url}/api/stripe/webhooks",
                 content=payload_str,
-                headers={
-                    "Content-Type": "application/json",
-                    "Stripe-Signature": signature
-                }
+                headers={"Content-Type": "application/json", "Stripe-Signature": signature},
             )
 
             # Second request with same event ID
             response2 = await client.post(
                 f"{api_base_url}/api/stripe/webhooks",
                 content=payload_str,
-                headers={
-                    "Content-Type": "application/json",
-                    "Stripe-Signature": signature
-                }
+                headers={"Content-Type": "application/json", "Stripe-Signature": signature},
             )
 
         assert response1.status_code == 200

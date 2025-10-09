@@ -14,7 +14,7 @@ import time
 import uuid
 
 # Add parent directories to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
 # Configuration
 PRODUCTION_URL = os.getenv("PRODUCTION_URL", "http://localhost:8000")
@@ -34,7 +34,7 @@ class TestCriticalWorkflows:
         register_data = {
             "email": TEST_EMAIL,
             "password": TEST_PASSWORD,
-            "tenant_name": f"SmokeTest-{uuid.uuid4().hex[:8]}"
+            "tenant_name": f"SmokeTest-{uuid.uuid4().hex[:8]}",
         }
 
         try:
@@ -44,13 +44,12 @@ class TestCriticalWorkflows:
             if response.status_code == 400 and "already exists" in response.text.lower():
                 # Try to login instead
                 login_url = f"{PRODUCTION_URL}/api/auth/login"
-                login_data = {
-                    "email": TEST_EMAIL,
-                    "password": TEST_PASSWORD
-                }
+                login_data = {"email": TEST_EMAIL, "password": TEST_PASSWORD}
                 response = requests.post(login_url, json=login_data, timeout=API_TIMEOUT)
 
-            assert response.status_code in [200, 201], f"Registration/Login failed: {response.status_code} - {response.text}"
+            assert response.status_code in [200, 201], (
+                f"Registration/Login failed: {response.status_code} - {response.text}"
+            )
 
             data = response.json()
             token = data.get("access_token") or data.get("token")
@@ -71,19 +70,21 @@ class TestCriticalWorkflows:
         data = {
             "email": unique_email,
             "password": TEST_PASSWORD,
-            "tenant_name": f"SmokeTest-{uuid.uuid4().hex[:8]}"
+            "tenant_name": f"SmokeTest-{uuid.uuid4().hex[:8]}",
         }
 
         try:
             response = requests.post(url, json=data, timeout=API_TIMEOUT)
 
             # Accept 200 or 201
-            assert response.status_code in [200, 201], \
+            assert response.status_code in [200, 201], (
                 f"Registration failed: {response.status_code} - {response.text}"
+            )
 
             response_data = response.json()
-            assert "access_token" in response_data or "token" in response_data, \
+            assert "access_token" in response_data or "token" in response_data, (
                 f"No token in response: {response_data}"
+            )
 
             print(f"✓ User registration workflow successful for {unique_email}")
         except requests.exceptions.RequestException as e:
@@ -93,18 +94,18 @@ class TestCriticalWorkflows:
         """Test: User can log in with credentials"""
         url = f"{PRODUCTION_URL}/api/auth/login"
 
-        data = {
-            "email": TEST_EMAIL,
-            "password": TEST_PASSWORD
-        }
+        data = {"email": TEST_EMAIL, "password": TEST_PASSWORD}
 
         try:
             response = requests.post(url, json=data, timeout=API_TIMEOUT)
-            assert response.status_code == 200, f"Login failed: {response.status_code} - {response.text}"
+            assert response.status_code == 200, (
+                f"Login failed: {response.status_code} - {response.text}"
+            )
 
             response_data = response.json()
-            assert "access_token" in response_data or "token" in response_data, \
+            assert "access_token" in response_data or "token" in response_data, (
                 f"No token in login response: {response_data}"
+            )
 
             print("✓ User login workflow successful")
         except requests.exceptions.RequestException as e:
@@ -114,14 +115,13 @@ class TestCriticalWorkflows:
         """Test: Authenticated user can access protected endpoints"""
         url = f"{PRODUCTION_URL}/api/tenants"
 
-        headers = {
-            "Authorization": f"Bearer {test_user_token}"
-        }
+        headers = {"Authorization": f"Bearer {test_user_token}"}
 
         try:
             response = requests.get(url, headers=headers, timeout=API_TIMEOUT)
-            assert response.status_code == 200, \
+            assert response.status_code == 200, (
                 f"Authenticated API access failed: {response.status_code} - {response.text}"
+            )
 
             # Should return tenant information
             data = response.json()
@@ -135,17 +135,16 @@ class TestCriticalWorkflows:
         """Test: User can create/view subscription"""
         url = f"{PRODUCTION_URL}/api/subscriptions"
 
-        headers = {
-            "Authorization": f"Bearer {test_user_token}"
-        }
+        headers = {"Authorization": f"Bearer {test_user_token}"}
 
         try:
             # Get current subscription status
             response = requests.get(url, headers=headers, timeout=API_TIMEOUT)
 
             # Accept 200 (has subscription) or 404 (no subscription yet)
-            assert response.status_code in [200, 404], \
+            assert response.status_code in [200, 404], (
                 f"Subscription check failed: {response.status_code} - {response.text}"
+            )
 
             if response.status_code == 200:
                 data = response.json()
@@ -159,24 +158,22 @@ class TestCriticalWorkflows:
         """Test: User can create a lattice (core feature)"""
         url = f"{PRODUCTION_URL}/api/lattices"
 
-        headers = {
-            "Authorization": f"Bearer {test_user_token}",
-            "Content-Type": "application/json"
-        }
+        headers = {"Authorization": f"Bearer {test_user_token}", "Content-Type": "application/json"}
 
         # Create a simple 3D lattice
         data = {
             "dimensions": [3, 3, 3],
             "name": f"smoke-test-lattice-{uuid.uuid4().hex[:8]}",
-            "description": "Smoke test lattice"
+            "description": "Smoke test lattice",
         }
 
         try:
             response = requests.post(url, headers=headers, json=data, timeout=API_TIMEOUT)
 
             # Accept 200 or 201
-            assert response.status_code in [200, 201], \
+            assert response.status_code in [200, 201], (
                 f"Lattice creation failed: {response.status_code} - {response.text}"
+            )
 
             response_data = response.json()
             lattice_id = response_data.get("lattice_id") or response_data.get("id")
@@ -196,43 +193,38 @@ class TestCriticalWorkflows:
         """Test: User can perform pathfinding on a lattice"""
         # First create a lattice
         create_url = f"{PRODUCTION_URL}/api/lattices"
-        headers = {
-            "Authorization": f"Bearer {test_user_token}",
-            "Content-Type": "application/json"
-        }
+        headers = {"Authorization": f"Bearer {test_user_token}", "Content-Type": "application/json"}
 
-        lattice_data = {
-            "dimensions": [5, 5, 5],
-            "name": f"pathfinding-test-{uuid.uuid4().hex[:8]}"
-        }
+        lattice_data = {"dimensions": [5, 5, 5], "name": f"pathfinding-test-{uuid.uuid4().hex[:8]}"}
 
         try:
-            create_response = requests.post(create_url, headers=headers, json=lattice_data, timeout=API_TIMEOUT)
-            assert create_response.status_code in [200, 201], \
+            create_response = requests.post(
+                create_url, headers=headers, json=lattice_data, timeout=API_TIMEOUT
+            )
+            assert create_response.status_code in [200, 201], (
                 f"Lattice creation for pathfinding failed: {create_response.status_code}"
+            )
 
-            lattice_id = create_response.json().get("lattice_id") or create_response.json().get("id")
+            lattice_id = create_response.json().get("lattice_id") or create_response.json().get(
+                "id"
+            )
 
             # Perform pathfinding
             pathfinding_url = f"{PRODUCTION_URL}/api/lattices/{lattice_id}/pathfind"
-            pathfind_data = {
-                "start": [0, 0, 0],
-                "end": [4, 4, 4]
-            }
+            pathfind_data = {"start": [0, 0, 0], "end": [4, 4, 4]}
 
             pathfind_response = requests.post(
-                pathfinding_url,
-                headers=headers,
-                json=pathfind_data,
-                timeout=API_TIMEOUT
+                pathfinding_url, headers=headers, json=pathfind_data, timeout=API_TIMEOUT
             )
 
-            assert pathfind_response.status_code == 200, \
+            assert pathfind_response.status_code == 200, (
                 f"Pathfinding failed: {pathfind_response.status_code} - {pathfind_response.text}"
+            )
 
             pathfind_result = pathfind_response.json()
-            assert "path" in pathfind_result or "result" in pathfind_result, \
+            assert "path" in pathfind_result or "result" in pathfind_result, (
                 f"No path in pathfinding result: {pathfind_result}"
+            )
 
             print("✓ Pathfinding workflow successful")
         except requests.exceptions.RequestException as e:
@@ -242,23 +234,21 @@ class TestCriticalWorkflows:
         """Test: User can register a webhook"""
         url = f"{PRODUCTION_URL}/api/webhooks"
 
-        headers = {
-            "Authorization": f"Bearer {test_user_token}",
-            "Content-Type": "application/json"
-        }
+        headers = {"Authorization": f"Bearer {test_user_token}", "Content-Type": "application/json"}
 
         webhook_data = {
             "url": f"https://webhook.site/{uuid.uuid4()}",
             "events": ["lattice.created", "lattice.updated"],
-            "description": "Smoke test webhook"
+            "description": "Smoke test webhook",
         }
 
         try:
             response = requests.post(url, headers=headers, json=webhook_data, timeout=API_TIMEOUT)
 
             # Accept 200 or 201
-            assert response.status_code in [200, 201], \
+            assert response.status_code in [200, 201], (
                 f"Webhook registration failed: {response.status_code} - {response.text}"
+            )
 
             response_data = response.json()
             webhook_id = response_data.get("webhook_id") or response_data.get("id")
@@ -279,16 +269,15 @@ class TestCriticalWorkflows:
         """Test: User can view usage statistics"""
         url = f"{PRODUCTION_URL}/api/usage"
 
-        headers = {
-            "Authorization": f"Bearer {test_user_token}"
-        }
+        headers = {"Authorization": f"Bearer {test_user_token}"}
 
         try:
             response = requests.get(url, headers=headers, timeout=API_TIMEOUT)
 
             # Accept 200 (has usage) or 404 (no usage yet)
-            assert response.status_code in [200, 404], \
+            assert response.status_code in [200, 404], (
                 f"Usage tracking failed: {response.status_code} - {response.text}"
+            )
 
             if response.status_code == 200:
                 data = response.json()
@@ -303,27 +292,26 @@ class TestCriticalWorkflows:
         """Test: System handles invalid requests gracefully"""
         url = f"{PRODUCTION_URL}/api/lattices"
 
-        headers = {
-            "Authorization": f"Bearer {test_user_token}",
-            "Content-Type": "application/json"
-        }
+        headers = {"Authorization": f"Bearer {test_user_token}", "Content-Type": "application/json"}
 
         # Send invalid data
         invalid_data = {
             "dimensions": "invalid",  # Should be array
-            "name": ""  # Empty name
+            "name": "",  # Empty name
         }
 
         try:
             response = requests.post(url, headers=headers, json=invalid_data, timeout=API_TIMEOUT)
 
             # Should return validation error (400 or 422), not server error (500)
-            assert response.status_code in [400, 422], \
+            assert response.status_code in [400, 422], (
                 f"Expected validation error, got {response.status_code}"
+            )
 
             error_data = response.json()
-            assert "detail" in error_data or "error" in error_data or "message" in error_data, \
+            assert "detail" in error_data or "error" in error_data or "message" in error_data, (
                 "Error response should have detail field"
+            )
 
             print(f"✓ Error recovery workflow successful: {error_data}")
         except requests.exceptions.RequestException as e:
@@ -337,26 +325,20 @@ class TestPerformanceWorkflows:
         """Test: System handles bulk operations efficiently"""
         url = f"{PRODUCTION_URL}/api/lattices"
 
-        headers = {
-            "Authorization": f"Bearer {test_user_token}",
-            "Content-Type": "application/json"
-        }
+        headers = {"Authorization": f"Bearer {test_user_token}", "Content-Type": "application/json"}
 
         # Create multiple small lattices
         start_time = time.time()
         created_count = 0
 
         for i in range(5):  # Create 5 lattices
-            data = {
-                "dimensions": [2, 2, 2],
-                "name": f"bulk-test-{i}-{uuid.uuid4().hex[:8]}"
-            }
+            data = {"dimensions": [2, 2, 2], "name": f"bulk-test-{i}-{uuid.uuid4().hex[:8]}"}
 
             try:
                 response = requests.post(url, headers=headers, json=data, timeout=API_TIMEOUT)
                 if response.status_code in [200, 201]:
                     created_count += 1
-            except:
+            except requests.exceptions.RequestException:
                 pass
 
         elapsed_time = time.time() - start_time

@@ -26,13 +26,15 @@ from reactivex import Subject, create, operators as ops
 from reactivex.subject import ReplaySubject, BehaviorSubject
 
 import logging
-logging.basicConfig(level=logging.INFO, format='%(message)s')
+
+logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)
 
 
 @dataclass
 class WebhookEvent:
     """Webhook event for demonstration"""
+
     event_id: str
     event_type: str
     timestamp: float
@@ -54,23 +56,24 @@ class HotVsColdDemonstration:
 
         Think of it like: "Execute this webhook fetch for each subscriber"
         """
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("COLD OBSERVABLE: Independent Execution Per Subscriber")
-        print("="*80)
+        print("=" * 80)
 
         print("\n📖 Concept: Each subscriber triggers NEW execution")
         print("   Like calling an API - each subscriber makes their own request\n")
 
-        execution_count = {'count': 0}
+        execution_count = {"count": 0}
 
         def create_webhook_observable():
             """
             This creates a COLD observable
             Each subscriber will trigger this function independently
             """
+
             def subscribe(observer, scheduler=None):
-                execution_count['count'] += 1
-                current_execution = execution_count['count']
+                execution_count["count"] += 1
+                current_execution = execution_count["count"]
 
                 logger.info(f"🔵 EXECUTION #{current_execution} STARTED")
 
@@ -99,31 +102,29 @@ class HotVsColdDemonstration:
         # SUBSCRIBER 1
         print("👤 SUBSCRIBER 1 subscribes:")
         subscriber1_events = []
-        cold_webhook_stream.subscribe(
-            on_next=lambda e: subscriber1_events.append(e)
-        )
+        cold_webhook_stream.subscribe(on_next=lambda e: subscriber1_events.append(e))
 
         time.sleep(1.5)
 
         # SUBSCRIBER 2
         print("👤 SUBSCRIBER 2 subscribes:")
         subscriber2_events = []
-        cold_webhook_stream.subscribe(
-            on_next=lambda e: subscriber2_events.append(e)
-        )
+        cold_webhook_stream.subscribe(on_next=lambda e: subscriber2_events.append(e))
 
         time.sleep(1.5)
 
-        print("="*80)
+        print("=" * 80)
         print("RESULTS:")
         print(f"  Execution count: {execution_count['count']} (2 independent executions)")
         print(f"  Subscriber 1 got: {len(subscriber1_events)} events")
         print(f"  Subscriber 2 got: {len(subscriber2_events)} events")
         print("\n  ✅ Each subscriber triggered its OWN execution")
-        print(f"     Event IDs are different: {subscriber1_events[0].event_id} vs {subscriber2_events[0].event_id}")
-        print("="*80)
+        print(
+            f"     Event IDs are different: {subscriber1_events[0].event_id} vs {subscriber2_events[0].event_id}"
+        )
+        print("=" * 80)
 
-        return execution_count['count']
+        return execution_count["count"]
 
     # ========================================================================
     # PART 2: HOT OBSERVABLE - All Subscribers Share Stream
@@ -135,9 +136,9 @@ class HotVsColdDemonstration:
 
         Think of it like: "All subscribers listen to same live webhook feed"
         """
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("HOT OBSERVABLE: Shared Execution For All Subscribers")
-        print("="*80)
+        print("=" * 80)
 
         print("\n📖 Concept: All subscribers share ONE execution")
         print("   Like a live stream - everyone sees the same events in real-time\n")
@@ -151,9 +152,7 @@ class HotVsColdDemonstration:
 
         # SUBSCRIBER 1 joins early
         print("👤 SUBSCRIBER 1 subscribes (early bird)")
-        hot_webhook_stream.subscribe(
-            on_next=lambda e: subscriber1_events.append(e)
-        )
+        hot_webhook_stream.subscribe(on_next=lambda e: subscriber1_events.append(e))
 
         # Emit some events
         print("\n📡 Broadcasting events 1-3...")
@@ -165,9 +164,7 @@ class HotVsColdDemonstration:
 
         # SUBSCRIBER 2 joins late
         print("\n👤 SUBSCRIBER 2 subscribes (joins late)")
-        hot_webhook_stream.subscribe(
-            on_next=lambda e: subscriber2_events.append(e)
-        )
+        hot_webhook_stream.subscribe(on_next=lambda e: subscriber2_events.append(e))
 
         # Emit more events
         print("\n📡 Broadcasting events 4-6...")
@@ -179,9 +176,7 @@ class HotVsColdDemonstration:
 
         # SUBSCRIBER 3 joins very late
         print("\n👤 SUBSCRIBER 3 subscribes (very late)")
-        hot_webhook_stream.subscribe(
-            on_next=lambda e: subscriber3_events.append(e)
-        )
+        hot_webhook_stream.subscribe(on_next=lambda e: subscriber3_events.append(e))
 
         # Final event
         print("\n📡 Broadcasting final event 7...")
@@ -189,7 +184,7 @@ class HotVsColdDemonstration:
         logger.info(f"   Broadcasting: {event.event_id}")
         hot_webhook_stream.on_next(event)
 
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("RESULTS:")
         print("  Total events broadcast: 7")
         print(f"  Subscriber 1 received: {len(subscriber1_events)} (joined early)")
@@ -197,7 +192,7 @@ class HotVsColdDemonstration:
         print(f"  Subscriber 3 received: {len(subscriber3_events)} (joined late)")
         print("\n  ✅ All subscribers saw SAME events (same event IDs)")
         print("     But late subscribers MISSED earlier events (no replay)")
-        print("="*80)
+        print("=" * 80)
 
         return len(subscriber1_events), len(subscriber2_events), len(subscriber3_events)
 
@@ -211,9 +206,9 @@ class HotVsColdDemonstration:
 
         This solves the "late subscriber missing events" problem
         """
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("REPLAY SUBJECT: Hot Observable with History Buffer")
-        print("="*80)
+        print("=" * 80)
 
         print("\n📖 Concept: New subscribers get recent history + live events")
         print("   Perfect for: Dashboard connections, monitoring systems\n")
@@ -237,7 +232,7 @@ class HotVsColdDemonstration:
         replay_stream.subscribe(
             on_next=lambda e: (
                 subscriber1_events.append(e),
-                logger.info(f"   Received: {e.event_id}")
+                logger.info(f"   Received: {e.event_id}"),
             )
         )
 
@@ -251,7 +246,7 @@ class HotVsColdDemonstration:
             replay_stream.on_next(event)
             time.sleep(0.1)
 
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("RESULTS:")
         print("  Events broadcast before subscription: 5")
         print("  ReplaySubject buffer size: 3")
@@ -259,7 +254,7 @@ class HotVsColdDemonstration:
         print("    - 3 from history buffer (events 3, 4, 5)")
         print("    - 2 from live stream (events 6, 7)")
         print("\n  ✅ Late subscribers get recent history automatically!")
-        print("="*80)
+        print("=" * 80)
 
         return len(subscriber1_events)
 
@@ -273,9 +268,9 @@ class HotVsColdDemonstration:
 
         Perfect for: System state, configuration, feature flags
         """
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("BEHAVIOR SUBJECT: Hot Observable with Current State")
-        print("="*80)
+        print("=" * 80)
 
         print("\n📖 Concept: Always has current value, new subscribers get it immediately")
         print("   Perfect for: Circuit breaker state, health status, config\n")
@@ -291,7 +286,7 @@ class HotVsColdDemonstration:
         circuit_breaker_state.subscribe(
             on_next=lambda state: (
                 subscriber1_states.append(state),
-                logger.info(f"   Sub1 sees state: {state}")
+                logger.info(f"   Sub1 sees state: {state}"),
             )
         )
 
@@ -308,7 +303,7 @@ class HotVsColdDemonstration:
         circuit_breaker_state.subscribe(
             on_next=lambda state: (
                 subscriber2_states.append(state),
-                logger.info(f"   Sub2 sees state: {state}")
+                logger.info(f"   Sub2 sees state: {state}"),
             )
         )
 
@@ -322,13 +317,13 @@ class HotVsColdDemonstration:
         print("\n✅ Circuit breaker transitions: HALF_OPEN → CLOSED")
         circuit_breaker_state.on_next("CLOSED")
 
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("RESULTS:")
         print(f"  Subscriber 1 saw: {subscriber1_states}")
         print(f"  Subscriber 2 saw: {subscriber2_states}")
         print("\n  ✅ Sub2 immediately got current state when subscribing!")
         print("     Then both received all subsequent updates")
-        print("="*80)
+        print("=" * 80)
 
         return subscriber1_states, subscriber2_states
 
@@ -342,19 +337,19 @@ class HotVsColdDemonstration:
 
         This is how your webhook_manager_reactive.py works!
         """
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("SHARE OPERATOR: Converting Cold to Hot")
-        print("="*80)
+        print("=" * 80)
 
         print("\n📖 Concept: share() makes cold observable hot")
         print("   Used in webhook_manager_reactive.py to share webhook stream\n")
 
-        execution_count = {'count': 0}
+        execution_count = {"count": 0}
 
         # Create cold observable
         def create_cold_webhook_stream():
             def subscribe(observer, scheduler=None):
-                execution_count['count'] += 1
+                execution_count["count"] += 1
                 logger.info(f"🔵 EXECUTION #{execution_count['count']} - Fetching webhooks...")
 
                 events = [
@@ -389,7 +384,7 @@ class HotVsColdDemonstration:
         print(f"\n  Result: {execution_count['count']} executions (wasteful!)\n")
 
         # Reset counter
-        execution_count['count'] = 0
+        execution_count["count"] = 0
 
         # With share() - HOT
         print("✅ WITH share() - Hot Observable:")
@@ -408,26 +403,27 @@ class HotVsColdDemonstration:
 
         print(f"\n  Result: {execution_count['count']} execution (efficient!)")
 
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("RESULTS:")
         print("  Cold (no share): 2 executions")
         print("  Hot (with share): 1 execution")
         print("\n  ✅ share() prevents duplicate work!")
         print("     This is why webhook_manager_reactive.py uses .pipe(ops.share())")
-        print("="*80)
+        print("=" * 80)
 
-        return execution_count['count']
+        return execution_count["count"]
 
 
 # ============================================================================
 # PRACTICAL GUIDE
 # ============================================================================
 
+
 def print_decision_guide():
     """When to use hot vs cold observables"""
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("DECISION GUIDE: Hot vs Cold Observables")
-    print("="*80)
+    print("=" * 80)
 
     print("""
 ╔════════════════════════════════════════════════════════════════════════╗
@@ -501,11 +497,12 @@ def print_decision_guide():
 # RUN ALL DEMONSTRATIONS
 # ============================================================================
 
+
 def run_all_demos():
     """Run all hot/cold demonstrations"""
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("HOT VS COLD OBSERVABLES - COMPREHENSIVE DEMONSTRATION")
-    print("="*80)
+    print("=" * 80)
 
     demo = HotVsColdDemonstration()
 
@@ -527,9 +524,9 @@ def run_all_demos():
     # Print decision guide
     print_decision_guide()
 
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("✅ ALL HOT/COLD DEMONSTRATIONS COMPLETE")
-    print("="*80 + "\n")
+    print("=" * 80 + "\n")
 
 
 if __name__ == "__main__":

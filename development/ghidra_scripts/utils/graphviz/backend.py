@@ -12,78 +12,111 @@ from . import _compat
 from . import tools
 
 __all__ = [
-    'render', 'pipe', 'version', 'view',
-    'ENGINES', 'FORMATS', 'RENDERERS', 'FORMATTERS',
-    'ExecutableNotFound', 'RequiredArgumentError',
+    "render",
+    "pipe",
+    "version",
+    "view",
+    "ENGINES",
+    "FORMATS",
+    "RENDERERS",
+    "FORMATTERS",
+    "ExecutableNotFound",
+    "RequiredArgumentError",
 ]
 
 ENGINES = {  # http://www.graphviz.org/pdf/dot.1.pdf
-    'dot', 'neato', 'twopi', 'circo', 'fdp', 'sfdp', 'patchwork', 'osage',
+    "dot",
+    "neato",
+    "twopi",
+    "circo",
+    "fdp",
+    "sfdp",
+    "patchwork",
+    "osage",
 }
 
 FORMATS = {  # http://www.graphviz.org/doc/info/output.html
-    'bmp',
-    'canon', 'dot', 'gv', 'xdot', 'xdot1.2', 'xdot1.4',
-    'cgimage',
-    'cmap',
-    'eps',
-    'exr',
-    'fig',
-    'gd', 'gd2',
-    'gif',
-    'gtk',
-    'ico',
-    'imap', 'cmapx',
-    'imap_np', 'cmapx_np',
-    'ismap',
-    'jp2',
-    'jpg', 'jpeg', 'jpe',
-    'json', 'json0', 'dot_json', 'xdot_json',  # Graphviz 2.40
-    'pct', 'pict',
-    'pdf',
-    'pic',
-    'plain', 'plain-ext',
-    'png',
-    'pov',
-    'ps',
-    'ps2',
-    'psd',
-    'sgi',
-    'svg', 'svgz',
-    'tga',
-    'tif', 'tiff',
-    'tk',
-    'vml', 'vmlz',
-    'vrml',
-    'wbmp',
-    'webp',
-    'xlib',
-    'x11',
+    "bmp",
+    "canon",
+    "dot",
+    "gv",
+    "xdot",
+    "xdot1.2",
+    "xdot1.4",
+    "cgimage",
+    "cmap",
+    "eps",
+    "exr",
+    "fig",
+    "gd",
+    "gd2",
+    "gif",
+    "gtk",
+    "ico",
+    "imap",
+    "cmapx",
+    "imap_np",
+    "cmapx_np",
+    "ismap",
+    "jp2",
+    "jpg",
+    "jpeg",
+    "jpe",
+    "json",
+    "json0",
+    "dot_json",
+    "xdot_json",  # Graphviz 2.40
+    "pct",
+    "pict",
+    "pdf",
+    "pic",
+    "plain",
+    "plain-ext",
+    "png",
+    "pov",
+    "ps",
+    "ps2",
+    "psd",
+    "sgi",
+    "svg",
+    "svgz",
+    "tga",
+    "tif",
+    "tiff",
+    "tk",
+    "vml",
+    "vmlz",
+    "vrml",
+    "wbmp",
+    "webp",
+    "xlib",
+    "x11",
 }
 
 RENDERERS = {  # $ dot -T:
-    'cairo',
-    'dot',
-    'fig',
-    'gd',
-    'gdiplus',
-    'map',
-    'pic',
-    'pov',
-    'ps',
-    'svg',
-    'tk',
-    'vml',
-    'vrml',
-    'xdot',
+    "cairo",
+    "dot",
+    "fig",
+    "gd",
+    "gdiplus",
+    "map",
+    "pic",
+    "pov",
+    "ps",
+    "svg",
+    "tk",
+    "vml",
+    "vrml",
+    "xdot",
 }
 
-FORMATTERS = {'cairo', 'core', 'gd', 'gdiplus', 'gdwbmp', 'xlib'}
+FORMATTERS = {"cairo", "core", "gd", "gdiplus", "gdwbmp", "xlib"}
 
 PLATFORM = sys.platform.lower()
-if 'java' in PLATFORM:
+if "java" in PLATFORM:
     import java.lang
-    PLATFORM = java.lang.System.getProperty('os.name').lower()
+
+    PLATFORM = java.lang.System.getProperty("os.name").lower()
 
 log = logging.getLogger(__name__)
 
@@ -91,8 +124,7 @@ log = logging.getLogger(__name__)
 class ExecutableNotFound(RuntimeError):
     """Exception raised if the Graphviz executable is not found."""
 
-    _msg = ('failed to execute %r, '
-            'make sure the Graphviz executables are on your systems\' PATH')
+    _msg = "failed to execute %r, make sure the Graphviz executables are on your systems' PATH"
 
     def __init__(self, args):
         super(ExecutableNotFound, self).__init__(self._msg % args)
@@ -103,39 +135,39 @@ class RequiredArgumentError(Exception):
 
 
 class CalledProcessError(_compat.CalledProcessError):
-
     def __str__(self):
         s = super(CalledProcessError, self).__str__()
-        return '%s [stderr: %r]' % (s, self.stderr)
+        return "%s [stderr: %r]" % (s, self.stderr)
 
 
 def command(engine, format_, filepath=None, renderer=None, formatter=None):
     """Return args list for ``subprocess.Popen`` and name of the rendered file."""
     if formatter is not None and renderer is None:
-        raise RequiredArgumentError('formatter given without renderer')
+        raise RequiredArgumentError("formatter given without renderer")
 
     if engine not in ENGINES:
-        raise ValueError('unknown engine: %r' % engine)
+        raise ValueError("unknown engine: %r" % engine)
     if format_ not in FORMATS:
-        raise ValueError('unknown format: %r' % format_)
+        raise ValueError("unknown format: %r" % format_)
     if renderer is not None and renderer not in RENDERERS:
-        raise ValueError('unknown renderer: %r' % renderer)
+        raise ValueError("unknown renderer: %r" % renderer)
     if formatter is not None and formatter not in FORMATTERS:
-        raise ValueError('unknown formatter: %r' % formatter)
+        raise ValueError("unknown formatter: %r" % formatter)
 
     output_format = [f for f in (format_, renderer, formatter) if f is not None]
-    cmd = [engine, '-T%s' % ':'.join(output_format)]
+    cmd = [engine, "-T%s" % ":".join(output_format)]
     rendered = None
 
     if filepath is not None:
-        cmd.extend(['-O', filepath])
-        suffix = '.'.join(reversed(output_format))
-        rendered = '%s.%s' % (filepath, suffix)
+        cmd.extend(["-O", filepath])
+        suffix = ".".join(reversed(output_format))
+        rendered = "%s.%s" % (filepath, suffix)
 
     return cmd, rendered
 
 
-if PLATFORM == 'windows':  # pragma: no cover
+if PLATFORM == "windows":  # pragma: no cover
+
     def get_startupinfo():
         """Return subprocess.STARTUPINFO instance hiding the console window."""
         startupinfo = subprocess.STARTUPINFO()
@@ -143,6 +175,7 @@ if PLATFORM == 'windows':  # pragma: no cover
         startupinfo.wShowWindow = subprocess.SW_HIDE
         return startupinfo
 else:
+
     def get_startupinfo():
         """Return None for startupinfo argument of ``subprocess.Popen``."""
         return None
@@ -150,11 +183,11 @@ else:
 
 def run(cmd, input=None, capture_output=False, check=False, quiet=False, **kwargs):
     """Run the command described by cmd and return its (stdout, stderr) tuple."""
-    log.debug('run %r', cmd)
+    log.debug("run %r", cmd)
     if input is not None:
-        kwargs['stdin'] = subprocess.PIPE
+        kwargs["stdin"] = subprocess.PIPE
     if capture_output:
-        kwargs['stdout'] = kwargs['stderr'] = subprocess.PIPE
+        kwargs["stdout"] = kwargs["stderr"] = subprocess.PIPE
 
     try:
         proc = subprocess.Popen(cmd, startupinfo=get_startupinfo(), **kwargs)
@@ -169,8 +202,7 @@ def run(cmd, input=None, capture_output=False, check=False, quiet=False, **kwarg
     if not quiet and err:
         _compat.stderr_write_bytes(err, flush=True)
     if check and proc.returncode:
-        raise CalledProcessError(proc.returncode, cmd,
-                                 output=out, stderr=err)
+        raise CalledProcessError(proc.returncode, cmd, output=out, stderr=err)
 
     return out, err
 
@@ -241,16 +273,14 @@ def version():
         subprocess.CalledProcessError: If the exit status is non-zero.
         RuntimmeError: If the output cannot be parsed into a version number.
     """
-    cmd = ['dot', '-V']
-    out, _ = run(cmd, check=True,
-                 stdout=subprocess.PIPE,
-                 stderr=subprocess.STDOUT)
+    cmd = ["dot", "-V"]
+    out, _ = run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
-    info = out.decode('ascii')
-    ma = re.search(r'graphviz version (\d+\.\d+(?:\.\d+)?) ', info)
+    info = out.decode("ascii")
+    ma = re.search(r"graphviz version (\d+\.\d+(?:\.\d+)?) ", info)
     if ma is None:
-        raise RuntimeError('cannot parse %r output: %r' % (cmd, info))
-    return tuple(int(d) for d in ma.group(1).split('.'))
+        raise RuntimeError("cannot parse %r output: %r" % (cmd, info))
+    return tuple(int(d) for d in ma.group(1).split("."))
 
 
 def view(filepath, quiet=False):
@@ -266,33 +296,33 @@ def view(filepath, quiet=False):
     try:
         view_func = getattr(view, PLATFORM)
     except AttributeError:
-        raise RuntimeError('platform %r not supported' % PLATFORM)
+        raise RuntimeError("platform %r not supported" % PLATFORM)
     view_func(filepath, quiet)
 
 
-@tools.attach(view, 'darwin')
+@tools.attach(view, "darwin")
 def view_darwin(filepath, quiet):
     """Open filepath with its default application (mac)."""
-    cmd = ['open', filepath]
-    log.debug('view: %r', cmd)
+    cmd = ["open", filepath]
+    log.debug("view: %r", cmd)
     popen_func = _compat.Popen_stderr_devnull if quiet else subprocess.Popen
     popen_func(cmd)
 
 
-@tools.attach(view, 'linux')
-@tools.attach(view, 'freebsd')
+@tools.attach(view, "linux")
+@tools.attach(view, "freebsd")
 def view_unixoid(filepath, quiet):
     """Open filepath in the user's preferred application (linux, freebsd)."""
-    cmd = ['xdg-open', filepath]
-    log.debug('view: %r', cmd)
+    cmd = ["xdg-open", filepath]
+    log.debug("view: %r", cmd)
     popen_func = _compat.Popen_stderr_devnull if quiet else subprocess.Popen
     popen_func(cmd)
 
 
-@tools.attach(view, 'windows')
+@tools.attach(view, "windows")
 def view_windows(filepath, quiet):
     """Start filepath with its associated application (windows)."""
     # TODO: implement quiet=True
     filepath = os.path.normpath(filepath)
-    log.debug('view: %r', filepath)
+    log.debug("view: %r", filepath)
     os.startfile(filepath)

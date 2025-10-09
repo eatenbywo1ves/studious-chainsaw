@@ -14,6 +14,7 @@ from libs.config import get_settings
 @dataclass
 class GPUCapabilities:
     """GPU device capabilities"""
+
     device_name: str
     device_id: int
     total_memory_mb: float
@@ -46,7 +47,7 @@ class BaseLatticeGPU(ABC):
         self.dimensions = dimensions
         self.size = size
         self.device_id = device_id
-        self.n_points = size ** dimensions
+        self.n_points = size**dimensions
 
         # Get configuration
         self.config = get_settings()
@@ -276,10 +277,10 @@ class BaseLatticeGPU(ABC):
         working_mb = (self.n_points * 8 * 3) / (1024 * 1024)  # distances, parents, visited
 
         return {
-            'adjacency_mb': round(adjacency_mb, 2),
-            'auxiliary_mb': round(aux_mb, 2),
-            'working_mb': round(working_mb, 2),
-            'total_mb': round(adjacency_mb + aux_mb + working_mb, 2)
+            "adjacency_mb": round(adjacency_mb, 2),
+            "auxiliary_mb": round(aux_mb, 2),
+            "working_mb": round(working_mb, 2),
+            "total_mb": round(adjacency_mb + aux_mb + working_mb, 2),
         }
 
     def benchmark(self) -> Dict[str, Any]:
@@ -298,6 +299,7 @@ class BaseLatticeGPU(ABC):
             B = np.random.randn(size, size).astype(np.float32)
 
             import time
+
             start = time.perf_counter()
             _ = self.matrix_multiply(A, B)
             gpu_time = (time.perf_counter() - start) * 1000
@@ -306,29 +308,27 @@ class BaseLatticeGPU(ABC):
             _ = np.dot(A, B)
             cpu_time = (time.perf_counter() - start) * 1000
 
-            results['matrix_multiply'] = {
-                'gpu_ms': round(gpu_time, 2),
-                'cpu_ms': round(cpu_time, 2),
-                'speedup': round(cpu_time / gpu_time, 2)
+            results["matrix_multiply"] = {
+                "gpu_ms": round(gpu_time, 2),
+                "cpu_ms": round(cpu_time, 2),
+                "speedup": round(cpu_time / gpu_time, 2),
             }
         except Exception as e:
-            results['matrix_multiply'] = {'error': str(e)}
+            results["matrix_multiply"] = {"error": str(e)}
 
         # Test XOR transform
         try:
             data = np.random.randint(0, 256, 100000, dtype=np.uint8)
 
             import time
+
             start = time.perf_counter()
             _ = self.xor_transform(data)
             gpu_time = (time.perf_counter() - start) * 1000
 
-            results['xor_transform'] = {
-                'gpu_ms': round(gpu_time, 2),
-                'data_size': len(data)
-            }
+            results["xor_transform"] = {"gpu_ms": round(gpu_time, 2), "data_size": len(data)}
         except Exception as e:
-            results['xor_transform'] = {'error': str(e)}
+            results["xor_transform"] = {"error": str(e)}
 
         return results
 

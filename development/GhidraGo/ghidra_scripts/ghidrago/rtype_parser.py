@@ -99,7 +99,7 @@ class RtypeParser:
         self.moduledata = moduledata
         self.go_version = go_version
         self.memory = program.getMemory()
-        self.types_base = moduledata['types']
+        self.types_base = moduledata["types"]
 
     def parse_rtype(self, type_addr) -> Optional[Dict[str, Any]]:
         """
@@ -127,15 +127,15 @@ class RtypeParser:
             #     ptrToThis  typeOff  // +0x2C (4 bytes offset)
             # }
 
-            size = self._read_uint64(type_addr)                # +0x00
-            self._read_uint64(type_addr.add(0x08))   # +0x08
+            size = self._read_uint64(type_addr)  # +0x00
+            self._read_uint64(type_addr.add(0x08))  # +0x08
             hash_val = self._read_uint32(type_addr.add(0x10))  # +0x10
-            tflag = self._read_uint8(type_addr.add(0x14))      # +0x14
-            align = self._read_uint8(type_addr.add(0x15))      # +0x15
-            field_align = self._read_uint8(type_addr.add(0x16))# +0x16
-            kind = self._read_uint8(type_addr.add(0x17))       # +0x17
-            str_offset = self._read_uint32(type_addr.add(0x28))# +0x28
-            self._read_uint32(type_addr.add(0x2C))# +0x2C
+            tflag = self._read_uint8(type_addr.add(0x14))  # +0x14
+            align = self._read_uint8(type_addr.add(0x15))  # +0x15
+            field_align = self._read_uint8(type_addr.add(0x16))  # +0x16
+            kind = self._read_uint8(type_addr.add(0x17))  # +0x17
+            str_offset = self._read_uint32(type_addr.add(0x28))  # +0x28
+            self._read_uint32(type_addr.add(0x2C))  # +0x2C
 
             # Extract kind (lower 5 bits)
             kind_masked = kind & 0x1F
@@ -148,15 +148,15 @@ class RtypeParser:
             type_name = self._read_type_name(str_offset)
 
             type_info = {
-                'address': type_addr,
-                'size': size,
-                'kind': kind_masked,
-                'kind_name': self.KIND_NAMES[kind_masked],
-                'name': type_name,
-                'align': align,
-                'field_align': field_align,
-                'tflag': tflag,
-                'hash': hash_val,
+                "address": type_addr,
+                "size": size,
+                "kind": kind_masked,
+                "kind_name": self.KIND_NAMES[kind_masked],
+                "name": type_name,
+                "align": align,
+                "field_align": field_align,
+                "tflag": tflag,
+                "hash": hash_val,
             }
 
             # Parse type-specific extensions
@@ -207,8 +207,8 @@ class RtypeParser:
             fields_len = self._read_uint64(fields_slice_addr.add(0x08))
             self._read_uint64(fields_slice_addr.add(0x10))
 
-            type_info['struct_fields_count'] = fields_len
-            type_info['struct_fields_ptr'] = fields_ptr
+            type_info["struct_fields_count"] = fields_len
+            type_info["struct_fields_ptr"] = fields_ptr
 
             # TODO: Parse individual fields in Phase 2
             # For now, just record the count
@@ -235,8 +235,8 @@ class RtypeParser:
             methods_ptr = self._read_uint64(methods_slice_addr)
             methods_len = self._read_uint64(methods_slice_addr.add(0x08))
 
-            type_info['interface_methods_count'] = methods_len
-            type_info['interface_methods_ptr'] = methods_ptr
+            type_info["interface_methods_count"] = methods_len
+            type_info["interface_methods_ptr"] = methods_ptr
 
         except Exception as e:
             print(f"[!] Error parsing interfaceType: {e}")
@@ -254,7 +254,7 @@ class RtypeParser:
 
         try:
             elem_type_offset = self._read_uint32(slice_type_addr)
-            type_info['slice_elem_type_offset'] = elem_type_offset
+            type_info["slice_elem_type_offset"] = elem_type_offset
 
         except Exception as e:
             print(f"[!] Error parsing sliceType: {e}")
@@ -277,8 +277,8 @@ class RtypeParser:
             # Skip slice pointer (8 bytes)
             array_len = self._read_uint64(array_type_addr.add(0x10))
 
-            type_info['array_elem_type_offset'] = elem_type_offset
-            type_info['array_length'] = array_len
+            type_info["array_elem_type_offset"] = elem_type_offset
+            type_info["array_length"] = array_len
 
         except Exception as e:
             print(f"[!] Error parsing arrayType: {e}")
@@ -296,7 +296,7 @@ class RtypeParser:
 
         try:
             elem_type_offset = self._read_uint32(ptr_type_addr)
-            type_info['ptr_elem_type_offset'] = elem_type_offset
+            type_info["ptr_elem_type_offset"] = elem_type_offset
 
         except Exception as e:
             print(f"[!] Error parsing ptrType: {e}")
@@ -338,7 +338,7 @@ class RtypeParser:
                 elif b == 0:
                     break
 
-            return ''.join(name_bytes) if name_bytes else "<unknown>"
+            return "".join(name_bytes) if name_bytes else "<unknown>"
 
         except Exception as e:
             print(f"[!] Error reading type name: {e}")
@@ -362,9 +362,9 @@ class RtypeParser:
 # Helper function for testing
 def test_rtype_parser():
     """Test rtype parser with current program."""
-    print("="*60)
+    print("=" * 60)
     print("Testing RtypeParser")
-    print("="*60)
+    print("=" * 60)
 
     print("\nTo use RtypeParser:")
     print("1. Get type addresses from TypelinksParser")

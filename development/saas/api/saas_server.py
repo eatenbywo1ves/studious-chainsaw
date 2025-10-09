@@ -15,17 +15,17 @@ from uuid import UUID
 
 # Load environment variables from parent .env file
 from dotenv import load_dotenv
-env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env')
+
+env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env")
 load_dotenv(env_path)
 
 from fastapi import FastAPI, Depends, HTTPException, status  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
-from sqlalchemy import create_engine  # noqa: E402
-from sqlalchemy.orm import sessionmaker, Session  # noqa: E402
+from sqlalchemy.orm import Session  # noqa: E402
 
 # Add parent directories to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '..'))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".."))
 
 # Import security headers
 from security.application.security_headers import create_custom_security_headers  # noqa: E402
@@ -38,7 +38,7 @@ from auth.middleware import (  # noqa: E402
     LoggingMiddleware,
     get_cors_config,
     get_current_user,
-    TokenData
+    TokenData,
 )
 
 # Import tenant API
@@ -48,9 +48,15 @@ from api.auth_api import router as auth_router  # noqa: E402
 
 # Import database models
 from database.models import (  # noqa: E402
-    Base, Tenant, User, SubscriptionPlan,
-    ApiLog, TenantLattice, LatticeOperation
+    Base,
+    Tenant,
+    User,
+    SubscriptionPlan,
+    ApiLog,
+    TenantLattice,
+    LatticeOperation,
 )
+from database.connection import get_db  # noqa: E402
 
 # Import original Catalytic Computing components
 from apps.catalytic.catalytic_lattice_graph import CatalyticLatticeGraph  # noqa: E402
@@ -58,6 +64,7 @@ from apps.catalytic.catalytic_lattice_graph import CatalyticLatticeGraph  # noqa
 # Try to import GPU modules
 try:
     from apps.catalytic.catalytic_lattice_gpu import CatalyticLatticeGPU  # noqa: F401
+
     GPU_AVAILABLE = True
 except ImportError:
     GPU_AVAILABLE = False
@@ -65,28 +72,14 @@ except ImportError:
 # ============================================================================
 # DATABASE SETUP
 # ============================================================================
-
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./catalytic_saas.db")
-
-# SQLite requires check_same_thread=False, PostgreSQL uses pool_pre_ping
-if DATABASE_URL.startswith("sqlite"):
-    engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
-else:
-    engine = create_engine(DATABASE_URL, pool_pre_ping=True)
-
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-def get_db():
-    """Get database session"""
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+# Note: Database connection is now managed centrally in database/connection.py
+# This eliminates per-request engine creation and prevents connection pool exhaustion.
+# The get_db() function is imported above from database.connection.
 
 # ============================================================================
 # TENANT-AWARE LATTICE STORAGE
 # ============================================================================
+
 
 class TenantLatticeManager:
     """Manages lattices with tenant isolation"""
@@ -101,7 +94,7 @@ class TenantLatticeManager:
         lattice_id: str,
         dimensions: int,
         size: int,
-        user_id: Optional[str] = None
+        user_id: Optional[str] = None,
     ) -> CatalyticLatticeGraph:
         """Create lattice for tenant"""
 
@@ -112,10 +105,7 @@ class TenantLatticeManager:
             raise ValueError(f"Maximum {self.max_per_tenant} lattices per tenant")
 
         # Create lattice
-        lattice = CatalyticLatticeGraph(
-            dimensions=dimensions,
-            lattice_size=size
-        )
+        lattice = CatalyticLatticeGraph(dimensions=dimensions, lattice_size=size)
 
         # Store with tenant isolation
         self._lattices[tenant_id][lattice_id] = lattice
@@ -140,27 +130,27 @@ class TenantLatticeManager:
     def get_tenant_usage(self, tenant_id: str) -> dict:
         """Get usage statistics for tenant"""
         tenant_lattices = self._lattices.get(tenant_id, {})
-        total_memory = sum(
-            lattice.aux_memory_size
-            for lattice in tenant_lattices.values()
-        )
+        total_memory = sum(lattice.aux_memory_size for lattice in tenant_lattices.values())
         return {
             "lattice_count": len(tenant_lattices),
             "total_memory_kb": total_memory / 1024,
-            "available": self.max_per_tenant - len(tenant_lattices)
+            "available": self.max_per_tenant - len(tenant_lattices),
         }
+
 
 # Global lattice manager
 lattice_manager = TenantLatticeManager()
 
 # Import and initialize reactive services
 from api.reactive_auth import ReactiveAuthService, ReactiveLatticeService  # noqa: E402
+
 auth_service = ReactiveAuthService(max_workers=4)
 lattice_service = ReactiveLatticeService(lattice_manager, max_workers=4)
 
 # ============================================================================
 # LIFESPAN MANAGEMENT
 # ============================================================================
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -192,14 +182,14 @@ async def lifespan(app: FastAPI):
                         "lattices": 5,
                         "api_calls": 1000,
                         "path_finding": True,
-                        "basic_transforms": True
+                        "basic_transforms": True,
                     },
                     limits={
                         "max_lattices": 5,
                         "max_dimensions": 3,
                         "max_lattice_size": 10,
-                        "api_calls_per_month": 1000
-                    }
+                        "api_calls_per_month": 1000,
+                    },
                 ),
                 SubscriptionPlan(
                     name="Professional",
@@ -211,15 +201,15 @@ async def lifespan(app: FastAPI):
                         "api_calls": 100000,
                         "all_features": True,
                         "priority_support": True,
-                        "gpu_acceleration": True
+                        "gpu_acceleration": True,
                     },
                     limits={
                         "max_lattices": 500,
                         "max_dimensions": 10,
                         "max_lattice_size": 100,
-                        "api_calls_per_month": 100000
-                    }
-                )
+                        "api_calls_per_month": 100000,
+                    },
+                ),
             ]
             db.add_all(plans)
             db.commit()
@@ -233,6 +223,7 @@ async def lifespan(app: FastAPI):
     print("Shutting down Catalytic Computing SaaS API Server...")
     lattice_manager._lattices.clear()
 
+
 # ============================================================================
 # FASTAPI APPLICATION
 # ============================================================================
@@ -241,7 +232,7 @@ app = FastAPI(
     title="Catalytic Computing SaaS API",
     description="Multi-tenant SaaS platform for revolutionary lattice computing",
     version="2.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
 )
 
 # Add CORS middleware
@@ -251,8 +242,8 @@ app.add_middleware(CORSMiddleware, **get_cors_config())
 environment = os.getenv("ENVIRONMENT", "development")
 security_headers_middleware = create_custom_security_headers(
     environment=environment,
-    allow_inline_scripts=True,   # For React/Vue frontend
-    allow_websockets=True         # For real-time features
+    allow_inline_scripts=True,  # For React/Vue frontend
+    allow_websockets=True,  # For real-time features
 )
 app.add_middleware(
     type(security_headers_middleware),
@@ -260,7 +251,7 @@ app.add_middleware(
     csp_directives=security_headers_middleware.csp_directives,
     frame_options=security_headers_middleware.frame_options,
     enable_permissions_policy=security_headers_middleware.enable_permissions_policy,
-    enable_referrer_policy=security_headers_middleware.enable_referrer_policy
+    enable_referrer_policy=security_headers_middleware.enable_referrer_policy,
 )
 
 # Add custom middleware
@@ -276,6 +267,7 @@ app.include_router(subscription_router)
 
 # Add Prometheus metrics endpoint
 from api.metrics_instrumentation import add_metrics_endpoint, MetricsMiddleware  # noqa: E402
+
 add_metrics_endpoint(app)
 app.add_middleware(MetricsMiddleware)
 
@@ -285,19 +277,23 @@ app.add_middleware(MetricsMiddleware)
 
 from pydantic import BaseModel, EmailStr  # noqa: E402
 
+
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
     tenant_slug: Optional[str] = None
 
+
 class RefreshRequest(BaseModel):
     refresh_token: str
+
 
 class RegisterRequest(BaseModel):
     email: EmailStr
     password: str
     name: str
     tenant_slug: Optional[str] = None
+
 
 @app.post("/auth/register", status_code=status.HTTP_201_CREATED)
 async def register_user(request: RegisterRequest, db: Session = Depends(get_db)):
@@ -311,18 +307,19 @@ async def register_user(request: RegisterRequest, db: Session = Depends(get_db))
     from uuid import uuid4
 
     # Generate tenant slug from email if not provided
-    tenant_slug = request.tenant_slug or request.email.split('@')[0]
+    tenant_slug = request.tenant_slug or request.email.split("@")[0]
 
     # Check if user already exists with this email
-    existing_user = db.query(User).join(Tenant).filter(
-        User.email == request.email,
-        Tenant.slug == tenant_slug
-    ).first()
+    existing_user = (
+        db.query(User)
+        .join(Tenant)
+        .filter(User.email == request.email, Tenant.slug == tenant_slug)
+        .first()
+    )
 
     if existing_user:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User with this email already exists"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="User with this email already exists"
         )
 
     # Create new tenant (for testing - each user gets own tenant)
@@ -334,7 +331,7 @@ async def register_user(request: RegisterRequest, db: Session = Depends(get_db))
             name=f"{request.name}'s Organization",
             email=request.email,
             status="active",
-            meta_data={}
+            meta_data={},
         )
         db.add(tenant)
         db.flush()  # Get tenant ID
@@ -345,12 +342,12 @@ async def register_user(request: RegisterRequest, db: Session = Depends(get_db))
         tenant_id=tenant.id,
         email=request.email,
         password_hash="",  # Will be set by set_password
-        first_name=request.name.split()[0] if ' ' in request.name else request.name,
-        last_name=request.name.split()[1] if ' ' in request.name else "",
+        first_name=request.name.split()[0] if " " in request.name else request.name,
+        last_name=request.name.split()[1] if " " in request.name else "",
         role=UserRole.OWNER if not tenant.users else UserRole.MEMBER,
         is_active=True,
         email_verified=False,
-        meta_data={}
+        meta_data={},
     )
     user.set_password(request.password)
 
@@ -365,8 +362,9 @@ async def register_user(request: RegisterRequest, db: Session = Depends(get_db))
         "tenant_id": tenant.id,
         "tenant_slug": tenant.slug,
         "role": user.role,
-        "created_at": user.created_at.isoformat()
+        "created_at": user.created_at.isoformat(),
     }
+
 
 @app.post("/auth/login")
 async def login(request: LoginRequest, db: Session = Depends(get_db)):
@@ -377,18 +375,14 @@ async def login(request: LoginRequest, db: Session = Depends(get_db)):
 
     # Create reactive login stream
     login_observable = auth_service.login_stream(
-        email=request.email,
-        password=request.password,
-        tenant_slug=request.tenant_slug,
-        db=db
+        email=request.email, password=request.password, tenant_slug=request.tenant_slug, db=db
     )
 
     # Execute reactive pipeline and await result
-    result = await login_observable.pipe(
-        ops.to_future()
-    )
+    result = await login_observable.pipe(ops.to_future())
 
     return result
+
 
 @app.post("/auth/refresh")
 async def refresh_token(request: RefreshRequest):
@@ -398,11 +392,11 @@ async def refresh_token(request: RefreshRequest):
     new_tokens = refresh_access_token(request.refresh_token)
     if not new_tokens:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid refresh token"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
         )
 
     return new_tokens.dict()
+
 
 # ============================================================================
 # LATTICE ENDPOINTS (TENANT-AWARE)
@@ -410,10 +404,12 @@ async def refresh_token(request: RefreshRequest):
 
 from pydantic import Field  # noqa: E402
 
+
 class LatticeCreateRequest(BaseModel):
     name: Optional[str] = None
     dimensions: int = Field(ge=1, le=10)
     size: int = Field(ge=2, le=100)
+
 
 class LatticeResponse(BaseModel):
     id: str
@@ -426,11 +422,12 @@ class LatticeResponse(BaseModel):
     memory_reduction: float
     created_at: datetime
 
+
 @app.post("/api/lattices")
 async def create_lattice(
     request: LatticeCreateRequest,
     current_user: TokenData = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Create new lattice for tenant (Reactive version)"""
 
@@ -444,27 +441,26 @@ async def create_lattice(
         dimensions=request.dimensions,
         size=request.size,
         name=request.name,
-        db=db
+        db=db,
     )
 
     # Execute reactive pipeline and await result
-    result = await lattice_observable.pipe(
-        ops.to_future()
-    )
+    result = await lattice_observable.pipe(ops.to_future())
 
     return result
 
+
 @app.get("/api/lattices")
 async def list_lattices(
-    current_user: TokenData = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    current_user: TokenData = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     """List all lattices for tenant"""
 
-    lattices = db.query(TenantLattice).filter_by(
-        tenant_id=UUID(current_user.tenant_id),
-        is_active=True
-    ).all()
+    lattices = (
+        db.query(TenantLattice)
+        .filter_by(tenant_id=UUID(current_user.tenant_id), is_active=True)
+        .all()
+    )
 
     # Track API usage
     api_log = ApiLog(
@@ -472,7 +468,7 @@ async def list_lattices(
         user_id=UUID(current_user.sub),
         endpoint="/api/lattices",
         method="GET",
-        status_code=200
+        status_code=200,
     )
     db.add(api_log)
     db.commit()
@@ -486,33 +482,32 @@ async def list_lattices(
             "vertices": lattice.vertices,
             "edges": lattice.edges,
             "memory_kb": float(lattice.memory_kb),
-            "created_at": lattice.created_at
+            "created_at": lattice.created_at,
         }
         for lattice in lattices
     ]
+
 
 @app.delete("/api/lattices/{lattice_id}")
 async def delete_lattice(
     lattice_id: str,
     current_user: TokenData = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Delete lattice"""
 
     # Remove from manager
     if not lattice_manager.delete_lattice(current_user.tenant_id, lattice_id):
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Lattice not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Lattice not found")
 
     # Mark as inactive in database
     # Pad lattice_id to valid UUID for query
-    padded_id = UUID(lattice_id.ljust(36, '0'))
-    db_lattice = db.query(TenantLattice).filter_by(
-        id=padded_id,
-        tenant_id=UUID(current_user.tenant_id)
-    ).first()
+    padded_id = UUID(lattice_id.ljust(36, "0"))
+    db_lattice = (
+        db.query(TenantLattice)
+        .filter_by(id=padded_id, tenant_id=UUID(current_user.tenant_id))
+        .first()
+    )
 
     if db_lattice:
         db_lattice.is_active = False
@@ -520,30 +515,30 @@ async def delete_lattice(
 
     return {"message": "Lattice deleted successfully"}
 
+
 # ============================================================================
 # PATH FINDING ENDPOINTS
 # ============================================================================
+
 
 class PathFindRequest(BaseModel):
     lattice_id: str
     start: list
     end: list
 
+
 @app.post("/api/lattices/path")
 async def find_path(
     request: PathFindRequest,
     current_user: TokenData = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Find shortest path in lattice"""
 
     # Get lattice
     lattice = lattice_manager.get_lattice(current_user.tenant_id, request.lattice_id)
     if not lattice:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Lattice not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Lattice not found")
 
     # Find path
     start_time = time.perf_counter()
@@ -551,25 +546,25 @@ async def find_path(
         start_idx = lattice._coords_to_index(request.start)
         end_idx = lattice._coords_to_index(request.end)
 
-        if hasattr(lattice, 'find_shortest_path'):
+        if hasattr(lattice, "find_shortest_path"):
             path, distance = lattice.find_shortest_path(start_idx, end_idx)
         else:
             paths = lattice.graph.get_shortest_paths(start_idx, to=end_idx)
             path = paths[0] if paths else []
-            distance = len(path) - 1 if path else float('inf')
+            distance = len(path) - 1 if path else float("inf")
 
         execution_time = (time.perf_counter() - start_time) * 1000
 
         # Log operation
         operation = LatticeOperation(
             tenant_id=UUID(current_user.tenant_id),
-            lattice_id=UUID(request.lattice_id.ljust(36, '0')),
+            lattice_id=UUID(request.lattice_id.ljust(36, "0")),
             operation_type="path_finding",
             parameters={"start": request.start, "end": request.end},
             result={"path_length": len(path), "distance": distance},
             execution_time_ms=int(execution_time),
             status="success",
-            created_by_id=UUID(current_user.sub)
+            created_by_id=UUID(current_user.sub),
         )
         db.add(operation)
 
@@ -580,27 +575,22 @@ async def find_path(
             endpoint="/api/lattices/path",
             method="POST",
             status_code=200,
-            response_time_ms=int(execution_time)
+            response_time_ms=int(execution_time),
         )
         db.add(api_log)
         db.commit()
 
-        return {
-            "path": path,
-            "distance": distance,
-            "execution_time_ms": round(execution_time, 3)
-        }
+        return {"path": path, "distance": distance, "execution_time_ms": round(execution_time, 3)}
 
     except Exception as e:
         db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
 
 # ============================================================================
 # HEALTH & STATUS ENDPOINTS
 # ============================================================================
+
 
 @app.get("/")
 async def root():
@@ -613,16 +603,17 @@ async def root():
             "memory_efficiency": "28,571x reduction",
             "processing_speed": "649x improvement",
             "multi_tenancy": True,
-            "gpu_acceleration": GPU_AVAILABLE
+            "gpu_acceleration": GPU_AVAILABLE,
         },
         "endpoints": {
             "docs": "/docs",
             "health": "/health",
             "auth": "/auth/login",
             "tenants": "/api/tenants",
-            "lattices": "/api/lattices"
-        }
+            "lattices": "/api/lattices",
+        },
     }
+
 
 @app.get("/health")
 async def health_check(db: Session = Depends(get_db)):
@@ -646,9 +637,9 @@ async def health_check(db: Session = Depends(get_db)):
         "stats": {
             "tenants": tenant_count,
             "users": user_count,
-            "total_lattices": sum(len(lattices) for lattices in lattice_manager._lattices.values())
+            "total_lattices": sum(len(lattices) for lattices in lattice_manager._lattices.values()),
         },
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.utcnow().isoformat(),
     }
 
 
@@ -661,10 +652,7 @@ async def redis_health_check():
         from auth.jwt_auth import redis_pool
 
         if not redis_pool:
-            return {
-                "status": "unavailable",
-                "message": "Redis pool not initialized"
-            }
+            return {"status": "unavailable", "message": "Redis pool not initialized"}
 
         # Get pool status (includes all metrics and health info)
         pool_status = redis_pool.get_pool_status()
@@ -676,58 +664,52 @@ async def redis_health_check():
                 "max_connections": pool_status["max_connections"],
                 "in_use": pool_status["in_use_connections"],
                 "available_connections": pool_status["available_connections"],
-                "utilization_percent": pool_status["utilization_percent"]
+                "utilization_percent": pool_status["utilization_percent"],
             },
             "health": {
                 "check_interval_seconds": 30,
-                "retry_policy": "Exponential backoff (3 attempts)"
+                "retry_policy": "Exponential backoff (3 attempts)",
             },
             "warnings": pool_status.get("warnings", []),
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.utcnow().isoformat(),
         }
     except ImportError:
-        return {
-            "status": "unavailable",
-            "message": "OptimizedRedisPool not available"
-        }
+        return {"status": "unavailable", "message": "OptimizedRedisPool not available"}
     except Exception as e:
-        return {
-            "status": "error",
-            "message": str(e)
-        }
+        return {"status": "error", "message": str(e)}
+
 
 # ============================================================================
 # LATTICE TRANSFORMATION ENDPOINTS
 # ============================================================================
+
 
 class TransformRequest(BaseModel):
     transformation_type: str = Field(..., description="Type of transformation: xor, rotate, scale")
     parameters: dict = Field(default_factory=dict, description="Transformation parameters")
     use_gpu: bool = Field(default=False, description="Request GPU acceleration")
 
+
 @app.post("/api/lattices/{lattice_id}/transform")
 async def transform_lattice(
     lattice_id: str,
     request: TransformRequest,
     current_user: TokenData = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Transform lattice with GPU/CPU routing"""
 
     # Get lattice
     lattice = lattice_manager.get_lattice(current_user.tenant_id, lattice_id)
     if not lattice:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Lattice not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Lattice not found")
 
     # Validate transformation type
     valid_types = ["xor", "rotate", "scale"]
     if request.transformation_type not in valid_types:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid transformation_type. Must be one of: {', '.join(valid_types)}"
+            detail=f"Invalid transformation_type. Must be one of: {', '.join(valid_types)}",
         )
 
     start_time = time.perf_counter()
@@ -737,11 +719,7 @@ async def transform_lattice(
     try:
         # Smart routing: Use GPU only if available and beneficial
         # GPU is beneficial for large lattices (size >= 10000 vertices)
-        should_use_gpu = (
-            request.use_gpu and
-            GPU_AVAILABLE and
-            lattice.graph.vcount() >= 10000
-        )
+        should_use_gpu = request.use_gpu and GPU_AVAILABLE and lattice.graph.vcount() >= 10000
 
         if should_use_gpu:
             try:
@@ -751,8 +729,7 @@ async def transform_lattice(
 
                 # Create GPU lattice instance
                 gpu_lattice = CatalyticLatticeGPU(
-                    dimensions=lattice.dimensions,
-                    size=lattice.lattice_size
+                    dimensions=lattice.dimensions, size=lattice.lattice_size
                 )
 
                 # Perform transformation based on type
@@ -762,11 +739,7 @@ async def transform_lattice(
                     data = np.random.randint(0, 256, 1000, dtype=np.uint8)
                     key = np.frombuffer(key_str.encode(), dtype=np.uint8)
                     gpu_lattice.xor_transform_gpu(data, key)
-                    result_summary = {
-                        "success": True,
-                        "type": "xor",
-                        "data_size": len(data)
-                    }
+                    result_summary = {"success": True, "type": "xor", "data_size": len(data)}
                     gpu_used = True
 
                 elif request.transformation_type == "rotate":
@@ -774,7 +747,7 @@ async def transform_lattice(
                     result_summary = {
                         "success": True,
                         "type": "rotate",
-                        "angle": request.parameters.get("angle", 90)
+                        "angle": request.parameters.get("angle", 90),
                     }
                     gpu_used = True
 
@@ -783,7 +756,7 @@ async def transform_lattice(
                     result_summary = {
                         "success": True,
                         "type": "scale",
-                        "factor": request.parameters.get("factor", 1.0)
+                        "factor": request.parameters.get("factor", 1.0),
                     }
                     gpu_used = True
 
@@ -796,24 +769,20 @@ async def transform_lattice(
         if not should_use_gpu:
             if request.transformation_type == "xor":
                 # CPU XOR simulation
-                result_summary = {
-                    "success": True,
-                    "type": "xor",
-                    "backend": "cpu"
-                }
+                result_summary = {"success": True, "type": "xor", "backend": "cpu"}
             elif request.transformation_type == "rotate":
                 result_summary = {
                     "success": True,
                     "type": "rotate",
                     "backend": "cpu",
-                    "angle": request.parameters.get("angle", 90)
+                    "angle": request.parameters.get("angle", 90),
                 }
             elif request.transformation_type == "scale":
                 result_summary = {
                     "success": True,
                     "type": "scale",
                     "backend": "cpu",
-                    "factor": request.parameters.get("factor", 1.0)
+                    "factor": request.parameters.get("factor", 1.0),
                 }
 
         execution_time = (time.perf_counter() - start_time) * 1000
@@ -821,13 +790,13 @@ async def transform_lattice(
         # Log operation
         operation = LatticeOperation(
             tenant_id=UUID(current_user.tenant_id),
-            lattice_id=UUID(lattice_id.ljust(36, '0')),
+            lattice_id=UUID(lattice_id.ljust(36, "0")),
             operation_type=f"transform_{request.transformation_type}",
             parameters=request.parameters,
             result=result_summary,
             execution_time_ms=int(execution_time),
             status="success",
-            created_by_id=UUID(current_user.sub)
+            created_by_id=UUID(current_user.sub),
         )
         db.add(operation)
 
@@ -838,7 +807,7 @@ async def transform_lattice(
             endpoint=f"/api/lattices/{lattice_id}/transform",
             method="POST",
             status_code=200,
-            response_time_ms=int(execution_time)
+            response_time_ms=int(execution_time),
         )
         db.add(api_log)
         db.commit()
@@ -847,34 +816,29 @@ async def transform_lattice(
             "lattice_id": lattice_id,
             "execution_time_ms": round(execution_time, 3),
             "gpu_used": gpu_used,
-            "result_summary": result_summary
+            "result_summary": result_summary,
         }
 
     except Exception as e:
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Transformation failed: {str(e)}"
+            detail=f"Transformation failed: {str(e)}",
         )
+
 
 # ============================================================================
 # GPU STATUS ENDPOINT
 # ============================================================================
 
+
 @app.get("/api/gpu/status")
-async def get_gpu_status(
-    current_user: Optional[TokenData] = Depends(get_current_user)
-):
+async def get_gpu_status(current_user: Optional[TokenData] = Depends(get_current_user)):
     """Check GPU availability and utilization"""
 
     try:
         if not GPU_AVAILABLE:
-            return {
-                "available": False,
-                "backend": "None",
-                "device_count": 0,
-                "devices": []
-            }
+            return {"available": False, "backend": "None", "device_count": 0, "devices": []}
 
         import torch
 
@@ -891,6 +855,7 @@ async def get_gpu_status(
             # Try to get current memory usage (if available)
             try:
                 import cupy as cp
+
                 cp.cuda.Device(i).use()
                 mem_info = cp.cuda.runtime.memGetInfo()
                 free_memory = mem_info[0] / (1024**2)  # MB
@@ -902,14 +867,16 @@ async def get_gpu_status(
                 used_memory = allocated_memory
                 utilization_percent = (used_memory / total_memory) * 100
 
-            devices.append({
-                "id": i,
-                "name": torch.cuda.get_device_name(i),
-                "memory_total_gb": round(total_memory / 1024, 2),
-                "memory_used_mb": round(used_memory, 2),
-                "memory_total_mb": round(total_memory, 2),
-                "utilization_percent": round(utilization_percent, 1)
-            })
+            devices.append(
+                {
+                    "id": i,
+                    "name": torch.cuda.get_device_name(i),
+                    "memory_total_gb": round(total_memory / 1024, 2),
+                    "memory_used_mb": round(used_memory, 2),
+                    "memory_total_mb": round(total_memory, 2),
+                    "utilization_percent": round(utilization_percent, 1),
+                }
+            )
 
         return {
             "available": True,
@@ -918,16 +885,12 @@ async def get_gpu_status(
             "utilization_percent": devices[0]["utilization_percent"] if devices else 0,
             "memory_used_mb": devices[0]["memory_used_mb"] if devices else 0,
             "memory_total_mb": devices[0]["memory_total_mb"] if devices else 0,
-            "devices": devices
+            "devices": devices,
         }
 
     except ImportError:
-        return {
-            "available": False,
-            "backend": "None",
-            "device_count": 0,
-            "devices": []
-        }
+        return {"available": False, "backend": "None", "device_count": 0, "devices": []}
+
 
 # ============================================================================
 # TEST-ONLY ENDPOINTS (for monitoring/alert testing)
@@ -935,21 +898,19 @@ async def get_gpu_status(
 
 TESTING_MODE = os.getenv("TESTING_MODE", "false").lower() == "true"
 
+
 class ErrorRequest(BaseModel):
-    error_type: str = Field(..., description="HTTP error code to trigger: 400, 401, 403, 404, 500, 503")
+    error_type: str = Field(
+        ..., description="HTTP error code to trigger: 400, 401, 403, 404, 500, 503"
+    )
+
 
 @app.post("/api/trigger-error")
-async def trigger_error(
-    request: ErrorRequest,
-    current_user: TokenData = Depends(get_current_user)
-):
+async def trigger_error(request: ErrorRequest, current_user: TokenData = Depends(get_current_user)):
     """Test-only endpoint for alert testing"""
 
     if not TESTING_MODE:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
 
     error_type = request.error_type
 
@@ -960,7 +921,7 @@ async def trigger_error(
         "403": HTTPException(status_code=403, detail="Simulated forbidden"),
         "404": HTTPException(status_code=404, detail="Simulated not found"),
         "500": HTTPException(status_code=500, detail="Simulated server error"),
-        "503": HTTPException(status_code=503, detail="Simulated service unavailable")
+        "503": HTTPException(status_code=503, detail="Simulated service unavailable"),
     }
 
     if error_type in error_map:
@@ -968,21 +929,18 @@ async def trigger_error(
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid error_type. Must be one of: {', '.join(error_map.keys())}"
+            detail=f"Invalid error_type. Must be one of: {', '.join(error_map.keys())}",
         )
+
 
 @app.get("/api/slow-endpoint")
 async def slow_endpoint(
-    delay_seconds: int = 3,
-    current_user: TokenData = Depends(get_current_user)
+    delay_seconds: int = 3, current_user: TokenData = Depends(get_current_user)
 ):
     """Test-only endpoint for latency testing"""
 
     if not TESTING_MODE:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
 
     # Limit delay to prevent abuse
     delay_seconds = min(max(delay_seconds, 0), 30)
@@ -990,10 +948,8 @@ async def slow_endpoint(
     # Artificial delay
     await asyncio.sleep(delay_seconds)
 
-    return {
-        "delayed_seconds": delay_seconds,
-        "message": "Request completed after delay"
-    }
+    return {"delayed_seconds": delay_seconds, "message": "Request completed after delay"}
+
 
 # ============================================================================
 # MAIN ENTRY POINT
@@ -1001,9 +957,10 @@ async def slow_endpoint(
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(
         app,
         host="0.0.0.0",
         port=int(os.getenv("PORT", "8000")),
-        workers=int(os.getenv("WORKERS", "4"))
+        workers=int(os.getenv("WORKERS", "4")),
     )

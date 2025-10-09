@@ -47,13 +47,12 @@ class TestSaaSAPI:
                 "password": "SecurePass123!",
                 "first_name": "Test",
                 "last_name": "User",
-                "plan_code": "free"
+                "plan_code": "free",
             }
 
             async with httpx.AsyncClient() as client:
                 response = await client.post(
-                    "http://localhost:8000/api/tenants/register",
-                    json=tenant_data
+                    "http://localhost:8000/api/tenants/register", json=tenant_data
                 )
 
                 if response.status_code in [201, 409]:  # Created or already exists
@@ -101,18 +100,12 @@ class TestDatabaseIntegration:
             cur = conn.cursor()
 
             # Check if key tables exist
-            tables_to_check = [
-                "tenants",
-                "users",
-                "subscription_plans",
-                "lattices",
-                "api_keys"
-            ]
+            tables_to_check = ["tenants", "users", "subscription_plans", "lattices", "api_keys"]
 
             for table in tables_to_check:
                 cur.execute(
                     "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = %s)",
-                    (table,)
+                    (table,),
                 )
                 exists = cur.fetchone()[0]
                 if not exists:
@@ -167,11 +160,11 @@ class TestDockerIntegration:
                 ["docker-compose", "ps", "--format", "json"],
                 capture_output=True,
                 text=True,
-                cwd=project_root
+                cwd=project_root,
             )
 
             if result.returncode == 0:
-                services = result.stdout.strip().split('\n')
+                services = result.stdout.strip().split("\n")
                 running_services = []
 
                 for service_line in services:

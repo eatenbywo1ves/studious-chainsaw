@@ -40,79 +40,59 @@ def attack_payloads() -> Dict[str, List[str]]:
             "' OR 1=1--",
             "'; DELETE FROM lattices WHERE '1'='1",
             "' UNION SELECT * FROM users--",
-
             # Time-based blind SQL injection
             "'; WAITFOR DELAY '00:00:05'--",
             "' OR SLEEP(5)--",
-
             # Boolean-based blind SQL injection
             "' AND 1=1--",
-            "' AND 1=2--"
+            "' AND 1=2--",
         ],
-
         "xss": [
             # Script tag injection
             "<script>alert('XSS')</script>",
             "<script src='http://evil.com/xss.js'></script>",
-
             # Event handler injection
             "<img src=x onerror=alert('XSS')>",
             "<body onload=alert('XSS')>",
             "<svg onload=alert('XSS')>",
-
             # JavaScript protocol
             "javascript:alert('XSS')",
             "<a href='javascript:alert(\"XSS\")'>Click</a>",
-
             # Data URL injection
             "<iframe src='data:text/html,<script>alert(\"XSS\")</script>'>",
-
             # Encoded payloads
             "%3Cscript%3Ealert('XSS')%3C/script%3E",
-            "&#60;script&#62;alert('XSS')&#60;/script&#62;"
+            "&#60;script&#62;alert('XSS')&#60;/script&#62;",
         ],
-
         "path_traversal": [
             # Unix path traversal
             "../../../etc/passwd",
             "../../../../etc/shadow",
             "../../../../../../etc/hosts",
-
             # Windows path traversal
             "..\\..\\..\\windows\\system32\\config\\sam",
             "..\\..\\..\\..\\..\\boot.ini",
-
             # URL encoded path traversal
             "..%2F..%2F..%2Fetc%2Fpasswd",
             "....//....//....//etc/passwd",
-
             # Mixed encoding
-            "..%252f..%252f..%252fetc%252fpasswd"
+            "..%252f..%252f..%252fetc%252fpasswd",
         ],
-
         "command_injection": [
             # Unix command injection
             "; ls -la /",
             "| cat /etc/passwd",
             "`whoami`",
             "$(cat /etc/passwd)",
-
             # Windows command injection
             "& dir C:\\",
-            "| type C:\\windows\\system32\\config\\sam"
+            "| type C:\\windows\\system32\\config\\sam",
         ],
-
-        "ldap_injection": [
-            "*",
-            "admin*",
-            "*)(uid=*))(|(uid=*",
-            "admin)(&(password=*))"
-        ],
-
+        "ldap_injection": ["*", "admin*", "*)(uid=*))(|(uid=*", "admin)(&(password=*))"],
         "xml_injection": [
             "<?xml version='1.0'?><!DOCTYPE foo [<!ENTITY xxe SYSTEM 'file:///etc/passwd'>]><foo>&xxe;</foo>",
-            "<![CDATA[<script>alert('XSS')</script>]]>"
-        ]
+            "<![CDATA[<script>alert('XSS')</script>]]>",
+        ],
     }
 
 
@@ -129,7 +109,7 @@ class JWTTestUtils:
             "tenant_id": tenant_id,
             "jti": str(uuid.uuid4()),
             "exp": datetime.utcnow() + timedelta(hours=1),
-            "iat": datetime.utcnow()
+            "iat": datetime.utcnow(),
         }
         return jwt.encode(payload, private_key, algorithm="RS256")
 
@@ -141,7 +121,7 @@ class JWTTestUtils:
             "tenant_id": tenant_id,
             "jti": str(uuid.uuid4()),
             "exp": datetime.utcnow() - timedelta(hours=1),  # Expired
-            "iat": datetime.utcnow() - timedelta(hours=2)
+            "iat": datetime.utcnow() - timedelta(hours=2),
         }
         return jwt.encode(payload, private_key, algorithm="RS256")
 
@@ -153,7 +133,7 @@ class JWTTestUtils:
             "tenant_id": tenant_id,
             "jti": str(uuid.uuid4()),
             "exp": datetime.utcnow() + timedelta(hours=1),
-            "iat": datetime.utcnow()
+            "iat": datetime.utcnow(),
         }
         # Use a different key (invalid)
         wrong_key = "wrong-secret-key"
@@ -165,7 +145,7 @@ class JWTTestUtils:
         payload = {
             "sub": "user-123",
             # Missing: tenant_id, jti
-            "exp": datetime.utcnow() + timedelta(hours=1)
+            "exp": datetime.utcnow() + timedelta(hours=1),
         }
         return jwt.encode(payload, private_key, algorithm="RS256")
 
@@ -208,10 +188,7 @@ class TestJWTAuthentication:
     """
 
     @pytest.mark.asyncio
-    async def test_valid_token_authentication(
-        self,
-        authenticated_client: AsyncClient
-    ):
+    async def test_valid_token_authentication(self, authenticated_client: AsyncClient):
         """
         Valid token authenticates successfully on protected endpoint.
 
@@ -221,8 +198,9 @@ class TestJWTAuthentication:
         response = await authenticated_client.get("/api/lattices")
 
         # Verify successful authentication
-        assert response.status_code == 200, \
+        assert response.status_code == 200, (
             f"Expected 200, got {response.status_code}: {response.text}"
+        )
 
         # Verify response contains tenant-scoped data
         data = response.json()
@@ -230,10 +208,7 @@ class TestJWTAuthentication:
 
     @pytest.mark.asyncio
     async def test_expired_token_rejected(
-        self,
-        api_client: AsyncClient,
-        jwt_utils: JWTTestUtils,
-        private_key: str
+        self, api_client: AsyncClient, jwt_utils: JWTTestUtils, private_key: str
     ):
         """
         Expired token returns 401 Unauthorized.
@@ -242,31 +217,27 @@ class TestJWTAuthentication:
         """
         # Create expired token
         expired_token = jwt_utils.create_expired_token(
-            user_id="test-user",
-            tenant_id="test-tenant",
-            private_key=private_key
+            user_id="test-user", tenant_id="test-tenant", private_key=private_key
         )
 
         # Attempt to use expired token
         response = await api_client.get(
-            "/api/lattices",
-            headers={"Authorization": f"Bearer {expired_token}"}
+            "/api/lattices", headers={"Authorization": f"Bearer {expired_token}"}
         )
 
         # Verify rejection
-        assert response.status_code == 401, \
+        assert response.status_code == 401, (
             f"Expected 401 for expired token, got {response.status_code}"
+        )
 
         error_data = response.json()
-        assert "expired" in error_data["detail"].lower() or \
-               "invalid" in error_data["detail"].lower(), \
-            "Error message should indicate token expired"
+        assert (
+            "expired" in error_data["detail"].lower() or "invalid" in error_data["detail"].lower()
+        ), "Error message should indicate token expired"
 
     @pytest.mark.asyncio
     async def test_invalid_signature_rejected(
-        self,
-        api_client: AsyncClient,
-        jwt_utils: JWTTestUtils
+        self, api_client: AsyncClient, jwt_utils: JWTTestUtils
     ):
         """
         Token with invalid signature returns 401.
@@ -275,31 +246,26 @@ class TestJWTAuthentication:
         """
         # Create token with wrong signature
         invalid_token = jwt_utils.create_invalid_signature_token(
-            user_id="test-user",
-            tenant_id="test-tenant"
+            user_id="test-user", tenant_id="test-tenant"
         )
 
         # Attempt to use invalid token
         response = await api_client.get(
-            "/api/lattices",
-            headers={"Authorization": f"Bearer {invalid_token}"}
+            "/api/lattices", headers={"Authorization": f"Bearer {invalid_token}"}
         )
 
         # Verify rejection
-        assert response.status_code == 401, \
+        assert response.status_code == 401, (
             f"Expected 401 for invalid signature, got {response.status_code}"
+        )
 
         error_data = response.json()
-        assert "invalid" in error_data["detail"].lower() or \
-               "signature" in error_data["detail"].lower(), \
-            "Error should indicate invalid token"
+        assert (
+            "invalid" in error_data["detail"].lower() or "signature" in error_data["detail"].lower()
+        ), "Error should indicate invalid token"
 
     @pytest.mark.asyncio
-    async def test_malformed_token_rejected(
-        self,
-        api_client: AsyncClient,
-        jwt_utils: JWTTestUtils
-    ):
+    async def test_malformed_token_rejected(self, api_client: AsyncClient, jwt_utils: JWTTestUtils):
         """
         Malformed token returns 401.
 
@@ -309,19 +275,16 @@ class TestJWTAuthentication:
         malformed_token = jwt_utils.create_malformed_token()
 
         response = await api_client.get(
-            "/api/lattices",
-            headers={"Authorization": f"Bearer {malformed_token}"}
+            "/api/lattices", headers={"Authorization": f"Bearer {malformed_token}"}
         )
 
-        assert response.status_code == 401, \
+        assert response.status_code == 401, (
             f"Expected 401 for malformed token, got {response.status_code}"
+        )
 
     @pytest.mark.asyncio
     async def test_missing_claims_rejected(
-        self,
-        api_client: AsyncClient,
-        jwt_utils: JWTTestUtils,
-        private_key: str
+        self, api_client: AsyncClient, jwt_utils: JWTTestUtils, private_key: str
     ):
         """
         Token without required claims returns 401.
@@ -332,12 +295,12 @@ class TestJWTAuthentication:
         incomplete_token = jwt_utils.create_missing_claims_token(private_key)
 
         response = await api_client.get(
-            "/api/lattices",
-            headers={"Authorization": f"Bearer {incomplete_token}"}
+            "/api/lattices", headers={"Authorization": f"Bearer {incomplete_token}"}
         )
 
-        assert response.status_code == 401, \
+        assert response.status_code == 401, (
             f"Expected 401 for incomplete token, got {response.status_code}"
+        )
 
 
 # ============================================================================
@@ -354,11 +317,7 @@ class TestTokenBlacklist:
     """
 
     @pytest.mark.asyncio
-    async def test_revoked_token_rejected(
-        self,
-        authenticated_client: AsyncClient,
-        clean_redis
-    ):
+    async def test_revoked_token_rejected(self, authenticated_client: AsyncClient, clean_redis):
         """
         Revoked token is rejected even if not expired.
 
@@ -370,28 +329,26 @@ class TestTokenBlacklist:
 
         # Revoke token via logout
         logout_response = await authenticated_client.post("/auth/logout")
-        assert logout_response.status_code == 200, \
-            f"Logout failed: {logout_response.text}"
+        assert logout_response.status_code == 200, f"Logout failed: {logout_response.text}"
 
         # Attempt to use revoked token
         response_after_revoke = await authenticated_client.get("/api/lattices")
 
         # Verify rejection
-        assert response_after_revoke.status_code == 401, \
+        assert response_after_revoke.status_code == 401, (
             f"Expected 401 for revoked token, got {response_after_revoke.status_code}"
+        )
 
         error_data = response_after_revoke.json()
-        assert "revoked" in error_data["detail"].lower() or \
-               "blacklist" in error_data["detail"].lower() or \
-               "invalid" in error_data["detail"].lower(), \
-            "Error should indicate token revoked"
+        assert (
+            "revoked" in error_data["detail"].lower()
+            or "blacklist" in error_data["detail"].lower()
+            or "invalid" in error_data["detail"].lower()
+        ), "Error should indicate token revoked"
 
     @pytest.mark.asyncio
     async def test_blacklist_persists_redis(
-        self,
-        authenticated_client: AsyncClient,
-        redis_client,
-        clean_redis
+        self, authenticated_client: AsyncClient, redis_client, clean_redis
     ):
         """
         Token blacklist persists in Redis and survives restarts.
@@ -418,15 +375,12 @@ class TestTokenBlacklist:
 
         # Verify value is "revoked"
         value = await redis_client.get(blacklist_key)
-        assert value in ["revoked", "security_revoked"], \
+        assert value in ["revoked", "security_revoked"], (
             f"Expected 'revoked' or 'security_revoked', got {value}"
+        )
 
     @pytest.mark.asyncio
-    async def test_blacklist_multi_worker(
-        self,
-        authenticated_client: AsyncClient,
-        clean_redis
-    ):
+    async def test_blacklist_multi_worker(self, authenticated_client: AsyncClient, clean_redis):
         """
         Blacklist is shared across multiple workers via Redis.
 
@@ -450,18 +404,15 @@ class TestTokenBlacklist:
 
         # All responses should be 401 (blacklist synchronized)
         for i, response in enumerate(responses):
-            assert not isinstance(response, Exception), \
-                f"Request {i} raised exception: {response}"
-            assert response.status_code == 401, \
-                f"Request {i}: Expected 401, got {response.status_code} " \
+            assert not isinstance(response, Exception), f"Request {i} raised exception: {response}"
+            assert response.status_code == 401, (
+                f"Request {i}: Expected 401, got {response.status_code} "
                 f"(blacklist not synchronized across workers)"
+            )
 
     @pytest.mark.asyncio
     async def test_blacklist_ttl(
-        self,
-        authenticated_client: AsyncClient,
-        redis_client,
-        clean_redis
+        self, authenticated_client: AsyncClient, redis_client, clean_redis
     ):
         """
         Blacklist TTL matches token expiration time.
@@ -486,9 +437,9 @@ class TestTokenBlacklist:
         expected_ttl = token_exp - current_time
 
         # Verify TTL is approximately correct (within 10 seconds tolerance)
-        assert abs(redis_ttl - expected_ttl) <= 10, \
-            f"Redis TTL ({redis_ttl}s) should match token expiration " \
-            f"({expected_ttl}s remaining)"
+        assert abs(redis_ttl - expected_ttl) <= 10, (
+            f"Redis TTL ({redis_ttl}s) should match token expiration ({expected_ttl}s remaining)"
+        )
 
 
 # ============================================================================
@@ -505,11 +456,7 @@ class TestRateLimiting:
     """
 
     @pytest.mark.asyncio
-    async def test_rate_limit_per_tenant(
-        self,
-        two_tenants_fixture,
-        clean_redis
-    ):
+    async def test_rate_limit_per_tenant(self, two_tenants_fixture, clean_redis):
         """
         Rate limits enforced per-tenant (not global).
 
@@ -520,34 +467,27 @@ class TestRateLimiting:
         # Tenant A: Make requests up to rate limit
         tenant_a_responses = []
         for i in range(10):
-            response = await tenant_a.post("/api/lattices", json={
-                "name": f"Lattice {i}",
-                "dimensions": 2,
-                "size": 10,
-                "field_type": "complex"
-            })
+            response = await tenant_a.post(
+                "/api/lattices",
+                json={"name": f"Lattice {i}", "dimensions": 2, "size": 10, "field_type": "complex"},
+            )
             tenant_a_responses.append(response)
 
         # Tenant B: Should still be able to make requests
         # (separate rate limit bucket)
-        tenant_b_response = await tenant_b.post("/api/lattices", json={
-            "name": "Tenant B Lattice",
-            "dimensions": 2,
-            "size": 10,
-            "field_type": "complex"
-        })
+        tenant_b_response = await tenant_b.post(
+            "/api/lattices",
+            json={"name": "Tenant B Lattice", "dimensions": 2, "size": 10, "field_type": "complex"},
+        )
 
         # Verify Tenant B not affected by Tenant A's rate limit
-        assert tenant_b_response.status_code in [200, 201], \
-            f"Tenant B should not be rate limited by Tenant A's usage. " \
+        assert tenant_b_response.status_code in [200, 201], (
+            f"Tenant B should not be rate limited by Tenant A's usage. "
             f"Got {tenant_b_response.status_code}"
+        )
 
     @pytest.mark.asyncio
-    async def test_rate_limit_per_ip(
-        self,
-        api_client: AsyncClient,
-        clean_redis
-    ):
+    async def test_rate_limit_per_ip(self, api_client: AsyncClient, clean_redis):
         """
         Rate limits enforced per-IP address for unauthenticated endpoints.
 
@@ -556,30 +496,25 @@ class TestRateLimiting:
         # Make rapid requests to login endpoint
         responses = []
         for i in range(20):
-            response = await api_client.post("/auth/login", json={
-                "email": "test@example.com",
-                "password": "wrong-password"
-            })
+            response = await api_client.post(
+                "/auth/login", json={"email": "test@example.com", "password": "wrong-password"}
+            )
             responses.append(response)
 
         # Count 429 responses (rate limited)
         rate_limited = [r for r in responses if r.status_code == 429]
 
         # Verify some requests were rate limited
-        assert len(rate_limited) > 0, \
-            "Expected some requests to be rate limited (429)"
+        assert len(rate_limited) > 0, "Expected some requests to be rate limited (429)"
 
         # Verify 429 response has Retry-After header
         if len(rate_limited) > 0:
-            assert "Retry-After" in rate_limited[0].headers or "retry-after" in rate_limited[0].headers, \
-                "429 response should include Retry-After header"
+            assert (
+                "Retry-After" in rate_limited[0].headers or "retry-after" in rate_limited[0].headers
+            ), "429 response should include Retry-After header"
 
     @pytest.mark.asyncio
-    async def test_rate_limit_429_response(
-        self,
-        authenticated_client: AsyncClient,
-        clean_redis
-    ):
+    async def test_rate_limit_429_response(self, authenticated_client: AsyncClient, clean_redis):
         """
         Exceeded limits return 429 with Retry-After header.
 
@@ -588,41 +523,39 @@ class TestRateLimiting:
         # Make rapid requests to trigger rate limit
         last_response = None
         for i in range(50):
-            response = await authenticated_client.post("/api/lattices", json={
-                "name": f"Lattice {i}",
-                "dimensions": 2,
-                "size": 10,
-                "field_type": "complex"
-            })
+            response = await authenticated_client.post(
+                "/api/lattices",
+                json={"name": f"Lattice {i}", "dimensions": 2, "size": 10, "field_type": "complex"},
+            )
 
             if response.status_code == 429:
                 last_response = response
                 break
 
         # Verify we got rate limited
-        assert last_response is not None, \
-            "Expected to be rate limited after 50 rapid requests"
+        assert last_response is not None, "Expected to be rate limited after 50 rapid requests"
 
         # Verify response format
         assert last_response.status_code == 429
-        assert "Retry-After" in last_response.headers or "retry-after" in last_response.headers, \
+        assert "Retry-After" in last_response.headers or "retry-after" in last_response.headers, (
             "429 response must include Retry-After header"
+        )
 
         # Verify Retry-After is a positive integer
-        retry_after_header = last_response.headers.get("Retry-After") or last_response.headers.get("retry-after")
+        retry_after_header = last_response.headers.get("Retry-After") or last_response.headers.get(
+            "retry-after"
+        )
         retry_after = int(retry_after_header)
         assert retry_after > 0, "Retry-After should be positive"
 
         error_data = last_response.json()
-        assert "rate limit" in error_data["detail"].lower(), \
+        assert "rate limit" in error_data["detail"].lower(), (
             "Error message should mention rate limiting"
+        )
 
     @pytest.mark.asyncio
     async def test_rate_limit_shared_redis(
-        self,
-        authenticated_client: AsyncClient,
-        redis_client,
-        clean_redis
+        self, authenticated_client: AsyncClient, redis_client, clean_redis
     ):
         """
         Rate limit state is shared across workers via Redis.
@@ -631,12 +564,10 @@ class TestRateLimiting:
         """
         # Make requests to increment rate limit counter
         for i in range(5):
-            await authenticated_client.post("/api/lattices", json={
-                "name": f"Lattice {i}",
-                "dimensions": 2,
-                "size": 10,
-                "field_type": "complex"
-            })
+            await authenticated_client.post(
+                "/api/lattices",
+                json={"name": f"Lattice {i}", "dimensions": 2, "size": 10, "field_type": "complex"},
+            )
 
         # Check Redis for rate limit keys
         rate_limit_keys = []
@@ -644,15 +575,12 @@ class TestRateLimiting:
             rate_limit_keys.append(key)
 
         # Verify rate limit state is in Redis
-        assert len(rate_limit_keys) > 0, \
+        assert len(rate_limit_keys) > 0, (
             "Rate limit state should be stored in Redis for distributed access"
+        )
 
     @pytest.mark.asyncio
-    async def test_burst_allowance(
-        self,
-        authenticated_client: AsyncClient,
-        clean_redis
-    ):
+    async def test_burst_allowance(self, authenticated_client: AsyncClient, clean_redis):
         """
         Burst allowance permits temporary spikes within limit.
 
@@ -666,8 +594,9 @@ class TestRateLimiting:
 
         # Verify burst succeeded
         success_count = sum(1 for r in burst_responses if r.status_code == 200)
-        assert success_count == 5, \
+        assert success_count == 5, (
             f"Burst allowance should permit 5 rapid requests, got {success_count} successes"
+        )
 
 
 # ============================================================================
@@ -685,9 +614,7 @@ class TestInputValidation:
 
     @pytest.mark.asyncio
     async def test_sql_injection_blocked(
-        self,
-        authenticated_client: AsyncClient,
-        attack_payloads: Dict[str, List[str]]
+        self, authenticated_client: AsyncClient, attack_payloads: Dict[str, List[str]]
     ):
         """
         SQL injection attempts are blocked.
@@ -699,27 +626,24 @@ class TestInputValidation:
         # Test each SQL injection payload
         blocked_count = 0
         for payload in sql_payloads:
-            response = await authenticated_client.post("/api/lattices", json={
-                "name": payload,
-                "dimensions": 2,
-                "size": 10,
-                "field_type": "complex"
-            })
+            response = await authenticated_client.post(
+                "/api/lattices",
+                json={"name": payload, "dimensions": 2, "size": 10, "field_type": "complex"},
+            )
 
             # Should be rejected (422 validation error or 400 bad request)
             if response.status_code in [400, 422]:
                 blocked_count += 1
 
         # Verify all payloads were blocked
-        assert blocked_count == len(sql_payloads), \
-            f"Expected all {len(sql_payloads)} SQL injection attempts blocked, " \
+        assert blocked_count == len(sql_payloads), (
+            f"Expected all {len(sql_payloads)} SQL injection attempts blocked, "
             f"only {blocked_count} were blocked"
+        )
 
     @pytest.mark.asyncio
     async def test_xss_sanitized(
-        self,
-        authenticated_client: AsyncClient,
-        attack_payloads: Dict[str, List[str]]
+        self, authenticated_client: AsyncClient, attack_payloads: Dict[str, List[str]]
     ):
         """
         XSS attempts are sanitized or rejected.
@@ -730,12 +654,10 @@ class TestInputValidation:
 
         blocked_or_sanitized = 0
         for payload in xss_payloads:
-            response = await authenticated_client.post("/api/lattices", json={
-                "name": payload,
-                "dimensions": 2,
-                "size": 10,
-                "field_type": "complex"
-            })
+            response = await authenticated_client.post(
+                "/api/lattices",
+                json={"name": payload, "dimensions": 2, "size": 10, "field_type": "complex"},
+            )
 
             # Either rejected or sanitized
             if response.status_code in [400, 422]:
@@ -747,15 +669,14 @@ class TestInputValidation:
                 if "<script>" not in data.get("name", "").lower():
                     blocked_or_sanitized += 1
 
-        assert blocked_or_sanitized == len(xss_payloads), \
-            f"Expected all {len(xss_payloads)} XSS attempts blocked/sanitized, " \
+        assert blocked_or_sanitized == len(xss_payloads), (
+            f"Expected all {len(xss_payloads)} XSS attempts blocked/sanitized, "
             f"only {blocked_or_sanitized} were handled"
+        )
 
     @pytest.mark.asyncio
     async def test_path_traversal_blocked(
-        self,
-        authenticated_client: AsyncClient,
-        attack_payloads: Dict[str, List[str]]
+        self, authenticated_client: AsyncClient, attack_payloads: Dict[str, List[str]]
     ):
         """
         Path traversal attempts are rejected.
@@ -766,25 +687,21 @@ class TestInputValidation:
 
         blocked_count = 0
         for payload in path_traversal_payloads:
-            response = await authenticated_client.post("/api/lattices", json={
-                "name": payload,
-                "dimensions": 2,
-                "size": 10,
-                "field_type": "complex"
-            })
+            response = await authenticated_client.post(
+                "/api/lattices",
+                json={"name": payload, "dimensions": 2, "size": 10, "field_type": "complex"},
+            )
 
             if response.status_code in [400, 422]:
                 blocked_count += 1
 
-        assert blocked_count == len(path_traversal_payloads), \
-            f"Expected all {len(path_traversal_payloads)} path traversal attempts blocked, " \
+        assert blocked_count == len(path_traversal_payloads), (
+            f"Expected all {len(path_traversal_payloads)} path traversal attempts blocked, "
             f"only {blocked_count} were blocked"
+        )
 
     @pytest.mark.asyncio
-    async def test_oversized_payload_rejected(
-        self,
-        authenticated_client: AsyncClient
-    ):
+    async def test_oversized_payload_rejected(self, authenticated_client: AsyncClient):
         """
         Oversized payloads return 413 Payload Too Large.
 
@@ -796,23 +713,18 @@ class TestInputValidation:
             "dimensions": 2,
             "size": 10,
             "field_type": "complex",
-            "metadata": "X" * (11 * 1024 * 1024)  # 11MB string
+            "metadata": "X" * (11 * 1024 * 1024),  # 11MB string
         }
 
-        response = await authenticated_client.post(
-            "/api/lattices",
-            json=oversized_payload
-        )
+        response = await authenticated_client.post("/api/lattices", json=oversized_payload)
 
         # Verify rejection with 413
-        assert response.status_code == 413, \
+        assert response.status_code == 413, (
             f"Expected 413 for oversized payload, got {response.status_code}"
+        )
 
     @pytest.mark.asyncio
-    async def test_invalid_json_rejected(
-        self,
-        api_client: AsyncClient
-    ):
+    async def test_invalid_json_rejected(self, api_client: AsyncClient):
         """
         Invalid JSON returns 422 Unprocessable Entity.
 
@@ -822,12 +734,13 @@ class TestInputValidation:
         response = await api_client.post(
             "/auth/login",
             content="{invalid json here}",
-            headers={"Content-Type": "application/json"}
+            headers={"Content-Type": "application/json"},
         )
 
         # Verify rejection
-        assert response.status_code in [400, 422], \
+        assert response.status_code in [400, 422], (
             f"Expected 400/422 for invalid JSON, got {response.status_code}"
+        )
 
 
 # ============================================================================
@@ -844,10 +757,7 @@ class TestCORSAndHeaders:
     """
 
     @pytest.mark.asyncio
-    async def test_cors_headers_present(
-        self,
-        api_client: AsyncClient
-    ):
+    async def test_cors_headers_present(self, api_client: AsyncClient):
         """
         CORS headers present on all responses.
 
@@ -857,19 +767,18 @@ class TestCORSAndHeaders:
 
         # Verify CORS headers (case-insensitive)
         headers_lower = {k.lower(): v for k, v in response.headers.items()}
-        assert "access-control-allow-origin" in headers_lower, \
+        assert "access-control-allow-origin" in headers_lower, (
             "Access-Control-Allow-Origin header missing"
+        )
 
         # Note: In production, this should be specific origin, not "*"
         allowed_origin = headers_lower["access-control-allow-origin"]
-        assert allowed_origin in ["*", "http://localhost:3000"], \
+        assert allowed_origin in ["*", "http://localhost:3000"], (
             f"Unexpected CORS origin: {allowed_origin}"
+        )
 
     @pytest.mark.asyncio
-    async def test_cors_allowed_origins(
-        self,
-        api_client: AsyncClient
-    ):
+    async def test_cors_allowed_origins(self, api_client: AsyncClient):
         """
         CORS only allows configured origins.
 
@@ -877,8 +786,7 @@ class TestCORSAndHeaders:
         """
         # Test allowed origin
         response_allowed = await api_client.get(
-            "/api/lattices",
-            headers={"Origin": "http://localhost:3000"}
+            "/api/lattices", headers={"Origin": "http://localhost:3000"}
         )
 
         # Should have CORS headers
@@ -887,8 +795,7 @@ class TestCORSAndHeaders:
 
         # Test disallowed origin (if strict CORS configured)
         response_disallowed = await api_client.get(
-            "/api/lattices",
-            headers={"Origin": "http://evil.com"}
+            "/api/lattices", headers={"Origin": "http://evil.com"}
         )
 
         headers_disallowed = {k.lower(): v for k, v in response_disallowed.headers.items()}
@@ -897,14 +804,10 @@ class TestCORSAndHeaders:
         if "access-control-allow-origin" in headers_disallowed:
             origin = headers_disallowed["access-control-allow-origin"]
             # If present, it should be "*" (permissive) or the allowed origin
-            assert origin != "http://evil.com", \
-                "CORS should not echo back disallowed origins"
+            assert origin != "http://evil.com", "CORS should not echo back disallowed origins"
 
     @pytest.mark.asyncio
-    async def test_preflight_requests(
-        self,
-        api_client: AsyncClient
-    ):
+    async def test_preflight_requests(self, api_client: AsyncClient):
         """
         CORS preflight requests (OPTIONS) handled correctly.
 
@@ -916,27 +819,27 @@ class TestCORSAndHeaders:
             headers={
                 "Origin": "http://localhost:3000",
                 "Access-Control-Request-Method": "POST",
-                "Access-Control-Request-Headers": "Content-Type,Authorization"
-            }
+                "Access-Control-Request-Headers": "Content-Type,Authorization",
+            },
         )
 
         # Verify preflight response
-        assert response.status_code in [200, 204], \
+        assert response.status_code in [200, 204], (
             f"Preflight should return 200/204, got {response.status_code}"
+        )
 
         # Verify required CORS preflight headers (case-insensitive)
         headers_lower = {k.lower(): v for k, v in response.headers.items()}
-        assert "access-control-allow-methods" in headers_lower, \
+        assert "access-control-allow-methods" in headers_lower, (
             "Preflight response missing Access-Control-Allow-Methods"
+        )
 
-        assert "access-control-allow-headers" in headers_lower, \
+        assert "access-control-allow-headers" in headers_lower, (
             "Preflight response missing Access-Control-Allow-Headers"
+        )
 
     @pytest.mark.asyncio
-    async def test_security_headers_present(
-        self,
-        api_client: AsyncClient
-    ):
+    async def test_security_headers_present(self, api_client: AsyncClient):
         """
         Security headers present on responses.
 
@@ -946,21 +849,18 @@ class TestCORSAndHeaders:
         headers_lower = {k.lower(): v for k, v in response.headers.items()}
 
         # X-Content-Type-Options (prevent MIME sniffing)
-        assert "x-content-type-options" in headers_lower, \
-            "X-Content-Type-Options header missing"
+        assert "x-content-type-options" in headers_lower, "X-Content-Type-Options header missing"
         assert headers_lower["x-content-type-options"] == "nosniff"
 
         # X-Frame-Options (prevent clickjacking)
-        assert "x-frame-options" in headers_lower, \
-            "X-Frame-Options header missing"
+        assert "x-frame-options" in headers_lower, "X-Frame-Options header missing"
         assert headers_lower["x-frame-options"] in ["DENY", "SAMEORIGIN"]
 
         # Content-Security-Policy (XSS protection)
         # Note: May not be set in API-only mode
         if "content-security-policy" in headers_lower:
             csp = headers_lower["content-security-policy"]
-            assert "default-src" in csp or "script-src" in csp, \
-                "CSP should define source policies"
+            assert "default-src" in csp or "script-src" in csp, "CSP should define source policies"
 
 
 # ============================================================================
@@ -976,10 +876,7 @@ class TestTenantIsolation:
     """
 
     @pytest.mark.asyncio
-    async def test_cross_tenant_access_blocked(
-        self,
-        two_tenants_fixture
-    ):
+    async def test_cross_tenant_access_blocked(self, two_tenants_fixture):
         """
         User cannot access other tenant's resources.
 
@@ -988,29 +885,28 @@ class TestTenantIsolation:
         tenant_a, tenant_b = two_tenants_fixture
 
         # Tenant A creates lattice
-        lattice_response = await tenant_a.post("/api/lattices", json={
-            "name": "Tenant A Secret Lattice",
-            "dimensions": 2,
-            "size": 100,
-            "field_type": "complex"
-        })
+        lattice_response = await tenant_a.post(
+            "/api/lattices",
+            json={
+                "name": "Tenant A Secret Lattice",
+                "dimensions": 2,
+                "size": 100,
+                "field_type": "complex",
+            },
+        )
         assert lattice_response.status_code == 201
         lattice_a_id = lattice_response.json()["id"]
 
         # Tenant B attempts to access Tenant A's lattice
-        cross_tenant_response = await tenant_b.get(
-            f"/api/lattices/{lattice_a_id}"
-        )
+        cross_tenant_response = await tenant_b.get(f"/api/lattices/{lattice_a_id}")
 
         # Verify access blocked
-        assert cross_tenant_response.status_code == 404, \
+        assert cross_tenant_response.status_code == 404, (
             f"Cross-tenant access should return 404, got {cross_tenant_response.status_code}"
+        )
 
     @pytest.mark.asyncio
-    async def test_database_tenant_filtering(
-        self,
-        two_tenants_fixture
-    ):
+    async def test_database_tenant_filtering(self, two_tenants_fixture):
         """
         Database queries automatically filter by tenant_id.
 
@@ -1019,19 +915,15 @@ class TestTenantIsolation:
         tenant_a, tenant_b = two_tenants_fixture
 
         # Create lattices for both tenants
-        await tenant_a.post("/api/lattices", json={
-            "name": "Tenant A Lattice",
-            "dimensions": 2,
-            "size": 10,
-            "field_type": "complex"
-        })
+        await tenant_a.post(
+            "/api/lattices",
+            json={"name": "Tenant A Lattice", "dimensions": 2, "size": 10, "field_type": "complex"},
+        )
 
-        await tenant_b.post("/api/lattices", json={
-            "name": "Tenant B Lattice",
-            "dimensions": 2,
-            "size": 10,
-            "field_type": "complex"
-        })
+        await tenant_b.post(
+            "/api/lattices",
+            json={"name": "Tenant B Lattice", "dimensions": 2, "size": 10, "field_type": "complex"},
+        )
 
         # Get lattices for Tenant A
         tenant_a_lattices_response = await tenant_a.get("/api/lattices")
@@ -1043,19 +935,18 @@ class TestTenantIsolation:
 
         # Verify Tenant A only sees their own lattices
         for lattice in tenant_a_lattices:
-            assert lattice["name"] != "Tenant B Lattice", \
+            assert lattice["name"] != "Tenant B Lattice", (
                 "Tenant A should not see Tenant B's lattices"
+            )
 
         # Verify Tenant B only sees their own lattices
         for lattice in tenant_b_lattices:
-            assert lattice["name"] != "Tenant A Lattice", \
+            assert lattice["name"] != "Tenant A Lattice", (
                 "Tenant B should not see Tenant A's lattices"
+            )
 
     @pytest.mark.asyncio
-    async def test_cross_tenant_returns_404(
-        self,
-        two_tenants_fixture
-    ):
+    async def test_cross_tenant_returns_404(self, two_tenants_fixture):
         """
         Cross-tenant access attempts return 404 (not 403).
 
@@ -1067,32 +958,29 @@ class TestTenantIsolation:
         tenant_a, tenant_b = two_tenants_fixture
 
         # Tenant A creates lattice
-        lattice_response = await tenant_a.post("/api/lattices", json={
-            "name": "Secret Lattice",
-            "dimensions": 2,
-            "size": 10,
-            "field_type": "complex"
-        })
+        lattice_response = await tenant_a.post(
+            "/api/lattices",
+            json={"name": "Secret Lattice", "dimensions": 2, "size": 10, "field_type": "complex"},
+        )
         lattice_id = lattice_response.json()["id"]
 
         # Tenant B attempts access
         cross_response = await tenant_b.get(f"/api/lattices/{lattice_id}")
 
         # MUST be 404, not 403
-        assert cross_response.status_code == 404, \
-            f"Cross-tenant access MUST return 404 (not 403) to avoid " \
+        assert cross_response.status_code == 404, (
+            f"Cross-tenant access MUST return 404 (not 403) to avoid "
             f"information disclosure. Got {cross_response.status_code}"
+        )
 
         # Error message should not reveal resource exists
         error_data = cross_response.json()
-        assert "not found" in error_data["detail"].lower(), \
+        assert "not found" in error_data["detail"].lower(), (
             "Error message should indicate 'not found', not 'access denied'"
+        )
 
     @pytest.mark.asyncio
-    async def test_admin_tenant_scoped(
-        self,
-        two_tenants_fixture
-    ):
+    async def test_admin_tenant_scoped(self, two_tenants_fixture):
         """
         Admin users can only admin their own tenant.
 
@@ -1108,8 +996,9 @@ class TestTenantIsolation:
         tenant_b_lattices = await tenant_b.get("/api/lattices")
 
         # Verify lists are independent
-        assert tenant_a_lattices.json() != tenant_b_lattices.json(), \
+        assert tenant_a_lattices.json() != tenant_b_lattices.json(), (
             "Tenant lists should be completely isolated"
+        )
 
 
 # ============================================================================
@@ -1125,11 +1014,7 @@ class TestSecurityMetrics:
     """
 
     @pytest.mark.asyncio
-    async def test_failed_auth_logged(
-        self,
-        api_client: AsyncClient,
-        caplog
-    ):
+    async def test_failed_auth_logged(self, api_client: AsyncClient, caplog):
         """
         Failed authentication attempts are logged.
 
@@ -1137,26 +1022,23 @@ class TestSecurityMetrics:
         """
         with caplog.at_level(logging.WARNING):
             # Attempt login with wrong password
-            response = await api_client.post("/auth/login", json={
-                "email": "test@example.com",
-                "password": "wrong-password"
-            })
+            response = await api_client.post(
+                "/auth/login", json={"email": "test@example.com", "password": "wrong-password"}
+            )
 
             assert response.status_code == 401
 
         # Verify security event was logged
-        assert any("auth" in record.message.lower() or
-                   "login" in record.message.lower() or
-                   "failed" in record.message.lower()
-                   for record in caplog.records), \
-            "Failed authentication should be logged"
+        assert any(
+            "auth" in record.message.lower()
+            or "login" in record.message.lower()
+            or "failed" in record.message.lower()
+            for record in caplog.records
+        ), "Failed authentication should be logged"
 
     @pytest.mark.asyncio
     async def test_rate_limit_violations_logged(
-        self,
-        authenticated_client: AsyncClient,
-        caplog,
-        clean_redis
+        self, authenticated_client: AsyncClient, caplog, clean_redis
     ):
         """
         Rate limit violations are logged for security monitoring.
@@ -1166,24 +1048,24 @@ class TestSecurityMetrics:
         with caplog.at_level(logging.WARNING):
             # Trigger rate limit
             for i in range(50):
-                await authenticated_client.post("/api/lattices", json={
-                    "name": f"Lattice {i}",
-                    "dimensions": 2,
-                    "size": 10,
-                    "field_type": "complex"
-                })
+                await authenticated_client.post(
+                    "/api/lattices",
+                    json={
+                        "name": f"Lattice {i}",
+                        "dimensions": 2,
+                        "size": 10,
+                        "field_type": "complex",
+                    },
+                )
 
         # Verify rate limit violation logged
-        assert any("rate limit" in record.message.lower()
-                   for record in caplog.records), \
+        assert any("rate limit" in record.message.lower() for record in caplog.records), (
             "Rate limit violations should be logged"
+        )
 
     @pytest.mark.asyncio
     async def test_attack_attempts_logged(
-        self,
-        authenticated_client: AsyncClient,
-        attack_payloads: Dict[str, List[str]],
-        caplog
+        self, authenticated_client: AsyncClient, attack_payloads: Dict[str, List[str]], caplog
     ):
         """
         SQL injection and XSS attempts are logged.
@@ -1192,24 +1074,28 @@ class TestSecurityMetrics:
         """
         with caplog.at_level(logging.WARNING):
             # Attempt SQL injection
-            await authenticated_client.post("/api/lattices", json={
-                "name": "'; DROP TABLE users; --",
-                "dimensions": 2,
-                "size": 10,
-                "field_type": "complex"
-            })
+            await authenticated_client.post(
+                "/api/lattices",
+                json={
+                    "name": "'; DROP TABLE users; --",
+                    "dimensions": 2,
+                    "size": 10,
+                    "field_type": "complex",
+                },
+            )
 
             # Attempt XSS
-            await authenticated_client.post("/api/lattices", json={
-                "name": "<script>alert('XSS')</script>",
-                "dimensions": 2,
-                "size": 10,
-                "field_type": "complex"
-            })
+            await authenticated_client.post(
+                "/api/lattices",
+                json={
+                    "name": "<script>alert('XSS')</script>",
+                    "dimensions": 2,
+                    "size": 10,
+                    "field_type": "complex",
+                },
+            )
 
         # Verify attack attempts logged
-        security_logs = [r for r in caplog.records
-                        if r.levelname in ["WARNING", "ERROR"]]
+        security_logs = [r for r in caplog.records if r.levelname in ["WARNING", "ERROR"]]
 
-        assert len(security_logs) > 0, \
-            "Attack attempts should be logged as WARNING or ERROR"
+        assert len(security_logs) > 0, "Attack attempts should be logged as WARNING or ERROR"

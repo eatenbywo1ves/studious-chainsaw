@@ -49,7 +49,7 @@ SCENARIOS = {
         "users": 100,
         "spawn_rate": 10,
         "run_time": "10m",
-        "tags": "baseline"
+        "tags": "baseline",
     },
     "stress": {
         "name": "Stress Test",
@@ -57,7 +57,7 @@ SCENARIOS = {
         "users": 500,
         "spawn_rate": 50,
         "run_time": "5m",
-        "tags": "stress"
+        "tags": "stress",
     },
     "spike": {
         "name": "Spike Test",
@@ -65,7 +65,7 @@ SCENARIOS = {
         "users": 1000,
         "spawn_rate": 1000,
         "run_time": "5m",
-        "tags": "spike"
+        "tags": "spike",
     },
     "soak": {
         "name": "Soak Test",
@@ -73,7 +73,7 @@ SCENARIOS = {
         "users": 50,
         "spawn_rate": 5,
         "run_time": "4h",
-        "tags": "soak"
+        "tags": "soak",
     },
     "mixed": {
         "name": "Mixed Workload Test",
@@ -81,20 +81,21 @@ SCENARIOS = {
         "users": 200,
         "spawn_rate": 20,
         "run_time": "15m",
-        "tags": "mixed"
-    }
+        "tags": "mixed",
+    },
 }
 
 PERFORMANCE_TARGETS = {
     "p95_latency_ms": 500,
     "p99_latency_ms": 1000,
     "target_throughput_rps": 1000,
-    "max_error_rate_pct": 1.0
+    "max_error_rate_pct": 1.0,
 }
 
 # ============================================================================
 # TEST RUNNER
 # ============================================================================
+
 
 class LoadTestRunner:
     """Orchestrates load testing execution"""
@@ -112,7 +113,9 @@ class LoadTestRunner:
         print(f"\n{'=' * 80}")
         print(f"Running: {scenario['name']}")
         print(f"Description: {scenario['description']}")
-        print(f"Configuration: {scenario['users']} users, spawn rate {scenario['spawn_rate']}, duration {scenario['run_time']}")
+        print(
+            f"Configuration: {scenario['users']} users, spawn rate {scenario['spawn_rate']}, duration {scenario['run_time']}"
+        )
         print(f"{'=' * 80}\n")
 
         # Prepare output files
@@ -125,16 +128,25 @@ class LoadTestRunner:
         else:
             cmd = [
                 "locust",
-                "-f", "locustfile.py",
-                "--host", self.host,
-                "--tags", scenario["tags"],
-                "--users", str(scenario["users"]),
-                "--spawn-rate", str(scenario["spawn_rate"]),
-                "--run-time", scenario["run_time"],
+                "-f",
+                "locustfile.py",
+                "--host",
+                self.host,
+                "--tags",
+                scenario["tags"],
+                "--users",
+                str(scenario["users"]),
+                "--spawn-rate",
+                str(scenario["spawn_rate"]),
+                "--run-time",
+                scenario["run_time"],
                 "--headless",
-                "--html", str(html_report),
-                "--csv", str(csv_stats),
-                "--loglevel", "INFO"
+                "--html",
+                str(html_report),
+                "--csv",
+                str(csv_stats),
+                "--loglevel",
+                "INFO",
             ]
 
         # Execute test
@@ -163,7 +175,7 @@ class LoadTestRunner:
             "duration_seconds": duration,
             "html_report": str(html_report),
             "csv_stats": str(csv_stats),
-            "timestamp": self.timestamp
+            "timestamp": self.timestamp,
         }
 
         # Analyze metrics if CSV exists
@@ -177,14 +189,19 @@ class LoadTestRunner:
         """Build Docker Compose command for load testing"""
         return [
             "docker-compose",
-            "-f", "docker-compose.load-test.yml",
+            "-f",
+            "docker-compose.load-test.yml",
             "run",
             "--rm",
-            "-e", f"LOCUST_TAGS={scenario['tags']}",
-            "-e", f"LOCUST_USERS={scenario['users']}",
-            "-e", f"LOCUST_SPAWN_RATE={scenario['spawn_rate']}",
-            "-e", f"LOCUST_RUN_TIME={scenario['run_time']}",
-            "locust-master"
+            "-e",
+            f"LOCUST_TAGS={scenario['tags']}",
+            "-e",
+            f"LOCUST_USERS={scenario['users']}",
+            "-e",
+            f"LOCUST_SPAWN_RATE={scenario['spawn_rate']}",
+            "-e",
+            f"LOCUST_RUN_TIME={scenario['run_time']}",
+            "locust-master",
         ]
 
     def _analyze_metrics(self, csv_file: Path) -> Dict[str, Any]:
@@ -198,15 +215,23 @@ class LoadTestRunner:
             metrics = {
                 "total_requests": df["Request Count"].sum() if "Request Count" in df.columns else 0,
                 "total_failures": df["Failure Count"].sum() if "Failure Count" in df.columns else 0,
-                "avg_response_time": df["Average Response Time"].mean() if "Average Response Time" in df.columns else 0,
-                "min_response_time": df["Min Response Time"].min() if "Min Response Time" in df.columns else 0,
-                "max_response_time": df["Max Response Time"].max() if "Max Response Time" in df.columns else 0,
-                "requests_per_second": df["Requests/s"].mean() if "Requests/s" in df.columns else 0
+                "avg_response_time": df["Average Response Time"].mean()
+                if "Average Response Time" in df.columns
+                else 0,
+                "min_response_time": df["Min Response Time"].min()
+                if "Min Response Time" in df.columns
+                else 0,
+                "max_response_time": df["Max Response Time"].max()
+                if "Max Response Time" in df.columns
+                else 0,
+                "requests_per_second": df["Requests/s"].mean() if "Requests/s" in df.columns else 0,
             }
 
             # Calculate error rate
             if metrics["total_requests"] > 0:
-                metrics["error_rate_pct"] = (metrics["total_failures"] / metrics["total_requests"]) * 100
+                metrics["error_rate_pct"] = (
+                    metrics["total_failures"] / metrics["total_requests"]
+                ) * 100
             else:
                 metrics["error_rate_pct"] = 0
 
@@ -222,8 +247,10 @@ class LoadTestRunner:
     def _validate_targets(self, metrics: Dict[str, Any]) -> Dict[str, bool]:
         """Validate metrics against performance targets"""
         return {
-            "error_rate": metrics.get("error_rate_pct", 100) <= PERFORMANCE_TARGETS["max_error_rate_pct"],
-            "throughput": metrics.get("requests_per_second", 0) >= PERFORMANCE_TARGETS["target_throughput_rps"] * 0.8  # 80% of target
+            "error_rate": metrics.get("error_rate_pct", 100)
+            <= PERFORMANCE_TARGETS["max_error_rate_pct"],
+            "throughput": metrics.get("requests_per_second", 0)
+            >= PERFORMANCE_TARGETS["target_throughput_rps"] * 0.8,  # 80% of target
         }
 
     def run_all_scenarios(self, exclude_soak: bool = True) -> List[Dict[str, Any]]:
@@ -279,8 +306,12 @@ class LoadTestRunner:
 
                 if "meets_targets" in metrics:
                     targets = metrics["meets_targets"]
-                    print(f"  Meets Error Rate Target: {'YES' if targets.get('error_rate') else 'NO'}")
-                    print(f"  Meets Throughput Target: {'YES' if targets.get('throughput') else 'NO'}")
+                    print(
+                        f"  Meets Error Rate Target: {'YES' if targets.get('error_rate') else 'NO'}"
+                    )
+                    print(
+                        f"  Meets Throughput Target: {'YES' if targets.get('throughput') else 'NO'}"
+                    )
 
             print(f"  HTML Report: {result['html_report']}")
 
@@ -290,18 +321,24 @@ class LoadTestRunner:
 
         # Save summary to JSON
         summary_file = self.results_dir / f"summary_{self.timestamp}.json"
-        with open(summary_file, 'w') as f:
-            json.dump({
-                "timestamp": self.timestamp,
-                "results": results,
-                "summary": {"passed": passed, "failed": failed}
-            }, f, indent=2)
+        with open(summary_file, "w") as f:
+            json.dump(
+                {
+                    "timestamp": self.timestamp,
+                    "results": results,
+                    "summary": {"passed": passed, "failed": failed},
+                },
+                f,
+                indent=2,
+            )
 
         print(f"Summary saved to: {summary_file}\n")
+
 
 # ============================================================================
 # MAIN
 # ============================================================================
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -310,24 +347,16 @@ def main():
     parser.add_argument(
         "--host",
         default="http://localhost:8000",
-        help="API host URL (default: http://localhost:8000)"
+        help="API host URL (default: http://localhost:8000)",
     )
     parser.add_argument(
         "--scenario",
         choices=list(SCENARIOS.keys()) + ["all"],
         default="all",
-        help="Scenario to run (default: all)"
+        help="Scenario to run (default: all)",
     )
-    parser.add_argument(
-        "--docker",
-        action="store_true",
-        help="Run tests in Docker environment"
-    )
-    parser.add_argument(
-        "--include-soak",
-        action="store_true",
-        help="Include soak test (4 hours)"
-    )
+    parser.add_argument("--docker", action="store_true", help="Run tests in Docker environment")
+    parser.add_argument("--include-soak", action="store_true", help="Include soak test (4 hours)")
 
     args = parser.parse_args()
 
@@ -349,6 +378,7 @@ def main():
         runner.generate_summary_report([result])
 
     print("\nLoad testing complete!\n")
+
 
 if __name__ == "__main__":
     main()

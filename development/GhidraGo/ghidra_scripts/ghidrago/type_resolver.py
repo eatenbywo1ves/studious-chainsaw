@@ -88,11 +88,11 @@ class TypeResolver:
             if type_offset in self.resolution_stack:
                 # Circular reference detected - return placeholder
                 return {
-                    'name': '<circular>',
-                    'kind_name': 'ptr',
-                    'size': 8,
-                    'circular': True,
-                    'offset': type_offset
+                    "name": "<circular>",
+                    "kind_name": "ptr",
+                    "size": 8,
+                    "circular": True,
+                    "offset": type_offset,
                 }
 
             # Add to resolution stack
@@ -129,7 +129,7 @@ class TypeResolver:
         """
         try:
             # Get base field information
-            rtype_addr = toAddr(struct_type_info.get('address', 0))
+            rtype_addr = toAddr(struct_type_info.get("address", 0))
             base_fields = struct_field_parser.parse_struct_type(rtype_addr, struct_type_info)
 
             # Resolve type reference for each field
@@ -138,17 +138,16 @@ class TypeResolver:
                 field_copy = field.copy()
 
                 # Resolve field type
-                type_offset = field.get('type_offset', 0)
+                type_offset = field.get("type_offset", 0)
                 if type_offset != 0:
                     field_type = self.resolve_type_offset(
-                        type_offset,
-                        f"field '{field.get('name', '<unknown>')}'"
+                        type_offset, f"field '{field.get('name', '<unknown>')}'"
                     )
 
                     if field_type:
-                        field_copy['type_info'] = field_type
-                        field_copy['type_name'] = field_type.get('name', '<unknown>')
-                        field_copy['type_kind'] = field_type.get('kind_name', '<unknown>')
+                        field_copy["type_info"] = field_type
+                        field_copy["type_name"] = field_type.get("name", "<unknown>")
+                        field_copy["type_kind"] = field_type.get("kind_name", "<unknown>")
 
                 resolved_fields.append(field_copy)
 
@@ -158,7 +157,9 @@ class TypeResolver:
             print(f"[!] Error resolving struct fields: {e}")
             return []
 
-    def resolve_interface_methods(self, interface_type_info, interface_method_parser) -> List[Dict[str, Any]]:
+    def resolve_interface_methods(
+        self, interface_type_info, interface_method_parser
+    ) -> List[Dict[str, Any]]:
         """
         Resolve all method types for an interface.
 
@@ -171,8 +172,10 @@ class TypeResolver:
         """
         try:
             # Get base method information
-            rtype_addr = toAddr(interface_type_info.get('address', 0))
-            base_methods = interface_method_parser.parse_interface_type(rtype_addr, interface_type_info)
+            rtype_addr = toAddr(interface_type_info.get("address", 0))
+            base_methods = interface_method_parser.parse_interface_type(
+                rtype_addr, interface_type_info
+            )
 
             # Resolve type reference for each method
             resolved_methods = []
@@ -180,16 +183,15 @@ class TypeResolver:
                 method_copy = method.copy()
 
                 # Resolve method signature type
-                type_offset = method.get('type_offset', 0)
+                type_offset = method.get("type_offset", 0)
                 if type_offset != 0:
                     method_type = self.resolve_type_offset(
-                        type_offset,
-                        f"method '{method.get('name', '<unknown>')}'"
+                        type_offset, f"method '{method.get('name', '<unknown>')}'"
                     )
 
                     if method_type:
-                        method_copy['type_info'] = method_type
-                        method_copy['signature'] = method_type.get('name', '<unknown>')
+                        method_copy["type_info"] = method_type
+                        method_copy["signature"] = method_type.get("name", "<unknown>")
 
                 resolved_methods.append(method_copy)
 
@@ -212,35 +214,39 @@ class TypeResolver:
         graph = {}
 
         for type_info in type_info_list:
-            type_name = type_info.get('name', '<unknown>')
+            type_name = type_info.get("name", "<unknown>")
             dependencies = set()
 
             # Check for type-specific references
-            kind = type_info.get('kind_name', '')
+            kind = type_info.get("kind_name", "")
 
-            if kind == 'ptr':
+            if kind == "ptr":
                 # Pointer to element type
-                elem_offset = type_info.get('ptr_elem_offset', 0)
+                elem_offset = type_info.get("ptr_elem_offset", 0)
                 if elem_offset:
                     elem_type = self.resolve_type_offset(elem_offset, f"ptr element of {type_name}")
                     if elem_type:
-                        dependencies.add(elem_type.get('name', '<unknown>'))
+                        dependencies.add(elem_type.get("name", "<unknown>"))
 
-            elif kind == 'slice':
+            elif kind == "slice":
                 # Slice element type
-                elem_offset = type_info.get('slice_elem_offset', 0)
+                elem_offset = type_info.get("slice_elem_offset", 0)
                 if elem_offset:
-                    elem_type = self.resolve_type_offset(elem_offset, f"slice element of {type_name}")
+                    elem_type = self.resolve_type_offset(
+                        elem_offset, f"slice element of {type_name}"
+                    )
                     if elem_type:
-                        dependencies.add(elem_type.get('name', '<unknown>'))
+                        dependencies.add(elem_type.get("name", "<unknown>"))
 
-            elif kind == 'array':
+            elif kind == "array":
                 # Array element type
-                elem_offset = type_info.get('array_elem_offset', 0)
+                elem_offset = type_info.get("array_elem_offset", 0)
                 if elem_offset:
-                    elem_type = self.resolve_type_offset(elem_offset, f"array element of {type_name}")
+                    elem_type = self.resolve_type_offset(
+                        elem_offset, f"array element of {type_name}"
+                    )
                     if elem_type:
-                        dependencies.add(elem_type.get('name', '<unknown>'))
+                        dependencies.add(elem_type.get("name", "<unknown>"))
 
             graph[type_name] = dependencies
 
@@ -259,12 +265,12 @@ class TypeResolver:
         hit_rate = (self.cache_hits / total_resolutions * 100) if total_resolutions > 0 else 0
 
         return {
-            'types_cached': len(self.type_cache),
-            'cache_size_bytes': len(self.type_cache) * 100,  # Approximate
-            'cache_hits': self.cache_hits,
-            'cache_misses': self.cache_misses,
-            'total_resolutions': total_resolutions,
-            'cache_hit_rate_percent': round(hit_rate, 2),
+            "types_cached": len(self.type_cache),
+            "cache_size_bytes": len(self.type_cache) * 100,  # Approximate
+            "cache_hits": self.cache_hits,
+            "cache_misses": self.cache_misses,
+            "total_resolutions": total_resolutions,
+            "cache_hit_rate_percent": round(hit_rate, 2),
         }
 
     def clear_cache(self):
@@ -276,15 +282,19 @@ class TypeResolver:
 # Helper function for testing
 def test_type_resolver():
     """Test type resolver with current program."""
-    print("="*60)
+    print("=" * 60)
     print("Testing TypeResolver")
-    print("="*60)
+    print("=" * 60)
 
     print("\nTo use TypeResolver:")
     print("1. Create resolver: resolver = TypeResolver(program, types_base, rtype_parser)")
     print("2. Resolve offset: type_info = resolver.resolve_type_offset(offset)")
-    print("3. Resolve struct fields: fields = resolver.resolve_struct_fields(struct_info, field_parser)")
-    print("4. Resolve interface methods: methods = resolver.resolve_interface_methods(iface_info, method_parser)")
+    print(
+        "3. Resolve struct fields: fields = resolver.resolve_struct_fields(struct_info, field_parser)"
+    )
+    print(
+        "4. Resolve interface methods: methods = resolver.resolve_interface_methods(iface_info, method_parser)"
+    )
     print("\nExample:")
     print("  resolver = TypeResolver(program, types_base, rtype_parser)")
     print("  ")

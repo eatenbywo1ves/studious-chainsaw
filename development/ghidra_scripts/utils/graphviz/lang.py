@@ -9,21 +9,20 @@ from . import _compat
 
 from . import tools
 
-__all__ = ['quote', 'quote_edge', 'a_list', 'attr_list']
+__all__ = ["quote", "quote_edge", "a_list", "attr_list"]
 
 # http://www.graphviz.org/doc/info/lang.html
 
-HTML_STRING = re.compile(r'<.*>$', re.DOTALL)
+HTML_STRING = re.compile(r"<.*>$", re.DOTALL)
 
-ID = re.compile(r'([a-zA-Z_][a-zA-Z0-9_]*|-?(\.\d+|\d+(\.\d*)?))$')
+ID = re.compile(r"([a-zA-Z_][a-zA-Z0-9_]*|-?(\.\d+|\d+(\.\d*)?))$")
 
-KEYWORDS = {'node', 'edge', 'graph', 'digraph', 'subgraph', 'strict'}
+KEYWORDS = {"node", "edge", "graph", "digraph", "subgraph", "strict"}
 
-COMPASS = {'n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw', 'c', '_'}  # TODO
+COMPASS = {"n", "ne", "e", "se", "s", "sw", "w", "nw", "c", "_"}  # TODO
 
 
-def quote(identifier,
-          html=HTML_STRING.match, valid_id=ID.match, dot_keywords=KEYWORDS):
+def quote(identifier, html=HTML_STRING.match, valid_id=ID.match, dot_keywords=KEYWORDS):
     r"""Return DOT identifier from string, quote if needed.
 
     >>> quote('')
@@ -56,7 +55,7 @@ def quote(identifier,
     if html(identifier) and not isinstance(identifier, NoHtml):
         pass
     elif not valid_id(identifier) or identifier.lower() in dot_keywords:
-        return '"%s"' % identifier.replace('\\', '\\\\').replace('"', '\\"')
+        return '"%s"' % identifier.replace("\\", "\\\\").replace('"', '\\"')
     return identifier
 
 
@@ -72,14 +71,14 @@ def quote_edge(identifier):
     >>> quote_edge('spam:eggs:s')
     'spam:eggs:s'
     """
-    node, _, rest = identifier.partition(':')
+    node, _, rest = identifier.partition(":")
     parts = [quote(node)]
     if rest:
-        port, _, compass = rest.partition(':')
+        port, _, compass = rest.partition(":")
         parts.append(quote(port))
         if compass:
             parts.append(compass)
-    return ':'.join(parts)
+    return ":".join(parts)
 
 
 def a_list(label=None, kwargs=None, attributes=None):
@@ -88,18 +87,18 @@ def a_list(label=None, kwargs=None, attributes=None):
     >>> a_list('spam', {'spam': None, 'ham': 'ham ham', 'eggs': ''})
     'label=spam eggs="" ham="ham ham"'
     """
-    result = ['label=%s' % quote(label)] if label is not None else []
+    result = ["label=%s" % quote(label)] if label is not None else []
     if kwargs:
-        items = ['%s=%s' % (quote(k), quote(v))
-                 for k, v in tools.mapping_items(kwargs) if v is not None]
+        items = [
+            "%s=%s" % (quote(k), quote(v)) for k, v in tools.mapping_items(kwargs) if v is not None
+        ]
         result.extend(items)
     if attributes:
-        if hasattr(attributes, 'items'):
+        if hasattr(attributes, "items"):
             attributes = tools.mapping_items(attributes)
-        items = ['%s=%s' % (quote(k), quote(v))
-                 for k, v in attributes if v is not None]
+        items = ["%s=%s" % (quote(k), quote(v)) for k, v in attributes if v is not None]
         result.extend(items)
-    return ' '.join(result)
+    return " ".join(result)
 
 
 def attr_list(label=None, kwargs=None, attributes=None):
@@ -119,8 +118,8 @@ def attr_list(label=None, kwargs=None, attributes=None):
     """
     content = a_list(label, kwargs, attributes)
     if not content:
-        return ''
-    return ' [%s]' % content
+        return ""
+    return " [%s]" % content
 
 
 class NoHtml(object):
@@ -132,9 +131,9 @@ class NoHtml(object):
 
     @classmethod
     def _subcls(cls, other):
-        name = '%s_%s' % (cls.__name__, other.__name__)
+        name = "%s_%s" % (cls.__name__, other.__name__)
         bases = (other, cls)
-        ns = {'__doc__': cls._doc % other.__name__}
+        ns = {"__doc__": cls._doc % other.__name__}
         return type(name, bases, ns)
 
 
@@ -158,6 +157,5 @@ def nohtml(s):
     try:
         subcls = NOHTML[type(s)]
     except KeyError:
-        raise TypeError('%r does not have one of the required types:'
-                        ' %r' % (s, list(NOHTML)))
+        raise TypeError("%r does not have one of the required types: %r" % (s, list(NOHTML)))
     return subcls(s)

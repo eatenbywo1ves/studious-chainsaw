@@ -14,6 +14,7 @@ if TYPE_CHECKING:
 
 try:
     import igraph as ig
+
     IGRAPH_AVAILABLE = True
 except ImportError:
     IGRAPH_AVAILABLE = False
@@ -42,7 +43,7 @@ class UnifiedCatalyticLattice(BaseLatticeComputer, IPathFinder, ITransformer, IA
         backend: Optional[GPUBackend] = None,
         aux_memory_size: int = 1000,
         enable_gpu: bool = True,
-        enable_smart_routing: bool = True
+        enable_smart_routing: bool = True,
     ):
         """
         Initialize unified catalytic lattice
@@ -70,9 +71,7 @@ class UnifiedCatalyticLattice(BaseLatticeComputer, IPathFinder, ITransformer, IA
         if enable_gpu:
             try:
                 self.gpu_backend = GPUFactory.create(
-                    dimensions=dimensions,
-                    size=size,
-                    backend=backend
+                    dimensions=dimensions, size=size, backend=backend
                 )
                 logger.info(f"Using GPU backend: {self.gpu_backend.__class__.__name__}")
                 if enable_smart_routing:
@@ -89,7 +88,7 @@ class UnifiedCatalyticLattice(BaseLatticeComputer, IPathFinder, ITransformer, IA
         self._path_cache: Dict[Tuple[int, int], Tuple[List[int], float]] = {}
         self._metrics_cache: Optional[LatticeMetrics] = None
 
-    def build_lattice(self) -> Union['ig.Graph', Dict[int, List[int]]]:
+    def build_lattice(self) -> Union["ig.Graph", Dict[int, List[int]]]:
         """Build the lattice structure with smart GPU/CPU routing
 
         Returns:
@@ -104,7 +103,7 @@ class UnifiedCatalyticLattice(BaseLatticeComputer, IPathFinder, ITransformer, IA
             use_gpu, reason = self.operation_router.route_operation(
                 operation_type=OperationType.LATTICE_CREATION,
                 element_count=self.n_points,
-                gpu_available=self.gpu_backend is not None
+                gpu_available=self.gpu_backend is not None,
             )
             logger.debug(f"Lattice creation routing: {'GPU' if use_gpu else 'CPU'} - {reason}")
 
@@ -132,7 +131,9 @@ class UnifiedCatalyticLattice(BaseLatticeComputer, IPathFinder, ITransformer, IA
                 self.graph.vs[i]["coords"] = coords.tolist()
 
             build_time = (time.perf_counter() - start_time) * 1000
-            logger.info(f"Built unified lattice: {self.n_points} vertices, {len(edges)} edges in {build_time:.2f}ms")
+            logger.info(
+                f"Built unified lattice: {self.n_points} vertices, {len(edges)} edges in {build_time:.2f}ms"
+            )
 
             return self.graph
         else:
@@ -161,7 +162,7 @@ class UnifiedCatalyticLattice(BaseLatticeComputer, IPathFinder, ITransformer, IA
             use_gpu, reason = self.operation_router.route_operation(
                 operation_type=OperationType.PATH_FINDING,
                 element_count=self.n_points,
-                gpu_available=self.gpu_backend is not None
+                gpu_available=self.gpu_backend is not None,
             )
             logger.debug(f"Path finding routing: {'GPU' if use_gpu else 'CPU'} - {reason}")
 
@@ -170,7 +171,7 @@ class UnifiedCatalyticLattice(BaseLatticeComputer, IPathFinder, ITransformer, IA
             path, exec_time = self.gpu_backend.find_shortest_path(start, end)
         # Use igraph if available (CPU, much faster for graph algorithms)
         elif self.graph:
-            paths = self.graph.get_shortest_paths(start, to=end, mode='all')
+            paths = self.graph.get_shortest_paths(start, to=end, mode="all")
             path = paths[0] if paths else []
             exec_time = (time.perf_counter() - start_time) * 1000
         else:
@@ -186,10 +187,7 @@ class UnifiedCatalyticLattice(BaseLatticeComputer, IPathFinder, ITransformer, IA
         return result
 
     def find_all_paths(
-        self,
-        start: int,
-        end: int,
-        max_length: Optional[int] = None
+        self, start: int, end: int, max_length: Optional[int] = None
     ) -> List[List[int]]:
         """Find all paths between two vertices"""
         if not self.graph:
@@ -206,10 +204,7 @@ class UnifiedCatalyticLattice(BaseLatticeComputer, IPathFinder, ITransformer, IA
         return all_paths
 
     def find_path_catalytic(
-        self,
-        start: int,
-        end: int,
-        auxiliary_memory: Optional[np.ndarray] = None
+        self, start: int, end: int, auxiliary_memory: Optional[np.ndarray] = None
     ) -> Tuple[List[int], float]:
         """Catalytic path finding with auxiliary memory"""
         if auxiliary_memory is None:
@@ -236,9 +231,7 @@ class UnifiedCatalyticLattice(BaseLatticeComputer, IPathFinder, ITransformer, IA
         return path, exec_time
 
     def xor_transform(
-        self,
-        data: npt.NDArray[np.uint8],
-        key: Optional[npt.NDArray[np.uint8]] = None
+        self, data: npt.NDArray[np.uint8], key: Optional[npt.NDArray[np.uint8]] = None
     ) -> npt.NDArray[np.uint8]:
         """Apply XOR transformation with smart GPU/CPU routing"""
         # Smart routing decision: Small XOR ops have high GPU overhead (35ms vs 0.2ms)
@@ -247,7 +240,7 @@ class UnifiedCatalyticLattice(BaseLatticeComputer, IPathFinder, ITransformer, IA
             use_gpu, reason = self.operation_router.route_operation(
                 operation_type=OperationType.TRANSFORM,
                 data=data,
-                gpu_available=self.gpu_backend is not None
+                gpu_available=self.gpu_backend is not None,
             )
             logger.debug(f"XOR transform routing: {'GPU' if use_gpu else 'CPU'} - {reason}")
 
@@ -265,18 +258,15 @@ class UnifiedCatalyticLattice(BaseLatticeComputer, IPathFinder, ITransformer, IA
         return np.bitwise_xor(data_uint, key)
 
     def apply_transformation(
-        self,
-        data: npt.NDArray[np.number],
-        transformation: str,
-        **kwargs: Any
+        self, data: npt.NDArray[np.number], transformation: str, **kwargs: Any
     ) -> npt.NDArray[np.number]:
         """Apply named transformation"""
         if transformation == "xor":
-            return self.xor_transform(data, kwargs.get('key'))
+            return self.xor_transform(data, kwargs.get("key"))
         elif transformation == "normalize":
             return (data - np.mean(data)) / (np.std(data) + 1e-8)
         elif transformation == "scale":
-            factor = kwargs.get('factor', 1.0)
+            factor = kwargs.get("factor", 1.0)
             return data * factor
         else:
             raise ValueError(f"Unknown transformation: {transformation}")
@@ -284,22 +274,18 @@ class UnifiedCatalyticLattice(BaseLatticeComputer, IPathFinder, ITransformer, IA
     def analyze_structure(self) -> Dict[str, Any]:
         """Analyze lattice structure"""
         if not self.graph:
-            return {
-                'vertices': self.n_points,
-                'dimensions': self.dimensions,
-                'size': self.size
-            }
+            return {"vertices": self.n_points, "dimensions": self.dimensions, "size": self.size}
 
         return {
-            'vertices': self.graph.vcount(),
-            'edges': self.graph.ecount(),
-            'dimensions': self.dimensions,
-            'size': self.size,
-            'is_connected': self.graph.is_connected(),
-            'diameter': self.graph.diameter() if self.graph.is_connected() else -1,
-            'avg_degree': np.mean(self.graph.degree()),
-            'clustering_coefficient': self.graph.transitivity_avglocal_undirected(),
-            'density': self.graph.density()
+            "vertices": self.graph.vcount(),
+            "edges": self.graph.ecount(),
+            "dimensions": self.dimensions,
+            "size": self.size,
+            "is_connected": self.graph.is_connected(),
+            "diameter": self.graph.diameter() if self.graph.is_connected() else -1,
+            "avg_degree": np.mean(self.graph.degree()),
+            "clustering_coefficient": self.graph.transitivity_avglocal_undirected(),
+            "density": self.graph.density(),
         }
 
     def find_communities(self, method: str = "modularity") -> List[List[int]]:
@@ -353,6 +339,7 @@ class UnifiedCatalyticLattice(BaseLatticeComputer, IPathFinder, ITransformer, IA
         else:
             # Build sparse representation
             from scipy.sparse import lil_matrix
+
             matrix = lil_matrix((self.n_points, self.n_points))
 
             for i in range(self.n_points):
@@ -370,19 +357,19 @@ class UnifiedCatalyticLattice(BaseLatticeComputer, IPathFinder, ITransformer, IA
         memory_usage = self.estimate_memory_usage()
 
         # Calculate traditional memory for comparison
-        traditional_memory = (self.n_points * self.n_points * 8) / (1024 ** 2)
+        traditional_memory = (self.n_points * self.n_points * 8) / (1024**2)
 
         metrics = LatticeMetrics(
             vertices=self.n_points,
-            edges=analysis.get('edges', self.n_points * self.dimensions),
+            edges=analysis.get("edges", self.n_points * self.dimensions),
             dimensions=self.dimensions,
             size=self.size,
-            memory_usage_mb=memory_usage['total_mb'],
+            memory_usage_mb=memory_usage["total_mb"],
             memory_reduction_factor=self.calculate_memory_reduction(traditional_memory),
-            avg_degree=analysis.get('avg_degree', 2 * self.dimensions),
-            diameter=analysis.get('diameter'),
-            clustering_coefficient=analysis.get('clustering_coefficient'),
-            is_connected=analysis.get('is_connected', True)
+            avg_degree=analysis.get("avg_degree", 2 * self.dimensions),
+            diameter=analysis.get("diameter"),
+            clustering_coefficient=analysis.get("clustering_coefficient"),
+            is_connected=analysis.get("is_connected", True),
         )
 
         self._metrics_cache = metrics
@@ -400,17 +387,17 @@ class UnifiedCatalyticLattice(BaseLatticeComputer, IPathFinder, ITransformer, IA
         # Graph memory
         if self.graph:
             # Rough estimate: edges * 2 * 4 bytes + vertices * 4 bytes
-            graph_mb = (self.graph.ecount() * 8 + self.graph.vcount() * 4) / (1024 ** 2)
-            memory['graph_mb'] = round(graph_mb, 2)
+            graph_mb = (self.graph.ecount() * 8 + self.graph.vcount() * 4) / (1024**2)
+            memory["graph_mb"] = round(graph_mb, 2)
 
         # Auxiliary memory
-        memory['auxiliary_mb'] = (self.auxiliary_memory.nbytes) / (1024 ** 2)
+        memory["auxiliary_mb"] = (self.auxiliary_memory.nbytes) / (1024**2)
 
         # Cache memory
         cache_entries = len(self._path_cache)
-        memory['cache_mb'] = round(cache_entries * 0.001, 2)  # Rough estimate
+        memory["cache_mb"] = round(cache_entries * 0.001, 2)  # Rough estimate
 
-        memory['total_mb'] = round(sum(v for k, v in memory.items() if 'total' not in k), 2)
+        memory["total_mb"] = round(sum(v for k, v in memory.items() if "total" not in k), 2)
 
         return memory
 
@@ -451,7 +438,7 @@ class UnifiedCatalyticLattice(BaseLatticeComputer, IPathFinder, ITransformer, IA
 
         super().cleanup()
 
-    def __enter__(self) -> 'UnifiedCatalyticLattice':
+    def __enter__(self) -> "UnifiedCatalyticLattice":
         """Context manager entry"""
         return self
 

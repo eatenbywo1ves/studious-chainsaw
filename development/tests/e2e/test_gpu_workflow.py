@@ -14,10 +14,7 @@ class TestGPUWorkflow:
 
     @pytest.mark.asyncio
     async def test_large_lattice_gpu_processing(
-        self,
-        authenticated_e2e_client: AsyncClient,
-        sample_lattice_large,
-        cleanup_lattices
+        self, authenticated_e2e_client: AsyncClient, sample_lattice_large, cleanup_lattices
     ):
         """
         Test complete workflow for large GPU-accelerated lattice:
@@ -33,8 +30,7 @@ class TestGPUWorkflow:
         start_time = time.time()
 
         create_response = await authenticated_e2e_client.post(
-            "/api/lattices",
-            json=sample_lattice_large
+            "/api/lattices", json=sample_lattice_large
         )
 
         create_duration = time.time() - start_time
@@ -79,9 +75,7 @@ class TestGPUWorkflow:
         # ================================================================
         print("\n[STEP 3] Verifying lattice data integrity...")
 
-        detail_response = await authenticated_e2e_client.get(
-            f"/api/lattices/{lattice_id}"
-        )
+        detail_response = await authenticated_e2e_client.get(f"/api/lattices/{lattice_id}")
         assert detail_response.status_code == 200
 
         lattice_detail = detail_response.json()
@@ -108,36 +102,28 @@ class TestGPUWorkflow:
 
         # Create and delete multiple large lattices to check for leaks
         for i in range(3):
-            temp_lattice_data = {
-                **sample_lattice_large,
-                "name": f"Memory Test Lattice {i}"
-            }
+            temp_lattice_data = {**sample_lattice_large, "name": f"Memory Test Lattice {i}"}
 
             create_resp = await authenticated_e2e_client.post(
-                "/api/lattices",
-                json=temp_lattice_data
+                "/api/lattices", json=temp_lattice_data
             )
             assert create_resp.status_code == 201
 
             temp_id = create_resp.json()["id"]
 
             # Immediately delete
-            delete_resp = await authenticated_e2e_client.delete(
-                f"/api/lattices/{temp_id}"
-            )
+            delete_resp = await authenticated_e2e_client.delete(f"/api/lattices/{temp_id}")
             assert delete_resp.status_code in [200, 204]
 
         print("✓ No memory leaks detected (3 create/delete cycles)")
 
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("✓ GPU WORKFLOW TEST PASSED")
-        print("="*60)
+        print("=" * 60)
 
     @pytest.mark.asyncio
     async def test_gpu_cpu_performance_comparison(
-        self,
-        authenticated_e2e_client: AsyncClient,
-        cleanup_lattices
+        self, authenticated_e2e_client: AsyncClient, cleanup_lattices
     ):
         """Compare CPU vs GPU performance for same-size lattice."""
 
@@ -154,14 +140,11 @@ class TestGPUWorkflow:
             "size": lattice_size,
             "field_type": "complex",
             "geometry": "euclidean",
-            "enable_gpu": False
+            "enable_gpu": False,
         }
 
         cpu_start = time.time()
-        cpu_response = await authenticated_e2e_client.post(
-            "/api/lattices",
-            json=cpu_data
-        )
+        cpu_response = await authenticated_e2e_client.post("/api/lattices", json=cpu_data)
         cpu_duration = time.time() - cpu_start
 
         assert cpu_response.status_code == 201
@@ -181,14 +164,11 @@ class TestGPUWorkflow:
             "size": lattice_size,
             "field_type": "complex",
             "geometry": "euclidean",
-            "enable_gpu": True
+            "enable_gpu": True,
         }
 
         gpu_start = time.time()
-        gpu_response = await authenticated_e2e_client.post(
-            "/api/lattices",
-            json=gpu_data
-        )
+        gpu_response = await authenticated_e2e_client.post("/api/lattices", json=gpu_data)
         gpu_duration = time.time() - gpu_start
 
         assert gpu_response.status_code == 201
@@ -200,9 +180,9 @@ class TestGPUWorkflow:
         # ================================================================
         # COMPARISON
         # ================================================================
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("PERFORMANCE COMPARISON")
-        print("="*60)
+        print("=" * 60)
         print(f"Lattice Size: {lattice_size} elements")
         print(f"CPU Time:     {cpu_duration:.3f}s")
         print(f"GPU Time:     {gpu_duration:.3f}s")
@@ -212,13 +192,11 @@ class TestGPUWorkflow:
             print(f"GPU Speedup:  {speedup:.2f}x faster")
         else:
             print("GPU Time >= CPU Time (GPU may not be available)")
-        print("="*60)
+        print("=" * 60)
 
     @pytest.mark.asyncio
     async def test_concurrent_gpu_operations(
-        self,
-        authenticated_e2e_client: AsyncClient,
-        cleanup_lattices
+        self, authenticated_e2e_client: AsyncClient, cleanup_lattices
     ):
         """Test multiple concurrent GPU operations."""
         import asyncio
@@ -233,13 +211,10 @@ class TestGPUWorkflow:
                 "size": 800,
                 "field_type": "complex",
                 "geometry": "euclidean",
-                "enable_gpu": True
+                "enable_gpu": True,
             }
 
-            response = await authenticated_e2e_client.post(
-                "/api/lattices",
-                json=lattice_data
-            )
+            response = await authenticated_e2e_client.post("/api/lattices", json=lattice_data)
             assert response.status_code == 201
             return response.json()
 
@@ -254,20 +229,16 @@ class TestGPUWorkflow:
             cleanup_lattices.append(lattice["id"])
 
         print(f"✓ Created 5 GPU lattices in {total_duration:.2f}s")
-        print(f"  Average: {total_duration/5:.2f}s per lattice")
+        print(f"  Average: {total_duration / 5:.2f}s per lattice")
 
         # Verify all lattices exist
         for lattice in results:
-            detail_response = await authenticated_e2e_client.get(
-                f"/api/lattices/{lattice['id']}"
-            )
+            detail_response = await authenticated_e2e_client.get(f"/api/lattices/{lattice['id']}")
             assert detail_response.status_code == 200
 
     @pytest.mark.asyncio
     async def test_gpu_fallback_graceful_degradation(
-        self,
-        authenticated_e2e_client: AsyncClient,
-        cleanup_lattices
+        self, authenticated_e2e_client: AsyncClient, cleanup_lattices
     ):
         """Test graceful fallback when GPU unavailable."""
 
@@ -279,13 +250,10 @@ class TestGPUWorkflow:
             "field_type": "complex",
             "geometry": "euclidean",
             "enable_gpu": True,
-            "allow_cpu_fallback": True  # Allow fallback if GPU unavailable
+            "allow_cpu_fallback": True,  # Allow fallback if GPU unavailable
         }
 
-        response = await authenticated_e2e_client.post(
-            "/api/lattices",
-            json=lattice_data
-        )
+        response = await authenticated_e2e_client.post("/api/lattices", json=lattice_data)
 
         # Should succeed regardless of GPU availability
         assert response.status_code == 201
@@ -303,7 +271,5 @@ class TestGPUWorkflow:
                     print("  → GPU unavailable, fell back to CPU")
 
         # Verify lattice is fully functional
-        detail_response = await authenticated_e2e_client.get(
-            f"/api/lattices/{lattice['id']}"
-        )
+        detail_response = await authenticated_e2e_client.get(f"/api/lattices/{lattice['id']}")
         assert detail_response.status_code == 200

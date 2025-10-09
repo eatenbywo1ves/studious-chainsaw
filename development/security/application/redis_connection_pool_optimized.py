@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 class DeploymentEnvironment(Enum):
     """Deployment environment types"""
+
     DEVELOPMENT = "development"
     STAGING = "staging"
     PRODUCTION = "production"
@@ -107,9 +108,7 @@ class OptimizedRedisPool:
     def _initialize(self):
         """Initialize optimized Redis connection pool"""
         try:
-            logger.info(
-                f"Initializing Redis pool for {self.environment.value} environment"
-            )
+            logger.info(f"Initializing Redis pool for {self.environment.value} environment")
             logger.info(
                 f"Target: {self.target_users} users, {self.workers} workers, "
                 f"{self.max_connections} connections ({self.max_connections // self.workers} per worker)"
@@ -192,8 +191,7 @@ class OptimizedRedisPool:
                 "created_connections": self._pool._created_connections,
                 "available_connections": len(self._pool._available_connections),
                 "in_use_connections": (
-                    self._pool._created_connections
-                    - len(self._pool._available_connections)
+                    self._pool._created_connections - len(self._pool._available_connections)
                 ),
             }
             return {**self._metrics, **pool_info}
@@ -235,13 +233,9 @@ class OptimizedRedisPool:
                 f"High pool utilization: {utilization:.1f}% (consider increasing pool size)"
             )
         if self._metrics.get("pool_exhausted_count", 0) > 0:
-            warnings.append(
-                f"Pool exhausted {self._metrics['pool_exhausted_count']} times"
-            )
+            warnings.append(f"Pool exhausted {self._metrics['pool_exhausted_count']} times")
         if self._metrics.get("health_check_failures", 0) > 0:
-            warnings.append(
-                f"Health checks failed {self._metrics['health_check_failures']} times"
-            )
+            warnings.append(f"Health checks failed {self._metrics['health_check_failures']} times")
 
         if warnings:
             status["warnings"] = warnings

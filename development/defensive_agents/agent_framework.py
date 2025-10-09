@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 class AgentAction(Enum):
     """Actions an agent can take"""
+
     LOG_INFO = "log_info"
     ALERT_WARNING = "alert_warning"
     ALERT_CRITICAL = "alert_critical"
@@ -30,6 +31,7 @@ class AgentAction(Enum):
 @dataclass
 class AgentState:
     """Current state observed by agent"""
+
     timestamp: datetime
     container_id: str
     data: Dict[str, Any]
@@ -38,6 +40,7 @@ class AgentState:
 @dataclass
 class AgentDecision:
     """Decision made by agent"""
+
     action: AgentAction
     confidence: float  # 0.0 to 1.0
     reasoning: str
@@ -47,6 +50,7 @@ class AgentDecision:
 @dataclass
 class AgentOutcome:
     """Result of agent action"""
+
     success: bool
     action_taken: AgentAction
     details: str
@@ -65,11 +69,11 @@ class BaseAgent(ABC):
         self.logger = logging.getLogger(f"Agent.{name}")
         self.knowledge_base = {}
         self.metrics = {
-            'perceive_count': 0,
-            'decide_count': 0,
-            'act_count': 0,
-            'learn_count': 0,
-            'errors': 0
+            "perceive_count": 0,
+            "decide_count": 0,
+            "act_count": 0,
+            "learn_count": 0,
+            "errors": 0,
         }
 
     @abstractmethod
@@ -138,28 +142,28 @@ class BaseAgent(ABC):
             # PERCEIVE
             self.logger.info(f"[{self.name}] Perceiving state for {container_id}")
             state = self.perceive(container_id)
-            self.metrics['perceive_count'] += 1
+            self.metrics["perceive_count"] += 1
 
             # DECIDE
             self.logger.info(f"[{self.name}] Making decision...")
             decision = self.decide(state)
-            self.metrics['decide_count'] += 1
+            self.metrics["decide_count"] += 1
 
             # ACT
             self.logger.info(f"[{self.name}] Executing action: {decision.action.value}")
             outcome = self.act(decision, state)
-            self.metrics['act_count'] += 1
+            self.metrics["act_count"] += 1
 
             # LEARN
             self.logger.info(f"[{self.name}] Learning from outcome...")
             self.learn(state, decision, outcome)
-            self.metrics['learn_count'] += 1
+            self.metrics["learn_count"] += 1
 
             return outcome
 
         except Exception as e:
             self.logger.error(f"[{self.name}] Error in agent cycle: {str(e)}")
-            self.metrics['errors'] += 1
+            self.metrics["errors"] += 1
             raise
 
     def get_metrics(self) -> Dict[str, int]:
@@ -204,12 +208,12 @@ class DefensiveSecurityAgent(BaseAgent):
         # Check against security policies
         for policy in self.security_policies:
             if not self._check_policy_compliance(state, policy):
-                risk_score += policy.get('weight', 0.1)
+                risk_score += policy.get("weight", 0.1)
 
         # Check for threat patterns
         for pattern in self.threat_patterns:
             if self._matches_threat_pattern(state, pattern):
-                risk_score += pattern.get('severity', 0.5)
+                risk_score += pattern.get("severity", 0.5)
 
         return min(risk_score, 1.0)  # Cap at 1.0
 
@@ -228,26 +232,21 @@ class DefensiveSecurityAgent(BaseAgent):
 class CapabilityMonitorAgent(DefensiveSecurityAgent):
     """Agent that monitors and enforces capability restrictions"""
 
-    DANGEROUS_CAPABILITIES = [
-        'CAP_SYS_ADMIN',
-        'CAP_SYS_MODULE',
-        'CAP_SYS_PTRACE',
-        'CAP_SYS_RAWIO'
-    ]
+    DANGEROUS_CAPABILITIES = ["CAP_SYS_ADMIN", "CAP_SYS_MODULE", "CAP_SYS_PTRACE", "CAP_SYS_RAWIO"]
 
-    ALLOWED_CAPABILITIES = [
-        'CAP_NET_BIND_SERVICE'
-    ]
+    ALLOWED_CAPABILITIES = ["CAP_NET_BIND_SERVICE"]
 
     def __init__(self):
         super().__init__("CapabilityMonitor")
 
         # Add default security policy: no dangerous capabilities
-        self.add_security_policy({
-            'name': 'no_dangerous_capabilities',
-            'rule': 'capabilities not in DANGEROUS_CAPABILITIES',
-            'weight': 1.0
-        })
+        self.add_security_policy(
+            {
+                "name": "no_dangerous_capabilities",
+                "rule": "capabilities not in DANGEROUS_CAPABILITIES",
+                "weight": 1.0,
+            }
+        )
 
     def perceive(self, container_id: str) -> AgentState:
         """Observe container capabilities"""
@@ -258,23 +257,23 @@ class CapabilityMonitorAgent(DefensiveSecurityAgent):
 
         # Get container capabilities from inspection
         inspect_data = client.api.inspect_container(container_id)
-        cap_add = inspect_data.get('HostConfig', {}).get('CapAdd', [])
-        cap_drop = inspect_data.get('HostConfig', {}).get('CapDrop', [])
+        cap_add = inspect_data.get("HostConfig", {}).get("CapAdd", [])
+        cap_drop = inspect_data.get("HostConfig", {}).get("CapDrop", [])
 
         return AgentState(
             timestamp=datetime.now(),
             container_id=container_id,
             data={
-                'cap_add': cap_add,
-                'cap_drop': cap_drop,
-                'name': container.name,
-                'status': container.status
-            }
+                "cap_add": cap_add,
+                "cap_drop": cap_drop,
+                "name": container.name,
+                "status": container.status,
+            },
         )
 
     def decide(self, state: AgentState) -> AgentDecision:
         """Decide if capabilities are acceptable"""
-        cap_add = state.data.get('cap_add', [])
+        cap_add = state.data.get("cap_add", [])
 
         # Check for dangerous capabilities
         dangerous_caps_present = []
@@ -287,7 +286,7 @@ class CapabilityMonitorAgent(DefensiveSecurityAgent):
                 action=AgentAction.ALERT_CRITICAL,
                 confidence=1.0,
                 reasoning=f"Dangerous capabilities detected: {', '.join(dangerous_caps_present)}",
-                priority=5
+                priority=5,
             )
 
         # Check for unexpected capabilities
@@ -297,42 +296,36 @@ class CapabilityMonitorAgent(DefensiveSecurityAgent):
                 action=AgentAction.ALERT_WARNING,
                 confidence=0.8,
                 reasoning=f"Unexpected capabilities: {', '.join(unexpected_caps)}",
-                priority=3
+                priority=3,
             )
 
         return AgentDecision(
             action=AgentAction.LOG_INFO,
             confidence=1.0,
             reasoning="Capabilities within acceptable limits",
-            priority=1
+            priority=1,
         )
 
     def act(self, decision: AgentDecision, state: AgentState) -> AgentOutcome:
         """Execute capability enforcement action"""
         if decision.action == AgentAction.ALERT_CRITICAL:
-            self.logger.critical(
-                f"CRITICAL: {state.container_id} - {decision.reasoning}"
-            )
+            self.logger.critical(f"CRITICAL: {state.container_id} - {decision.reasoning}")
             # In a real implementation, this would:
             # - Send alert to security team
             # - Optionally stop the container
             # - Create incident ticket
 
         elif decision.action == AgentAction.ALERT_WARNING:
-            self.logger.warning(
-                f"WARNING: {state.container_id} - {decision.reasoning}"
-            )
+            self.logger.warning(f"WARNING: {state.container_id} - {decision.reasoning}")
 
         else:
-            self.logger.info(
-                f"INFO: {state.container_id} - {decision.reasoning}"
-            )
+            self.logger.info(f"INFO: {state.container_id} - {decision.reasoning}")
 
         return AgentOutcome(
             success=True,
             action_taken=decision.action,
             details=decision.reasoning,
-            timestamp=datetime.now()
+            timestamp=datetime.now(),
         )
 
     def learn(self, state: AgentState, decision: AgentDecision, outcome: AgentOutcome):
@@ -341,17 +334,16 @@ class CapabilityMonitorAgent(DefensiveSecurityAgent):
         container_id = state.container_id
 
         if container_id not in self.knowledge_base:
-            self.knowledge_base[container_id] = {
-                'history': [],
-                'capability_patterns': []
-            }
+            self.knowledge_base[container_id] = {"history": [], "capability_patterns": []}
 
-        self.knowledge_base[container_id]['history'].append({
-            'timestamp': outcome.timestamp,
-            'capabilities': state.data.get('cap_add', []),
-            'action': decision.action.value,
-            'risk_score': self.calculate_risk_score(state)
-        })
+        self.knowledge_base[container_id]["history"].append(
+            {
+                "timestamp": outcome.timestamp,
+                "capabilities": state.data.get("cap_add", []),
+                "action": decision.action.value,
+                "risk_score": self.calculate_risk_score(state),
+            }
+        )
 
         # Learn normal capability patterns over time
         # This allows detecting anomalies (e.g., sudden capability addition)

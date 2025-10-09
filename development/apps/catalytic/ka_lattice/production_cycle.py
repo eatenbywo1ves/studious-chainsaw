@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 class CyclePhase(Enum):
     """Production cycle phases"""
+
     INITIALIZATION = "initialization"
     WARMUP = "warmup"
     PRODUCTION = "production"
@@ -34,6 +35,7 @@ class CyclePhase(Enum):
 @dataclass
 class CycleMetrics:
     """Metrics for a production cycle"""
+
     phase: CyclePhase
     start_time: datetime
     end_time: Optional[datetime] = None
@@ -48,6 +50,7 @@ class CycleMetrics:
 @dataclass
 class ProductionConfig:
     """Configuration for production cycle"""
+
     warmup_iterations: int = 100
     optimization_interval_seconds: int = 300
     maintenance_window_seconds: int = 60
@@ -64,11 +67,7 @@ class ProductionCycleManager:
     Handles initialization, warmup, production, optimization, and maintenance cycles
     """
 
-    def __init__(
-        self,
-        lattice: KALatticeCore,
-        config: Optional[ProductionConfig] = None
-    ):
+    def __init__(self, lattice: KALatticeCore, config: Optional[ProductionConfig] = None):
         """
         Initialize production cycle manager
 
@@ -92,9 +91,7 @@ class ProductionCycleManager:
         self._health_thread: Optional[threading.Thread] = None
 
         # Callbacks
-        self.phase_callbacks: Dict[CyclePhase, List[Callable]] = {
-            phase: [] for phase in CyclePhase
-        }
+        self.phase_callbacks: Dict[CyclePhase, List[Callable]] = {phase: [] for phase in CyclePhase}
 
         # Error tracking
         self.error_count = 0
@@ -119,10 +116,7 @@ class ProductionCycleManager:
         # Start new phase
         old_phase = self.current_phase
         self.current_phase = new_phase
-        self.current_metrics = CycleMetrics(
-            phase=new_phase,
-            start_time=datetime.now()
-        )
+        self.current_metrics = CycleMetrics(phase=new_phase, start_time=datetime.now())
 
         logger.info(f"Production cycle transition: {old_phase} -> {new_phase}")
 
@@ -175,7 +169,7 @@ class ProductionCycleManager:
         # Load previous knowledge if available
         knowledge_file = "ka_knowledge_backup.json"
         try:
-            with open(knowledge_file, 'r') as f:
+            with open(knowledge_file, "r") as f:
                 knowledge_data = json.load(f)
                 self.lattice.import_knowledge(knowledge_data)
                 logger.info("Loaded previous knowledge base")
@@ -206,9 +200,7 @@ class ProductionCycleManager:
 
             try:
                 self.lattice.compute_with_knowledge(
-                    operation="transform",
-                    input_data=warmup_data,
-                    parameters={'type': 'normalize'}
+                    operation="transform", input_data=warmup_data, parameters={"type": "normalize"}
                 )
 
                 self.current_metrics.computations_processed += 1
@@ -219,7 +211,9 @@ class ProductionCycleManager:
             except Exception as e:
                 logger.warning(f"Warmup computation {i} failed: {e}")
 
-        logger.info(f"Warmup phase complete: {self.current_metrics.computations_processed} iterations")
+        logger.info(
+            f"Warmup phase complete: {self.current_metrics.computations_processed} iterations"
+        )
 
     async def _production_phase(self):
         """Main production phase"""
@@ -259,9 +253,7 @@ class ProductionCycleManager:
         start_time = time.perf_counter()
 
         result = self.lattice.compute_with_knowledge(
-            operation="reduce",
-            input_data=data,
-            parameters={'operation': 'sum'}
+            operation="reduce", input_data=data, parameters={"operation": "sum"}
         )
 
         exec_time = (time.perf_counter() - start_time) * 1000
@@ -298,12 +290,12 @@ class ProductionCycleManager:
         # Analyze performance and adjust
         knowledge_stats = self.lattice.get_knowledge_stats()
 
-        if knowledge_stats['hit_rate'] < 50:
+        if knowledge_stats["hit_rate"] < 50:
             logger.info("Low knowledge hit rate - increasing learning")
             self.lattice.learning_enabled = True
 
         # Record improvements
-        self.current_metrics.knowledge_improvements = knowledge_stats['learning_cycles']
+        self.current_metrics.knowledge_improvements = knowledge_stats["learning_cycles"]
 
         logger.info("Optimization phase complete")
 
@@ -326,7 +318,7 @@ class ProductionCycleManager:
         # Backup knowledge base
         try:
             knowledge_data = self.lattice.export_knowledge()
-            with open("ka_knowledge_backup.json", 'w') as f:
+            with open("ka_knowledge_backup.json", "w") as f:
                 json.dump(knowledge_data, f)
             logger.info("Knowledge base backed up")
         except Exception as e:
@@ -354,7 +346,7 @@ class ProductionCycleManager:
 
         # Final knowledge backup
         knowledge_data = self.lattice.export_knowledge()
-        with open("ka_knowledge_final.json", 'w') as f:
+        with open("ka_knowledge_final.json", "w") as f:
             json.dump(knowledge_data, f)
 
         logger.info("Cooldown phase complete")
@@ -392,16 +384,12 @@ class ProductionCycleManager:
         """Start background monitoring and optimization tasks"""
         if self.config.enable_auto_optimization:
             self._optimization_thread = threading.Thread(
-                target=self._optimization_loop,
-                daemon=True
+                target=self._optimization_loop, daemon=True
             )
             self._optimization_thread.start()
 
         if self.config.enable_health_checks:
-            self._health_thread = threading.Thread(
-                target=self._health_check_loop,
-                daemon=True
-            )
+            self._health_thread = threading.Thread(target=self._health_check_loop, daemon=True)
             self._health_thread.start()
 
     def _stop_background_tasks(self):
@@ -438,9 +426,11 @@ class ProductionCycleManager:
 
                 # Log metrics
                 if self.current_metrics:
-                    logger.debug(f"Health: Phase={self.current_phase}, "
-                               f"Throughput={self.current_metrics.throughput_per_second:.2f}/s, "
-                               f"Latency={self.current_metrics.average_latency_ms:.2f}ms")
+                    logger.debug(
+                        f"Health: Phase={self.current_phase}, "
+                        f"Throughput={self.current_metrics.throughput_per_second:.2f}/s, "
+                        f"Latency={self.current_metrics.average_latency_ms:.2f}ms"
+                    )
 
             except Exception as e:
                 logger.error(f"Health check error: {e}")
@@ -481,14 +471,16 @@ class ProductionCycleManager:
     def get_metrics(self) -> Dict[str, Any]:
         """Get current production metrics"""
         return {
-            'current_phase': self.current_phase.value,
-            'total_computations': self.total_computations,
-            'successful_computations': self.successful_computations,
-            'error_count': self.error_count,
-            'current_metrics': {
-                'computations': self.current_metrics.computations_processed,
-                'latency_ms': self.current_metrics.average_latency_ms,
-                'throughput_per_second': self.current_metrics.throughput_per_second
-            } if self.current_metrics else None,
-            'knowledge_stats': self.lattice.get_knowledge_stats()
+            "current_phase": self.current_phase.value,
+            "total_computations": self.total_computations,
+            "successful_computations": self.successful_computations,
+            "error_count": self.error_count,
+            "current_metrics": {
+                "computations": self.current_metrics.computations_processed,
+                "latency_ms": self.current_metrics.average_latency_ms,
+                "throughput_per_second": self.current_metrics.throughput_per_second,
+            }
+            if self.current_metrics
+            else None,
+            "knowledge_stats": self.lattice.get_knowledge_stats(),
         }

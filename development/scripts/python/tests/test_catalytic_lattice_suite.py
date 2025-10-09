@@ -9,10 +9,12 @@ from time import time
 import tracemalloc
 import sys
 import os
+
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from catalytic_lattice_computing import CatalyticLatticeComputer, reversible_lattice_rotation
 from quantum_catalytic_lattice import QuantumCatalyticLattice, self_modifying_catalytic_search
+
 
 class TestResults:
     def __init__(self):
@@ -34,11 +36,12 @@ class TestResults:
 
     def summary(self):
         total = len(self.passed) + len(self.failed)
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"TEST SUMMARY: {len(self.passed)}/{total} passed")
         if self.failed:
             print(f"Failed tests: {', '.join(self.failed)}")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
+
 
 def test_reversibility():
     """Test 1: Verify perfect reversibility of operations."""
@@ -54,9 +57,11 @@ def test_reversibility():
     transformed = CatalyticLatticeComputer.reversible_xor_transform(data, key)
     restored = CatalyticLatticeComputer.reversible_xor_transform(transformed, key)
 
-    results.add_test("XOR Transform Reversibility",
-                     np.array_equal(data, restored),
-                     f"(error: {np.mean(np.abs(data - restored))})")
+    results.add_test(
+        "XOR Transform Reversibility",
+        np.array_equal(data, restored),
+        f"(error: {np.mean(np.abs(data - restored))})",
+    )
 
     # Test rotation reversibility
     points = np.random.randn(100, 4).astype(np.float32)
@@ -64,11 +69,10 @@ def test_reversibility():
     restored = reversible_lattice_rotation(rotated, 3)  # 270 degrees
 
     error = np.mean(np.abs(points - restored))
-    results.add_test("Rotation Reversibility",
-                     error < 1e-6,
-                     f"(error: {error:.2e})")
+    results.add_test("Rotation Reversibility", error < 1e-6, f"(error: {error:.2e})")
 
     return results
+
 
 def test_catalytic_property():
     """Test 2: Verify auxiliary memory is restored after operations."""
@@ -88,16 +92,17 @@ def test_catalytic_property():
     # Verify auxiliary memory restored
     final_checksum = np.sum(computer.aux_memory[:10000])
 
-    results.add_test("Auxiliary Memory Restoration",
-                     original_checksum == final_checksum,
-                     f"(checksums: {original_checksum} vs {final_checksum})")
+    results.add_test(
+        "Auxiliary Memory Restoration",
+        original_checksum == final_checksum,
+        f"(checksums: {original_checksum} vs {final_checksum})",
+    )
 
-    results.add_test("Path Finding Success",
-                     len(path) > 0,
-                     f"(path length: {len(path)})")
+    results.add_test("Path Finding Success", len(path) > 0, f"(path length: {len(path)})")
 
     del computer
     return results
+
 
 def test_memory_efficiency():
     """Test 3: Validate memory efficiency claims."""
@@ -111,7 +116,7 @@ def test_memory_efficiency():
     for dim in dimensions:
         # Traditional approach
         lattice_size = 10
-        n_points = lattice_size ** dim
+        n_points = lattice_size**dim
         traditional_memory = n_points * dim * 8  # 8 bytes per float64
 
         # Catalytic approach (just counters and indices)
@@ -119,14 +124,16 @@ def test_memory_efficiency():
 
         reduction = traditional_memory / catalytic_memory
 
-        results.add_performance(f"{dim}D Lattice Memory Reduction",
-                               f"{reduction:.0f}x")
+        results.add_performance(f"{dim}D Lattice Memory Reduction", f"{reduction:.0f}x")
 
-        results.add_test(f"{dim}D Memory Efficiency",
-                        reduction > 10,
-                        f"({traditional_memory} vs {catalytic_memory} bytes)")
+        results.add_test(
+            f"{dim}D Memory Efficiency",
+            reduction > 10,
+            f"({traditional_memory} vs {catalytic_memory} bytes)",
+        )
 
     return results
+
 
 def test_performance_scaling():
     """Test 4: Performance scaling with dimensions."""
@@ -147,26 +154,26 @@ def test_performance_scaling():
         # Time dimensional collapse
         t1 = time()
         for point in points[:10]:
-            _ = qcl.dimensional_collapse_hash(
-                point, 3, qcl.aux_memories[0]
-            )
+            _ = qcl.dimensional_collapse_hash(point, 3, qcl.aux_memories[0])
         t2 = time()
 
         avg_time = (t2 - t1) / 10 * 1000  # ms per point
         times.append(avg_time)
 
-        results.add_performance(f"{dim}D Collapse Time",
-                               f"{avg_time:.3f}ms")
+        results.add_performance(f"{dim}D Collapse Time", f"{avg_time:.3f}ms")
 
     # Check if scaling is reasonable (should be roughly linear with dimensions)
     scaling_ratio = times[-1] / times[0]
     expected_ratio = dimensions[-1] / dimensions[0]
 
-    results.add_test("Linear Scaling",
-                    scaling_ratio < expected_ratio * 2,
-                    f"(ratio: {scaling_ratio:.1f}x for {expected_ratio}x dimensions)")
+    results.add_test(
+        "Linear Scaling",
+        scaling_ratio < expected_ratio * 2,
+        f"(ratio: {scaling_ratio:.1f}x for {expected_ratio}x dimensions)",
+    )
 
     return results
+
 
 def test_parallel_speedup():
     """Test 5: Verify parallel processing benefits."""
@@ -187,6 +194,7 @@ def test_parallel_speedup():
 
     # Test with all cores
     import multiprocessing
+
     n_cores = multiprocessing.cpu_count()
     t1 = time()
     _ = QuantumCatalyticLattice.parallel_lattice_eigenspace(points, n_cores)
@@ -197,11 +205,10 @@ def test_parallel_speedup():
 
     results.add_performance("Parallel Speedup", f"{speedup:.2f}x with {n_cores} cores")
 
-    results.add_test("Parallel Efficiency",
-                    speedup > 1.5,
-                    f"(expected >1.5x, got {speedup:.2f}x)")
+    results.add_test("Parallel Efficiency", speedup > 1.5, f"(expected >1.5x, got {speedup:.2f}x)")
 
     return results
+
 
 def test_large_scale_stress():
     """Test 6: Stress test with large lattices."""
@@ -211,10 +218,10 @@ def test_large_scale_stress():
 
     # Test increasingly large lattices
     test_cases = [
-        (5, 5),    # 5D, 5^5 = 3,125 points
-        (6, 4),    # 6D, 4^6 = 4,096 points
-        (8, 3),    # 8D, 3^8 = 6,561 points
-        (10, 2),   # 10D, 2^10 = 1,024 points
+        (5, 5),  # 5D, 5^5 = 3,125 points
+        (6, 4),  # 6D, 4^6 = 4,096 points
+        (8, 3),  # 8D, 3^8 = 6,561 points
+        (10, 2),  # 10D, 2^10 = 1,024 points
     ]
 
     for dims, size in test_cases:
@@ -224,7 +231,7 @@ def test_large_scale_stress():
 
             # Create lattice
             qcl = QuantumCatalyticLattice(dims, size, collapse_dims=3)
-            n_points = size ** dims
+            n_points = size**dims
 
             # Perform operations
             test_points = np.random.randn(min(100, n_points), dims)
@@ -242,16 +249,17 @@ def test_large_scale_stress():
             current, peak = tracemalloc.get_traced_memory()
             tracemalloc.stop()
 
-            results.add_test(f"{dims}D x {size}^{dims} Stress Test",
-                           True,
-                           f"({(t2-t1)*1000:.1f}ms, {peak/1024/1024:.1f}MB peak)")
+            results.add_test(
+                f"{dims}D x {size}^{dims} Stress Test",
+                True,
+                f"({(t2 - t1) * 1000:.1f}ms, {peak / 1024 / 1024:.1f}MB peak)",
+            )
 
         except Exception as e:
-            results.add_test(f"{dims}D x {size}^{dims} Stress Test",
-                           False,
-                           str(e)[:50])
+            results.add_test(f"{dims}D x {size}^{dims} Stress Test", False, str(e)[:50])
 
     return results
+
 
 def test_self_modifying_algorithm():
     """Test 7: Self-modifying catalytic algorithm."""
@@ -273,17 +281,20 @@ def test_self_modifying_algorithm():
     # Run self-modifying search
     found_idx = self_modifying_catalytic_search(target, search_space, catalyst)
 
-    results.add_test("Self-Modifying Search Success",
-                    search_space[found_idx] == target,
-                    f"(found at index {found_idx})")
+    results.add_test(
+        "Self-Modifying Search Success",
+        search_space[found_idx] == target,
+        f"(found at index {found_idx})",
+    )
 
     # Check that catalyst was modified during search
     modifications = np.sum(catalyst != original_catalyst)
-    results.add_test("Algorithm Self-Modified",
-                    modifications > 0,
-                    f"({modifications} catalyst bytes modified)")
+    results.add_test(
+        "Algorithm Self-Modified", modifications > 0, f"({modifications} catalyst bytes modified)"
+    )
 
     return results
+
 
 def run_all_tests():
     """Run comprehensive test suite."""
@@ -301,7 +312,7 @@ def run_all_tests():
         test_performance_scaling,
         test_parallel_speedup,
         test_large_scale_stress,
-        test_self_modifying_algorithm
+        test_self_modifying_algorithm,
     ]
 
     for test_func in test_functions:
@@ -324,6 +335,7 @@ def run_all_tests():
             print(f"  - {key}: {value}")
 
     return all_results
+
 
 if __name__ == "__main__":
     # Run comprehensive tests

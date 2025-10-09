@@ -14,7 +14,7 @@ from prometheus_client import (
     Gauge,
     Summary,
     generate_latest,
-    CONTENT_TYPE_LATEST
+    CONTENT_TYPE_LATEST,
 )
 from functools import wraps
 import time
@@ -36,28 +36,22 @@ logger = logging.getLogger(__name__)
 # ============================================================================
 
 http_requests_total = Counter(
-    'http_requests_total',
-    'Total HTTP requests',
-    ['method', 'endpoint', 'status']
+    "http_requests_total", "Total HTTP requests", ["method", "endpoint", "status"]
 )
 
 http_request_duration_seconds = Histogram(
-    'http_request_duration_seconds',
-    'HTTP request latency in seconds',
-    ['method', 'endpoint'],
-    buckets=[0.005, 0.01, 0.025, 0.05, 0.075, 0.1, 0.25, 0.5, 0.75, 1.0, 2.5, 5.0, 7.5, 10.0]
+    "http_request_duration_seconds",
+    "HTTP request latency in seconds",
+    ["method", "endpoint"],
+    buckets=[0.005, 0.01, 0.025, 0.05, 0.075, 0.1, 0.25, 0.5, 0.75, 1.0, 2.5, 5.0, 7.5, 10.0],
 )
 
 http_request_size_bytes = Summary(
-    'http_request_size_bytes',
-    'HTTP request size in bytes',
-    ['method', 'endpoint']
+    "http_request_size_bytes", "HTTP request size in bytes", ["method", "endpoint"]
 )
 
 http_response_size_bytes = Summary(
-    'http_response_size_bytes',
-    'HTTP response size in bytes',
-    ['method', 'endpoint', 'status']
+    "http_response_size_bytes", "HTTP response size in bytes", ["method", "endpoint", "status"]
 )
 
 
@@ -66,26 +60,15 @@ http_response_size_bytes = Summary(
 # ============================================================================
 
 jwt_token_operations_total = Counter(
-    'jwt_token_operations_total',
-    'JWT token operations',
-    ['operation', 'status']
+    "jwt_token_operations_total", "JWT token operations", ["operation", "status"]
 )
 
-jwt_token_blacklist_size = Gauge(
-    'jwt_token_blacklist_size',
-    'Number of blacklisted JWT tokens'
-)
+jwt_token_blacklist_size = Gauge("jwt_token_blacklist_size", "Number of blacklisted JWT tokens")
 
-login_attempts_total = Counter(
-    'login_attempts_total',
-    'Login attempts',
-    ['tenant', 'status']
-)
+login_attempts_total = Counter("login_attempts_total", "Login attempts", ["tenant", "status"])
 
 password_reset_requests_total = Counter(
-    'password_reset_requests_total',
-    'Password reset requests',
-    ['status']
+    "password_reset_requests_total", "Password reset requests", ["status"]
 )
 
 
@@ -94,40 +77,30 @@ password_reset_requests_total = Counter(
 # ============================================================================
 
 rate_limit_hits_total = Counter(
-    'rate_limit_hits_total',
-    'Rate limit hits',
-    ['endpoint', 'limit_type']
+    "rate_limit_hits_total", "Rate limit hits", ["endpoint", "limit_type"]
 )
 
 input_validation_failures_total = Counter(
-    'input_validation_failures_total',
-    'Input validation failures',
-    ['validator', 'type']
+    "input_validation_failures_total", "Input validation failures", ["validator", "type"]
 )
 
 encryption_operations_total = Counter(
-    'encryption_operations_total',
-    'Encryption operations',
-    ['operation', 'status']
+    "encryption_operations_total", "Encryption operations", ["operation", "status"]
 )
 
 encryption_errors_total = Counter(
-    'encryption_errors_total',
-    'Encryption operation errors',
-    ['operation', 'error_type']
+    "encryption_errors_total", "Encryption operation errors", ["operation", "error_type"]
 )
 
 decryption_errors_total = Counter(
-    'decryption_errors_total',
-    'Decryption operation errors',
-    ['error_type']
+    "decryption_errors_total", "Decryption operation errors", ["error_type"]
 )
 
 encryption_duration_seconds = Histogram(
-    'encryption_duration_seconds',
-    'Encryption operation duration',
-    ['operation'],
-    buckets=[0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0]
+    "encryption_duration_seconds",
+    "Encryption operation duration",
+    ["operation"],
+    buckets=[0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0],
 )
 
 
@@ -136,53 +109,32 @@ encryption_duration_seconds = Histogram(
 # ============================================================================
 
 database_queries_total = Counter(
-    'database_queries_total',
-    'Database queries executed',
-    ['operation', 'table', 'status']
+    "database_queries_total", "Database queries executed", ["operation", "table", "status"]
 )
 
 database_query_duration_seconds = Histogram(
-    'database_query_duration_seconds',
-    'Database query duration',
-    ['operation', 'table'],
-    buckets=[0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0]
+    "database_query_duration_seconds",
+    "Database query duration",
+    ["operation", "table"],
+    buckets=[0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0],
 )
 
-database_connections_active = Gauge(
-    'database_connections_active',
-    'Active database connections'
-)
+database_connections_active = Gauge("database_connections_active", "Active database connections")
 
-database_connections_max = Gauge(
-    'database_connections_max',
-    'Maximum database connections'
-)
+database_connections_max = Gauge("database_connections_max", "Maximum database connections")
 
 
 # ============================================================================
 # CACHE METRICS (REDIS)
 # ============================================================================
 
-cache_requests_total = Counter(
-    'cache_requests_total',
-    'Cache requests',
-    ['operation', 'status']
-)
+cache_requests_total = Counter("cache_requests_total", "Cache requests", ["operation", "status"])
 
-cache_hits_total = Counter(
-    'cache_hits_total',
-    'Cache hits'
-)
+cache_hits_total = Counter("cache_hits_total", "Cache hits")
 
-cache_misses_total = Counter(
-    'cache_misses_total',
-    'Cache misses'
-)
+cache_misses_total = Counter("cache_misses_total", "Cache misses")
 
-redis_connections_active = Gauge(
-    'redis_connections_active',
-    'Active Redis connections'
-)
+redis_connections_active = Gauge("redis_connections_active", "Active Redis connections")
 
 
 # ============================================================================
@@ -190,40 +142,32 @@ redis_connections_active = Gauge(
 # ============================================================================
 
 lattice_operations_total = Counter(
-    'lattice_operations_total',
-    'Lattice operations',
-    ['operation', 'dimensions']
+    "lattice_operations_total", "Lattice operations", ["operation", "dimensions"]
 )
 
 lattice_creation_seconds = Histogram(
-    'lattice_creation_seconds',
-    'Lattice creation duration',
-    ['dimensions'],
-    buckets=[0.1, 0.5, 1.0, 2.5, 5.0, 10.0, 30.0, 60.0]
+    "lattice_creation_seconds",
+    "Lattice creation duration",
+    ["dimensions"],
+    buckets=[0.1, 0.5, 1.0, 2.5, 5.0, 10.0, 30.0, 60.0],
 )
 
 path_finding_seconds = Histogram(
-    'path_finding_seconds',
-    'Path finding duration',
-    ['dimensions', 'algorithm'],
-    buckets=[0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0]
+    "path_finding_seconds",
+    "Path finding duration",
+    ["dimensions", "algorithm"],
+    buckets=[0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0],
 )
 
-active_lattices = Gauge(
-    'active_lattices',
-    'Number of active lattices'
-)
+active_lattices = Gauge("active_lattices", "Number of active lattices")
 
-memory_usage_bytes = Gauge(
-    'memory_usage_bytes',
-    'Memory usage by component',
-    ['component']
-)
+memory_usage_bytes = Gauge("memory_usage_bytes", "Memory usage by component", ["component"])
 
 
 # ============================================================================
 # DECORATOR FUNCTIONS
 # ============================================================================
+
 
 def track_request_metrics(endpoint: str):
     """
@@ -234,12 +178,13 @@ def track_request_metrics(endpoint: str):
         async def create_lattice(request):
             ...
     """
+
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         async def wrapper(*args, **kwargs):
             # Get request object (adjust based on framework)
-            request = args[0] if args else kwargs.get('request')
-            method = getattr(request, 'method', 'UNKNOWN')
+            request = args[0] if args else kwargs.get("request")
+            method = getattr(request, "method", "UNKNOWN")
 
             # Start timer
             start_time = time.time()
@@ -249,24 +194,29 @@ def track_request_metrics(endpoint: str):
                 response = await func(*args, **kwargs)
 
                 # Track success metrics
-                status = getattr(response, 'status_code', 200)
+                status = getattr(response, "status_code", 200)
                 http_requests_total.labels(method=method, endpoint=endpoint, status=status).inc()
 
                 duration = time.time() - start_time
-                http_request_duration_seconds.labels(method=method, endpoint=endpoint).observe(duration)
+                http_request_duration_seconds.labels(method=method, endpoint=endpoint).observe(
+                    duration
+                )
 
                 return response
 
             except Exception as e:
                 # Track error metrics
-                http_requests_total.labels(method=method, endpoint=endpoint, status='500').inc()
+                http_requests_total.labels(method=method, endpoint=endpoint, status="500").inc()
 
                 duration = time.time() - start_time
-                http_request_duration_seconds.labels(method=method, endpoint=endpoint).observe(duration)
+                http_request_duration_seconds.labels(method=method, endpoint=endpoint).observe(
+                    duration
+                )
 
                 raise e
 
         return wrapper
+
     return decorator
 
 
@@ -279,17 +229,20 @@ def track_authentication(operation: str):
         async def login(credentials):
             ...
     """
+
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         async def wrapper(*args, **kwargs):
             try:
                 result = await func(*args, **kwargs)
-                jwt_token_operations_total.labels(operation=operation, status='success').inc()
+                jwt_token_operations_total.labels(operation=operation, status="success").inc()
                 return result
             except Exception as e:
-                jwt_token_operations_total.labels(operation=operation, status='failure').inc()
+                jwt_token_operations_total.labels(operation=operation, status="failure").inc()
                 raise e
+
         return wrapper
+
     return decorator
 
 
@@ -302,6 +255,7 @@ def track_encryption(operation: str):
         def encrypt_data(data):
             ...
     """
+
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -311,7 +265,7 @@ def track_encryption(operation: str):
                 result = func(*args, **kwargs)
 
                 # Track success
-                encryption_operations_total.labels(operation=operation, status='success').inc()
+                encryption_operations_total.labels(operation=operation, status="success").inc()
 
                 duration = time.time() - start_time
                 encryption_duration_seconds.labels(operation=operation).observe(duration)
@@ -320,11 +274,14 @@ def track_encryption(operation: str):
 
             except Exception as e:
                 # Track failure
-                encryption_operations_total.labels(operation=operation, status='failure').inc()
-                encryption_errors_total.labels(operation=operation, error_type=type(e).__name__).inc()
+                encryption_operations_total.labels(operation=operation, status="failure").inc()
+                encryption_errors_total.labels(
+                    operation=operation, error_type=type(e).__name__
+                ).inc()
                 raise e
 
         return wrapper
+
     return decorator
 
 
@@ -337,6 +294,7 @@ def track_database_query(operation: str, table: str):
         async def get_user(user_id):
             ...
     """
+
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         async def wrapper(*args, **kwargs):
@@ -346,19 +304,26 @@ def track_database_query(operation: str, table: str):
                 result = await func(*args, **kwargs)
 
                 # Track success
-                database_queries_total.labels(operation=operation, table=table, status='success').inc()
+                database_queries_total.labels(
+                    operation=operation, table=table, status="success"
+                ).inc()
 
                 duration = time.time() - start_time
-                database_query_duration_seconds.labels(operation=operation, table=table).observe(duration)
+                database_query_duration_seconds.labels(operation=operation, table=table).observe(
+                    duration
+                )
 
                 return result
 
             except Exception as e:
                 # Track failure
-                database_queries_total.labels(operation=operation, table=table, status='failure').inc()
+                database_queries_total.labels(
+                    operation=operation, table=table, status="failure"
+                ).inc()
                 raise e
 
         return wrapper
+
     return decorator
 
 
@@ -366,9 +331,10 @@ def track_database_query(operation: str, table: str):
 # MANUAL TRACKING FUNCTIONS
 # ============================================================================
 
+
 def track_login_attempt(tenant: str, success: bool):
     """Track login attempt"""
-    status = 'success' if success else 'failure'
+    status = "success" if success else "failure"
     login_attempts_total.labels(tenant=tenant, status=status).inc()
 
 
@@ -384,7 +350,7 @@ def track_validation_failure(validator: str, failure_type: str):
 
 def track_cache_operation(operation: str, hit: bool):
     """Track cache operation"""
-    status = 'hit' if hit else 'miss'
+    status = "hit" if hit else "miss"
     cache_requests_total.labels(operation=operation, status=status).inc()
 
     if hit:
@@ -413,6 +379,7 @@ def update_memory_usage(component: str, bytes_used: int):
 # ============================================================================
 # METRICS ENDPOINT
 # ============================================================================
+
 
 def get_metrics() -> tuple:
     """

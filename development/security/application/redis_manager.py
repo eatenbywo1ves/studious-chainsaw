@@ -29,7 +29,7 @@ class RedisConnectionManager:
         socket_timeout: int = 5,
         socket_connect_timeout: int = 5,
         decode_responses: bool = True,
-        enable_fallback: bool = True  # Fallback to in-memory for dev
+        enable_fallback: bool = True,  # Fallback to in-memory for dev
     ):
         """
         Initialize Redis connection manager
@@ -74,7 +74,7 @@ class RedisConnectionManager:
                 "max_connections": self.max_connections,
                 "socket_timeout": self.socket_timeout,
                 "socket_connect_timeout": self.socket_connect_timeout,
-                "decode_responses": self.decode_responses
+                "decode_responses": self.decode_responses,
             }
 
             # Only add password if it's actually set
@@ -134,7 +134,7 @@ class RedisConnectionManager:
         ex: Optional[int] = None,
         px: Optional[int] = None,
         nx: bool = False,
-        xx: bool = False
+        xx: bool = False,
     ) -> bool:
         """Set value in Redis with fallback"""
         if self._available:
@@ -408,10 +408,10 @@ class RedisConnectionManager:
 
         sorted_set = self._fallback_storage[sorted_set_key]
         # Handle '-inf' and '+inf'
-        if min_score == '-inf':
-            min_score = float('-inf')
-        if max_score == '+inf':
-            max_score = float('inf')
+        if min_score == "-inf":
+            min_score = float("-inf")
+        if max_score == "+inf":
+            max_score = float("inf")
 
         original_len = len(sorted_set)
         sorted_set[:] = [(s, m) for s, m in sorted_set if not (min_score <= s <= max_score)]
@@ -462,10 +462,10 @@ class RedisConnectionManager:
 
         sorted_set = self._fallback_storage[sorted_set_key]
         # Handle '-inf' and '+inf'
-        if min_score == '-inf':
-            min_score = float('-inf')
-        if max_score == '+inf':
-            max_score = float('inf')
+        if min_score == "-inf":
+            min_score = float("-inf")
+        if max_score == "+inf":
+            max_score = float("inf")
 
         return sum(1 for s, m in sorted_set if min_score <= s <= max_score)
 

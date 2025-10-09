@@ -27,6 +27,7 @@ from auth.jwt_auth import create_token_pair
 # REACTIVE LOGIN PIPELINE
 # ============================================================================
 
+
 class ReactiveAuthService:
     """
     Reactive authentication service using RxPY
@@ -44,11 +45,7 @@ class ReactiveAuthService:
         self.logger = logging.getLogger(__name__)
 
     def login_stream(
-        self,
-        email: str,
-        password: str,
-        tenant_slug: Optional[str],
-        db: Session
+        self, email: str, password: str, tenant_slug: Optional[str], db: Session
     ) -> rx.Observable:
         """
         Create an observable login pipeline
@@ -65,37 +62,28 @@ class ReactiveAuthService:
             Observable that emits login result or error
         """
 
-        return rx.of({
-            'email': email,
-            'password': password,
-            'tenant_slug': tenant_slug,
-            'db': db
-        }).pipe(
-            # Stage 1: Find user with retry on transient failures
-            ops.flat_map(lambda ctx: self._find_user(ctx)),
-            ops.retry(3),  # Retry up to 3 times on DB connection errors
-
-            # Stage 2: Verify password
-            ops.map(lambda ctx: self._verify_password(ctx)),
-
-            # Stage 3: Create tokens
-            ops.map(lambda ctx: self._create_tokens(ctx)),
-
-            # Stage 4: Fork stream for parallel operations
-            ops.share(),  # Share the stream for multiple subscribers
-        ).pipe(
-            # Merge parallel operations: update last login + log API call
-            ops.merge(
-                self._update_last_login_stream(),
-                self._log_api_call_stream()
-            ),
-
-            # Stage 5: Combine results and emit final response
-            ops.reduce(lambda acc, x: {**acc, **x}),
-            ops.map(lambda ctx: self._build_response(ctx)),
-
-            # Error handling
-            ops.catch(lambda ex, src: self._handle_error(ex))
+        return (
+            rx.of({"email": email, "password": password, "tenant_slug": tenant_slug, "db": db})
+            .pipe(
+                # Stage 1: Find user with retry on transient failures
+                ops.flat_map(lambda ctx: self._find_user(ctx)),
+                ops.retry(3),  # Retry up to 3 times on DB connection errors
+                # Stage 2: Verify password
+                ops.map(lambda ctx: self._verify_password(ctx)),
+                # Stage 3: Create tokens
+                ops.map(lambda ctx: self._create_tokens(ctx)),
+                # Stage 4: Fork stream for parallel operations
+                ops.share(),  # Share the stream for multiple subscribers
+            )
+            .pipe(
+                # Merge parallel operations: update last login + log API call
+                ops.merge(self._update_last_login_stream(), self._log_api_call_stream()),
+                # Stage 5: Combine results and emit final response
+                ops.reduce(lambda acc, x: {**acc, **x}),
+                ops.map(lambda ctx: self._build_response(ctx)),
+                # Error handling
+                ops.catch(lambda ex, src: self._handle_error(ex)),
+            )
         )
 
     def _find_user(self, ctx: Dict[str, Any]) -> rx.Observable:
@@ -105,10 +93,11 @@ class ReactiveAuthService:
         Returns:
             Observable emitting context with user
         """
+
         def find_user_sync():
-            db = ctx['db']
-            email = ctx['email']
-            tenant_slug = ctx['tenant_slug']
+            db = ctx["db"]
+            email = ctx["email"]
+            tenant_slug = ctx["tenant_slug"]
 
             query = db.query(User).filter_by(email=email, is_active=True)
 
@@ -121,44 +110,36 @@ class ReactiveAuthService:
 
             if not user:
                 raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Invalid credentials"
+                    status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials"
                 )
 
-            ctx['user'] = user
+            ctx["user"] = user
             return ctx
 
         # Execute on thread pool to avoid blocking
-        return rx.from_callable(
-            find_user_sync,
-            scheduler=self.scheduler
-        )
+        return rx.from_callable(find_user_sync, scheduler=self.scheduler)
 
     def _verify_password(self, ctx: Dict[str, Any]) -> Dict[str, Any]:
         """Verify password (synchronous operator)"""
-        user = ctx['user']
-        password = ctx['password']
+        user = ctx["user"]
+        password = ctx["password"]
 
         if not user.verify_password(password):
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid credentials"
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials"
             )
 
         return ctx
 
     def _create_tokens(self, ctx: Dict[str, Any]) -> Dict[str, Any]:
         """Create JWT token pair"""
-        user = ctx['user']
+        user = ctx["user"]
 
         tokens = create_token_pair(
-            user_id=str(user.id),
-            tenant_id=str(user.tenant_id),
-            email=user.email,
-            role=user.role
+            user_id=str(user.id), tenant_id=str(user.tenant_id), email=user.email, role=user.role
         )
 
-        ctx['tokens'] = tokens
+        ctx["tokens"] = tokens
         return ctx
 
     def _update_last_login_stream(self) -> rx.Observable:
@@ -166,9 +147,10 @@ class ReactiveAuthService:
         Stream to update last login timestamp
         Runs in parallel with logging
         """
+
         def update_last_login(ctx: Dict[str, Any]):
-            user = ctx['user']
-            db = ctx['db']
+            user = ctx["user"]
+            db = ctx["db"]
 
             user.last_login = datetime.utcnow()
             db.commit()
@@ -178,7 +160,7 @@ class ReactiveAuthService:
 
         return rx.pipe(
             ops.map(update_last_login),
-            ops.subscribe_on(self.scheduler)  # Run on background thread
+            ops.subscribe_on(self.scheduler),  # Run on background thread
         )
 
     def _log_api_call_stream(self) -> rx.Observable:
@@ -186,16 +168,17 @@ class ReactiveAuthService:
         Stream to log API call
         Runs in parallel with last login update
         """
+
         def log_api_call(ctx: Dict[str, Any]):
-            user = ctx['user']
-            db = ctx['db']
+            user = ctx["user"]
+            db = ctx["db"]
 
             api_log = ApiLog(
                 tenant_id=user.tenant_id,
                 user_id=user.id,
                 endpoint="/auth/login",
                 method="POST",
-                status_code=200
+                status_code=200,
             )
             db.add(api_log)
             db.commit()
@@ -205,13 +188,13 @@ class ReactiveAuthService:
 
         return rx.pipe(
             ops.map(log_api_call),
-            ops.subscribe_on(self.scheduler)  # Run on background thread
+            ops.subscribe_on(self.scheduler),  # Run on background thread
         )
 
     def _build_response(self, ctx: Dict[str, Any]) -> Dict[str, Any]:
         """Build final response"""
-        user = ctx['user']
-        tokens = ctx['tokens']
+        user = ctx["user"]
+        tokens = ctx["tokens"]
 
         return {
             "tokens": tokens.dict(),
@@ -219,8 +202,8 @@ class ReactiveAuthService:
                 "id": str(user.id),
                 "email": user.email,
                 "role": user.role,
-                "tenant_id": str(user.tenant_id)
-            }
+                "tenant_id": str(user.tenant_id),
+            },
         }
 
     def _handle_error(self, error: Exception) -> rx.Observable:
@@ -239,7 +222,7 @@ class ReactiveAuthService:
         return rx.throw(
             HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Login failed: {str(error)}"
+                detail=f"Login failed: {str(error)}",
             )
         )
 
@@ -247,6 +230,7 @@ class ReactiveAuthService:
 # ============================================================================
 # REACTIVE LATTICE CREATION PIPELINE
 # ============================================================================
+
 
 class ReactiveLatticeService:
     """
@@ -269,6 +253,7 @@ class ReactiveLatticeService:
 
         # Store last context for rollback on error (thread-safe)
         import threading
+
         self._thread_local = threading.local()
 
     def create_lattice_stream(
@@ -278,7 +263,7 @@ class ReactiveLatticeService:
         dimensions: int,
         size: int,
         name: Optional[str],
-        db: Session
+        db: Session,
     ) -> rx.Observable:
         """
         Create observable lattice creation pipeline
@@ -296,50 +281,47 @@ class ReactiveLatticeService:
             Observable that emits LatticeResponse or error
         """
 
-        return rx.of({
-            'tenant_id': tenant_id,
-            'user_id': user_id,
-            'dimensions': dimensions,
-            'size': size,
-            'name': name,
-            'db': db
-        }).pipe(
-            # Stage 1: Validate limits
-            ops.map(lambda ctx: self._validate_subscription_limits(ctx)),
-
-            # Stage 2: Generate ID
-            ops.map(lambda ctx: self._generate_lattice_id(ctx)),
-
-            # Stage 3: Create lattice (blocking operation)
-            ops.flat_map(lambda ctx: self._create_lattice_async(ctx)),
-
-            # Stage 4: Calculate metrics
-            ops.map(lambda ctx: self._calculate_metrics(ctx)),
-
-            # Stage 4.5: Store context for potential rollback
-            ops.do_action(lambda ctx: self._store_context(ctx)),
-
-            # Stage 5: Fork for parallel DB operations
-            ops.share(),
-        ).pipe(
-            # Merge parallel operations
-            ops.merge(
-                self._store_in_db_stream(),
-                self._track_usage_stream(),
-                self._log_api_call_lattice_stream()
-            ),
-
-            # Combine results
-            ops.reduce(lambda acc, x: {**acc, **x}),
-
-            # Stage 6: Emit creation event
-            ops.do_action(lambda ctx: self._emit_creation_event(ctx)),
-
-            # Stage 7: Build response
-            ops.map(lambda ctx: self._build_lattice_response(ctx)),
-
-            # Error handling with automatic rollback
-            ops.catch(lambda ex, src: self._handle_lattice_error(ex))
+        return (
+            rx.of(
+                {
+                    "tenant_id": tenant_id,
+                    "user_id": user_id,
+                    "dimensions": dimensions,
+                    "size": size,
+                    "name": name,
+                    "db": db,
+                }
+            )
+            .pipe(
+                # Stage 1: Validate limits
+                ops.map(lambda ctx: self._validate_subscription_limits(ctx)),
+                # Stage 2: Generate ID
+                ops.map(lambda ctx: self._generate_lattice_id(ctx)),
+                # Stage 3: Create lattice (blocking operation)
+                ops.flat_map(lambda ctx: self._create_lattice_async(ctx)),
+                # Stage 4: Calculate metrics
+                ops.map(lambda ctx: self._calculate_metrics(ctx)),
+                # Stage 4.5: Store context for potential rollback
+                ops.do_action(lambda ctx: self._store_context(ctx)),
+                # Stage 5: Fork for parallel DB operations
+                ops.share(),
+            )
+            .pipe(
+                # Merge parallel operations
+                ops.merge(
+                    self._store_in_db_stream(),
+                    self._track_usage_stream(),
+                    self._log_api_call_lattice_stream(),
+                ),
+                # Combine results
+                ops.reduce(lambda acc, x: {**acc, **x}),
+                # Stage 6: Emit creation event
+                ops.do_action(lambda ctx: self._emit_creation_event(ctx)),
+                # Stage 7: Build response
+                ops.map(lambda ctx: self._build_lattice_response(ctx)),
+                # Error handling with automatic rollback
+                ops.catch(lambda ex, src: self._handle_lattice_error(ex)),
+            )
         )
 
     def _validate_subscription_limits(self, ctx: Dict[str, Any]) -> Dict[str, Any]:
@@ -351,44 +333,40 @@ class ReactiveLatticeService:
     def _generate_lattice_id(self, ctx: Dict[str, Any]) -> Dict[str, Any]:
         """Generate unique lattice ID"""
         import uuid
-        ctx['lattice_id'] = str(uuid.uuid4())[:8]
+
+        ctx["lattice_id"] = str(uuid.uuid4())[:8]
         return ctx
 
     def _create_lattice_async(self, ctx: Dict[str, Any]) -> rx.Observable:
         """Create lattice asynchronously"""
+
         def create_lattice_sync():
             from apps.catalytic.catalytic_lattice_graph import CatalyticLatticeGraph
 
-            lattice = CatalyticLatticeGraph(
-                dimensions=ctx['dimensions'],
-                lattice_size=ctx['size']
-            )
+            lattice = CatalyticLatticeGraph(dimensions=ctx["dimensions"], lattice_size=ctx["size"])
 
             # Store in manager
-            self.lattice_manager._lattices.setdefault(ctx['tenant_id'], {})
-            self.lattice_manager._lattices[ctx['tenant_id']][ctx['lattice_id']] = lattice
+            self.lattice_manager._lattices.setdefault(ctx["tenant_id"], {})
+            self.lattice_manager._lattices[ctx["tenant_id"]][ctx["lattice_id"]] = lattice
 
-            ctx['lattice'] = lattice
+            ctx["lattice"] = lattice
             return ctx
 
-        return rx.from_callable(
-            create_lattice_sync,
-            scheduler=self.scheduler
-        )
+        return rx.from_callable(create_lattice_sync, scheduler=self.scheduler)
 
     def _calculate_metrics(self, ctx: Dict[str, Any]) -> Dict[str, Any]:
         """Calculate memory reduction metrics"""
-        lattice = ctx['lattice']
+        lattice = ctx["lattice"]
 
         n_vertices = lattice.graph.vcount()
         traditional_memory = n_vertices * n_vertices * 8
         actual_memory = lattice.aux_memory_size + (lattice.graph.ecount() * 16)
         memory_reduction = traditional_memory / actual_memory if actual_memory > 0 else 1.0
 
-        ctx['n_vertices'] = n_vertices
-        ctx['n_edges'] = lattice.graph.ecount()
-        ctx['actual_memory'] = actual_memory
-        ctx['memory_reduction'] = memory_reduction
+        ctx["n_vertices"] = n_vertices
+        ctx["n_edges"] = lattice.graph.ecount()
+        ctx["actual_memory"] = actual_memory
+        ctx["memory_reduction"] = memory_reduction
 
         return ctx
 
@@ -398,48 +376,47 @@ class ReactiveLatticeService:
 
     def _store_in_db_stream(self) -> rx.Observable:
         """Stream to store lattice in database (parallel)"""
+
         def store_in_db(ctx: Dict[str, Any]):
             from database.models import TenantLattice
 
-            db = ctx['db']
+            db = ctx["db"]
 
             db_lattice = TenantLattice(
-                id=UUID(ctx['lattice_id'].ljust(36, '0')),
-                tenant_id=UUID(ctx['tenant_id']),
-                name=ctx['name'] or f"Lattice-{ctx['lattice_id']}",
-                dimensions=ctx['dimensions'],
-                size=ctx['size'],
-                vertices=ctx['n_vertices'],
-                edges=ctx['n_edges'],
-                memory_kb=ctx['actual_memory'] / 1024,
-                memory_reduction=ctx['memory_reduction'],
-                created_by_id=UUID(ctx['user_id'])
+                id=UUID(ctx["lattice_id"].ljust(36, "0")),
+                tenant_id=UUID(ctx["tenant_id"]),
+                name=ctx["name"] or f"Lattice-{ctx['lattice_id']}",
+                dimensions=ctx["dimensions"],
+                size=ctx["size"],
+                vertices=ctx["n_vertices"],
+                edges=ctx["n_edges"],
+                memory_kb=ctx["actual_memory"] / 1024,
+                memory_reduction=ctx["memory_reduction"],
+                created_by_id=UUID(ctx["user_id"]),
             )
             db.add(db_lattice)
             db.commit()
 
-            ctx['db_lattice'] = db_lattice
+            ctx["db_lattice"] = db_lattice
             self.logger.info(f"Stored lattice {ctx['lattice_id']} in DB")
             return ctx
 
-        return rx.pipe(
-            ops.map(store_in_db),
-            ops.subscribe_on(self.scheduler)
-        )
+        return rx.pipe(ops.map(store_in_db), ops.subscribe_on(self.scheduler))
 
     def _track_usage_stream(self) -> rx.Observable:
         """Stream to track usage metrics (parallel)"""
+
         def track_usage(ctx: Dict[str, Any]):
             from database.models import UsageMetric
 
-            db = ctx['db']
+            db = ctx["db"]
 
             usage = UsageMetric(
-                tenant_id=UUID(ctx['tenant_id']),
+                tenant_id=UUID(ctx["tenant_id"]),
                 metric_type="lattice_created",
                 metric_value=1,
                 period_start=datetime.utcnow().replace(day=1, hour=0, minute=0, second=0),
-                period_end=datetime.utcnow()
+                period_end=datetime.utcnow(),
             )
             db.add(usage)
             db.commit()
@@ -447,24 +424,22 @@ class ReactiveLatticeService:
             self.logger.info(f"Tracked usage for tenant {ctx['tenant_id']}")
             return ctx
 
-        return rx.pipe(
-            ops.map(track_usage),
-            ops.subscribe_on(self.scheduler)
-        )
+        return rx.pipe(ops.map(track_usage), ops.subscribe_on(self.scheduler))
 
     def _log_api_call_lattice_stream(self) -> rx.Observable:
         """Stream to log API call (parallel)"""
+
         def log_api_call(ctx: Dict[str, Any]):
             from database.models import ApiLog
 
-            db = ctx['db']
+            db = ctx["db"]
 
             api_log = ApiLog(
-                tenant_id=UUID(ctx['tenant_id']),
-                user_id=UUID(ctx['user_id']),
+                tenant_id=UUID(ctx["tenant_id"]),
+                user_id=UUID(ctx["user_id"]),
                 endpoint="/api/lattices",
                 method="POST",
-                status_code=200
+                status_code=200,
             )
             db.add(api_log)
             db.commit()
@@ -472,20 +447,17 @@ class ReactiveLatticeService:
             self.logger.info("Logged lattice creation API call")
             return ctx
 
-        return rx.pipe(
-            ops.map(log_api_call),
-            ops.subscribe_on(self.scheduler)
-        )
+        return rx.pipe(ops.map(log_api_call), ops.subscribe_on(self.scheduler))
 
     def _emit_creation_event(self, ctx: Dict[str, Any]):
         """Emit lattice creation event for real-time dashboards"""
         event = {
-            'event_type': 'lattice_created',
-            'lattice_id': ctx['lattice_id'],
-            'tenant_id': ctx['tenant_id'],
-            'dimensions': ctx['dimensions'],
-            'vertices': ctx['n_vertices'],
-            'timestamp': datetime.utcnow().isoformat()
+            "event_type": "lattice_created",
+            "lattice_id": ctx["lattice_id"],
+            "tenant_id": ctx["tenant_id"],
+            "dimensions": ctx["dimensions"],
+            "vertices": ctx["n_vertices"],
+            "timestamp": datetime.utcnow().isoformat(),
         }
 
         self.lattice_created_subject.on_next(event)
@@ -493,10 +465,10 @@ class ReactiveLatticeService:
 
     def _build_lattice_response(self, ctx: Dict[str, Any]) -> Dict[str, Any]:
         """Build final lattice response"""
-        db_lattice = ctx['db_lattice']
+        db_lattice = ctx["db_lattice"]
 
         return {
-            "id": ctx['lattice_id'],
+            "id": ctx["lattice_id"],
             "name": db_lattice.name,
             "dimensions": db_lattice.dimensions,
             "size": db_lattice.size,
@@ -504,7 +476,7 @@ class ReactiveLatticeService:
             "edges": db_lattice.edges,
             "memory_kb": float(db_lattice.memory_kb),
             "memory_reduction": float(db_lattice.memory_reduction),
-            "created_at": db_lattice.created_at
+            "created_at": db_lattice.created_at,
         }
 
     def _handle_lattice_error(self, error: Exception) -> rx.Observable:
@@ -520,24 +492,28 @@ class ReactiveLatticeService:
 
         # Perform rollback using stored context
         try:
-            ctx = getattr(self._thread_local, 'last_context', None)
+            ctx = getattr(self._thread_local, "last_context", None)
             if ctx:
-                tenant_id = ctx.get('tenant_id')
-                lattice_id = ctx.get('lattice_id')
-                db = ctx.get('db')
+                tenant_id = ctx.get("tenant_id")
+                lattice_id = ctx.get("lattice_id")
+                db = ctx.get("db")
 
                 # 1. Remove from lattice_manager if it was created
                 if tenant_id and lattice_id:
                     tenant_lattices = self.lattice_manager._lattices.get(tenant_id, {})
                     if lattice_id in tenant_lattices:
                         del tenant_lattices[lattice_id]
-                        self.logger.info(f"Rollback: Removed lattice {lattice_id} from in-memory manager")
+                        self.logger.info(
+                            f"Rollback: Removed lattice {lattice_id} from in-memory manager"
+                        )
 
                 # 2. Rollback DB transaction
                 if db:
                     try:
                         db.rollback()
-                        self.logger.info(f"Rollback: Database transaction rolled back for lattice {lattice_id}")
+                        self.logger.info(
+                            f"Rollback: Database transaction rolled back for lattice {lattice_id}"
+                        )
                     except Exception as db_error:
                         self.logger.error(f"DB rollback failed: {db_error}")
 
@@ -556,7 +532,7 @@ class ReactiveLatticeService:
         return rx.throw(
             HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Lattice creation failed: {str(error)}"
+                detail=f"Lattice creation failed: {str(error)}",
             )
         )
 

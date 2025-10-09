@@ -41,7 +41,9 @@ class TypeRecoveryService:
         """Start a transaction for modifying program data types."""
         self.transaction_id = self.program.startTransaction("GhidraGo Type Recovery")
 
-    def apply_types_with_resolution(self, type_list, type_resolver, struct_field_parser, interface_method_parser):
+    def apply_types_with_resolution(
+        self, type_list, type_resolver, struct_field_parser, interface_method_parser
+    ):
         """
         Apply multiple types with full Phase 2 field/method resolution.
 
@@ -67,7 +69,7 @@ class TypeRecoveryService:
         print(f"[*] Resolution order determined: {len(resolution_order)} types")
 
         # Create type_info lookup by name
-        type_by_name = {t.get('name'): t for t in type_list if t.get('name')}
+        type_by_name = {t.get("name"): t for t in type_list if t.get("name")}
 
         # Apply types in dependency order
         for type_name in resolution_order:
@@ -75,17 +77,17 @@ class TypeRecoveryService:
             if not type_info:
                 continue
 
-            kind = type_info.get('kind_name')
+            kind = type_info.get("kind_name")
 
             # Resolve fields/methods based on type kind
-            if kind == 'struct':
+            if kind == "struct":
                 # Resolve struct fields with type information
                 resolved_fields = type_resolver.resolve_struct_fields(
                     type_info, struct_field_parser
                 )
                 self.apply_type(type_info, resolved_fields=resolved_fields)
 
-            elif kind == 'interface':
+            elif kind == "interface":
                 # Resolve interface methods with type information
                 resolved_methods = type_resolver.resolve_interface_methods(
                     type_info, interface_method_parser
@@ -125,11 +127,11 @@ class TypeRecoveryService:
             True if successful, False otherwise
         """
         try:
-            kind = type_info['kind_name']
-            name = type_info['name']
+            kind = type_info["kind_name"]
+            name = type_info["name"]
 
             # Skip anonymous or invalid types
-            if not name or name.startswith('<'):
+            if not name or name.startswith("<"):
                 return False
 
             # Check cache
@@ -137,15 +139,15 @@ class TypeRecoveryService:
                 return True  # Already created
 
             # Dispatch to kind-specific handler
-            if kind == 'struct':
+            if kind == "struct":
                 return self._create_struct_type(type_info, resolved_fields)
-            elif kind == 'interface':
+            elif kind == "interface":
                 return self._create_interface_type(type_info, resolved_methods)
-            elif kind == 'slice':
+            elif kind == "slice":
                 return self._create_slice_type(type_info)
-            elif kind == 'array':
+            elif kind == "array":
                 return self._create_array_type(type_info)
-            elif kind == 'ptr':
+            elif kind == "ptr":
                 return self._create_pointer_type(type_info)
             else:
                 # Primitive types (int, string, etc.) - create typedef
@@ -167,8 +169,8 @@ class TypeRecoveryService:
         Returns:
             True if successful
         """
-        name = type_info['name']
-        size = type_info['size']
+        name = type_info["name"]
+        size = type_info["size"]
 
         # Create structure
         struct = StructureDataType(name, 0)
@@ -182,14 +184,14 @@ class TypeRecoveryService:
             print(f"  [+] Creating struct: {name} with {len(resolved_fields)} fields")
 
             # Sort fields by offset
-            sorted_fields = sorted(resolved_fields, key=lambda f: f.get('offset', 0))
+            sorted_fields = sorted(resolved_fields, key=lambda f: f.get("offset", 0))
 
             for field in sorted_fields:
-                field_name = field.get('name', 'field')
-                field_offset = int(field.get('offset', 0))
-                field.get('type_name', '<unknown>')
-                field_tag = field.get('tag', None)
-                embedded = field.get('embedded', False)
+                field_name = field.get("name", "field")
+                field_offset = int(field.get("offset", 0))
+                field.get("type_name", "<unknown>")
+                field_tag = field.get("tag", None)
+                embedded = field.get("embedded", False)
 
                 # Get Ghidra DataType for field
                 field_dt = self._get_field_datatype(field)
@@ -205,8 +207,9 @@ class TypeRecoveryService:
 
                     try:
                         # Add field at specific offset
-                        struct.replaceAtOffset(field_offset, field_dt, field_dt.getLength(),
-                                              field_name, comment)
+                        struct.replaceAtOffset(
+                            field_offset, field_dt, field_dt.getLength(), field_name, comment
+                        )
                     except Exception:
                         # If offset placement fails, add field normally
                         struct.add(field_dt, field_name, comment)
@@ -216,8 +219,9 @@ class TypeRecoveryService:
                 # Pad to correct size
                 padding_size = int(size) - struct.getLength()
                 if padding_size > 0:
-                    struct.add(Undefined.getUndefinedDataType(padding_size),
-                              padding_size, "_padding", None)
+                    struct.add(
+                        Undefined.getUndefinedDataType(padding_size), padding_size, "_padding", None
+                    )
 
         else:
             # No field information - create as undefined (Phase 1 behavior)
@@ -246,8 +250,8 @@ class TypeRecoveryService:
             type_info: Dictionary with interface information
             resolved_methods: Optional list of resolved method dictionaries from TypeResolver
         """
-        name = type_info['name']
-        type_info['size']
+        name = type_info["name"]
+        type_info["size"]
 
         # Interfaces in Go are represented as:
         # struct {
@@ -263,8 +267,8 @@ class TypeRecoveryService:
         if resolved_methods and len(resolved_methods) > 0:
             method_list = []
             for method in resolved_methods:
-                method_name = method.get('name', '<unknown>')
-                signature = method.get('signature', '<unknown>')
+                method_name = method.get("name", "<unknown>")
+                signature = method.get("signature", "<unknown>")
                 method_list.append(f"{method_name}: {signature}")
 
             # Set struct comment with method list
@@ -293,7 +297,7 @@ class TypeRecoveryService:
             cap   int             // Capacity (8 bytes)
         }
         """
-        name = type_info['name']
+        name = type_info["name"]
 
         struct = StructureDataType(name, 0)
         struct.add(PointerDataType.dataType, 8, "array", "Pointer to underlying array")
@@ -318,12 +322,12 @@ class TypeRecoveryService:
         Returns:
             True if successful
         """
-        name = type_info['name']
-        size = type_info['size']
+        name = type_info["name"]
+        size = type_info["size"]
 
         # For now, create as a typedef to an array of bytes
         # Full element type resolution is TODO for Phase 2
-        array_length = type_info.get('array_length', size)
+        array_length = type_info.get("array_length", size)
 
         if array_length > 0:
             array_dt = ArrayDataType(ByteDataType.dataType, int(array_length), 1)
@@ -349,7 +353,7 @@ class TypeRecoveryService:
         Returns:
             True if successful
         """
-        name = type_info['name']
+        name = type_info["name"]
 
         # Create as typedef to generic pointer
         # Full element type resolution is TODO for Phase 2
@@ -373,9 +377,9 @@ class TypeRecoveryService:
         Returns:
             True if successful
         """
-        name = type_info['name']
-        kind = type_info['kind_name']
-        size = type_info['size']
+        name = type_info["name"]
+        kind = type_info["kind_name"]
+        size = type_info["size"]
 
         # Map Go kinds to Ghidra primitives
         ghidra_type = self._get_ghidra_primitive(kind, size)
@@ -404,21 +408,23 @@ class TypeRecoveryService:
             Ghidra DataType or None
         """
         mapping = {
-            'bool': BooleanDataType.dataType,
-            'int': SignedIntegerDataType.dataType if size == 4 else LongLongDataType.dataType,
-            'int8': CharDataType.dataType,
-            'int16': ShortDataType.dataType,
-            'int32': IntegerDataType.dataType,
-            'int64': LongLongDataType.dataType,
-            'uint': UnsignedIntegerDataType.dataType if size == 4 else UnsignedLongLongDataType.dataType,
-            'uint8': UnsignedCharDataType.dataType,
-            'uint16': UnsignedShortDataType.dataType,
-            'uint32': UnsignedIntegerDataType.dataType,
-            'uint64': UnsignedLongLongDataType.dataType,
-            'float32': FloatDataType.dataType,
-            'float64': DoubleDataType.dataType,
-            'string': PointerDataType.dataType,  # Simplified - Go strings are actually structs
-            'uintptr': PointerDataType.dataType,
+            "bool": BooleanDataType.dataType,
+            "int": SignedIntegerDataType.dataType if size == 4 else LongLongDataType.dataType,
+            "int8": CharDataType.dataType,
+            "int16": ShortDataType.dataType,
+            "int32": IntegerDataType.dataType,
+            "int64": LongLongDataType.dataType,
+            "uint": UnsignedIntegerDataType.dataType
+            if size == 4
+            else UnsignedLongLongDataType.dataType,
+            "uint8": UnsignedCharDataType.dataType,
+            "uint16": UnsignedShortDataType.dataType,
+            "uint32": UnsignedIntegerDataType.dataType,
+            "uint64": UnsignedLongLongDataType.dataType,
+            "float32": FloatDataType.dataType,
+            "float64": DoubleDataType.dataType,
+            "string": PointerDataType.dataType,  # Simplified - Go strings are actually structs
+            "uintptr": PointerDataType.dataType,
         }
 
         return mapping.get(kind)
@@ -434,12 +440,12 @@ class TypeRecoveryService:
             Ghidra DataType or None
         """
         # Check if we have resolved type information
-        type_info = field.get('type_info')
+        type_info = field.get("type_info")
 
         if type_info:
-            type_kind = type_info.get('kind_name', '')
-            type_name = type_info.get('name', '')
-            type_size = type_info.get('size', 0)
+            type_kind = type_info.get("kind_name", "")
+            type_name = type_info.get("name", "")
+            type_size = type_info.get("size", 0)
 
             # Check if type already exists in cache
             if type_name in self.type_cache:
@@ -451,16 +457,16 @@ class TypeRecoveryService:
                 return primitive
 
             # For complex types, return pointer or undefined
-            if type_kind in ['struct', 'interface', 'slice']:
+            if type_kind in ["struct", "interface", "slice"]:
                 return PointerDataType.dataType
-            elif type_kind == 'array':
+            elif type_kind == "array":
                 # Create small array or use pointer
-                type_info.get('array_elem_size', 1)
-                array_len = type_info.get('array_length', 0)
+                type_info.get("array_elem_size", 1)
+                array_len = type_info.get("array_length", 0)
                 if array_len > 0 and array_len < 1000:
                     return ArrayDataType(ByteDataType.dataType, int(array_len), 1)
                 return PointerDataType.dataType
-            elif type_kind == 'ptr':
+            elif type_kind == "ptr":
                 return PointerDataType.dataType
 
         # Fallback: use field offset to determine size
@@ -475,18 +481,18 @@ class TypeRecoveryService:
             Dictionary with types_created and types_failed counts
         """
         return {
-            'types_created': self.types_created,
-            'types_failed': self.types_failed,
-            'total_processed': self.types_created + self.types_failed,
+            "types_created": self.types_created,
+            "types_failed": self.types_failed,
+            "total_processed": self.types_created + self.types_failed,
         }
 
 
 # Helper function for testing
 def test_type_recovery_service():
     """Test type recovery service with current program."""
-    print("="*60)
+    print("=" * 60)
     print("Testing TypeRecoveryService")
-    print("="*60)
+    print("=" * 60)
 
     print("\nTo use TypeRecoveryService:")
     print("1. Create service: service = TypeRecoveryService(program)")

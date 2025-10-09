@@ -22,11 +22,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "core"))
 from reactivex import operators as ops
 from reactivex.testing import TestScheduler, ReactiveTest
 
-from webhook_manager_reactive import (
-    WebhookPriority,
-    WebhookPayload,
-    CircuitBreakerState
-)
+from webhook_manager_reactive import WebhookPriority, WebhookPayload, CircuitBreakerState
 
 
 class TestReactiveWebhookPipeline:
@@ -62,13 +58,13 @@ class TestReactiveWebhookPipeline:
         # Create marble diagram as observable
         # Time unit = 10ms in TestScheduler
         source = scheduler.create_hot_observable(
-            ReactiveTest.on_next(210, high1),     # -H
-            ReactiveTest.on_next(220, normal1),   # -N
-            ReactiveTest.on_next(230, low1),      # -L
-            ReactiveTest.on_next(240, urgent1),   # -U
-            ReactiveTest.on_next(250, high2),     # -H
-            ReactiveTest.on_next(260, normal2),   # -N
-            ReactiveTest.on_completed(270)        # -|
+            ReactiveTest.on_next(210, high1),  # -H
+            ReactiveTest.on_next(220, normal1),  # -N
+            ReactiveTest.on_next(230, low1),  # -L
+            ReactiveTest.on_next(240, urgent1),  # -U
+            ReactiveTest.on_next(250, high2),  # -H
+            ReactiveTest.on_next(260, normal2),  # -N
+            ReactiveTest.on_completed(270),  # -|
         )
 
         # Group by priority and collect high priority events only
@@ -76,9 +72,13 @@ class TestReactiveWebhookPipeline:
         def create_pipeline():
             return source.pipe(
                 ops.group_by(lambda p: p.priority),
-                ops.flat_map(lambda group: group.pipe(
-                    ops.filter(lambda p: p.priority in [WebhookPriority.HIGH, WebhookPriority.URGENT])
-                ))
+                ops.flat_map(
+                    lambda group: group.pipe(
+                        ops.filter(
+                            lambda p: p.priority in [WebhookPriority.HIGH, WebhookPriority.URGENT]
+                        )
+                    )
+                ),
             )
 
         # Run the test with explicit timing
@@ -86,7 +86,7 @@ class TestReactiveWebhookPipeline:
 
         # Verify we got only HIGH and URGENT events in order
         # Filter out the completion message
-        event_messages = [msg for msg in results.messages if msg.value.kind == 'N']
+        event_messages = [msg for msg in results.messages if msg.value.kind == "N"]
 
         assert len(event_messages) == 3  # high1, urgent1, high2
         assert event_messages[0].value.value.event_id == "h1"
@@ -116,12 +116,12 @@ class TestReactiveWebhookPipeline:
             260: CircuitBreakerState.CLOSED,
         }
 
-        current_time_box = {'time': 0}
+        current_time_box = {"time": 0}
 
         def mock_circuit_breaker_check(url: str) -> bool:
             """Mock circuit breaker that changes state based on virtual time"""
             return (
-                circuit_states.get(current_time_box['time'], CircuitBreakerState.CLOSED)
+                circuit_states.get(current_time_box["time"], CircuitBreakerState.CLOSED)
                 == CircuitBreakerState.CLOSED
             )
 
@@ -136,20 +136,19 @@ class TestReactiveWebhookPipeline:
         ]
 
         source = scheduler.create_hot_observable(
-            *[ReactiveTest.on_next(t, e) for t, e in events],
-            ReactiveTest.on_completed(270)
+            *[ReactiveTest.on_next(t, e) for t, e in events], ReactiveTest.on_completed(270)
         )
 
         def create_pipeline():
             return source.pipe(
-                ops.do_action(lambda x: current_time_box.update({'time': scheduler.clock})),
-                ops.filter(lambda event: mock_circuit_breaker_check(event[1]))
+                ops.do_action(lambda x: current_time_box.update({"time": scheduler.clock})),
+                ops.filter(lambda event: mock_circuit_breaker_check(event[1])),
             )
 
         results = scheduler.start(create_pipeline, created=200, subscribed=200, disposed=1000)
 
         # Should only get events from time 30 onwards (when circuit closed)
-        passed_events = [msg.value.value for msg in results.messages if msg.value.kind == 'N']
+        passed_events = [msg.value.value for msg in results.messages if msg.value.kind == "N"]
         assert len(passed_events) == 4  # c, d, e, f
         assert passed_events[0][0] == "event_c"
         assert passed_events[3][0] == "event_f"
@@ -166,34 +165,36 @@ class TestReactiveWebhookPipeline:
         """
         TestScheduler()
 
-        attempt_count = {'count': 0}
+        attempt_count = {"count": 0}
 
         def create_failing_observable():
             """Observable that always fails"""
+
             def subscribe(observer, sched=None):
-                attempt_count['count'] += 1
+                attempt_count["count"] += 1
                 observer.on_next(f"attempt_{attempt_count['count']}")
                 observer.on_error(Exception("Simulated failure"))
                 return lambda: None
 
             from reactivex import create
+
             return create(subscribe)
 
         # Test with retry(2) - RxPY retry(N) means retry UP TO N times on error
         # So retry(2) = original attempt + up to 2 retries = up to 3 attempts total
         results = []
-        error_occurred = {'error': None}
+        error_occurred = {"error": None}
 
         create_failing_observable().pipe(
             ops.retry(2)  # Will retry up to 2 times = up to 3 total attempts
         ).subscribe(
             on_next=lambda x: results.append(x),
-            on_error=lambda e: error_occurred.update({'error': e})
+            on_error=lambda e: error_occurred.update({"error": e}),
         )
 
         assert len(results) >= 2  # At least original + 1 retry
-        assert attempt_count['count'] >= 2
-        assert error_occurred['error'] is not None
+        assert attempt_count["count"] >= 2
+        assert error_occurred["error"] is not None
 
         print("[OK] Retry logic test passed!")
 
@@ -216,18 +217,16 @@ class TestReactiveWebhookPipeline:
             ReactiveTest.on_next(270, "d"),
             ReactiveTest.on_next(280, "e"),
             ReactiveTest.on_next(290, "f"),
-            ReactiveTest.on_completed(300)
+            ReactiveTest.on_completed(300),
         )
 
         def create_pipeline():
-            return source.pipe(
-                ops.buffer_with_count(3)
-            )
+            return source.pipe(ops.buffer_with_count(3))
 
         results = scheduler.start(create_pipeline, created=200, subscribed=200, disposed=1000)
 
         # Should get 2 buffers: [a,b,c] and [d,e,f]
-        buffers = [msg.value.value for msg in results.messages if msg.value.kind == 'N']
+        buffers = [msg.value.value for msg in results.messages if msg.value.kind == "N"]
         assert len(buffers) == 2
         assert buffers[0] == ["a", "b", "c"]
         assert buffers[1] == ["d", "e", "f"]
@@ -253,18 +252,20 @@ class TestReactiveWebhookPipeline:
             ReactiveTest.on_next(270, "d"),
             ReactiveTest.on_next(280, "e"),
             ReactiveTest.on_next(290, "f"),
-            ReactiveTest.on_completed(300)
+            ReactiveTest.on_completed(300),
         )
 
         def create_pipeline():
-            return source.pipe(
-                ops.buffer_with_time(40, scheduler=scheduler)
-            )
+            return source.pipe(ops.buffer_with_time(40, scheduler=scheduler))
 
         results = scheduler.start(create_pipeline, created=200, subscribed=200, disposed=1000)
 
         # Get all emitted buffers
-        buffers = [msg.value.value for msg in results.messages if msg.value.kind == 'N' and len(msg.value.value) > 0]
+        buffers = [
+            msg.value.value
+            for msg in results.messages
+            if msg.value.kind == "N" and len(msg.value.value) > 0
+        ]
 
         # Should have time-based grouping
         assert len(buffers) >= 1
@@ -290,18 +291,16 @@ class TestReactiveWebhookPipeline:
             ReactiveTest.on_next(300, "d"),
             ReactiveTest.on_next(310, "e"),
             ReactiveTest.on_next(380, "f"),
-            ReactiveTest.on_completed(450)
+            ReactiveTest.on_completed(450),
         )
 
         def create_pipeline():
-            return source.pipe(
-                ops.debounce(30, scheduler=scheduler)
-            )
+            return source.pipe(ops.debounce(30, scheduler=scheduler))
 
         results = scheduler.start(create_pipeline, created=200, subscribed=200, disposed=1000)
 
         # Should only get c, e, f (items followed by silence)
-        emitted = [msg.value.value for msg in results.messages if msg.value.kind == 'N']
+        emitted = [msg.value.value for msg in results.messages if msg.value.kind == "N"]
         assert "c" in emitted
         assert "e" in emitted
         assert "f" in emitted
@@ -325,24 +324,22 @@ class TestReactiveWebhookPipeline:
         source = scheduler.create_hot_observable(
             ReactiveTest.on_next(210, "a"),
             ReactiveTest.on_next(220, "b"),
-            ReactiveTest.on_error(230, Exception("Error!"))
+            ReactiveTest.on_error(230, Exception("Error!")),
         )
 
         fallback = scheduler.create_cold_observable(
             ReactiveTest.on_next(10, "c"),
             ReactiveTest.on_next(20, "d"),
-            ReactiveTest.on_completed(30)
+            ReactiveTest.on_completed(30),
         )
 
         def create_pipeline():
-            return source.pipe(
-                ops.catch(lambda ex, src: fallback)
-            )
+            return source.pipe(ops.catch(lambda ex, src: fallback))
 
         results = scheduler.start(create_pipeline, created=200, subscribed=200, disposed=1000)
 
         # Should get a, b from source, then c, d from fallback
-        emitted = [msg.value.value for msg in results.messages if msg.value.kind == 'N']
+        emitted = [msg.value.value for msg in results.messages if msg.value.kind == "N"]
         assert emitted == ["a", "b", "c", "d"]
 
         print("✓ Error recovery test passed!")
@@ -368,17 +365,15 @@ class TestReactiveWebhookPipeline:
             ReactiveTest.on_next(260, "c"),
             ReactiveTest.on_next(270, "c"),
             ReactiveTest.on_next(280, "a"),
-            ReactiveTest.on_completed(300)
+            ReactiveTest.on_completed(300),
         )
 
         def create_pipeline():
-            return source.pipe(
-                ops.distinct_until_changed()
-            )
+            return source.pipe(ops.distinct_until_changed())
 
         results = scheduler.start(create_pipeline, created=200, subscribed=200, disposed=1000)
 
-        emitted = [msg.value.value for msg in results.messages if msg.value.kind == 'N']
+        emitted = [msg.value.value for msg in results.messages if msg.value.kind == "N"]
         assert emitted == ["a", "b", "c", "a"]
 
         print("✓ Distinct until changed test passed!")
@@ -407,9 +402,9 @@ class TestWebhookDeliveryFlow:
         source = scheduler.create_hot_observable(
             ReactiveTest.on_next(210, high1),
             ReactiveTest.on_next(220, normal1),
-            ReactiveTest.on_next(230, low1),     # Will be filtered
+            ReactiveTest.on_next(230, low1),  # Will be filtered
             ReactiveTest.on_next(240, high2),
-            ReactiveTest.on_completed(250)
+            ReactiveTest.on_completed(250),
         )
 
         # Simulate circuit breaker that blocks LOW priority
@@ -424,13 +419,17 @@ class TestWebhookDeliveryFlow:
             return source.pipe(
                 ops.filter(filter_by_circuit_breaker),
                 ops.map(deliver),
-                ops.buffer_with_time(30, scheduler=scheduler)
+                ops.buffer_with_time(30, scheduler=scheduler),
             )
 
         results = scheduler.start(create_pipeline, created=200, subscribed=200, disposed=1000)
 
         # Get all batches
-        batches = [msg.value.value for msg in results.messages if msg.value.kind == 'N' and len(msg.value.value) > 0]
+        batches = [
+            msg.value.value
+            for msg in results.messages
+            if msg.value.kind == "N" and len(msg.value.value) > 0
+        ]
 
         # Flatten to see all delivered events
         all_delivered = [item for batch in batches for item in batch]
@@ -446,9 +445,9 @@ class TestWebhookDeliveryFlow:
 
 def run_all_tests():
     """Run all marble diagram tests"""
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("RUNNING MARBLE DIAGRAM TESTS FOR REACTIVE WEBHOOK MANAGER")
-    print("="*80 + "\n")
+    print("=" * 80 + "\n")
 
     test_suite1 = TestReactiveWebhookPipeline()
     test_suite2 = TestWebhookDeliveryFlow()
@@ -468,9 +467,9 @@ def run_all_tests():
     print("-" * 80)
     test_suite2.test_complete_delivery_pipeline_marble_diagram()
 
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("✅ ALL MARBLE DIAGRAM TESTS PASSED!")
-    print("="*80)
+    print("=" * 80)
     print("\n💡 Key Takeaway: These async tests run SYNCHRONOUSLY!")
     print("   No need for sleep(), mock async, or complex fixtures.\n")
 

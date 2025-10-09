@@ -27,6 +27,7 @@ logger = logging.getLogger(__name__)
 
 class WebhookEvent(Enum):
     """Supported webhook event types"""
+
     # System events
     SYSTEM_STARTUP = "system.startup"
     SYSTEM_SHUTDOWN = "system.shutdown"
@@ -53,6 +54,7 @@ class WebhookEvent(Enum):
 
 class DeliveryStatus(Enum):
     """Webhook delivery status"""
+
     PENDING = "pending"
     DELIVERED = "delivered"
     FAILED = "failed"
@@ -62,6 +64,7 @@ class DeliveryStatus(Enum):
 @dataclass
 class WebhookConfig:
     """Configuration for a webhook endpoint"""
+
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
     url: str = ""
     events: List[str] = field(default_factory=list)
@@ -79,6 +82,7 @@ class WebhookConfig:
 @dataclass
 class WebhookPayload:
     """Webhook payload structure"""
+
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
     event: str = ""
     timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
@@ -89,6 +93,7 @@ class WebhookPayload:
 @dataclass
 class DeliveryAttempt:
     """Record of a webhook delivery attempt"""
+
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
     webhook_id: str = ""
     payload_id: str = ""
@@ -172,7 +177,7 @@ class WebhookRegistry:
                 headers=json.loads(row[8]) if row[8] else {},
                 metadata=json.loads(row[9]) if row[9] else {},
                 created_at=row[10],
-                updated_at=row[11]
+                updated_at=row[11],
             )
             self.webhooks[webhook.id] = webhook
 
@@ -193,25 +198,28 @@ class WebhookRegistry:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT OR REPLACE INTO webhooks
             (id, url, events, secret, active, retry_count, retry_delay,
              timeout, headers, metadata, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            webhook.id,
-            webhook.url,
-            json.dumps(webhook.events),
-            webhook.secret,
-            webhook.active,
-            webhook.retry_count,
-            webhook.retry_delay,
-            webhook.timeout,
-            json.dumps(webhook.headers),
-            json.dumps(webhook.metadata),
-            webhook.created_at,
-            webhook.updated_at
-        ))
+        """,
+            (
+                webhook.id,
+                webhook.url,
+                json.dumps(webhook.events),
+                webhook.secret,
+                webhook.active,
+                webhook.retry_count,
+                webhook.retry_delay,
+                webhook.timeout,
+                json.dumps(webhook.headers),
+                json.dumps(webhook.metadata),
+                webhook.created_at,
+                webhook.updated_at,
+            ),
+        )
 
         conn.commit()
         conn.close()
@@ -257,7 +265,7 @@ class WebhookRegistry:
             update_fields = []
             update_values = []
             for key, value in updates.items():
-                if key in ['events', 'headers', 'metadata']:
+                if key in ["events", "headers", "metadata"]:
                     update_values.append(json.dumps(value))
                 else:
                     update_values.append(value)
@@ -322,9 +330,7 @@ class WebhookDelivery:
         while attempt_number < webhook.retry_count:
             attempt_number += 1
             attempt = DeliveryAttempt(
-                webhook_id=webhook.id,
-                payload_id=payload.id,
-                attempt_number=attempt_number
+                webhook_id=webhook.id, payload_id=payload.id, attempt_number=attempt_number
             )
 
             start_time = time.time()
@@ -332,15 +338,15 @@ class WebhookDelivery:
             try:
                 # Prepare request
                 headers = webhook.headers.copy()
-                headers['Content-Type'] = 'application/json'
-                headers['X-Webhook-ID'] = webhook.id
-                headers['X-Webhook-Event'] = payload.event
-                headers['X-Webhook-Timestamp'] = payload.timestamp
+                headers["Content-Type"] = "application/json"
+                headers["X-Webhook-ID"] = webhook.id
+                headers["X-Webhook-Event"] = payload.event
+                headers["X-Webhook-Timestamp"] = payload.timestamp
 
                 # Add signature if secret is configured
                 if webhook.secret:
                     signature = self._generate_signature(webhook.secret, payload)
-                    headers['X-Webhook-Signature'] = signature
+                    headers["X-Webhook-Signature"] = signature
 
                 # Send request
                 async with aiohttp.ClientSession() as session:
@@ -348,7 +354,7 @@ class WebhookDelivery:
                         webhook.url,
                         json=asdict(payload),
                         headers=headers,
-                        timeout=aiohttp.ClientTimeout(total=webhook.timeout)
+                        timeout=aiohttp.ClientTimeout(total=webhook.timeout),
                     ) as response:
                         attempt.response_code = response.status
                         attempt.response_body = await response.text()
@@ -383,11 +389,7 @@ class WebhookDelivery:
     def _generate_signature(self, secret: str, payload: WebhookPayload) -> str:
         """Generate HMAC signature for webhook payload"""
         payload_json = json.dumps(asdict(payload), sort_keys=True)
-        signature = hmac.new(
-            secret.encode(),
-            payload_json.encode(),
-            hashlib.sha256
-        ).hexdigest()
+        signature = hmac.new(secret.encode(), payload_json.encode(), hashlib.sha256).hexdigest()
         return f"sha256={signature}"
 
     def _record_attempt(self, attempt: DeliveryAttempt):
@@ -395,23 +397,26 @@ class WebhookDelivery:
         conn = sqlite3.connect(self.registry.db_path)
         cursor = conn.cursor()
 
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO delivery_attempts
             (id, webhook_id, payload_id, attempt_number, status,
              response_code, response_body, error_message, timestamp, duration_ms)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            attempt.id,
-            attempt.webhook_id,
-            attempt.payload_id,
-            attempt.attempt_number,
-            attempt.status.value,
-            attempt.response_code,
-            attempt.response_body,
-            attempt.error_message,
-            attempt.timestamp,
-            attempt.duration_ms
-        ))
+        """,
+            (
+                attempt.id,
+                attempt.webhook_id,
+                attempt.payload_id,
+                attempt.attempt_number,
+                attempt.status.value,
+                attempt.response_code,
+                attempt.response_body,
+                attempt.error_message,
+                attempt.timestamp,
+                attempt.duration_ms,
+            ),
+        )
 
         conn.commit()
         conn.close()
@@ -445,31 +450,20 @@ class WebhookManager:
         events: List[str],
         secret: Optional[str] = None,
         headers: Optional[Dict[str, str]] = None,
-        **kwargs
+        **kwargs,
     ) -> str:
         """Register a new webhook endpoint"""
         webhook = WebhookConfig(
-            url=url,
-            events=events,
-            secret=secret,
-            headers=headers or {},
-            **kwargs
+            url=url, events=events, secret=secret, headers=headers or {}, **kwargs
         )
         return self.registry.register(webhook)
 
     def trigger_event(
-        self,
-        event: str,
-        data: Dict[str, Any],
-        metadata: Optional[Dict[str, Any]] = None
+        self, event: str, data: Dict[str, Any], metadata: Optional[Dict[str, Any]] = None
     ):
         """Trigger a webhook event"""
         # Create payload
-        payload = WebhookPayload(
-            event=event,
-            data=data,
-            metadata=metadata or {}
-        )
+        payload = WebhookPayload(event=event, data=data, metadata=metadata or {})
 
         # Get matching webhooks
         webhooks = self.registry.get_webhooks_for_event(event)
@@ -499,7 +493,8 @@ class WebhookManager:
         conn = sqlite3.connect(self.registry.db_path)
         cursor = conn.cursor()
 
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT
                 COUNT(*) as total_attempts,
                 SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END) as successful,
@@ -507,17 +502,19 @@ class WebhookManager:
                 AVG(duration_ms) as avg_duration_ms
             FROM delivery_attempts
             WHERE webhook_id = ?
-        """, (webhook_id,))
+        """,
+            (webhook_id,),
+        )
 
         row = cursor.fetchone()
         conn.close()
 
         return {
-            'webhook_id': webhook_id,
-            'total_attempts': row[0],
-            'successful': row[1],
-            'failed': row[2],
-            'avg_duration_ms': row[3]
+            "webhook_id": webhook_id,
+            "total_attempts": row[0],
+            "successful": row[1],
+            "failed": row[2],
+            "avg_duration_ms": row[3],
         }
 
 
@@ -535,12 +532,12 @@ class WebhookServer:
         from aiohttp import web
 
         self.app = web.Application()
-        self.app.router.add_post('/webhook', self.handle_webhook)
-        self.app.router.add_get('/health', self.health_check)
+        self.app.router.add_post("/webhook", self.handle_webhook)
+        self.app.router.add_get("/health", self.health_check)
 
         self.runner = web.AppRunner(self.app)
         await self.runner.setup()
-        site = web.TCPSite(self.runner, 'localhost', self.port)
+        site = web.TCPSite(self.runner, "localhost", self.port)
         await site.start()
 
         logger.info(f"Webhook server started on port {self.port}")
@@ -561,29 +558,28 @@ class WebhookServer:
             headers = dict(request.headers)
 
             # Verify signature if present
-            if 'X-Webhook-Signature' in headers:
+            if "X-Webhook-Signature" in headers:
                 # Implement signature verification
                 pass
 
             # Store received webhook
-            self.received_webhooks.append({
-                'timestamp': datetime.now().isoformat(),
-                'headers': headers,
-                'data': data
-            })
+            self.received_webhooks.append(
+                {"timestamp": datetime.now().isoformat(), "headers": headers, "data": data}
+            )
 
             logger.info(f"Received webhook: {data.get('event', 'unknown')}")
 
-            return web.json_response({'status': 'received'}, status=200)
+            return web.json_response({"status": "received"}, status=200)
 
         except Exception as e:
             logger.error(f"Error handling webhook: {e}")
-            return web.json_response({'error': str(e)}, status=500)
+            return web.json_response({"error": str(e)}, status=500)
 
     async def health_check(self, request):
         """Health check endpoint"""
         from aiohttp import web
-        return web.json_response({'status': 'healthy'}, status=200)
+
+        return web.json_response({"status": "healthy"}, status=200)
 
 
 # Example usage and testing
@@ -600,7 +596,7 @@ def example_usage():
             url="https://example.com/webhook",
             events=["data.created", "data.updated"],
             secret="my-secret-key",
-            headers={"X-Custom-Header": "value"}
+            headers={"X-Custom-Header": "value"},
         )
         print(f"Registered webhook: {webhook_id}")
 
@@ -614,7 +610,7 @@ def example_usage():
         manager.trigger_event(
             event="data.created",
             data={"id": "123", "name": "Test Item"},
-            metadata={"source": "example"}
+            metadata={"source": "example"},
         )
 
         # Wait for deliveries

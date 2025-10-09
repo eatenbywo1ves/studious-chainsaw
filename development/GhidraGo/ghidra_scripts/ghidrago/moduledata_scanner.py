@@ -52,7 +52,7 @@ class ModuledataCache:
             # Find .text section (code section)
             text_block = None
             for block in memory.getBlocks():
-                if block.isExecute() and block.getName() in ['.text', '__text', 'CODE']:
+                if block.isExecute() and block.getName() in [".text", "__text", "CODE"]:
                     text_block = block
                     break
 
@@ -91,7 +91,7 @@ class ModuledataCache:
             cached_entry = cls._cache[program_hash]
             print(f"[+] Moduledata cache HIT for program hash {program_hash[:16]}...")
             print("    Skipping expensive binary scan (40-60% faster)")
-            return cached_entry['moduledata']
+            return cached_entry["moduledata"]
 
         print(f"[*] Moduledata cache MISS for program hash {program_hash[:16]}...")
         return None
@@ -108,8 +108,8 @@ class ModuledataCache:
         program_hash = cls.compute_program_hash(program)
 
         cls._cache[program_hash] = {
-            'moduledata': moduledata.copy(),
-            'program_name': program.getName(),
+            "moduledata": moduledata.copy(),
+            "program_name": program.getName(),
         }
 
         print("[+] Cached moduledata for future analyses")
@@ -126,8 +126,8 @@ class ModuledataCache:
     def get_statistics(cls):
         """Get cache statistics."""
         return {
-            'entries': len(cls._cache),
-            'programs': [entry['program_name'] for entry in cls._cache.values()]
+            "entries": len(cls._cache),
+            "programs": [entry["program_name"] for entry in cls._cache.values()],
         }
 
 
@@ -142,27 +142,27 @@ class ModuledataScanner:
     # Moduledata field offsets vary by Go version
     # These are for Go 1.18+ (64-bit)
     MODULEDATA_OFFSETS_118 = {
-        'pclntab': 0x20,        # Pointer to PCLNTAB (we already have this)
-        'ftab': 0x28,           # Function table
-        'filetab': 0x30,        # File table
-        'findfunctab': 0x38,    # Find function table
-        'minpc': 0x40,          # Minimum PC
-        'maxpc': 0x48,          # Maximum PC
-        'text': 0x50,           # Text section start
-        'etext': 0x58,          # Text section end
-        'noptrdata': 0x60,      # No-pointer data start
-        'enoptrdata': 0x68,     # No-pointer data end
-        'data': 0x70,           # Data section start
-        'edata': 0x78,          # Data section end
-        'bss': 0x80,            # BSS section start
-        'ebss': 0x88,           # BSS section end
-        'noptrbss': 0x90,       # No-pointer BSS start
-        'enoptrbss': 0x98,      # No-pointer BSS end
-        'types': 0xC0,          # Types section start ⭐ KEY for v1.1
-        'etypes': 0xC8,         # Types section end ⭐ KEY for v1.1
-        'typelinks_addr': 0xD8, # Typelinks slice address ⭐ KEY for v1.1
-        'typelinks_len': 0xE0,  # Typelinks slice length ⭐ KEY for v1.1
-        'typelinks_cap': 0xE8,  # Typelinks slice capacity
+        "pclntab": 0x20,  # Pointer to PCLNTAB (we already have this)
+        "ftab": 0x28,  # Function table
+        "filetab": 0x30,  # File table
+        "findfunctab": 0x38,  # Find function table
+        "minpc": 0x40,  # Minimum PC
+        "maxpc": 0x48,  # Maximum PC
+        "text": 0x50,  # Text section start
+        "etext": 0x58,  # Text section end
+        "noptrdata": 0x60,  # No-pointer data start
+        "enoptrdata": 0x68,  # No-pointer data end
+        "data": 0x70,  # Data section start
+        "edata": 0x78,  # Data section end
+        "bss": 0x80,  # BSS section start
+        "ebss": 0x88,  # BSS section end
+        "noptrbss": 0x90,  # No-pointer BSS start
+        "enoptrbss": 0x98,  # No-pointer BSS end
+        "types": 0xC0,  # Types section start ⭐ KEY for v1.1
+        "etypes": 0xC8,  # Types section end ⭐ KEY for v1.1
+        "typelinks_addr": 0xD8,  # Typelinks slice address ⭐ KEY for v1.1
+        "typelinks_len": 0xE0,  # Typelinks slice length ⭐ KEY for v1.1
+        "typelinks_cap": 0xE8,  # Typelinks slice capacity
     }
 
     def __init__(self, program, pclntab_addr, go_version):
@@ -203,7 +203,7 @@ class ModuledataScanner:
         cached_moduledata = ModuledataCache.get_cached(self.program)
         if cached_moduledata:
             self.moduledata = cached_moduledata
-            self.moduledata_addr = cached_moduledata.get('base_addr')
+            self.moduledata_addr = cached_moduledata.get("base_addr")
             print(f"[+] Using cached moduledata at {self.moduledata_addr}")
             return self.moduledata_addr
 
@@ -241,9 +241,13 @@ class ModuledataScanner:
         # PE (Windows): .data, .rdata
         # Mach-O (macOS): __noptrdata, __data, __rodata
         target_sections = [
-            '.noptrdata', '.data', '.rodata',  # ELF
-            '__noptrdata', '__data', '__rodata',  # Mach-O
-            '.rdata'  # PE
+            ".noptrdata",
+            ".data",
+            ".rodata",  # ELF
+            "__noptrdata",
+            "__data",
+            "__rodata",  # Mach-O
+            ".rdata",  # PE
         ]
 
         for section_name in target_sections:
@@ -288,7 +292,7 @@ class ModuledataScanner:
                 if ptr_value == pclntab_value:
                     # Potential moduledata found!
                     # Back up to start of structure (pclntab is at offset 0x20)
-                    candidate_addr = addr.subtract(self.MODULEDATA_OFFSETS_118['pclntab'])
+                    candidate_addr = addr.subtract(self.MODULEDATA_OFFSETS_118["pclntab"])
 
                     if self._validate_moduledata(candidate_addr):
                         return candidate_addr
@@ -342,14 +346,14 @@ class ModuledataScanner:
         """
         try:
             # Check 1: PCLNTAB pointer
-            pclntab_offset = self.MODULEDATA_OFFSETS_118['pclntab']
+            pclntab_offset = self.MODULEDATA_OFFSETS_118["pclntab"]
             pclntab_ptr = self._read_uint64(addr.add(pclntab_offset))
             if pclntab_ptr != self.pclntab_addr.getOffset():
                 return False
 
             # Check 2: types/etypes range
-            types_addr = self._read_uint64(addr.add(self.MODULEDATA_OFFSETS_118['types']))
-            etypes_addr = self._read_uint64(addr.add(self.MODULEDATA_OFFSETS_118['etypes']))
+            types_addr = self._read_uint64(addr.add(self.MODULEDATA_OFFSETS_118["types"]))
+            etypes_addr = self._read_uint64(addr.add(self.MODULEDATA_OFFSETS_118["etypes"]))
 
             if types_addr == 0 or etypes_addr == 0:
                 return False
@@ -360,7 +364,9 @@ class ModuledataScanner:
                 return False
 
             # Check 3: typelinks length
-            typelinks_len = self._read_uint64(addr.add(self.MODULEDATA_OFFSETS_118['typelinks_len']))
+            typelinks_len = self._read_uint64(
+                addr.add(self.MODULEDATA_OFFSETS_118["typelinks_len"])
+            )
             # Should have at least 1 type, but not more than 100,000
             if typelinks_len < 1 or typelinks_len > 100000:
                 return False
@@ -387,25 +393,29 @@ class ModuledataScanner:
         offsets = self.MODULEDATA_OFFSETS_118
 
         self.moduledata = {
-            'base_addr': addr,
-            'pclntab': toAddr(self._read_uint64(addr.add(offsets['pclntab']))),
-            'text': toAddr(self._read_uint64(addr.add(offsets['text']))),
-            'etext': toAddr(self._read_uint64(addr.add(offsets['etext']))),
-            'types': toAddr(self._read_uint64(addr.add(offsets['types']))),
-            'etypes': toAddr(self._read_uint64(addr.add(offsets['etypes']))),
-            'typelinks_addr': toAddr(self._read_uint64(addr.add(offsets['typelinks_addr']))),
-            'typelinks_len': self._read_uint64(addr.add(offsets['typelinks_len'])),
-            'typelinks_cap': self._read_uint64(addr.add(offsets['typelinks_cap'])),
+            "base_addr": addr,
+            "pclntab": toAddr(self._read_uint64(addr.add(offsets["pclntab"]))),
+            "text": toAddr(self._read_uint64(addr.add(offsets["text"]))),
+            "etext": toAddr(self._read_uint64(addr.add(offsets["etext"]))),
+            "types": toAddr(self._read_uint64(addr.add(offsets["types"]))),
+            "etypes": toAddr(self._read_uint64(addr.add(offsets["etypes"]))),
+            "typelinks_addr": toAddr(self._read_uint64(addr.add(offsets["typelinks_addr"]))),
+            "typelinks_len": self._read_uint64(addr.add(offsets["typelinks_len"])),
+            "typelinks_cap": self._read_uint64(addr.add(offsets["typelinks_cap"])),
         }
 
         # Calculate derived values
-        types_start = self.moduledata['types'].getOffset()
-        types_end = self.moduledata['etypes'].getOffset()
-        self.moduledata['types_size'] = types_end - types_start
+        types_start = self.moduledata["types"].getOffset()
+        types_end = self.moduledata["etypes"].getOffset()
+        self.moduledata["types_size"] = types_end - types_start
 
         print("[+] Moduledata parsed successfully:")
-        print(f"    Types section: {self.moduledata['types']} - {self.moduledata['etypes']} ({self.moduledata['types_size']} bytes)")
-        print(f"    Typelinks: {self.moduledata['typelinks_len']} entries at {self.moduledata['typelinks_addr']}")
+        print(
+            f"    Types section: {self.moduledata['types']} - {self.moduledata['etypes']} ({self.moduledata['types_size']} bytes)"
+        )
+        print(
+            f"    Typelinks: {self.moduledata['typelinks_len']} entries at {self.moduledata['typelinks_addr']}"
+        )
 
     def get_moduledata(self) -> Dict[str, Any]:
         """
@@ -430,9 +440,9 @@ class ModuledataScanner:
 # Helper function for testing
 def test_moduledata_scanner():
     """Test moduledata scanner with current program."""
-    print("="*60)
+    print("=" * 60)
     print("Testing ModuledataScanner")
-    print("="*60)
+    print("=" * 60)
 
     # This requires PCLNTAB to already be located (from v1.0)
     # For now, this is a placeholder for integration testing

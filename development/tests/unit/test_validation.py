@@ -10,7 +10,6 @@ from libs.utils.validation import (
     LatticeParameters,
     WebhookConfig,
     PaginationParams,
-
     # Functions
     validate_dimensions,
     validate_lattice_size,
@@ -23,16 +22,17 @@ from libs.utils.validation import (
     validate_memory_size,
     validate_percentage,
     validate_batch,
-
     # Decorators
     validate_input,
-    validate_type
+    validate_type,
 )
 from libs.utils.exceptions import ValidationError as CustomValidationError
 from libs.constants.constants import (
-    MIN_DIMENSIONS, MAX_DIMENSIONS,
-    MIN_LATTICE_SIZE, MAX_LATTICE_SIZE,
-    MAX_AUX_MEMORY_MB
+    MIN_DIMENSIONS,
+    MAX_DIMENSIONS,
+    MIN_LATTICE_SIZE,
+    MAX_LATTICE_SIZE,
+    MAX_AUX_MEMORY_MB,
 )
 
 
@@ -103,13 +103,16 @@ class TestLatticeParametersModel:
         assert params.auxiliary_memory == 10.0
         assert params.algorithm == "dijkstra"
 
-    @pytest.mark.parametrize("invalid_data,expected_error", [
-        ({"dimensions": "three", "size": 10}, ValueError),
-        ({"dimensions": 3.5, "size": 10}, ValueError),
-        ({"dimensions": 3, "size": "ten"}, ValueError),
-        ({"dimensions": None, "size": 10}, ValueError),
-        ({}, ValueError),  # Missing required fields
-    ])
+    @pytest.mark.parametrize(
+        "invalid_data,expected_error",
+        [
+            ({"dimensions": "three", "size": 10}, ValueError),
+            ({"dimensions": 3.5, "size": 10}, ValueError),
+            ({"dimensions": 3, "size": "ten"}, ValueError),
+            ({"dimensions": None, "size": 10}, ValueError),
+            ({}, ValueError),  # Missing required fields
+        ],
+    )
     def test_invalid_lattice_parameters(self, invalid_data, expected_error):
         """Test invalid lattice parameter inputs"""
         with pytest.raises(expected_error):
@@ -156,38 +159,26 @@ class TestWebhookConfigModel:
     def test_localhost_warning(self):
         """Test that localhost URLs trigger warning"""
         # Should work but with warning
-        config = WebhookConfig(
-            url="http://localhost:8080/webhook",
-            events=["test.event"]
-        )
+        config = WebhookConfig(url="http://localhost:8080/webhook", events=["test.event"])
         assert "localhost" in config.url
 
     def test_secret_validation(self):
         """Test secret length requirements"""
         # Valid secret (16+ chars)
         config = WebhookConfig(
-            url="https://example.com",
-            events=["test"],
-            secret="this_is_16_chars"
+            url="https://example.com", events=["test"], secret="this_is_16_chars"
         )
         assert config.secret == "this_is_16_chars"
 
         # Too short secret
         with pytest.raises(ValueError):
-            WebhookConfig(
-                url="https://example.com",
-                events=["test"],
-                secret="short"
-            )
+            WebhookConfig(url="https://example.com", events=["test"], secret="short")
 
     def test_retry_and_timeout_bounds(self):
         """Test retry count and timeout boundaries"""
         # Valid values
         config = WebhookConfig(
-            url="https://example.com",
-            events=["test"],
-            retry_count=5,
-            timeout=150
+            url="https://example.com", events=["test"], retry_count=5, timeout=150
         )
         assert config.retry_count == 5
         assert config.timeout == 150
@@ -197,7 +188,7 @@ class TestWebhookConfigModel:
             WebhookConfig(
                 url="https://example.com",
                 events=["test"],
-                retry_count=11  # Max is 10
+                retry_count=11,  # Max is 10
             )
 
         # Invalid timeout
@@ -205,7 +196,7 @@ class TestWebhookConfigModel:
             WebhookConfig(
                 url="https://example.com",
                 events=["test"],
-                timeout=301  # Max is 300
+                timeout=301,  # Max is 300
             )
 
 
@@ -470,10 +461,7 @@ class TestValidationDecorators:
     def test_validate_input_decorator(self):
         """Test input validation decorator"""
 
-        @validate_input(
-            x=lambda v: v > 0,
-            y=lambda v: v < 100
-        )
+        @validate_input(x=lambda v: v > 0, y=lambda v: v < 100)
         def test_func(x: int, y: int) -> int:
             return x + y
 
@@ -532,8 +520,8 @@ class TestBatchValidation:
         items = [
             {"dimensions": 3, "size": 10},  # Valid
             {"dimensions": 0, "size": 10},  # Invalid dimensions
-            {"dimensions": 4, "size": 8},   # Valid
-            {"dimensions": 3, "size": 200}, # Invalid size
+            {"dimensions": 4, "size": 8},  # Valid
+            {"dimensions": 3, "size": 200},  # Invalid size
         ]
 
         valid_items, errors = validate_batch(items, LatticeParameters)

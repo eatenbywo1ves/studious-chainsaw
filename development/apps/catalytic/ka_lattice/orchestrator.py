@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class LatticeInstance:
     """Single lattice instance in the orchestration"""
+
     id: str
     lattice: KALatticeCore
     cycle_manager: ProductionCycleManager
@@ -36,6 +37,7 @@ class LatticeInstance:
 @dataclass
 class OrchestratorConfig:
     """Configuration for the orchestrator"""
+
     max_instances: int = 4
     auto_scaling: bool = True
     scale_up_threshold: float = 0.8  # CPU/memory threshold
@@ -74,11 +76,11 @@ class KALatticeOrchestrator:
 
         # Monitoring
         self.metrics = {
-            'total_requests': 0,
-            'successful_requests': 0,
-            'failed_requests': 0,
-            'average_latency_ms': 0.0,
-            'current_load': 0.0
+            "total_requests": 0,
+            "successful_requests": 0,
+            "failed_requests": 0,
+            "average_latency_ms": 0.0,
+            "current_load": 0.0,
         }
 
         # Ensure persistence directory exists
@@ -140,6 +142,7 @@ class KALatticeOrchestrator:
         """Create initial lattice instances"""
         # Determine optimal number based on system resources
         import psutil
+
         cpu_count = psutil.cpu_count()
         initial_count = min(cpu_count // 2, self.config.max_instances, 2)
 
@@ -166,23 +169,18 @@ class KALatticeOrchestrator:
             size=size,
             knowledge_capacity=5000,
             learning_enabled=True,
-            enable_gpu=self._should_use_gpu()
+            enable_gpu=self._should_use_gpu(),
         )
 
         # Create production cycle manager
         production_config = ProductionConfig(
-            warmup_iterations=50,
-            optimization_interval_seconds=300,
-            enable_auto_optimization=True
+            warmup_iterations=50, optimization_interval_seconds=300, enable_auto_optimization=True
         )
         cycle_manager = ProductionCycleManager(lattice, production_config)
 
         # Create instance
         instance = LatticeInstance(
-            id=instance_id,
-            lattice=lattice,
-            cycle_manager=cycle_manager,
-            status="starting"
+            id=instance_id, lattice=lattice, cycle_manager=cycle_manager, status="starting"
         )
 
         # Start production cycle
@@ -243,8 +241,8 @@ class KALatticeOrchestrator:
             old_instance = self.instances[instance_id]
             try:
                 await old_instance.cycle_manager.stop_production_cycle()
-            except:
-                pass
+            except Exception as e:
+                logger.warning(f"Error stopping instance {instance_id}: {e}")
             del self.instances[instance_id]
 
         # Create new instance
@@ -259,7 +257,7 @@ class KALatticeOrchestrator:
         memory_percent = psutil.virtual_memory().percent
 
         current_load = max(cpu_percent, memory_percent) / 100.0
-        self.metrics['current_load'] = current_load
+        self.metrics["current_load"] = current_load
 
         # Scale up if needed
         if current_load > self.config.scale_up_threshold:
@@ -279,18 +277,15 @@ class KALatticeOrchestrator:
             return
 
         # Find least used instance
-        least_used = min(
-            self.instances.values(),
-            key=lambda x: x.total_computations
-        )
+        least_used = min(self.instances.values(), key=lambda x: x.total_computations)
 
         logger.info(f"Removing instance {least_used.id}")
 
         # Stop and remove
         try:
             await least_used.cycle_manager.stop_production_cycle()
-        except:
-            pass
+        except Exception as e:
+            logger.warning(f"Error stopping instance {least_used.id}: {e}")
 
         del self.instances[least_used.id]
 
@@ -320,9 +315,11 @@ class KALatticeOrchestrator:
                 )
 
                 # Log summary
-                logger.info(f"Orchestrator Status: {len(self.instances)} instances, "
-                          f"{total_computations} total computations, "
-                          f"Load: {self.metrics['current_load']:.2%}")
+                logger.info(
+                    f"Orchestrator Status: {len(self.instances)} instances, "
+                    f"{total_computations} total computations, "
+                    f"Load: {self.metrics['current_load']:.2%}"
+                )
 
                 # Save state
                 await self._save_orchestrator_state()
@@ -349,19 +346,17 @@ class KALatticeOrchestrator:
         # Check GPU availability and current usage
         try:
             import torch
+
             if torch.cuda.is_available():
                 # Check memory availability
                 free_memory = torch.cuda.mem_get_info()[0] / (1024**3)  # GB
                 return free_memory > 2.0  # Need at least 2GB free
-        except:
-            pass
+        except Exception as e:
+            logger.debug(f"GPU check failed: {e}")
         return False
 
     async def submit_computation(
-        self,
-        operation: str,
-        input_data: np.ndarray,
-        parameters: Optional[Dict[str, Any]] = None
+        self, operation: str, input_data: np.ndarray, parameters: Optional[Dict[str, Any]] = None
     ) -> ComputationResult:
         """
         Submit a computation to the orchestrator
@@ -378,36 +373,27 @@ class KALatticeOrchestrator:
             raise RuntimeError("No lattice instances available")
 
         # Select instance with lowest load
-        instance = min(
-            self.instances.values(),
-            key=lambda x: x.workload_queue.qsize()
-        )
+        instance = min(self.instances.values(), key=lambda x: x.workload_queue.qsize())
 
         # Submit computation
         instance.last_computation = datetime.now()
         instance.total_computations += 1
 
         result = await asyncio.get_event_loop().run_in_executor(
-            None,
-            instance.lattice.compute_with_knowledge,
-            operation,
-            input_data,
-            parameters
+            None, instance.lattice.compute_with_knowledge, operation, input_data, parameters
         )
 
         # Update metrics
-        self.metrics['total_requests'] += 1
+        self.metrics["total_requests"] += 1
         if result.result_data is not None:
-            self.metrics['successful_requests'] += 1
+            self.metrics["successful_requests"] += 1
         else:
-            self.metrics['failed_requests'] += 1
+            self.metrics["failed_requests"] += 1
 
         # Update average latency
-        n = self.metrics['total_requests']
-        avg = self.metrics['average_latency_ms']
-        self.metrics['average_latency_ms'] = (
-            (avg * (n - 1) + result.execution_time_ms) / n
-        )
+        n = self.metrics["total_requests"]
+        avg = self.metrics["average_latency_ms"]
+        self.metrics["average_latency_ms"] = (avg * (n - 1) + result.execution_time_ms) / n
 
         return result
 
@@ -416,36 +402,36 @@ class KALatticeOrchestrator:
         state_file = self.config.persistence_path / "orchestrator_state.json"
 
         state = {
-            'timestamp': datetime.now().isoformat(),
-            'instances': {
+            "timestamp": datetime.now().isoformat(),
+            "instances": {
                 instance_id: {
-                    'status': instance.status,
-                    'created_at': instance.created_at.isoformat(),
-                    'total_computations': instance.total_computations
+                    "status": instance.status,
+                    "created_at": instance.created_at.isoformat(),
+                    "total_computations": instance.total_computations,
                 }
                 for instance_id, instance in self.instances.items()
             },
-            'metrics': self.metrics
+            "metrics": self.metrics,
         }
 
-        with open(state_file, 'w') as f:
+        with open(state_file, "w") as f:
             json.dump(state, f, indent=2)
 
     def get_status(self) -> Dict[str, Any]:
         """Get orchestrator status"""
         return {
-            'running': self._running,
-            'instances': {
+            "running": self._running,
+            "instances": {
                 instance_id: {
-                    'status': instance.status,
-                    'computations': instance.total_computations,
-                    'queue_size': instance.workload_queue.qsize()
+                    "status": instance.status,
+                    "computations": instance.total_computations,
+                    "queue_size": instance.workload_queue.qsize(),
                 }
                 for instance_id, instance in self.instances.items()
             },
-            'metrics': self.metrics,
-            'config': {
-                'max_instances': self.config.max_instances,
-                'auto_scaling': self.config.auto_scaling
-            }
+            "metrics": self.metrics,
+            "config": {
+                "max_instances": self.config.max_instances,
+                "auto_scaling": self.config.auto_scaling,
+            },
         }

@@ -23,13 +23,10 @@ from pydantic import BaseModel, EmailStr
 import uvicorn
 
 # Add parent directory to path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'application'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "application"))
 
 # Import OptimizedRedisPool
-from redis_connection_pool_optimized import (
-    get_optimized_redis_pool,
-    log_pool_metrics
-)
+from redis_connection_pool_optimized import get_optimized_redis_pool, log_pool_metrics
 
 # ============================================================================
 # CONFIGURATION
@@ -86,7 +83,7 @@ except Exception as e:
 app = FastAPI(
     title="Optimized Redis-Integrated Mock Auth Server",
     version="2.0.0",
-    description="Production-grade auth server with optimized connection pooling"
+    description="Production-grade auth server with optimized connection pooling",
 )
 
 # Add CORS
@@ -102,41 +99,40 @@ app.add_middleware(
 # MODELS
 # ============================================================================
 
+
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
 
+
 class RefreshRequest(BaseModel):
     refresh_token: str
+
 
 class TokenResponse(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
 
+
 # ============================================================================
 # JWT UTILITIES
 # ============================================================================
 
+
 def create_access_token(email: str) -> str:
     """Create JWT access token"""
     expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    payload = {
-        "sub": email,
-        "exp": expire,
-        "type": "access"
-    }
+    payload = {"sub": email, "exp": expire, "type": "access"}
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+
 
 def create_refresh_token(email: str) -> str:
     """Create JWT refresh token"""
     expire = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
-    payload = {
-        "sub": email,
-        "exp": expire,
-        "type": "refresh"
-    }
+    payload = {"sub": email, "exp": expire, "type": "refresh"}
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+
 
 def verify_token(token: str) -> Optional[str]:
     """Verify JWT token and return email"""
@@ -153,9 +149,11 @@ def verify_token(token: str) -> Optional[str]:
     except jwt.InvalidTokenError:
         return None
 
+
 # ============================================================================
 # REDIS TOKEN BLACKLIST (Distributed State)
 # ============================================================================
+
 
 def revoke_token(token: str, ttl: int = 3600):
     """
@@ -170,6 +168,7 @@ def revoke_token(token: str, ttl: int = 3600):
         print(f"[ERROR] Failed to revoke token: {e}")
         return False
 
+
 def is_token_revoked(token: str) -> bool:
     """
     Check if token is in Redis blacklist
@@ -183,9 +182,11 @@ def is_token_revoked(token: str) -> bool:
         # Fail open (allow access) on Redis errors
         return False
 
+
 # ============================================================================
 # REDIS RATE LIMITING (Distributed)
 # ============================================================================
+
 
 def check_rate_limit(ip: str, limit: int = 100, window: int = 60) -> bool:
     """
@@ -218,43 +219,43 @@ def check_rate_limit(ip: str, limit: int = 100, window: int = 60) -> bool:
         # Fail open (allow access) on Redis errors
         return True
 
+
 # ============================================================================
 # DEPENDENCIES
 # ============================================================================
+
 
 def get_current_user(authorization: Optional[str] = Header(None)):
     """Extract and verify JWT token from Authorization header"""
     if not authorization:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Missing authorization header"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing authorization header"
         )
 
     try:
         scheme, token = authorization.split()
         if scheme.lower() != "bearer":
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid authentication scheme"
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid authentication scheme"
             )
     except ValueError:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authorization header format"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid authorization header format"
         )
 
     email = verify_token(token)
     if not email:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token"
         )
 
     return email
 
+
 # ============================================================================
 # ENDPOINTS
 # ============================================================================
+
 
 @app.get("/")
 async def root():
@@ -262,7 +263,7 @@ async def root():
     try:
         is_healthy = redis_pool.health_check()
         redis_status = "connected" if is_healthy else "disconnected"
-    except:
+    except Exception:
         redis_status = "disconnected"
 
     return {
@@ -276,8 +277,9 @@ async def root():
             "target_users": redis_pool.target_users,
             "workers": redis_pool.workers,
         },
-        "timestamp": datetime.now(timezone.utc).isoformat()
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
+
 
 @app.get("/health")
 async def health():
@@ -296,13 +298,11 @@ async def health():
 
     return {
         "status": "healthy" if is_healthy else "degraded",
-        "redis": {
-            "connected": is_healthy,
-            "commands_processed": redis_commands
-        },
+        "redis": {"connected": is_healthy, "commands_processed": redis_commands},
         "pool": pool_status,
-        "timestamp": datetime.now(timezone.utc).isoformat()
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
+
 
 @app.get("/health/redis")
 async def redis_health():
@@ -327,9 +327,7 @@ async def redis_health():
                 "CRITICAL: Pool utilization > 80%. Increase max_connections immediately."
             )
         elif util > 60:
-            recommendations.append(
-                "WARNING: Pool utilization > 60%. Monitor for growth trends."
-            )
+            recommendations.append("WARNING: Pool utilization > 60%. Monitor for growth trends.")
 
         metrics = pool_status.get("metrics", {})
         if metrics.get("pool_exhausted_count", 0) > 0:
@@ -349,14 +347,15 @@ async def redis_health():
             "healthy": is_healthy,
             "pool": pool_status,
             "recommendations": recommendations,
-            "timestamp": datetime.now(timezone.utc).isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Health check failed: {str(e)}"
+            detail=f"Health check failed: {str(e)}",
         )
+
 
 @app.post("/auth/login", response_model=TokenResponse)
 async def login(request: LoginRequest):
@@ -372,10 +371,8 @@ async def login(request: LoginRequest):
     access_token = create_access_token(email)
     refresh_token = create_refresh_token(email)
 
-    return TokenResponse(
-        access_token=access_token,
-        refresh_token=refresh_token
-    )
+    return TokenResponse(access_token=access_token, refresh_token=refresh_token)
+
 
 @app.post("/auth/refresh", response_model=TokenResponse)
 async def refresh(request: RefreshRequest):
@@ -384,18 +381,15 @@ async def refresh(request: RefreshRequest):
 
     if not email:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired refresh token"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired refresh token"
         )
 
     # Create new tokens
     access_token = create_access_token(email)
     refresh_token = create_refresh_token(email)
 
-    return TokenResponse(
-        access_token=access_token,
-        refresh_token=refresh_token
-    )
+    return TokenResponse(access_token=access_token, refresh_token=refresh_token)
+
 
 @app.post("/auth/logout")
 async def logout(current_user: str = Depends(get_current_user), authorization: str = Header(...)):
@@ -412,20 +406,19 @@ async def logout(current_user: str = Depends(get_current_user), authorization: s
 
         if not success:
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to revoke token"
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to revoke token"
             )
 
         return {
             "message": "Successfully logged out",
             "user": current_user,
-            "timestamp": datetime.now(timezone.utc).isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Logout failed: {str(e)}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Logout failed: {str(e)}"
         )
+
 
 @app.get("/api/protected")
 async def protected_endpoint(current_user: str = Depends(get_current_user)):
@@ -437,12 +430,14 @@ async def protected_endpoint(current_user: str = Depends(get_current_user)):
     return {
         "message": "Access granted",
         "user": current_user,
-        "timestamp": datetime.now(timezone.utc).isoformat()
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
+
 
 # ============================================================================
 # REDIS STATISTICS ENDPOINT
 # ============================================================================
+
 
 @app.get("/redis/stats")
 async def redis_stats():
@@ -461,7 +456,7 @@ async def redis_stats():
                 "used_memory_human": info.get("used_memory_human", "unknown"),
                 "total_commands_processed": info.get("total_commands_processed", 0),
                 "instantaneous_ops_per_sec": info.get("instantaneous_ops_per_sec", 0),
-                "keyspace": redis_client.dbsize()
+                "keyspace": redis_client.dbsize(),
             },
             "pool": {
                 "environment": pool_status["environment"],
@@ -470,17 +465,19 @@ async def redis_stats():
                 "in_use_connections": pool_status["in_use_connections"],
                 "available_connections": pool_status["available_connections"],
             },
-            "timestamp": datetime.now(timezone.utc).isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get Redis stats: {str(e)}"
+            detail=f"Failed to get Redis stats: {str(e)}",
         )
+
 
 # ============================================================================
 # STARTUP/SHUTDOWN EVENTS
 # ============================================================================
+
 
 @app.on_event("startup")
 async def startup_event():
@@ -493,6 +490,7 @@ async def startup_event():
     print(f"Pool Max Connections: {status['max_connections']}")
     print(f"Target Capacity: {redis_pool.target_users:,} concurrent users")
     print("=" * 80 + "\n")
+
 
 @app.on_event("shutdown")
 async def shutdown_event():
@@ -508,6 +506,7 @@ async def shutdown_event():
     redis_pool.close()
     print("Redis pool closed gracefully")
     print("=" * 80 + "\n")
+
 
 # ============================================================================
 # MAIN
@@ -544,9 +543,4 @@ if __name__ == "__main__":
     # Use PORT environment variable or default to 8002
     port = int(os.getenv("PORT", "8002"))
 
-    uvicorn.run(
-        app,
-        host="0.0.0.0",
-        port=port,
-        log_level="info"
-    )
+    uvicorn.run(app, host="0.0.0.0", port=port, log_level="info")

@@ -5,14 +5,14 @@ import sys
 import operator
 import subprocess
 
-PY2 = (sys.version_info.major == 2)
+PY2 = sys.version_info.major == 2
 
 
 if PY2:
     string_classes = (str, unicode)  # needed individually for sublassing
     text_type = unicode
 
-    iteritems = operator.methodcaller('iteritems')
+    iteritems = operator.methodcaller("iteritems")
 
     def makedirs(name, mode=0o777, exist_ok=False):
         try:
@@ -28,11 +28,10 @@ if PY2:
             sys.stderr.flush()
 
     def Popen_stderr_devnull(*args, **kwargs):  # noqa: N802
-        with open(os.devnull, 'w') as f:
+        with open(os.devnull, "w") as f:
             return subprocess.Popen(*args, stderr=f, **kwargs)
 
     class CalledProcessError(subprocess.CalledProcessError):
-
         def __init__(self, returncode, cmd, output=None, stderr=None):
             super(CalledProcessError, self).__init__(returncode, cmd, output)
             self.stderr = stderr

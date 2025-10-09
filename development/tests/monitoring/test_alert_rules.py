@@ -85,9 +85,12 @@ class AlertRulesValidator:
             "has_annotations": "annotations" in alert_rule,
             "has_severity": "labels" in alert_rule and "severity" in alert_rule.get("labels", {}),
             "has_category": "labels" in alert_rule and "category" in alert_rule.get("labels", {}),
-            "has_summary": "annotations" in alert_rule and "summary" in alert_rule.get("annotations", {}),
-            "has_description": "annotations" in alert_rule and "description" in alert_rule.get("annotations", {}),
-            "has_remediation": "annotations" in alert_rule and "remediation" in alert_rule.get("annotations", {}),
+            "has_summary": "annotations" in alert_rule
+            and "summary" in alert_rule.get("annotations", {}),
+            "has_description": "annotations" in alert_rule
+            and "description" in alert_rule.get("annotations", {}),
+            "has_remediation": "annotations" in alert_rule
+            and "remediation" in alert_rule.get("annotations", {}),
         }
 
         return validations
@@ -100,7 +103,7 @@ class AlertRulesValidator:
             return {
                 "exists": False,
                 "valid": False,
-                "message": f"Alert rule '{alert_name}' not found"
+                "message": f"Alert rule '{alert_name}' not found",
             }
 
         validations = self.validate_alert_structure(alert_rule)
@@ -110,7 +113,7 @@ class AlertRulesValidator:
             "exists": True,
             "valid": all_valid,
             "validations": validations,
-            "alert_rule": alert_rule
+            "alert_rule": alert_rule,
         }
 
     def get_recording_rules(self) -> List[Dict[str, Any]]:
@@ -136,6 +139,7 @@ class AlertRulesValidator:
 # ============================================================================
 # PYTEST TEST CASES
 # ============================================================================
+
 
 @pytest.fixture
 def validator():
@@ -166,7 +170,9 @@ def test_security_alerts_exist(validator):
     for alert_name in expected_alerts:
         result = validator.check_alert_rule_validity(alert_name)
         assert result["exists"], f"Alert rule '{alert_name}' not found"
-        assert result["valid"], f"Alert rule '{alert_name}' is not valid: {result.get('validations')}"
+        assert result["valid"], (
+            f"Alert rule '{alert_name}' is not valid: {result.get('validations')}"
+        )
 
 
 def test_performance_alerts_exist(validator):
@@ -194,8 +200,9 @@ def test_all_alerts_have_severity(validator):
         alert_name = rule.get("name")
         labels = rule.get("labels", {})
         assert "severity" in labels, f"Alert '{alert_name}' missing severity label"
-        assert labels["severity"] in ["critical", "warning", "info"], \
+        assert labels["severity"] in ["critical", "warning", "info"], (
             f"Alert '{alert_name}' has invalid severity: {labels['severity']}"
+        )
 
 
 def test_all_alerts_have_category(validator):
@@ -219,8 +226,9 @@ def test_all_alerts_have_annotations(validator):
         annotations = rule.get("annotations", {})
 
         for required_annotation in required_annotations:
-            assert required_annotation in annotations, \
+            assert required_annotation in annotations, (
                 f"Alert '{alert_name}' missing annotation: {required_annotation}"
+            )
 
 
 def test_critical_alerts_have_compliance_labels(validator):
@@ -260,8 +268,7 @@ def test_compliance_recording_rules(validator):
     recording_rule_names = [r.get("name") for r in recording_rules]
 
     for expected_rule in expected_recording_rules:
-        assert expected_rule in recording_rule_names, \
-            f"Recording rule '{expected_rule}' not found"
+        assert expected_rule in recording_rule_names, f"Recording rule '{expected_rule}' not found"
 
 
 def test_alert_evaluation_time_acceptable(validator):
@@ -277,8 +284,9 @@ def test_alert_evaluation_time_acceptable(validator):
 
             if eval_duration:
                 # Evaluation should complete within 10 seconds
-                assert eval_duration < 10.0, \
+                assert eval_duration < 10.0, (
                     f"Group '{group.get('name')}' evaluation time too high: {eval_duration}s"
+                )
 
 
 # ============================================================================

@@ -23,8 +23,10 @@ logger = logging.getLogger(__name__)
 
 # === Embedded Webhook System Classes ===
 
+
 class WebhookEvent(Enum):
     """Supported webhook event types"""
+
     CREATED = "created"
     UPDATED = "updated"
     DELETED = "deleted"
@@ -33,16 +35,20 @@ class WebhookEvent(Enum):
     STATUS_CHANGED = "status_changed"
     CUSTOM = "custom"
 
+
 class DeliveryStatus(Enum):
     """Webhook delivery status"""
+
     PENDING = "pending"
     SUCCESS = "success"
     FAILED = "failed"
     RETRYING = "retrying"
 
+
 @dataclass
 class WebhookConfig:
     """Webhook configuration"""
+
     id: str
     url: str
     events: List[WebhookEvent]
@@ -52,6 +58,7 @@ class WebhookConfig:
     retry_count: int = 3
     timeout: int = 30
     created_at: datetime = field(default_factory=datetime.now)
+
 
 class WebhookManager:
     """Manages webhook storage and operations"""
@@ -102,20 +109,23 @@ class WebhookManager:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO webhooks (id, url, events, secret, active, headers, retry_count, timeout, created_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            config.id,
-            config.url,
-            json.dumps([e.value for e in config.events]),
-            config.secret,
-            config.active,
-            json.dumps(config.headers),
-            config.retry_count,
-            config.timeout,
-            config.created_at.isoformat()
-        ))
+        """,
+            (
+                config.id,
+                config.url,
+                json.dumps([e.value for e in config.events]),
+                config.secret,
+                config.active,
+                json.dumps(config.headers),
+                config.retry_count,
+                config.timeout,
+                config.created_at.isoformat(),
+            ),
+        )
 
         conn.commit()
         conn.close()
@@ -140,7 +150,7 @@ class WebhookManager:
                 headers=json.loads(row[5]) if row[5] else {},
                 retry_count=row[6],
                 timeout=row[7],
-                created_at=datetime.fromisoformat(row[8]) if row[8] else datetime.now()
+                created_at=datetime.fromisoformat(row[8]) if row[8] else datetime.now(),
             )
         return None
 
@@ -155,25 +165,28 @@ class WebhookManager:
 
         webhooks = []
         for row in rows:
-            webhooks.append(WebhookConfig(
-                id=row[0],
-                url=row[1],
-                events=[WebhookEvent(e) for e in json.loads(row[2])],
-                secret=row[3],
-                active=bool(row[4]),
-                headers=json.loads(row[5]) if row[5] else {},
-                retry_count=row[6],
-                timeout=row[7],
-                created_at=datetime.fromisoformat(row[8]) if row[8] else datetime.now()
-            ))
+            webhooks.append(
+                WebhookConfig(
+                    id=row[0],
+                    url=row[1],
+                    events=[WebhookEvent(e) for e in json.loads(row[2])],
+                    secret=row[3],
+                    active=bool(row[4]),
+                    headers=json.loads(row[5]) if row[5] else {},
+                    retry_count=row[6],
+                    timeout=row[7],
+                    created_at=datetime.fromisoformat(row[8]) if row[8] else datetime.now(),
+                )
+            )
         return webhooks
+
 
 # === FastAPI Application ===
 
 app = FastAPI(
     title="Webhook Server",
     description="Production-ready webhook management system",
-    version="1.0.0"
+    version="1.0.0",
 )
 
 # Add CORS middleware
@@ -190,11 +203,13 @@ webhook_manager = WebhookManager()
 
 # === Pydantic Models ===
 
+
 class WebhookRegistration(BaseModel):
     url: str
     events: List[str] = ["*"]
     secret: Optional[str] = None
     headers: Optional[Dict[str, str]] = None
+
 
 class WebhookResponse(BaseModel):
     id: str
@@ -203,11 +218,14 @@ class WebhookResponse(BaseModel):
     active: bool
     created_at: str
 
+
 class TriggerEventRequest(BaseModel):
     event_type: str
     payload: Dict[str, Any]
 
+
 # === API Endpoints ===
+
 
 @app.get("/")
 async def root():
@@ -218,17 +236,16 @@ async def root():
         "endpoints": {
             "health": "/health",
             "webhooks": "/api/webhooks",
-            "trigger": "/api/events/trigger"
-        }
+            "trigger": "/api/events/trigger",
+        },
     }
+
 
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""
-    return {
-        "status": "healthy",
-        "timestamp": datetime.now().isoformat()
-    }
+    return {"status": "healthy", "timestamp": datetime.now().isoformat()}
+
 
 @app.post("/api/webhooks", response_model=WebhookResponse)
 async def register_webhook(registration: WebhookRegistration):
@@ -253,7 +270,7 @@ async def register_webhook(registration: WebhookRegistration):
         url=registration.url,
         events=events,
         secret=registration.secret,
-        headers=registration.headers or {}
+        headers=registration.headers or {},
     )
 
     webhook_manager.register_webhook(config)
@@ -263,8 +280,9 @@ async def register_webhook(registration: WebhookRegistration):
         url=config.url,
         events=[e.value for e in config.events],
         active=config.active,
-        created_at=config.created_at.isoformat()
+        created_at=config.created_at.isoformat(),
     )
+
 
 @app.get("/api/webhooks", response_model=List[WebhookResponse])
 async def list_webhooks():
@@ -276,10 +294,11 @@ async def list_webhooks():
             url=w.url,
             events=[e.value for e in w.events],
             active=w.active,
-            created_at=w.created_at.isoformat()
+            created_at=w.created_at.isoformat(),
         )
         for w in webhooks
     ]
+
 
 @app.get("/api/webhooks/{webhook_id}", response_model=WebhookResponse)
 async def get_webhook(webhook_id: str):
@@ -293,8 +312,9 @@ async def get_webhook(webhook_id: str):
         url=webhook.url,
         events=[e.value for e in webhook.events],
         active=webhook.active,
-        created_at=webhook.created_at.isoformat()
+        created_at=webhook.created_at.isoformat(),
     )
+
 
 @app.post("/api/events/trigger")
 async def trigger_event(request: TriggerEventRequest, background_tasks: BackgroundTasks):
@@ -309,10 +329,10 @@ async def trigger_event(request: TriggerEventRequest, background_tasks: Backgrou
                     json={
                         "event": event_type,
                         "payload": payload,
-                        "timestamp": datetime.now().isoformat()
+                        "timestamp": datetime.now().isoformat(),
                     },
                     headers=webhook.headers,
-                    timeout=webhook.timeout
+                    timeout=webhook.timeout,
                 )
                 logger.info(f"Webhook delivered to {webhook.url}: {response.status_code}")
             except Exception as e:
@@ -334,18 +354,14 @@ async def trigger_event(request: TriggerEventRequest, background_tasks: Backgrou
                     break
 
             if should_trigger:
-                background_tasks.add_task(
-                    send_webhook,
-                    webhook,
-                    event_type,
-                    request.payload
-                )
+                background_tasks.add_task(send_webhook, webhook, event_type, request.payload)
                 triggered_count += 1
 
     return {
         "message": f"Event triggered for {triggered_count} webhooks",
-        "event_type": request.event_type
+        "event_type": request.event_type,
     }
+
 
 @app.delete("/api/webhooks/{webhook_id}")
 async def delete_webhook(webhook_id: str):
@@ -362,7 +378,9 @@ async def delete_webhook(webhook_id: str):
 
     return {"message": f"Webhook {webhook_id} deleted"}
 
+
 # === Dashboard HTML ===
+
 
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard():
@@ -451,6 +469,7 @@ async def dashboard():
     </body>
     </html>
     """
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

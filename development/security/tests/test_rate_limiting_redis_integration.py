@@ -12,15 +12,12 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import redis.asyncio as redis
-from application.rate_limiting_redis import (
-    AdvancedRateLimiter,
-    RateLimit,
-    RateLimitAlgorithm
-)
+from application.rate_limiting_redis import AdvancedRateLimiter, RateLimit, RateLimitAlgorithm
 
 
 class TestResults:
     """Track test results for reporting"""
+
     def __init__(self):
         self.passed = 0
         self.failed = 0
@@ -38,9 +35,9 @@ class TestResults:
 
     def summary(self):
         total = self.passed + self.failed
-        print("\n" + "="*70)
+        print("\n" + "=" * 70)
         print(f"Test Results: {self.passed}/{total} passed ({self.failed} failed)")
-        print("="*70)
+        print("=" * 70)
 
         if self.failed > 0:
             print("\nFailed tests:")
@@ -76,9 +73,7 @@ async def test_token_bucket_algorithm(limiter: AdvancedRateLimiter, results: Tes
     """Test 3: Verify token bucket algorithm works"""
     try:
         rate_limit = RateLimit(
-            requests=5,
-            window_seconds=10,
-            algorithm=RateLimitAlgorithm.TOKEN_BUCKET
+            requests=5, window_seconds=10, algorithm=RateLimitAlgorithm.TOKEN_BUCKET
         )
 
         identifier = "test_token_bucket_user"
@@ -96,7 +91,9 @@ async def test_token_bucket_algorithm(limiter: AdvancedRateLimiter, results: Tes
         if allowed_count == 5 and denied_count == 2:
             results.add_pass("Token bucket algorithm")
         else:
-            results.add_fail("Token bucket algorithm", f"Allowed {allowed_count}/5, Denied {denied_count}/2")
+            results.add_fail(
+                "Token bucket algorithm", f"Allowed {allowed_count}/5, Denied {denied_count}/2"
+            )
 
     except Exception as e:
         results.add_fail("Token bucket algorithm", str(e))
@@ -106,9 +103,7 @@ async def test_sliding_window_algorithm(limiter: AdvancedRateLimiter, results: T
     """Test 4: Verify sliding window algorithm works"""
     try:
         rate_limit = RateLimit(
-            requests=3,
-            window_seconds=5,
-            algorithm=RateLimitAlgorithm.SLIDING_WINDOW
+            requests=3, window_seconds=5, algorithm=RateLimitAlgorithm.SLIDING_WINDOW
         )
 
         identifier = "test_sliding_window_user"
@@ -117,7 +112,7 @@ async def test_sliding_window_algorithm(limiter: AdvancedRateLimiter, results: T
         for i in range(3):
             result = await limiter.check_rate_limit(identifier, rate_limit)
             if not result.allowed:
-                results.add_fail("Sliding window algorithm", f"Request {i+1}/3 was denied")
+                results.add_fail("Sliding window algorithm", f"Request {i + 1}/3 was denied")
                 return
 
         # 4th request should be denied
@@ -125,7 +120,9 @@ async def test_sliding_window_algorithm(limiter: AdvancedRateLimiter, results: T
         if not result.allowed:
             results.add_pass("Sliding window algorithm")
         else:
-            results.add_fail("Sliding window algorithm", "4th request was allowed (should be denied)")
+            results.add_fail(
+                "Sliding window algorithm", "4th request was allowed (should be denied)"
+            )
 
     except Exception as e:
         results.add_fail("Sliding window algorithm", str(e))
@@ -135,9 +132,7 @@ async def test_fixed_window_algorithm(limiter: AdvancedRateLimiter, results: Tes
     """Test 5: Verify fixed window algorithm works"""
     try:
         rate_limit = RateLimit(
-            requests=10,
-            window_seconds=60,
-            algorithm=RateLimitAlgorithm.FIXED_WINDOW
+            requests=10, window_seconds=60, algorithm=RateLimitAlgorithm.FIXED_WINDOW
         )
 
         identifier = "test_fixed_window_user"
@@ -162,20 +157,12 @@ async def test_distributed_rate_limiting(redis_client: redis.Redis, results: Tes
     """Test 6: Verify rate limits work across multiple limiter instances (simulating multiple servers)"""
     try:
         # Create two separate limiter instances (simulating two servers)
-        limiter_1 = AdvancedRateLimiter(
-            redis_client=redis_client,
-            enable_ddos_protection=False
-        )
+        limiter_1 = AdvancedRateLimiter(redis_client=redis_client, enable_ddos_protection=False)
 
-        limiter_2 = AdvancedRateLimiter(
-            redis_client=redis_client,
-            enable_ddos_protection=False
-        )
+        limiter_2 = AdvancedRateLimiter(redis_client=redis_client, enable_ddos_protection=False)
 
         rate_limit = RateLimit(
-            requests=5,
-            window_seconds=10,
-            algorithm=RateLimitAlgorithm.TOKEN_BUCKET
+            requests=5, window_seconds=10, algorithm=RateLimitAlgorithm.TOKEN_BUCKET
         )
 
         identifier = "distributed_test_user"
@@ -201,8 +188,10 @@ async def test_distributed_rate_limiting(redis_client: redis.Redis, results: Tes
         if allowed_count == 2 and denied_count == 1:
             results.add_pass("Distributed rate limiting (multi-server)")
         else:
-            results.add_fail("Distributed rate limiting (multi-server)",
-                           f"Server 2 allowed {allowed_count}/2, denied {denied_count}/1")
+            results.add_fail(
+                "Distributed rate limiting (multi-server)",
+                f"Server 2 allowed {allowed_count}/2, denied {denied_count}/1",
+            )
 
     except Exception as e:
         results.add_fail("Distributed rate limiting (multi-server)", str(e))
@@ -236,7 +225,7 @@ async def test_ddos_detection(limiter: AdvancedRateLimiter, results: TestResults
             redis_client=limiter.redis_client,
             enable_ddos_protection=True,
             suspicious_threshold=10,
-            block_duration_minutes=1
+            block_duration_minutes=1,
         )
 
         ip_address = "10.0.0.1"
@@ -251,7 +240,9 @@ async def test_ddos_detection(limiter: AdvancedRateLimiter, results: TestResults
         if is_blocked:
             results.add_pass("DDoS detection and auto-blocking")
         else:
-            results.add_fail("DDoS detection and auto-blocking", "IP not blocked after exceeding threshold")
+            results.add_fail(
+                "DDoS detection and auto-blocking", "IP not blocked after exceeding threshold"
+            )
 
     except Exception as e:
         results.add_fail("DDoS detection and auto-blocking", str(e))
@@ -261,9 +252,7 @@ async def test_burst_handling(limiter: AdvancedRateLimiter, results: TestResults
     """Test 9: Verify burst handling in token bucket"""
     try:
         rate_limit = RateLimit(
-            requests=10,
-            window_seconds=10,
-            algorithm=RateLimitAlgorithm.TOKEN_BUCKET
+            requests=10, window_seconds=10, algorithm=RateLimitAlgorithm.TOKEN_BUCKET
         )
 
         identifier = "burst_test_user"
@@ -279,7 +268,9 @@ async def test_burst_handling(limiter: AdvancedRateLimiter, results: TestResults
         if allowed_count == 10:
             results.add_pass("Burst handling (token bucket)")
         else:
-            results.add_fail("Burst handling (token bucket)", f"Only {allowed_count}/10 requests allowed")
+            results.add_fail(
+                "Burst handling (token bucket)", f"Only {allowed_count}/10 requests allowed"
+            )
 
     except Exception as e:
         results.add_fail("Burst handling (token bucket)", str(e))
@@ -289,9 +280,7 @@ async def test_rate_limit_headers(limiter: AdvancedRateLimiter, results: TestRes
     """Test 10: Verify rate limit headers are returned correctly"""
     try:
         rate_limit = RateLimit(
-            requests=5,
-            window_seconds=60,
-            algorithm=RateLimitAlgorithm.FIXED_WINDOW
+            requests=5, window_seconds=60, algorithm=RateLimitAlgorithm.FIXED_WINDOW
         )
 
         identifier = "headers_test_user"
@@ -299,15 +288,18 @@ async def test_rate_limit_headers(limiter: AdvancedRateLimiter, results: TestRes
         result = await limiter.check_rate_limit(identifier, rate_limit)
 
         # Check if headers are present
-        if (hasattr(result, 'remaining') and
-            hasattr(result, 'reset_time') and
-            hasattr(result, 'limit')):
-
+        if (
+            hasattr(result, "remaining")
+            and hasattr(result, "reset_time")
+            and hasattr(result, "limit")
+        ):
             if result.limit == 5 and result.remaining <= 5:
                 results.add_pass("Rate limit headers")
             else:
-                results.add_fail("Rate limit headers",
-                               f"Invalid values: limit={result.limit}, remaining={result.remaining}")
+                results.add_fail(
+                    "Rate limit headers",
+                    f"Invalid values: limit={result.limit}, remaining={result.remaining}",
+                )
         else:
             results.add_fail("Rate limit headers", "Missing header fields")
 
@@ -315,13 +307,13 @@ async def test_rate_limit_headers(limiter: AdvancedRateLimiter, results: TestRes
         results.add_fail("Rate limit headers", str(e))
 
 
-async def test_redis_ttl_expiry(limiter: AdvancedRateLimiter, redis_client: redis.Redis, results: TestResults):
+async def test_redis_ttl_expiry(
+    limiter: AdvancedRateLimiter, redis_client: redis.Redis, results: TestResults
+):
     """Test 11: Verify Redis keys have TTL set"""
     try:
         rate_limit = RateLimit(
-            requests=5,
-            window_seconds=30,
-            algorithm=RateLimitAlgorithm.FIXED_WINDOW
+            requests=5, window_seconds=30, algorithm=RateLimitAlgorithm.FIXED_WINDOW
         )
 
         identifier = "ttl_test_user"
@@ -355,7 +347,7 @@ async def test_token_refill(limiter: AdvancedRateLimiter, results: TestResults):
         rate_limit = RateLimit(
             requests=3,
             window_seconds=6,  # 0.5 tokens/second refill rate
-            algorithm=RateLimitAlgorithm.TOKEN_BUCKET
+            algorithm=RateLimitAlgorithm.TOKEN_BUCKET,
         )
 
         identifier = "refill_test_user"
@@ -379,7 +371,9 @@ async def test_token_refill(limiter: AdvancedRateLimiter, results: TestResults):
         if result.allowed:
             results.add_pass("Token bucket refill over time")
         else:
-            results.add_fail("Token bucket refill over time", "Request denied after waiting for refill")
+            results.add_fail(
+                "Token bucket refill over time", "Request denied after waiting for refill"
+            )
 
     except Exception as e:
         results.add_fail("Token bucket refill over time", str(e))
@@ -422,9 +416,9 @@ async def cleanup_redis(redis_client: redis.Redis):
 
 async def main():
     """Main test runner"""
-    print("="*70)
+    print("=" * 70)
     print("Rate Limiting Redis Integration Tests - Critical Security Fix Verification")
-    print("="*70)
+    print("=" * 70)
     print()
 
     results = TestResults()
@@ -445,7 +439,7 @@ async def main():
             redis_client=redis_client,
             enable_ddos_protection=True,
             suspicious_threshold=1000,
-            block_duration_minutes=60
+            block_duration_minutes=60,
         )
 
         # Run tests
@@ -472,6 +466,7 @@ async def main():
     except Exception as e:
         print(f"\n[ERROR] Test suite failed: {e}")
         import traceback
+
         traceback.print_exc()
         return 1
 

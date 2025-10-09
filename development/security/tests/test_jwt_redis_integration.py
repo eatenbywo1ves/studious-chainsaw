@@ -13,15 +13,12 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import redis.asyncio as redis
 import jwt
-from application.jwt_security_redis import (
-    JWTSecurityManager,
-    SecurityLevel,
-    TokenType
-)
+from application.jwt_security_redis import JWTSecurityManager, SecurityLevel, TokenType
 
 
 class TestResults:
     """Track test results for reporting"""
+
     def __init__(self):
         self.passed = 0
         self.failed = 0
@@ -39,9 +36,9 @@ class TestResults:
 
     def summary(self):
         total = self.passed + self.failed
-        print("\n" + "="*70)
+        print("\n" + "=" * 70)
         print(f"Test Results: {self.passed}/{total} passed ({self.failed} failed)")
-        print("="*70)
+        print("=" * 70)
 
         if self.failed > 0:
             print("\nFailed tests:")
@@ -77,8 +74,7 @@ async def test_token_creation(jwt_manager: JWTSecurityManager, results: TestResu
     """Test 3: Verify token creation works"""
     try:
         token = jwt_manager.create_access_token(
-            user_id="test_user_001",
-            additional_claims={"role": "admin"}
+            user_id="test_user_001", additional_claims={"role": "admin"}
         )
 
         if token and len(token) > 0:
@@ -92,7 +88,9 @@ async def test_token_creation(jwt_manager: JWTSecurityManager, results: TestResu
         return None
 
 
-async def test_token_verification(jwt_manager: JWTSecurityManager, token: str, results: TestResults):
+async def test_token_verification(
+    jwt_manager: JWTSecurityManager, token: str, results: TestResults
+):
     """Test 4: Verify token validation works"""
     try:
         payload = await jwt_manager.verify_token(token, TokenType.ACCESS)
@@ -127,7 +125,9 @@ async def test_token_revocation(jwt_manager: JWTSecurityManager, token: str, res
         if exists:
             results.add_pass("Token revocation (stored in Redis)")
         else:
-            results.add_fail("Token revocation (stored in Redis)", "Token not found in Redis blacklist")
+            results.add_fail(
+                "Token revocation (stored in Redis)", "Token not found in Redis blacklist"
+            )
     except Exception as e:
         results.add_fail("Token revocation (stored in Redis)", str(e))
 
@@ -159,25 +159,25 @@ async def test_distributed_blacklist(redis_client: redis.Redis, results: TestRes
             private_key_path=private_key_path,
             public_key_path=public_key_path,
             redis_client=redis_client,
-            security_level=SecurityLevel.STRICT
+            security_level=SecurityLevel.STRICT,
         )
 
         jwt_manager_2 = JWTSecurityManager(
             private_key_path=private_key_path,
             public_key_path=public_key_path,
             redis_client=redis_client,
-            security_level=SecurityLevel.STRICT
+            security_level=SecurityLevel.STRICT,
         )
 
         # Server 1 creates a token
-        token = jwt_manager_1.create_access_token(
-            user_id="distributed_test_user"
-        )
+        token = jwt_manager_1.create_access_token(user_id="distributed_test_user")
 
         # Server 2 can verify it
         payload = await jwt_manager_2.verify_token(token, TokenType.ACCESS)
         if not payload:
-            results.add_fail("Distributed blacklist", "Server 2 couldn't verify token from Server 1")
+            results.add_fail(
+                "Distributed blacklist", "Server 2 couldn't verify token from Server 1"
+            )
             return
 
         # Server 1 revokes the token
@@ -186,7 +186,9 @@ async def test_distributed_blacklist(redis_client: redis.Redis, results: TestRes
         # Server 2 should reject it
         try:
             await jwt_manager_2.verify_token(token, TokenType.ACCESS)
-            results.add_fail("Distributed blacklist", "Server 2 accepted revoked token from Server 1")
+            results.add_fail(
+                "Distributed blacklist", "Server 2 accepted revoked token from Server 1"
+            )
         except Exception as e:
             if "blacklisted" in str(e).lower() or "revoked" in str(e).lower():
                 results.add_pass("Distributed blacklist (multi-server)")
@@ -228,7 +230,9 @@ async def test_user_level_revocation(jwt_manager: JWTSecurityManager, results: T
         if rejected_count == 2:
             results.add_pass("User-level token revocation")
         else:
-            results.add_fail("User-level token revocation", f"Only {rejected_count}/2 tokens rejected")
+            results.add_fail(
+                "User-level token revocation", f"Only {rejected_count}/2 tokens rejected"
+            )
 
     except Exception as e:
         results.add_fail("User-level token revocation", str(e))
@@ -249,20 +253,21 @@ async def test_account_locking(jwt_manager: JWTSecurityManager, results: TestRes
         if is_locked:
             results.add_pass("Account locking after failed attempts")
         else:
-            results.add_fail("Account locking after failed attempts", "Account not locked after 5 failures")
+            results.add_fail(
+                "Account locking after failed attempts", "Account not locked after 5 failures"
+            )
 
     except Exception as e:
         results.add_fail("Account locking after failed attempts", str(e))
 
 
-async def test_ttl_expiry(jwt_manager: JWTSecurityManager, redis_client: redis.Redis, results: TestResults):
+async def test_ttl_expiry(
+    jwt_manager: JWTSecurityManager, redis_client: redis.Redis, results: TestResults
+):
     """Test 10: Verify Redis TTL is set correctly on blacklisted tokens"""
     try:
         # Create a short-lived token (1 minute)
-        token = jwt_manager.create_access_token(
-            user_id="ttl_test_user",
-            custom_expiry_minutes=1
-        )
+        token = jwt_manager.create_access_token(user_id="ttl_test_user", custom_expiry_minutes=1)
 
         # Revoke it
         await jwt_manager.revoke_token(token)
@@ -294,13 +299,11 @@ async def test_persistence_across_restart(redis_client: redis.Redis, results: Te
             private_key_path=private_key_path,
             public_key_path=public_key_path,
             redis_client=redis_client,
-            security_level=SecurityLevel.STRICT
+            security_level=SecurityLevel.STRICT,
         )
 
         # Create and revoke a token
-        token = jwt_manager_1.create_access_token(
-            user_id="persistence_test"
-        )
+        token = jwt_manager_1.create_access_token(user_id="persistence_test")
         await jwt_manager_1.revoke_token(token)
 
         # Simulate server restart by creating new instance
@@ -308,7 +311,7 @@ async def test_persistence_across_restart(redis_client: redis.Redis, results: Te
             private_key_path=private_key_path,
             public_key_path=public_key_path,
             redis_client=redis_client,
-            security_level=SecurityLevel.STRICT
+            security_level=SecurityLevel.STRICT,
         )
 
         # Token should still be blacklisted
@@ -353,9 +356,9 @@ async def cleanup_redis(redis_client: redis.Redis):
 
 async def main():
     """Main test runner"""
-    print("="*70)
+    print("=" * 70)
     print("JWT Redis Integration Tests - Critical Security Fix Verification")
-    print("="*70)
+    print("=" * 70)
     print()
 
     results = TestResults()
@@ -379,7 +382,7 @@ async def main():
             private_key_path=private_key_path,
             public_key_path=public_key_path,
             redis_client=redis_client,
-            security_level=SecurityLevel.STRICT
+            security_level=SecurityLevel.STRICT,
         )
 
         # Run tests
@@ -409,6 +412,7 @@ async def main():
     except Exception as e:
         print(f"\n[ERROR] Test suite failed: {e}")
         import traceback
+
         traceback.print_exc()
         return 1
 

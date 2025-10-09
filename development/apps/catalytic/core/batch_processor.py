@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class BatchConfig:
     """Configuration for batch processing"""
+
     max_batch_size: int = 32
     min_batch_size: int = 2
     auto_optimize_batch_size: bool = True
@@ -38,7 +39,7 @@ class LatticeBatch:
         lattices: List[Any],
         config: Optional[BatchConfig] = None,
         device_id: int = 0,
-        backend: str = "pytorch"
+        backend: str = "pytorch",
     ):
         """
         Initialize batch processor
@@ -68,13 +69,13 @@ class LatticeBatch:
         self._total_time_ms = 0.0
         self._optimal_batch_size = self.config.max_batch_size
 
-        logger.info(f"LatticeBatch initialized: {len(lattices)} lattices, "
-                   f"max_batch_size={self.config.max_batch_size}")
+        logger.info(
+            f"LatticeBatch initialized: {len(lattices)} lattices, "
+            f"max_batch_size={self.config.max_batch_size}"
+        )
 
     def execute_parallel(
-        self,
-        operations: List[Callable],
-        operation_name: str = "custom"
+        self, operations: List[Callable], operation_name: str = "custom"
     ) -> List[Any]:
         """
         Execute operations in parallel across all lattices
@@ -96,13 +97,15 @@ class LatticeBatch:
             # Determine optimal batch size
             batch_size = self._calculate_batch_size(len(self.lattices))
 
-            logger.info(f"Executing {operation_name}: {len(operations)} operations "
-                       f"in batches of {batch_size}")
+            logger.info(
+                f"Executing {operation_name}: {len(operations)} operations "
+                f"in batches of {batch_size}"
+            )
 
             # Process in batches
             for i in range(0, len(operations), batch_size):
-                batch_ops = operations[i:i + batch_size]
-                batch_lattices = self.lattices[i:i + batch_size]
+                batch_ops = operations[i : i + batch_size]
+                batch_lattices = self.lattices[i : i + batch_size]
 
                 # Execute batch
                 batch_results = self._execute_batch(batch_ops, batch_lattices)
@@ -111,8 +114,10 @@ class LatticeBatch:
             elapsed_ms = (time.time() - start_time) * 1000
             self._record_operation(len(operations), elapsed_ms)
 
-            logger.info(f"Batch execution complete: {len(results)} results in {elapsed_ms:.2f}ms "
-                       f"({elapsed_ms/len(results):.2f}ms per operation)")
+            logger.info(
+                f"Batch execution complete: {len(results)} results in {elapsed_ms:.2f}ms "
+                f"({elapsed_ms / len(results):.2f}ms per operation)"
+            )
 
             return results
 
@@ -120,17 +125,12 @@ class LatticeBatch:
             logger.error(f"Batch execution failed: {e}")
             raise
 
-    def _execute_batch(
-        self,
-        operations: List[Callable],
-        lattices: List[Any]
-    ) -> List[Any]:
+    def _execute_batch(self, operations: List[Callable], lattices: List[Any]) -> List[Any]:
         """Execute a single batch of operations"""
         if self.config.enable_async and self.executor:
             # Async execution
             futures = [
-                self.executor.submit(op, lattice)
-                for op, lattice in zip(operations, lattices)
+                self.executor.submit(op, lattice) for op, lattice in zip(operations, lattices)
             ]
             results = [f.result(timeout=self.config.timeout_seconds) for f in futures]
         else:
@@ -140,9 +140,7 @@ class LatticeBatch:
         return results
 
     def batch_xor_transform(
-        self,
-        data_list: List[np.ndarray],
-        key_list: Optional[List[np.ndarray]] = None
+        self, data_list: List[np.ndarray], key_list: Optional[List[np.ndarray]] = None
     ) -> List[np.ndarray]:
         """
         Batch XOR transformation across all lattices
@@ -175,15 +173,16 @@ class LatticeBatch:
             # Fallback to sequential
             return [
                 lattice.xor_transform(data, key if key_list else None)
-                for lattice, data, key in zip(self.lattices, data_list,
-                                              key_list or [None] * len(data_list))
+                for lattice, data, key in zip(
+                    self.lattices, data_list, key_list or [None] * len(data_list)
+                )
             ]
 
     def batch_matrix_operations(
         self,
         a_matrices: List[np.ndarray],
         b_matrices: List[np.ndarray],
-        operation: str = "multiply"
+        operation: str = "multiply",
     ) -> List[np.ndarray]:
         """
         Batch matrix operations
@@ -218,9 +217,7 @@ class LatticeBatch:
                 raise
 
     def batch_find_shortest_paths(
-        self,
-        start_vertices: List[int],
-        end_vertices: List[int]
+        self, start_vertices: List[int], end_vertices: List[int]
     ) -> List[Tuple[List[int], float]]:
         """
         Find shortest paths for multiple lattices in parallel
@@ -278,11 +275,12 @@ class LatticeBatch:
         # Clamp to configured limits
         batch_size = max(
             self.config.min_batch_size,
-            min(memory_batch_size, self.config.max_batch_size, total_items)
+            min(memory_batch_size, self.config.max_batch_size, total_items),
         )
 
-        logger.debug(f"Calculated batch size: {batch_size} "
-                    f"(memory: {available_mb:.1f}MB available)")
+        logger.debug(
+            f"Calculated batch size: {batch_size} (memory: {available_mb:.1f}MB available)"
+        )
 
         return batch_size
 
@@ -301,33 +299,33 @@ class LatticeBatch:
             avg_time_per_op = 0.0
 
         return {
-            'total_operations': self._operation_count,
-            'total_time_ms': self._total_time_ms,
-            'avg_time_per_op_ms': avg_time_per_op,
-            'optimal_batch_size': self._optimal_batch_size,
-            'lattice_count': len(self.lattices),
-            'batch_ops_stats': batch_ops_stats
+            "total_operations": self._operation_count,
+            "total_time_ms": self._total_time_ms,
+            "avg_time_per_op_ms": avg_time_per_op,
+            "optimal_batch_size": self._optimal_batch_size,
+            "lattice_count": len(self.lattices),
+            "batch_ops_stats": batch_ops_stats,
         }
 
     def print_stats(self):
         """Print batch processing statistics"""
         stats = self.get_stats()
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("BATCH PROCESSING STATISTICS")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         print(f"Lattice Count: {stats['lattice_count']}")
         print(f"Total Operations: {stats['total_operations']}")
         print(f"Total Time: {stats['total_time_ms']:.2f}ms")
         print(f"Avg Time per Op: {stats['avg_time_per_op_ms']:.2f}ms")
         print(f"Optimal Batch Size: {stats['optimal_batch_size']}")
 
-        batch_ops = stats['batch_ops_stats']
+        batch_ops = stats["batch_ops_stats"]
         print("\nBatch Operations:")
         print(f"  Total Batch Ops: {batch_ops['total_batch_ops']}")
         print(f"  Items Processed: {batch_ops['total_items_processed']}")
         print(f"  Avg Batch Size: {batch_ops['avg_batch_size']:.1f}")
         print(f"  Avg Time per Batch: {batch_ops['avg_time_ms']:.2f}ms")
-        print(f"{'='*60}\n")
+        print(f"{'=' * 60}\n")
 
     def cleanup(self):
         """Clean up resources"""
@@ -336,11 +334,7 @@ class LatticeBatch:
 
 
 # Convenience function for quick batch creation
-def create_batch(
-    lattices: List[Any],
-    max_batch_size: int = 32,
-    device_id: int = 0
-) -> LatticeBatch:
+def create_batch(lattices: List[Any], max_batch_size: int = 32, device_id: int = 0) -> LatticeBatch:
     """
     Create a batch processor for multiple lattices
 
@@ -353,8 +347,4 @@ def create_batch(
         LatticeBatch instance
     """
     config = BatchConfig(max_batch_size=max_batch_size)
-    return LatticeBatch(
-        lattices=lattices,
-        config=config,
-        device_id=device_id
-    )
+    return LatticeBatch(lattices=lattices, config=config, device_id=device_id)

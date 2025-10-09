@@ -96,9 +96,7 @@ def find_ghidra_installation() -> str:
             paths = Path(pattern.replace("*", "")).parent.glob(Path(pattern).name)
             for path in paths:
                 if path.is_dir():
-                    run_script = (
-                        "ghidraRun.bat" if sys.platform == "win32" else "ghidraRun"
-                    )
+                    run_script = "ghidraRun.bat" if sys.platform == "win32" else "ghidraRun"
                     if (path / run_script).exists():
                         return str(path)
         except (OSError, FileNotFoundError):
@@ -164,7 +162,7 @@ def verify_extension(
 
 def verify_installation(verbose: bool = False) -> bool:
     """Verify complete installation."""
-    print(f"{Colors.BOLD}Ghidra Extensions Installation Verification" f"{Colors.ENDC}")
+    print(f"{Colors.BOLD}Ghidra Extensions Installation Verification{Colors.ENDC}")
     print("=" * 50)
 
     all_good = True
@@ -202,9 +200,7 @@ def verify_installation(verbose: bool = False) -> bool:
     # Step 4: Verify CryptoDetect
     print("\n3. Verifying CryptoDetect Extension")
     crypto_files = ["extension.properties"]
-    crypto_success, crypto_missing = verify_extension(
-        extensions_dir, "crypto_detect", crypto_files
-    )
+    crypto_success, crypto_missing = verify_extension(extensions_dir, "crypto_detect", crypto_files)
 
     if crypto_success:
         print_success("CryptoDetect extension installed correctly")
@@ -223,9 +219,7 @@ def verify_installation(verbose: bool = False) -> bool:
     # Step 5: Verify RetSync
     print("\n4. Verifying RetSync Extension")
     retsync_files = ["extension.properties"]
-    retsync_success, retsync_missing = verify_extension(
-        extensions_dir, "retsync", retsync_files
-    )
+    retsync_success, retsync_missing = verify_extension(extensions_dir, "retsync", retsync_files)
 
     if retsync_success:
         print_success("RetSync extension installed correctly")
@@ -248,9 +242,7 @@ def verify_installation(verbose: bool = False) -> bool:
         if result.returncode == 0:
             # Java version info goes to stderr
             java_output = (
-                result.stderr.split("\n")[0]
-                if result.stderr
-                else result.stdout.split("\n")[0]
+                result.stderr.split("\n")[0] if result.stderr else result.stdout.split("\n")[0]
             )
             print_success(f"Java found: {java_output}")
 
@@ -278,12 +270,9 @@ def verify_installation(verbose: bool = False) -> bool:
     print("\n" + "=" * 50)
     if all_good:
         try:
-            print(f"{Colors.GREEN}{Colors.BOLD}✓ All checks passed!" f"{Colors.ENDC}")
+            print(f"{Colors.GREEN}{Colors.BOLD}✓ All checks passed!{Colors.ENDC}")
         except UnicodeEncodeError:
-            print(
-                f"{Colors.GREEN}{Colors.BOLD}[SUCCESS] All checks passed!"
-                f"{Colors.ENDC}"
-            )
+            print(f"{Colors.GREEN}{Colors.BOLD}[SUCCESS] All checks passed!{Colors.ENDC}")
         print("\nNext steps:")
         print("1. Start Ghidra")
         print("2. Navigate to File -> Configure -> Extensions")
@@ -291,12 +280,10 @@ def verify_installation(verbose: bool = False) -> bool:
         print("4. Restart Ghidra")
     else:
         try:
-            print(f"{Colors.RED}{Colors.BOLD}✗ Some checks failed" f"{Colors.ENDC}")
+            print(f"{Colors.RED}{Colors.BOLD}✗ Some checks failed{Colors.ENDC}")
         except UnicodeEncodeError:
-            print(
-                f"{Colors.RED}{Colors.BOLD}[ERROR] Some checks failed" f"{Colors.ENDC}"
-            )
-        print("\nPlease run the installation script again or " "check the errors above")
+            print(f"{Colors.RED}{Colors.BOLD}[ERROR] Some checks failed{Colors.ENDC}")
+        print("\nPlease run the installation script again or check the errors above")
 
     return all_good
 
@@ -319,15 +306,9 @@ def generate_report(output_file: str = None) -> None:
 
 def main():
     """Main entry point."""
-    parser = argparse.ArgumentParser(
-        description="Verify Ghidra extensions installation"
-    )
-    parser.add_argument(
-        "-v", "--verbose", action="store_true", help="Enable verbose output"
-    )
-    parser.add_argument(
-        "-r", "--report", type=str, help="Generate detailed report to file"
-    )
+    parser = argparse.ArgumentParser(description="Verify Ghidra extensions installation")
+    parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose output")
+    parser.add_argument("-r", "--report", type=str, help="Generate detailed report to file")
     args = parser.parse_args()
 
     success = verify_installation(verbose=args.verbose)

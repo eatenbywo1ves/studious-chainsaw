@@ -12,13 +12,15 @@ from datetime import datetime
 import urllib.request
 import urllib.error
 
+
 # Color codes for output
 class Colors:
-    GREEN = '\033[92m'
-    RED = '\033[91m'
-    YELLOW = '\033[93m'
-    BLUE = '\033[94m'
-    RESET = '\033[0m'
+    GREEN = "\033[92m"
+    RED = "\033[91m"
+    YELLOW = "\033[93m"
+    BLUE = "\033[94m"
+    RESET = "\033[0m"
+
 
 def print_header(text):
     """Print section header"""
@@ -26,17 +28,21 @@ def print_header(text):
     print(f"{Colors.BLUE}{text:^70}{Colors.RESET}")
     print(f"{Colors.BLUE}{'=' * 70}{Colors.RESET}\n")
 
+
 def print_success(text):
     """Print success message"""
     print(f"{Colors.GREEN}[OK] {text}{Colors.RESET}")
+
 
 def print_error(text):
     """Print error message"""
     print(f"{Colors.RED}[FAIL] {text}{Colors.RESET}")
 
+
 def print_warning(text):
     """Print warning message"""
     print(f"{Colors.YELLOW}[WARN] {text}{Colors.RESET}")
+
 
 def check_service(name, host, port, path="/"):
     """Check if a service is running and accessible"""
@@ -64,6 +70,7 @@ def check_service(name, host, port, path="/"):
         print_error(f"{name} check failed: {str(e)}")
         return False, None
 
+
 def check_redis():
     """Check Redis connection"""
     try:
@@ -72,10 +79,7 @@ def check_redis():
 
         # Test PING
         result = subprocess.run(
-            [redis_cli, "-a", password, "PING"],
-            capture_output=True,
-            text=True,
-            timeout=5
+            [redis_cli, "-a", password, "PING"], capture_output=True, text=True, timeout=5
         )
 
         if "PONG" in result.stdout:
@@ -86,13 +90,13 @@ def check_redis():
                 [redis_cli, "-a", password, "INFO", "stats"],
                 capture_output=True,
                 text=True,
-                timeout=5
+                timeout=5,
             )
 
             # Parse commands processed
-            for line in stats_result.stdout.split('\n'):
-                if line.startswith('total_commands_processed:'):
-                    commands = line.split(':')[1].strip()
+            for line in stats_result.stdout.split("\n"):
+                if line.startswith("total_commands_processed:"):
+                    commands = line.split(":")[1].strip()
                     print(f"  Commands processed: {commands}")
                     break
 
@@ -103,6 +107,7 @@ def check_redis():
     except Exception as e:
         print_error(f"Redis check failed: {str(e)}")
         return False
+
 
 def check_database():
     """Check database connection"""
@@ -132,6 +137,7 @@ def check_database():
         print_error(f"Database check failed: {str(e)}")
         return False
 
+
 def check_backend_health():
     """Check backend health endpoint"""
     try:
@@ -147,7 +153,9 @@ def check_backend_health():
                 if "redis" in data:
                     redis_info = data["redis"]
                     if redis_info.get("connected"):
-                        print(f"  Redis: Connected ({redis_info.get('commands_processed', 0):,} commands)")
+                        print(
+                            f"  Redis: Connected ({redis_info.get('commands_processed', 0):,} commands)"
+                        )
                     else:
                         print_warning("  Redis: Disconnected")
 
@@ -158,6 +166,7 @@ def check_backend_health():
     except Exception as e:
         print_error(f"Backend health check failed: {str(e)}")
         return False
+
 
 def check_environment():
     """Check environment variables"""
@@ -181,16 +190,12 @@ def check_environment():
 
     return len(missing) == 0
 
+
 def check_processes():
     """Check if backend and frontend processes are running"""
     try:
         # Check backend process (port 8000)
-        result = subprocess.run(
-            ["netstat", "-ano"],
-            capture_output=True,
-            text=True,
-            timeout=5
-        )
+        result = subprocess.run(["netstat", "-ano"], capture_output=True, text=True, timeout=5)
 
         backend_running = ":8000" in result.stdout
         frontend_running = ":3000" in result.stdout
@@ -210,6 +215,7 @@ def check_processes():
         print_error(f"Process check failed: {str(e)}")
         return False
 
+
 def main():
     """Run all validation checks"""
     print_header("PRODUCTION DEPLOYMENT VALIDATION")
@@ -219,33 +225,33 @@ def main():
 
     # Check environment variables
     print_header("ENVIRONMENT VARIABLES")
-    results['environment'] = check_environment()
+    results["environment"] = check_environment()
 
     # Check processes
     print_header("PROCESSES")
-    results['processes'] = check_processes()
+    results["processes"] = check_processes()
 
     # Check Redis
     print_header("REDIS")
-    results['redis'] = check_redis()
+    results["redis"] = check_redis()
 
     # Check database
     print_header("DATABASE")
-    results['database'] = check_database()
+    results["database"] = check_database()
 
     # Check backend service
     print_header("BACKEND API")
     backend_running, _ = check_service("Backend API", "localhost", 8000, "/health")
-    results['backend_service'] = backend_running
+    results["backend_service"] = backend_running
 
     # Check backend health endpoint
     if backend_running:
-        results['backend_health'] = check_backend_health()
+        results["backend_health"] = check_backend_health()
 
     # Check frontend service
     print_header("FRONTEND")
     frontend_running, status = check_service("Frontend", "localhost", 3000)
-    results['frontend'] = frontend_running
+    results["frontend"] = frontend_running
 
     # Summary
     print_header("VALIDATION SUMMARY")
@@ -270,9 +276,11 @@ def main():
         print_error(f"VALIDATION FAILED - {total - passed} check(s) failed\n")
         return 1
 
+
 if __name__ == "__main__":
     # Load environment variables
     from dotenv import load_dotenv
+
     env_path = os.path.join(os.path.dirname(__file__), ".env")
     load_dotenv(env_path)
 

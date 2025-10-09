@@ -26,15 +26,20 @@ from reactivex.subject import BehaviorSubject
 logger = logging.getLogger(__name__)
 
 # Metrics (same as original)
-webhook_deliveries = Counter('webhook_deliveries_total', 'Total webhook deliveries', ['event', 'status'])
-webhook_duration = Histogram('webhook_delivery_duration_seconds', 'Webhook delivery duration', ['event'])
-webhook_queue_size = Gauge('webhook_queue_size', 'Current webhook queue size')
-webhook_failures = Counter('webhook_failures_total', 'Total webhook failures', ['event', 'reason'])
-circuit_breaker_state = Gauge('webhook_circuit_breaker_state', 'Circuit breaker state', ['url'])
+webhook_deliveries = Counter(
+    "webhook_deliveries_total", "Total webhook deliveries", ["event", "status"]
+)
+webhook_duration = Histogram(
+    "webhook_delivery_duration_seconds", "Webhook delivery duration", ["event"]
+)
+webhook_queue_size = Gauge("webhook_queue_size", "Current webhook queue size")
+webhook_failures = Counter("webhook_failures_total", "Total webhook failures", ["event", "reason"])
+circuit_breaker_state = Gauge("webhook_circuit_breaker_state", "Circuit breaker state", ["url"])
 
 
 class WebhookPriority(Enum):
     """Priority levels for webhook delivery"""
+
     LOW = 1
     NORMAL = 2
     HIGH = 3
@@ -43,6 +48,7 @@ class WebhookPriority(Enum):
 
 class CircuitBreakerState(Enum):
     """Circuit breaker states"""
+
     CLOSED = 0
     OPEN = 1
     HALF_OPEN = 2
@@ -51,6 +57,7 @@ class CircuitBreakerState(Enum):
 @dataclass
 class WebhookPayload:
     """Webhook payload with metadata"""
+
     event_name: str
     event_data: Dict[str, Any]
     timestamp: float
@@ -64,6 +71,7 @@ class WebhookPayload:
 @dataclass
 class WebhookEndpoint:
     """Webhook endpoint configuration"""
+
     url: str
     method: str = "POST"
     headers: Dict[str, str] = field(default_factory=dict)
@@ -77,6 +85,7 @@ class WebhookEndpoint:
 @dataclass
 class CircuitBreaker:
     """Circuit breaker for webhook endpoints"""
+
     url: str
     failure_count: int = 0
     last_failure_time: Optional[float] = None
@@ -126,6 +135,7 @@ class CircuitBreaker:
 @dataclass
 class WebhookDeliveryResult:
     """Result of a webhook delivery attempt"""
+
     payload: WebhookPayload
     endpoint: WebhookEndpoint
     success: bool
@@ -170,27 +180,27 @@ class ReactiveWebhookManager:
 
     def _load_config(self):
         """Load webhook configuration from YAML"""
-        with open(self.config_path, 'r') as f:
+        with open(self.config_path, "r") as f:
             self.config = yaml.safe_load(f)
 
         # Parse webhook endpoints
         from collections import defaultdict
+
         self.endpoints = defaultdict(list)
-        for category, events in self.config['webhooks']['events'].items():
+        for category, events in self.config["webhooks"]["events"].items():
             for event in events:
                 event_name = f"{category}.{event['name']}"
-                for webhook_config in event.get('webhooks', []):
+                for webhook_config in event.get("webhooks", []):
                     endpoint = WebhookEndpoint(
-                        url=webhook_config['url'],
-                        method=webhook_config.get('method', 'POST'),
-                        headers=webhook_config.get('headers', {}),
-                        secret=webhook_config.get('secret_ref'),
+                        url=webhook_config["url"],
+                        method=webhook_config.get("method", "POST"),
+                        headers=webhook_config.get("headers", {}),
+                        secret=webhook_config.get("secret_ref"),
                         timeout=webhook_config.get(
-                            'timeout',
-                            self.config['webhooks']['global']['timeout_seconds']
+                            "timeout", self.config["webhooks"]["global"]["timeout_seconds"]
                         ),
-                        retry_on=webhook_config.get('retry_on', [500, 502, 503, 504]),
-                        transform=webhook_config.get('transform')
+                        retry_on=webhook_config.get("retry_on", [500, 502, 503, 504]),
+                        transform=webhook_config.get("transform"),
                     )
                     self.endpoints[event_name].append(endpoint)
 
@@ -203,83 +213,67 @@ class ReactiveWebhookManager:
 
         # PIPELINE 1: Main webhook delivery stream
         # This replaces the entire _delivery_worker method from the original
-        delivery_subscription = (
-            self.webhook_stream.pipe(
-                # Operator 1: Log incoming events
-                ops.do_action(
-                    on_next=lambda payload: logger.info(
-                        f"Event received: {payload.event_name} (priority: {payload.priority.name})"
-                    )
-                ),
-
-                # Operator 2: Group by priority for prioritized processing
-                # This automatically creates separate streams per priority level
-                ops.group_by(lambda payload: payload.priority.value),
-
-                # Operator 3: Process each priority group
-                ops.flat_map(lambda priority_group: priority_group.pipe(
+        delivery_subscription = self.webhook_stream.pipe(
+            # Operator 1: Log incoming events
+            ops.do_action(
+                on_next=lambda payload: logger.info(
+                    f"Event received: {payload.event_name} (priority: {payload.priority.name})"
+                )
+            ),
+            # Operator 2: Group by priority for prioritized processing
+            # This automatically creates separate streams per priority level
+            ops.group_by(lambda payload: payload.priority.value),
+            # Operator 3: Process each priority group
+            ops.flat_map(
+                lambda priority_group: priority_group.pipe(
                     # For each payload, emit (payload, endpoint) pairs
                     ops.flat_map(lambda payload: self._create_delivery_pairs(payload)),
-
                     # Filter out endpoints blocked by circuit breakers
                     ops.filter(lambda pair: self._check_circuit_breaker(pair[1].url)),
-
                     # Transform to delivery observable
                     ops.flat_map(
                         lambda pair: self._deliver_webhook_reactive(pair[0], pair[1]),
                         # Max concurrent deliveries per priority group
-                        max_concurrent=10
+                        max_concurrent=10,
                     ),
-
                     # Retry failed deliveries (replaces @backoff decorator)
                     ops.retry(5),
-
                     # Catch errors and route to dead letter queue
-                    ops.catch(lambda error, source: self._handle_delivery_error(error, source))
-                )),
-
-                # Operator 4: Share the stream among subscribers (hot observable)
-                ops.share()
-            )
-            .subscribe(
-                on_next=self._on_delivery_success,
-                on_error=self._on_delivery_error,
-                scheduler=self.scheduler
-            )
+                    ops.catch(lambda error, source: self._handle_delivery_error(error, source)),
+                )
+            ),
+            # Operator 4: Share the stream among subscribers (hot observable)
+            ops.share(),
+        ).subscribe(
+            on_next=self._on_delivery_success,
+            on_error=self._on_delivery_error,
+            scheduler=self.scheduler,
         )
 
         self.subscriptions.append(delivery_subscription)
 
         # PIPELINE 2: Metrics collection stream
         # Separate stream for metrics - demonstrates stream composition
-        metrics_subscription = (
-            self.metrics_stream.pipe(
-                # Buffer metrics for 1 second windows
-                ops.buffer_with_time(1.0),
-                ops.filter(lambda buffer: len(buffer) > 0),
-                ops.do_action(
-                    on_next=lambda metrics_batch: self._update_metrics(metrics_batch)
-                )
-            )
-            .subscribe(scheduler=self.scheduler)
-        )
+        metrics_subscription = self.metrics_stream.pipe(
+            # Buffer metrics for 1 second windows
+            ops.buffer_with_time(1.0),
+            ops.filter(lambda buffer: len(buffer) > 0),
+            ops.do_action(on_next=lambda metrics_batch: self._update_metrics(metrics_batch)),
+        ).subscribe(scheduler=self.scheduler)
 
         self.subscriptions.append(metrics_subscription)
 
         # PIPELINE 3: Circuit breaker state monitoring
         # React to circuit breaker state changes
-        cb_subscription = (
-            self.circuit_breaker_stream.pipe(
-                ops.filter(lambda state: state is not None),
-                ops.distinct_until_changed(),
-                ops.do_action(
-                    on_next=lambda state: circuit_breaker_state.labels(
-                        url=state['url']
-                    ).set(state['state'].value)
+        cb_subscription = self.circuit_breaker_stream.pipe(
+            ops.filter(lambda state: state is not None),
+            ops.distinct_until_changed(),
+            ops.do_action(
+                on_next=lambda state: circuit_breaker_state.labels(url=state["url"]).set(
+                    state["state"].value
                 )
-            )
-            .subscribe(scheduler=self.scheduler)
-        )
+            ),
+        ).subscribe(scheduler=self.scheduler)
 
         self.subscriptions.append(cb_subscription)
 
@@ -292,6 +286,7 @@ class ReactiveWebhookManager:
                 if endpoint.active:
                     ...
         """
+
         def subscribe(observer, scheduler=None):
             endpoints = self.endpoints.get(payload.event_name, [])
             for endpoint in endpoints:
@@ -321,6 +316,7 @@ class ReactiveWebhookManager:
         Original code used async/await with @backoff decorator.
         Reactive version returns Observable that can be composed with retry(), catch(), etc.
         """
+
         async def deliver():
             start_time = time.time()
             circuit_breaker = self._get_circuit_breaker(endpoint.url)
@@ -331,11 +327,13 @@ class ReactiveWebhookManager:
 
                 # Add security headers
                 headers = endpoint.headers.copy()
-                if self.config['webhooks']['security']['signing']['enabled']:
+                if self.config["webhooks"]["security"]["signing"]["enabled"]:
                     signature = self._generate_signature(webhook_data, endpoint.secret)
-                    headers[self.config['webhooks']['security']['signing']['header_name']] = signature
-                    headers[self.config['webhooks']['security']['signing']['timestamp_header']] = str(
-                        int(payload.timestamp)
+                    headers[self.config["webhooks"]["security"]["signing"]["header_name"]] = (
+                        signature
+                    )
+                    headers[self.config["webhooks"]["security"]["signing"]["timestamp_header"]] = (
+                        str(int(payload.timestamp))
                     )
 
                 # Make HTTP request
@@ -345,32 +343,35 @@ class ReactiveWebhookManager:
                         url=endpoint.url,
                         json=webhook_data,
                         headers=headers,
-                        timeout=aiohttp.ClientTimeout(total=endpoint.timeout)
+                        timeout=aiohttp.ClientTimeout(total=endpoint.timeout),
                     ) as response:
                         # Check response status
                         if response.status >= 400:
                             if response.status in endpoint.retry_on:
                                 raise aiohttp.ClientError(f"Retryable error: {response.status}")
                             else:
-                                logger.error(f"Non-retryable error {response.status} for {endpoint.url}")
+                                logger.error(
+                                    f"Non-retryable error {response.status} for {endpoint.url}"
+                                )
 
                         # Record success
                         circuit_breaker.record_success()
                         duration = time.time() - start_time
 
                         # Emit metrics to metrics stream
-                        self.metrics_stream.on_next({
-                            'type': 'delivery_success',
-                            'event': payload.event_name,
-                            'duration': duration,
-                            'endpoint': endpoint.url
-                        })
+                        self.metrics_stream.on_next(
+                            {
+                                "type": "delivery_success",
+                                "event": payload.event_name,
+                                "duration": duration,
+                                "endpoint": endpoint.url,
+                            }
+                        )
 
                         # Emit circuit breaker state
-                        self.circuit_breaker_stream.on_next({
-                            'url': endpoint.url,
-                            'state': circuit_breaker.state
-                        })
+                        self.circuit_breaker_stream.on_next(
+                            {"url": endpoint.url, "state": circuit_breaker.state}
+                        )
 
                         logger.info(f"Webhook delivered successfully to {endpoint.url}")
 
@@ -379,7 +380,7 @@ class ReactiveWebhookManager:
                             endpoint=endpoint,
                             success=True,
                             status_code=response.status,
-                            duration=duration
+                            duration=duration,
                         )
 
             except Exception as e:
@@ -388,18 +389,19 @@ class ReactiveWebhookManager:
                 duration = time.time() - start_time
 
                 # Emit metrics
-                self.metrics_stream.on_next({
-                    'type': 'delivery_failure',
-                    'event': payload.event_name,
-                    'error': type(e).__name__,
-                    'endpoint': endpoint.url
-                })
+                self.metrics_stream.on_next(
+                    {
+                        "type": "delivery_failure",
+                        "event": payload.event_name,
+                        "error": type(e).__name__,
+                        "endpoint": endpoint.url,
+                    }
+                )
 
                 # Emit circuit breaker state
-                self.circuit_breaker_stream.on_next({
-                    'url': endpoint.url,
-                    'state': circuit_breaker.state
-                })
+                self.circuit_breaker_stream.on_next(
+                    {"url": endpoint.url, "state": circuit_breaker.state}
+                )
 
                 logger.error(f"Webhook delivery failed to {endpoint.url}: {e}")
 
@@ -434,19 +436,17 @@ class ReactiveWebhookManager:
             "event": payload.event_name,
             "timestamp": payload.timestamp,
             "event_id": payload.event_id,
-            "data": payload.event_data
+            "data": payload.event_data,
         }
 
         # Apply transformer if specified
-        if endpoint.transform and endpoint.transform in self.config['webhooks']['transformers']:
-            transformer = self.config['webhooks']['transformers'][endpoint.transform]
-            if transformer['type'] == 'template':
+        if endpoint.transform and endpoint.transform in self.config["webhooks"]["transformers"]:
+            transformer = self.config["webhooks"]["transformers"][endpoint.transform]
+            if transformer["type"] == "template":
                 from jinja2 import Template
-                template = Template(transformer['template'])
-                transformed = template.render(
-                    event_name=payload.event_name,
-                    **payload.event_data
-                )
+
+                template = Template(transformer["template"])
+                transformed = template.render(event_name=payload.event_name, **payload.event_data)
                 return json.loads(transformed)
 
         return base_payload
@@ -454,26 +454,22 @@ class ReactiveWebhookManager:
     def _generate_signature(self, data: Dict[str, Any], secret: Optional[str]) -> str:
         """Generate HMAC signature for webhook payload"""
         if not secret:
-            secret = self.config['webhooks']['security'].get('default_secret', 'default-secret')
+            secret = self.config["webhooks"]["security"].get("default_secret", "default-secret")
 
         message = json.dumps(data, sort_keys=True)
-        signature = hmac.new(
-            secret.encode(),
-            message.encode(),
-            hashlib.sha256
-        ).hexdigest()
+        signature = hmac.new(secret.encode(), message.encode(), hashlib.sha256).hexdigest()
 
         return f"sha256={signature}"
 
     def _get_circuit_breaker(self, url: str) -> CircuitBreaker:
         """Get or create circuit breaker for URL"""
         if url not in self.circuit_breakers:
-            cb_config = self.config['webhooks']['delivery']['circuit_breaker']
+            cb_config = self.config["webhooks"]["delivery"]["circuit_breaker"]
             self.circuit_breakers[url] = CircuitBreaker(
                 url=url,
-                failure_threshold=cb_config['failure_threshold'],
-                timeout_seconds=cb_config['timeout_seconds'],
-                half_open_max_attempts=cb_config['half_open_requests']
+                failure_threshold=cb_config["failure_threshold"],
+                timeout_seconds=cb_config["timeout_seconds"],
+                half_open_max_attempts=cb_config["half_open_requests"],
             )
         return self.circuit_breakers[url]
 
@@ -486,24 +482,19 @@ class ReactiveWebhookManager:
                 "event_name": payload.event_name,
                 "event_data": payload.event_data,
                 "timestamp": payload.timestamp,
-                "event_id": payload.event_id
+                "event_id": payload.event_id,
             },
-            "endpoint": {
-                "url": endpoint.url,
-                "method": endpoint.method
-            },
+            "endpoint": {"url": endpoint.url, "method": endpoint.method},
             "error": error,
-            "stored_at": time.time()
+            "stored_at": time.time(),
         }
 
         # Store in Redis with expiry
         if self.redis_client:
             key = f"webhook:dead_letter:{payload.event_id}"
-            retention_days = self.config['webhooks']['delivery']['dead_letter']['retention_days']
+            retention_days = self.config["webhooks"]["delivery"]["dead_letter"]["retention_days"]
             await self.redis_client.setex(
-                key,
-                timedelta(days=retention_days),
-                json.dumps(dead_letter_data)
+                key, timedelta(days=retention_days), json.dumps(dead_letter_data)
             )
 
             logger.warning(f"Webhook stored in dead letter queue: {key}")
@@ -530,17 +521,11 @@ class ReactiveWebhookManager:
     def _update_metrics(self, metrics_batch: List[Dict[str, Any]]):
         """Update Prometheus metrics from batched metric events"""
         for metric in metrics_batch:
-            if metric['type'] == 'delivery_success':
-                webhook_deliveries.labels(
-                    event=metric['event'],
-                    status='success'
-                ).inc()
-                webhook_duration.labels(event=metric['event']).observe(metric['duration'])
-            elif metric['type'] == 'delivery_failure':
-                webhook_failures.labels(
-                    event=metric['event'],
-                    reason=metric['error']
-                ).inc()
+            if metric["type"] == "delivery_success":
+                webhook_deliveries.labels(event=metric["event"], status="success").inc()
+                webhook_duration.labels(event=metric["event"]).observe(metric["duration"])
+            elif metric["type"] == "delivery_failure":
+                webhook_failures.labels(event=metric["event"], reason=metric["error"]).inc()
 
     async def start(self):
         """Start the reactive webhook manager"""
@@ -572,7 +557,7 @@ class ReactiveWebhookManager:
         self,
         event_name: str,
         event_data: Dict[str, Any],
-        priority: WebhookPriority = WebhookPriority.NORMAL
+        priority: WebhookPriority = WebhookPriority.NORMAL,
     ):
         """
         Trigger a webhook event - the reactive way!
@@ -588,7 +573,7 @@ class ReactiveWebhookManager:
             event_data=event_data,
             timestamp=time.time(),
             event_id=self._generate_event_id(),
-            priority=priority
+            priority=priority,
         )
 
         # Emit into the stream - the reactive pipeline takes over from here!
@@ -599,6 +584,7 @@ class ReactiveWebhookManager:
     def _generate_event_id(self) -> str:
         """Generate unique event ID"""
         import uuid
+
         return str(uuid.uuid4())
 
     async def register_webhook(
@@ -606,25 +592,19 @@ class ReactiveWebhookManager:
         event_name: str,
         url: str,
         headers: Optional[Dict[str, str]] = None,
-        secret: Optional[str] = None
+        secret: Optional[str] = None,
     ) -> bool:
         """Dynamically register a new webhook"""
-        endpoint = WebhookEndpoint(
-            url=url,
-            headers=headers or {},
-            secret=secret
-        )
+        endpoint = WebhookEndpoint(url=url, headers=headers or {}, secret=secret)
 
         self.endpoints[event_name].append(endpoint)
 
         # Persist to Redis
         if self.redis_client:
             key = f"webhook:registration:{event_name}:{url}"
-            await self.redis_client.set(key, json.dumps({
-                "url": url,
-                "headers": headers,
-                "registered_at": time.time()
-            }))
+            await self.redis_client.set(
+                key, json.dumps({"url": url, "headers": headers, "registered_at": time.time()})
+            )
 
         logger.info(f"Webhook registered: {event_name} -> {url}")
         return True
@@ -633,17 +613,11 @@ class ReactiveWebhookManager:
         """Get webhook metrics"""
         metrics = {
             "circuit_breakers": {
-                url: {
-                    "state": cb.state.name,
-                    "failure_count": cb.failure_count
-                }
+                url: {"state": cb.state.name, "failure_count": cb.failure_count}
                 for url, cb in self.circuit_breakers.items()
             },
-            "endpoints": {
-                event: len(endpoints)
-                for event, endpoints in self.endpoints.items()
-            },
-            "note": "Reactive streams handle backpressure automatically - no manual queue size tracking needed!"
+            "endpoints": {event: len(endpoints) for event, endpoints in self.endpoints.items()},
+            "note": "Reactive streams handle backpressure automatically - no manual queue size tracking needed!",
         }
 
         return metrics
@@ -652,6 +626,7 @@ class ReactiveWebhookManager:
 # ============================================================================
 # COMPARISON DEMO - Shows the difference between imperative and reactive
 # ============================================================================
+
 
 async def demo_comparison():
     """
@@ -783,13 +758,13 @@ async def main():
     manager.trigger_event(
         "system.health.health_check_failed",
         {"service": "api", "status": "unhealthy", "details": "Connection timeout"},
-        priority=WebhookPriority.HIGH
+        priority=WebhookPriority.HIGH,
     )
 
     manager.trigger_event(
         "deployment.kubernetes.pod_created",
         {"pod_name": "api-server-abc123", "namespace": "production"},
-        priority=WebhookPriority.NORMAL
+        priority=WebhookPriority.NORMAL,
     )
 
     # Let streams process
@@ -808,8 +783,7 @@ async def main():
 if __name__ == "__main__":
     # Setup logging
     logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     )
 
     asyncio.run(main())
