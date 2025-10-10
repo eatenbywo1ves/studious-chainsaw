@@ -297,9 +297,9 @@ Based on the KA Lattice architecture:
 ## 📚 Additional Resources
 
 - [Catalytic Computing Paper](https://arxiv.org/...)
-- [GPU Acceleration Guide](../GPU_ACCELERATION_STATUS.md)
-- [API Documentation](../api/README.md)
-- [Test Suite](../../tests/README.md)
+- [GPU Acceleration Guide](./docs/GPU_ACCELERATION_STATUS.md)
+- [API Documentation](./docs/API_DOCUMENTATION.md)
+- [Test Suite](./tests/README.md)
 
 ## 💡 Tips for Production
 
