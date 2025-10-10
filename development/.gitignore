@@ -251,3 +251,10 @@ proof_library.json
 /ka_lattice_state/
 /ka_knowledge/
 /test_knowledge/
+
+# Type checking & linting
+.mypy_cache/
+.ruff_cache/
+.pyright/
+.dmypy.json
+dmypy.json
