@@ -4,7 +4,7 @@ Agent Orchestration System
 Coordinates multiple security testing agents for comprehensive ML security assessment.
 """
 
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, cast
 from dataclasses import dataclass, field
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import logging
@@ -52,7 +52,7 @@ class SecurityOrchestrator:
     - Real-time progress tracking
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the security orchestrator."""
         self.agents: Dict[str, BaseSecurityAgent] = {}
         self.logger = self._setup_logger()
@@ -297,7 +297,7 @@ class SecurityOrchestrator:
 
         # Convert agent results to serializable format
         for agent_id, test_results in result.agent_results.items():
-            export_data["agent_results"][agent_id] = [
+            cast(Dict[str, Any], export_data["agent_results"])[agent_id] = [
                 {
                     "test_name": tr.test_name,
                     "vulnerability_type": tr.vulnerability_type.value,

@@ -28,7 +28,7 @@ scrape_configs:
         labels:
           service: 'prometheus'
 
-  # SaaS API metrics
+  # SaaS API metrics (Docker)
   - job_name: 'saas-api'
     metrics_path: '/metrics'
     static_configs:
@@ -36,6 +36,17 @@ scrape_configs:
         labels:
           service: 'saas-api'
           component: 'api'
+          deployment: 'docker'
+
+  # SaaS API metrics (Local Development)
+  - job_name: 'saas-api-local'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['host.docker.internal:8002']
+        labels:
+          service: 'saas-api'
+          component: 'api'
+          deployment: 'local'
 
   # Webhook Service metrics
   - job_name: 'webhook-service'

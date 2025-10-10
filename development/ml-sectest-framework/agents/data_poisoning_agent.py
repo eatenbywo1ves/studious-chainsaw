@@ -9,7 +9,7 @@ References:
 - MITRE AML.T0020: Poison Training Data
 """
 
-from typing import Dict, Any
+from typing import Dict, Any, List
 import requests
 import random
 import string
@@ -34,14 +34,14 @@ class DataPoisoningAgent(BaseSecurityAgent):
     4. Availability poisoning: Degrading model performance
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             agent_id="data_poisoning_001",
             name="Data Poisoning Specialist",
             description="Detects data poisoning vulnerabilities in ML training pipelines"
         )
 
-        self.poison_samples = []
+        self.poison_samples: List[Dict[str, Any]] = []
 
     def _get_vulnerability_type(self) -> VulnerabilityType:
         """Return data poisoning vulnerability type."""

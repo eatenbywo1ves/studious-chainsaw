@@ -9,7 +9,7 @@ References:
 - MITRE AML.T0010: ML Model Serialization
 """
 
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Tuple
 import requests
 import base64
 import pickle
@@ -35,7 +35,7 @@ class ModelSerializationAgent(BaseSecurityAgent):
     4. Supply chain poisoning
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             agent_id="model_serialization_001",
             name="Model Serialization Specialist",
@@ -234,7 +234,7 @@ class ModelSerializationAgent(BaseSecurityAgent):
         try:
             # Create a test pickle payload (benign marker)
             class TestMarker:
-                def __reduce__(self):
+                def __reduce__(self) -> Tuple[type, Tuple[str, ...]]:
                     # This would normally be malicious, but we keep it safe for testing
                     return (str, ("DESERIALIZATION_TEST_MARKER",))
 
@@ -308,7 +308,7 @@ class ModelSerializationAgent(BaseSecurityAgent):
         try:
             # Create a safe test payload that proves exploitation without harm
             class SafeExploitProof:
-                def __reduce__(self):
+                def __reduce__(self) -> Tuple[type, Tuple[str, ...]]:
                     # Instead of os.system, use a safe marker
                     return (str, ("PICKLE_EXPLOIT_SUCCESSFUL_FLAG_HERE",))
 
