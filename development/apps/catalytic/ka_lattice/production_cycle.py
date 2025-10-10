@@ -245,7 +245,6 @@ class ProductionCycleManager:
     async def _process_production_workload(self):
         """Process production workload (override in subclass for actual workload)"""
         # This is a placeholder - in real production, this would process actual requests
-        import numpy as np
 
         # Simulate production computation
         data = np.random.randn(50, 50).astype(np.float32)

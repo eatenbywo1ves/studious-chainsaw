@@ -79,12 +79,12 @@ This fixes **17 of 21** broken links automatically.
 ## Common Issues & Fixes
 
 ### Issue 1: `./docs/` prefix when already in docs/
-**Example:** `[link](./docs/INDEX.md)` in a file already in `docs/`
+**Example:** `[link (example)](./INDEX.md)` in a file already in `docs/`
 **Fix:** Remove `./docs/` → `[link](INDEX.md)`
 **Affected:** 6 links
 
 ### Issue 2: Wrong relative path depth
-**Example:** `[link](../file.md)` when should be `[link](file.md)`
+**Example:** `[link (example)](../file.md)` when should be `[link (example)](file.md)`
 **Fix:** Adjust `../` based on directory depth
 **Affected:** 5 links
 

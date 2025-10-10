@@ -804,7 +804,7 @@ python scripts/utilities/analyze_feedback_trends.py
 
 **First Week of Each Quarter:**
 
-See [Quarterly Review Process](./QUARTERLY_REVIEW_PROCESS.md) for details.
+See [Quarterly Review Process (TODO)](./QUARTERLY_REVIEW_PROCESS.md) for details.
 
 ---
 
@@ -932,8 +932,8 @@ Is it an ENHANCEMENT (Type E)?
 
 - [Feedback Collection System](./FEEDBACK_COLLECTION_SYSTEM.md) - How we gather feedback
 - [Documentation Metrics](./DOCUMENTATION_METRICS.md) - What we measure
-- [Iteration Workflow](./DOCUMENTATION_ITERATION_WORKFLOW.md) - How we make changes
-- [Quarterly Review Process](./QUARTERLY_REVIEW_PROCESS.md) - Strategic planning
+- [Documentation Iteration Workflow (TODO)](./DOCUMENTATION_ITERATION_WORKFLOW.md) - How we make changes
+- [Quarterly Review Process (TODO)](./QUARTERLY_REVIEW_PROCESS.md) - Strategic planning
 
 ---
 

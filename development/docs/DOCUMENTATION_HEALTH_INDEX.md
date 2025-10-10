@@ -52,7 +52,7 @@
 ### Level 3: Deep Analysis (Read for Understanding)
 **For:** Complete context, historical decisions, detailed analysis
 
-- **[BROKEN_LINKS_ANALYSIS_REPORT.md](../BROKEN_LINKS_ANALYSIS_REPORT.md)** (by agent)
+- **[BROKEN_LINKS_ANALYSIS_REPORT.md](./reports/BROKEN_LINKS_ANALYSIS_REPORT.md)** (by agent)
   - File-by-file breakdown
   - Root cause analysis
   - Fix commands for each link
@@ -238,7 +238,7 @@ bash scripts/utilities/fix_broken_links.sh
 
 ### For Deep Understanding
 1. [WORK_EVALUATION_REPORT.md](./WORK_EVALUATION_REPORT.md) - Quality assessment
-2. [BROKEN_LINKS_ANALYSIS_REPORT.md](../BROKEN_LINKS_ANALYSIS_REPORT.md) - Detailed analysis
+2. [BROKEN_LINKS_ANALYSIS_REPORT.md](./reports/BROKEN_LINKS_ANALYSIS_REPORT.md) - Detailed analysis
 
 ---
 
