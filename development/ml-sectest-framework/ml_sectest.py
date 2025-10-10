@@ -13,9 +13,9 @@ Usage:
 import argparse
 import sys
 import logging
-from typing import List
+from typing import List, Dict, Any, Optional
 
-from core.orchestrator import SecurityOrchestrator, OrchestrationPlan
+from core.orchestrator import SecurityOrchestrator, OrchestrationPlan, OrchestrationResult
 from agents import (
     PromptInjectionAgent,
     ModelInversionAgent,
@@ -48,7 +48,7 @@ BANNER = """
 class MLSecTest:
     """Main application class for ML security testing."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the ML-SecTest application."""
         self.orchestrator = SecurityOrchestrator()
         self.report_generator = ReportGenerator()
@@ -69,7 +69,7 @@ class MLSecTest:
         )
         return logging.getLogger("MLSecTest")
 
-    def _register_agents(self):
+    def _register_agents(self) -> None:
         """Register all security testing agents with the orchestrator."""
         agents = [
             PromptInjectionAgent(),
@@ -85,7 +85,7 @@ class MLSecTest:
 
         self.logger.info(f"Registered {len(agents)} security testing agents")
 
-    def _define_challenges(self) -> dict:
+    def _define_challenges(self) -> Dict[str, Any]:
         """Define CTF challenge configurations."""
         return {
             "mirage": {
@@ -141,10 +141,10 @@ class MLSecTest:
         self,
         target_url: str,
         challenge_name: str = "custom",
-        agents: List[str] = None,
+        agents: Optional[List[str]] = None,
         parallel: bool = False,
         output_format: str = "both"
-    ):
+    ) -> None:
         """
         Scan a target for ML security vulnerabilities.
 
@@ -192,7 +192,7 @@ class MLSecTest:
         # Display summary
         self._display_summary(result)
 
-    def test_challenge(self, challenge_key: str, target_url: str = None):
+    def test_challenge(self, challenge_key: str, target_url: Optional[str] = None) -> None:
         """
         Test a specific CTF challenge.
 
@@ -253,7 +253,7 @@ class MLSecTest:
         # Display summary
         self._display_summary(result)
 
-    def list_challenges(self):
+    def list_challenges(self) -> None:
         """List all available CTF challenges."""
         print(BANNER)
         print("\n📚 Available CTF Challenges:")
@@ -271,7 +271,7 @@ class MLSecTest:
         print("\n" + "=" * 75)
         print("Usage: python ml_sectest.py test-challenge <challenge_key>")
 
-    def _display_summary(self, result):
+    def _display_summary(self, result: OrchestrationResult) -> None:
         """Display assessment summary."""
         print("\n" + "=" * 75)
         print("🔒 SECURITY ASSESSMENT SUMMARY")
@@ -301,7 +301,7 @@ class MLSecTest:
         print("\n" + "=" * 75)
 
 
-def main():
+def main() -> None:
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
         description="ML-SecTest: Machine Learning Security Testing Framework",

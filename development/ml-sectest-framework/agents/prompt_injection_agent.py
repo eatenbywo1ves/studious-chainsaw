@@ -8,7 +8,7 @@ References:
 - MITRE AML.T0051: LLM Prompt Injection
 """
 
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import requests
 import re
 
@@ -32,7 +32,7 @@ class PromptInjectionAgent(BaseSecurityAgent):
     4. Payload Encoding: Obfuscation techniques
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             agent_id="prompt_injection_001",
             name="Prompt Injection Specialist",
@@ -281,7 +281,7 @@ class PromptInjectionAgent(BaseSecurityAgent):
 
         return result
 
-    def _extract_flag(self, text: str) -> str:
+    def _extract_flag(self, text: str) -> Optional[str]:
         """
         Extract flag from response text.
 

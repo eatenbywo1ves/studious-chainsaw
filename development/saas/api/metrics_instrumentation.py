@@ -38,7 +38,43 @@ def add_metrics_endpoint(app: FastAPI):
 
     @app.get("/metrics")
     async def metrics():
-        """Prometheus metrics endpoint"""
+        """Prometheus metrics endpoint with live database pool stats"""
+        # Update database connection pool metrics before generating output
+        try:
+            from database.connection import get_pool_status
+
+            # Import metrics update function
+            from security.application.prometheus_metrics import update_active_connections
+
+            # Get database pool status
+            pool_status = get_pool_status()
+
+            # Get Redis connection count if available
+            redis_in_use = 0
+            try:
+                from auth.jwt_auth import redis_manager
+
+                if redis_manager and hasattr(redis_manager, "get_pool_status"):
+                    redis_status = redis_manager.get_pool_status()
+                    redis_in_use = redis_status.get("in_use_connections", 0)
+            except (ImportError, AttributeError):
+                # Redis pool monitoring not available, that's okay
+                pass
+
+            # Update metrics with live data
+            update_active_connections(
+                db_active=pool_status["checked_out"],
+                db_max=pool_status["size"],
+                redis_active=redis_in_use,
+            )
+        except Exception as e:
+            # Log error but still return metrics (don't break monitoring)
+            import logging
+
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Failed to update connection pool metrics: {e}")
+
+        # Generate and return metrics
         content, content_type = get_metrics()
         return Response(content=content, media_type=content_type)
 
