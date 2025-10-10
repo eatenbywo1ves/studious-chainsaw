@@ -23,7 +23,7 @@ from core.base_agent import (
 class ModelExtractionAgent(BaseSecurityAgent):
     """
     Agent specialized in model extraction attacks.
-    
+
     Techniques:
     1. Query-based extraction: Build substitute model via queries
     2. Equation solving: Extract model parameters directly
@@ -48,7 +48,7 @@ class ModelExtractionAgent(BaseSecurityAgent):
     def analyze(self, context: AgentContext) -> TestResult:
         """
         Analyze system for model extraction vulnerabilities.
-        
+
         Checks:
         1. Query limit enforcement
         2. Prediction detail level
@@ -114,7 +114,7 @@ class ModelExtractionAgent(BaseSecurityAgent):
     def exploit(self, context: AgentContext, test_result: TestResult) -> TestResult:
         """
         Attempt model extraction attack.
-        
+
         Strategies:
         1. Active learning extraction
         2. Decision boundary extraction
@@ -249,7 +249,7 @@ class ModelExtractionAgent(BaseSecurityAgent):
                     if response.status_code == 200:
                         result["exposed"] = True
                         result["info"].append(f"{endpoint}: {response.text[:100]}")
-                except:
+                except Exception:
                     continue
 
             # Check response headers for model info
