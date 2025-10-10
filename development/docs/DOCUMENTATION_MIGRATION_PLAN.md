@@ -193,7 +193,7 @@ Most existing docs already use relative links correctly. Only minor updates need
    Quick Links:
    - [5-Minute Quick Starts](INDEX.md#-quick-start-guides)
    - [Architecture Overview](architecture/system-overview.md)
-   - [Production Deployment](PRODUCTION_DEPLOYMENT_GUIDE.md)
+   - [Production Deployment](../saas/PRODUCTION_DEPLOYMENT.md)
    ```
 
 ---
