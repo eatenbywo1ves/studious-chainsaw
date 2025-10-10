@@ -1308,9 +1308,9 @@ def generate_email_report(report_data):
 
 - [Feedback Collection System](./FEEDBACK_COLLECTION_SYSTEM.md) - How we gather data
 - [Feedback Triage Process](./FEEDBACK_TRIAGE_PROCESS.md) - How we act on feedback
-- [Iteration Workflow](./DOCUMENTATION_ITERATION_WORKFLOW.md) - How we make changes
-- [Quarterly Review Process](./QUARTERLY_REVIEW_PROCESS.md) - Strategic planning
+- [Documentation Iteration Workflow (TODO)](./DOCUMENTATION_ITERATION_WORKFLOW.md) - How we make changes
+- [Quarterly Review Process (TODO)](./QUARTERLY_REVIEW_PROCESS.md) - Strategic planning
 
 ---
 
-**Next:** [Documentation Iteration Workflow →](./DOCUMENTATION_ITERATION_WORKFLOW.md)
+**Next:** [Documentation Iteration Workflow (TODO)](./DOCUMENTATION_ITERATION_WORKFLOW.md)

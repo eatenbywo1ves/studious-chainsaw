@@ -4,7 +4,7 @@ Everything you need to deploy and maintain the platform in production.
 
 ## Getting Started with Deployment
 
-### [**Production Deployment Guide**](../PRODUCTION_DEPLOYMENT_GUIDE.md) ⭐
+### [**Production Deployment Guide**](../saas/PRODUCTION_DEPLOYMENT.md) ⭐
 **Start here!** Comprehensive guide covering:
 - Prerequisites and environment setup
 - Database initialization
@@ -262,7 +262,7 @@ See: [Performance Runbooks](../monitoring/runbooks/)
 ## Support & Resources
 
 ### Documentation
-- [Production Deployment Guide](../PRODUCTION_DEPLOYMENT_GUIDE.md)
+- [Production Deployment Guide](../saas/PRODUCTION_DEPLOYMENT.md)
 - [Monitoring Runbooks](../monitoring/runbooks/)
 - [Architecture Docs](../architecture/)
 
