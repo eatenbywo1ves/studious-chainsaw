@@ -44,7 +44,7 @@ Step-by-step tutorials and comprehensive guides for all aspects of the platform.
 
 ### Third-Party Services
 - [Stripe & Email Integration](./STRIPE_EMAIL_INTEGRATION_GUIDE.md) - Payment and email service setup
-- [Webhook Integration](../services/webhooks/) - Webhook system configuration
+- [Webhook Integration](../../services/webhooks/WEBHOOK_DOCUMENTATION.md) - Webhook system configuration
 
 ---
 
