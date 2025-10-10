@@ -77,20 +77,20 @@ class MessageBus:
     Implements pub-sub pattern for agent collaboration.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize message bus."""
-        self.subscribers: Dict[str, List[Callable]] = {}
+        self.subscribers: Dict[str, List[Callable[[AgentMessage], None]]] = {}
         self.message_history: List[AgentMessage] = []
         self.logger = logging.getLogger("MLSecTest.MessageBus")
 
-    def subscribe(self, agent_id: str, callback: Callable):
+    def subscribe(self, agent_id: str, callback: Callable[[AgentMessage], None]) -> None:
         """Subscribe agent to message bus."""
         if agent_id not in self.subscribers:
             self.subscribers[agent_id] = []
         self.subscribers[agent_id].append(callback)
         self.logger.info(f"Agent {agent_id} subscribed to message bus")
 
-    def publish(self, message: AgentMessage):
+    def publish(self, message: AgentMessage) -> None:
         """Publish message to subscribers."""
         self.message_history.append(message)
 
@@ -126,7 +126,7 @@ class AdaptiveStrategyEngine:
     Learns from successes and failures to optimize approach.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize strategy engine."""
         self.strategies: Dict[str, Dict[str, Any]] = {}
         self.performance_history: List[Dict[str, Any]] = []
@@ -136,9 +136,9 @@ class AdaptiveStrategyEngine:
         self,
         strategy_id: str,
         description: str,
-        applicability_checker: Callable,
-        execution_function: Callable
-    ):
+        applicability_checker: Callable[[Dict[str, Any]], bool],
+        execution_function: Callable[..., Any]
+    ) -> None:
         """Register a strategy with the engine."""
         self.strategies[strategy_id] = {
             "description": description,
@@ -193,7 +193,7 @@ class AdaptiveStrategyEngine:
         success: bool,
         execution_time: float,
         confidence: float
-    ):
+    ) -> None:
         """Record strategy execution outcome for learning."""
         if strategy_id not in self.strategies:
             return
@@ -231,18 +231,18 @@ class SelfHealingMixin:
     Automatically handles failures and adapts behavior.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize self-healing capabilities."""
         self.retry_count = 0
         self.max_retries = 3
-        self.fallback_strategies = []
+        self.fallback_strategies: List[Callable[..., Any]] = []
         self.healing_logger = logging.getLogger("MLSecTest.SelfHealing")
 
     def execute_with_healing(
         self,
-        primary_function: Callable,
-        *args,
-        **kwargs
+        primary_function: Callable[..., Any],
+        *args: Any,
+        **kwargs: Any
     ) -> Any:
         """
         Execute function with automatic retry and fallback.
@@ -294,7 +294,7 @@ class SelfHealingMixin:
         self.healing_logger.error("All recovery attempts failed")
         raise Exception(f"Self-healing failed after {self.max_retries} attempts") from last_exception
 
-    def add_fallback_strategy(self, fallback_function: Callable):
+    def add_fallback_strategy(self, fallback_function: Callable[..., Any]) -> None:
         """Add a fallback strategy."""
         self.fallback_strategies.append(fallback_function)
         self.healing_logger.info(f"Added fallback strategy: {fallback_function.__name__}")
@@ -306,13 +306,13 @@ class GoalOrientedPlanner:
     Breaks down high-level goals into executable sub-goals.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize planner."""
         self.goals: List[AgentGoal] = []
         self.completed_goals: List[AgentGoal] = []
         self.logger = logging.getLogger("MLSecTest.Planner")
 
-    def add_goal(self, goal: AgentGoal):
+    def add_goal(self, goal: AgentGoal) -> None:
         """Add a goal to the planner."""
         self.goals.append(goal)
         self.goals.sort(key=lambda g: g.priority, reverse=True)
@@ -338,7 +338,7 @@ class GoalOrientedPlanner:
 
         return None
 
-    def mark_goal_completed(self, goal_id: str, success: bool = True):
+    def mark_goal_completed(self, goal_id: str, success: bool = True) -> None:
         """Mark a goal as completed."""
         for goal in self.goals:
             if goal.goal_id == goal_id:
@@ -348,7 +348,7 @@ class GoalOrientedPlanner:
                 self.logger.info(f"Goal {goal_id} marked as {goal.status}")
                 return
 
-    def adapt_plan(self, context: Dict[str, Any]):
+    def adapt_plan(self, context: Dict[str, Any]) -> None:
         """
         Dynamically adapt plan based on context changes.
         Re-prioritizes goals and adds new sub-goals if needed.
@@ -372,7 +372,7 @@ class ToolSelectionEngine:
     Chooses optimal tools/techniques based on target characteristics.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize tool selection engine."""
         self.available_tools: Dict[str, Dict[str, Any]] = {}
         self.tool_performance: Dict[str, List[float]] = {}
@@ -381,9 +381,9 @@ class ToolSelectionEngine:
     def register_tool(
         self,
         tool_id: str,
-        tool_function: Callable,
+        tool_function: Callable[..., Any],
         characteristics: Dict[str, Any]
-    ):
+    ) -> None:
         """Register a tool with its characteristics."""
         self.available_tools[tool_id] = {
             "function": tool_function,
@@ -440,7 +440,7 @@ class ToolSelectionEngine:
 
         return selected_tool
 
-    def record_tool_performance(self, tool_id: str, performance_score: float):
+    def record_tool_performance(self, tool_id: str, performance_score: float) -> None:
         """Record tool performance for future selection."""
         if tool_id in self.tool_performance:
             self.tool_performance[tool_id].append(performance_score)
@@ -476,11 +476,11 @@ class ToolSelectionEngine:
 
 # Factory function for creating enhanced agents
 def create_enhanced_agent(
-    base_agent_class,
+    base_agent_class: type,
     enable_self_healing: bool = True,
     enable_adaptive_strategy: bool = True,
     enable_communication: bool = True
-):
+) -> type:
     """
     Factory function to create agents with agentic enhancements.
 
@@ -496,7 +496,7 @@ def create_enhanced_agent(
     class EnhancedAgent(base_agent_class):
         """Enhanced agent with agentic capabilities."""
 
-        def __init__(self, *args, **kwargs):
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
             super().__init__(*args, **kwargs)
 
             # Add agentic components
@@ -515,18 +515,18 @@ def create_enhanced_agent(
             self.message_bus: Optional[MessageBus] = None
             self.received_messages: List[AgentMessage] = []
 
-        def _init_self_healing(self):
+        def _init_self_healing(self) -> None:
             """Initialize self-healing capabilities."""
             self.retry_count = 0
             self.max_retries = 3
-            self.fallback_strategies = []
+            self.fallback_strategies: List[Callable[..., Any]] = []
 
-        def connect_to_message_bus(self, message_bus: MessageBus):
+        def connect_to_message_bus(self, message_bus: MessageBus) -> None:
             """Connect agent to message bus for communication."""
             self.message_bus = message_bus
             self.message_bus.subscribe(self.agent_id, self._on_message_received)
 
-        def _on_message_received(self, message: AgentMessage):
+        def _on_message_received(self, message: AgentMessage) -> None:
             """Handle received messages."""
             self.received_messages.append(message)
             self.logger.info(f"Received {message.message_type.value} from {message.sender_id}")
@@ -535,7 +535,7 @@ def create_enhanced_agent(
             if message.requires_response:
                 self._send_response(message)
 
-        def _send_response(self, original_message: AgentMessage):
+        def _send_response(self, original_message: AgentMessage) -> None:
             """Send response to a request message."""
             response = AgentMessage(
                 sender_id=self.agent_id,
@@ -548,7 +548,7 @@ def create_enhanced_agent(
             if self.message_bus:
                 self.message_bus.publish(response)
 
-        def broadcast_finding(self, finding: Dict[str, Any]):
+        def broadcast_finding(self, finding: Dict[str, Any]) -> None:
             """Broadcast vulnerability finding to other agents."""
             if self.message_bus:
                 message = AgentMessage(
@@ -560,7 +560,7 @@ def create_enhanced_agent(
                 self.message_bus.publish(message)
                 self.logger.info("Broadcasted finding to peer agents")
 
-        def learn_from_execution(self, result: Any, success: bool):
+        def learn_from_execution(self, result: Any, success: bool) -> None:
             """Learn from execution outcome."""
             if success:
                 self.memory.successful_strategies.append({

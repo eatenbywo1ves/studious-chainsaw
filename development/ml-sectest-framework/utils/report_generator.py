@@ -4,7 +4,7 @@ Security Test Report Generator
 Generates comprehensive HTML and JSON reports from security testing results.
 """
 
-from typing import Dict, Any
+from typing import Dict, Any, Optional, cast
 from datetime import datetime
 import json
 from pathlib import Path
@@ -32,7 +32,7 @@ class ReportGenerator:
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
     def generate_html_report(
-        self, result: OrchestrationResult, output_filename: str = None
+        self, result: OrchestrationResult, output_filename: Optional[str] = None
     ) -> str:
         """
         Generate HTML security report.
@@ -58,7 +58,7 @@ class ReportGenerator:
         return str(output_path)
 
     def generate_json_report(
-        self, result: OrchestrationResult, output_filename: str = None
+        self, result: OrchestrationResult, output_filename: Optional[str] = None
     ) -> str:
         """
         Generate JSON security report.
@@ -463,8 +463,11 @@ class ReportGenerator:
         }
 
         # Add detailed agent results
+        results_section = cast(Dict[str, Any], report["results"])
+        agent_results_dict = cast(Dict[str, Any], results_section["agent_results"])
+
         for agent_id, tests in result.agent_results.items():
-            report["results"]["agent_results"][agent_id] = [
+            agent_results_dict[agent_id] = [
                 {
                     "test_name": t.test_name,
                     "vulnerability_type": t.vulnerability_type.value,
@@ -487,7 +490,7 @@ class ReportGenerator:
 
     def _get_severity_color(self, status: str) -> str:
         """Get color for severity status."""
-        colors = {
+        colors: Dict[str, str] = {
             "critical": "#ff4444",
             "vulnerable": "#ff9800",
             "partially_vulnerable": "#ffc107",

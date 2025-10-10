@@ -8,7 +8,7 @@ References:
 - Goal: Extract private training data from ML models
 """
 
-from typing import Dict, Any
+from typing import Dict, Any, List, cast
 import requests
 
 import sys
@@ -31,7 +31,7 @@ class ModelInversionAgent(BaseSecurityAgent):
     4. Training data extraction
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             agent_id="model_inversion_001",
             name="Model Inversion Specialist",
@@ -290,7 +290,7 @@ class ModelInversionAgent(BaseSecurityAgent):
                     # Check for high-confidence indicators
                     if any(indicator in response_text for indicator in ['high', 'certain', '0.9', '90%']):
                         confidence_scores.append((test_value, category, "high"))
-                        result["inferred_data"].append(f"Likely training member: {test_value}")
+                        cast(List[str], result["inferred_data"]).append(f"Likely training member: {test_value}")
 
             if confidence_scores:
                 result["success"] = True
@@ -332,14 +332,14 @@ class ModelInversionAgent(BaseSecurityAgent):
                     # Check for sensitive data patterns
                     sensitive_patterns = ['password', 'secret', 'flag{', 'admin', 'private']
                     if any(pattern in response_text.lower() for pattern in sensitive_patterns):
-                        result["attributes"].append({
+                        cast(List[Dict[str, Any]], result["attributes"]).append({
                             "probe": probe,
                             "response_excerpt": response_text[:200]
                         })
                         result["success"] = True
 
             if result["success"]:
-                result["details"] = f"Inferred {len(result['attributes'])} sensitive attributes"
+                result["details"] = f"Inferred {len(cast(List[Dict[str, Any]], result['attributes']))} sensitive attributes"
 
         except Exception as error:
             self.logger.debug(f"Attribute inference failed: {str(error)}")
@@ -376,14 +376,14 @@ class ModelInversionAgent(BaseSecurityAgent):
 
                     # Check for data extraction indicators
                     if len(response_text) > 100:  # Significant response
-                        result["data"].append({
+                        cast(List[Dict[str, Any]], result["data"]).append({
                             "query": str(query),
                             "extracted": response_text[:500]
                         })
                         result["success"] = True
 
             if result["success"]:
-                result["details"] = f"Extracted {len(result['data'])} data samples"
+                result["details"] = f"Extracted {len(cast(List[Dict[str, Any]], result['data']))} data samples"
 
         except Exception as error:
             self.logger.debug(f"Direct extraction failed: {str(error)}")
