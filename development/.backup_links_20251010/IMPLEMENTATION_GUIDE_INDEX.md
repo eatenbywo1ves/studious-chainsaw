@@ -514,7 +514,7 @@ Component #4 (Integration)
 
 ### Related Projects
 - [GhidraGo Plugin Roadmap](../PLUGIN_ROADMAP_2025.md)
-- [B-MAD Deployment Plan](guides/NVIDIA_BMAD_DEPLOYMENT_PLAN.md)
+- [B-MAD Deployment Plan](../NVIDIA_BMAD_DEPLOYMENT_PLAN.md)
 - [Wiz Competition Spec](../security/WIZ_ZERODAY_CLOUD_2025_SYSTEMATIC_PLAN.md)
 
 ---
