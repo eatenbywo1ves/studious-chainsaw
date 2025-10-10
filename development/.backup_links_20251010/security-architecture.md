@@ -386,7 +386,7 @@ Expected:
 - **Quick Start:** [Security Tools 5-Minute Guide](../quickstart/security-tools-5min.md)
 - **D3FEND Analysis:** [Defensive Security Agent Architecture](../specifications/DEFENSIVE_SECURITY_AGENT_ARCHITECTURE.md)
 - **Threat Analysis:** [Wiz Zeroday Cloud Defense](../specifications/WIZ_ZERODAY_CLOUD_2025_DEFENSE_STRATEGY.md)
-- **Container Research:** [Container Escape Research](../../security/CONTAINER_ESCAPE_RESEARCH_REPORT.md)
+- **Container Research:** [Container Escape Research](../archive/2025-Q4/CONTAINER_ESCAPE_RESEARCH_REPORT.md)
 - **Image Defense:** [Arbitrary Image Defense Validation](../archive/2025-Q4/ARBITRARY_IMAGE_SCENARIO_DEFENSE_VALIDATION.md)
 
 ---
