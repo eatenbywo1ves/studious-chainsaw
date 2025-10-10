@@ -23,7 +23,7 @@ from core.base_agent import (
 class AdversarialAttackAgent(BaseSecurityAgent):
     """
     Agent specialized in adversarial attacks on ML models.
-    
+
     Techniques:
     1. FGSM (Fast Gradient Sign Method)
     2. Input perturbation
@@ -48,7 +48,7 @@ class AdversarialAttackAgent(BaseSecurityAgent):
     def analyze(self, context: AgentContext) -> TestResult:
         """
         Analyze model for adversarial vulnerability.
-        
+
         Tests:
         1. Sensitivity to input perturbation
         2. Robustness to noise
@@ -112,7 +112,7 @@ class AdversarialAttackAgent(BaseSecurityAgent):
     def exploit(self, context: AgentContext, test_result: TestResult) -> TestResult:
         """
         Craft and deploy adversarial examples.
-        
+
         Strategies:
         1. Pixel manipulation
         2. Feature space perturbation
@@ -332,7 +332,7 @@ class AdversarialAttackAgent(BaseSecurityAgent):
                     # If properly handled (rejected or normalized), adversarial training likely
                     if response.status_code in [400, 422]:
                         consistent_handling += 1
-                except:
+                except Exception:
                     consistent_handling += 1
 
             # If most adversarial inputs are handled, training is likely

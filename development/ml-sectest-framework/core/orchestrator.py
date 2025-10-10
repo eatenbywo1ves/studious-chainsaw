@@ -44,7 +44,7 @@ class OrchestrationResult:
 class SecurityOrchestrator:
     """
     Orchestrates multiple security testing agents for comprehensive assessment.
-    
+
     Features:
     - Sequential and parallel agent execution
     - Result aggregation and correlation
@@ -76,7 +76,7 @@ class SecurityOrchestrator:
     def register_agent(self, agent: BaseSecurityAgent) -> None:
         """
         Register a security testing agent.
-        
+
         Args:
             agent: Security agent instance to register
         """
@@ -86,7 +86,7 @@ class SecurityOrchestrator:
     def unregister_agent(self, agent_id: str) -> None:
         """
         Remove an agent from the orchestrator.
-        
+
         Args:
             agent_id: ID of agent to unregister
         """
@@ -97,10 +97,10 @@ class SecurityOrchestrator:
     def execute_plan(self, plan: OrchestrationPlan) -> OrchestrationResult:
         """
         Execute a security testing orchestration plan.
-        
+
         Args:
             plan: Orchestration plan to execute
-            
+
         Returns:
             OrchestrationResult with comprehensive findings
         """
@@ -265,7 +265,7 @@ class SecurityOrchestrator:
     def get_agent_status(self) -> Dict[str, Dict[str, Any]]:
         """
         Get status of all registered agents.
-        
+
         Returns:
             Dictionary mapping agent IDs to their status reports
         """
@@ -277,7 +277,7 @@ class SecurityOrchestrator:
     def export_results(self, filepath: str, result: OrchestrationResult) -> None:
         """
         Export orchestration results to JSON file.
-        
+
         Args:
             filepath: Path to output file
             result: OrchestrationResult to export

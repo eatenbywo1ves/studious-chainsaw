@@ -147,7 +147,7 @@ class MLSecTest:
     ):
         """
         Scan a target for ML security vulnerabilities.
-        
+
         Args:
             target_url: Target URL to scan
             challenge_name: Name of the challenge
@@ -195,7 +195,7 @@ class MLSecTest:
     def test_challenge(self, challenge_key: str, target_url: str = None):
         """
         Test a specific CTF challenge.
-        
+
         Args:
             challenge_key: Challenge identifier (e.g., 'vault', 'dolos')
             target_url: Optional custom target URL
@@ -310,16 +310,16 @@ def main():
 Examples:
   # Scan a custom target
   python ml_sectest.py scan http://localhost:8000
-  
+
   # Test a specific CTF challenge
   python ml_sectest.py test-challenge vault
-  
+
   # List all available challenges
   python ml_sectest.py list-challenges
-  
+
   # Scan with specific agents
   python ml_sectest.py scan http://target.com --agents prompt_injection_001 model_inversion_001
-  
+
   # Parallel execution with JSON output
   python ml_sectest.py scan http://target.com --parallel --format json
         """

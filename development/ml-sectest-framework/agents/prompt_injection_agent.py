@@ -24,7 +24,7 @@ from core.base_agent import (
 class PromptInjectionAgent(BaseSecurityAgent):
     """
     Agent specialized in detecting and exploiting prompt injection vulnerabilities.
-    
+
     Techniques:
     1. Direct Injection: Overriding system instructions
     2. Indirect Injection: Injecting via data inputs
@@ -104,10 +104,10 @@ class PromptInjectionAgent(BaseSecurityAgent):
     def analyze(self, context: AgentContext) -> TestResult:
         """
         Analyze target for prompt injection vulnerabilities.
-        
+
         Args:
             context: Target information
-            
+
         Returns:
             Analysis results
         """
@@ -158,11 +158,11 @@ class PromptInjectionAgent(BaseSecurityAgent):
     def exploit(self, context: AgentContext, test_result: TestResult) -> TestResult:
         """
         Attempt controlled exploitation to extract flag or demonstrate impact.
-        
+
         Args:
             context: Target information
             test_result: Analysis results
-            
+
         Returns:
             Exploitation results
         """
@@ -223,12 +223,12 @@ class PromptInjectionAgent(BaseSecurityAgent):
     ) -> Dict[str, Any]:
         """
         Test a single payload against the target.
-        
+
         Args:
             target_url: Target URL
             payload: Injection payload
             payload_name: Payload identifier
-            
+
         Returns:
             Dictionary with test results
         """
@@ -284,10 +284,10 @@ class PromptInjectionAgent(BaseSecurityAgent):
     def _extract_flag(self, text: str) -> str:
         """
         Extract flag from response text.
-        
+
         Args:
             text: Response text to search
-            
+
         Returns:
             Flag string if found, None otherwise
         """
