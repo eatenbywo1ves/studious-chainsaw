@@ -751,8 +751,72 @@ class ClaudeCodeDirectorIntegration:
 
         return True
 
+    def calculate_agent_utilization(self, agent_id: str) -> float:
+        """Calculate current utilization for an agent (0.0 to 1.0)"""
+        if agent_id not in self.registered_agents:
+            return 0.0
+
+        agent = self.registered_agents[agent_id]
+        current_tasks = len(agent.get('current_tasks', []))
+        max_capacity = agent.get('metadata', {}).get('max_concurrent_tasks', 5)
+
+        return min(current_tasks / max(max_capacity, 1), 1.0)
+
+    def calculate_capability_utilization(self, capability: str) -> Dict[str, Any]:
+        """Calculate utilization metrics for a capability across all agents"""
+        agents_with_capability = []
+
+        # Find all agents that have this capability
+        for agent_id, capability_info in self.capability_registry.items():
+            if capability in capability_info['capabilities_detail']:
+                utilization = self.calculate_agent_utilization(agent_id)
+                agent = self.registered_agents.get(agent_id, {})
+                max_capacity = agent.get('metadata', {}).get('max_concurrent_tasks', 5)
+                current_tasks = len(agent.get('current_tasks', []))
+
+                agents_with_capability.append({
+                    'agent_id': agent_id,
+                    'utilization': utilization,
+                    'current_tasks': current_tasks,
+                    'max_capacity': max_capacity
+                })
+
+        if not agents_with_capability:
+            return {
+                'agent_count': 0,
+                'utilization': {
+                    'avg': 0.0,
+                    'min': 0.0,
+                    'max': 0.0
+                },
+                'capacity': {
+                    'total': 0,
+                    'used': 0,
+                    'available': 0
+                }
+            }
+
+        # Calculate metrics
+        utilizations = [a['utilization'] for a in agents_with_capability]
+        total_capacity = sum(a['max_capacity'] for a in agents_with_capability)
+        used_capacity = sum(a['current_tasks'] for a in agents_with_capability)
+
+        return {
+            'agent_count': len(agents_with_capability),
+            'utilization': {
+                'avg': sum(utilizations) / len(utilizations),
+                'min': min(utilizations),
+                'max': max(utilizations)
+            },
+            'capacity': {
+                'total': total_capacity,
+                'used': used_capacity,
+                'available': total_capacity - used_capacity
+            }
+        }
+
     async def get_capability_network_map(self) -> dict:
-        """Generate a network map of all agents and their capabilities"""
+        """Generate a network map of all agents and their capabilities with utilization metrics"""
         network_map = {
             'agents': {},
             'capabilities': {},
@@ -767,39 +831,59 @@ class ClaudeCodeDirectorIntegration:
                 'system_load': sum(
                     len(agent.get('current_tasks', []))
                     for agent in self.registered_agents.values()
-                )
+                ),
+                'avg_agent_utilization': 0.0,
+                'total_capacity': 0,
+                'used_capacity': 0
             }
         }
 
-        # Build agent nodes
+        # Build agent nodes with utilization
+        total_utilization = 0.0
+        total_capacity = 0
+        used_capacity = 0
+
         for agent_id, capability_info in self.capability_registry.items():
             agent_status = self.registered_agents.get(agent_id, {})
             performance = self.agent_performance.get(agent_id, {})
+            utilization = self.calculate_agent_utilization(agent_id)
+
+            max_capacity = agent_status.get('metadata', {}).get('max_concurrent_tasks', 5)
+            current_load = len(agent_status.get('current_tasks', []))
+
+            total_utilization += utilization
+            total_capacity += max_capacity
+            used_capacity += current_load
 
             network_map['agents'][agent_id] = {
                 'type': capability_info['agent_type'],
                 'capabilities': list(capability_info['capabilities_detail'].keys()),
                 'status': agent_status.get('status', 'unknown'),
-                'current_load': len(agent_status.get('current_tasks', [])),
+                'current_load': current_load,
+                'max_capacity': max_capacity,
+                'utilization': utilization,
                 'performance': performance,
                 'metadata': capability_info['discovery_metadata']
             }
 
-        # Build capability nodes
+        # Build capability nodes with utilization metrics
         capability_counts = {}
         for agent_info in self.capability_registry.values():
             for capability in agent_info['capabilities_detail'].keys():
                 capability_counts[capability] = capability_counts.get(capability, 0) + 1
 
         network_map['capabilities'] = {
-            cap: {'agent_count': count, 'utilization': 0}  # TODO: Calculate utilization
-            for cap, count in capability_counts.items()
+            cap: self.calculate_capability_utilization(cap)
+            for cap in capability_counts.keys()
         }
 
         # Calculate statistics
         if network_map['statistics']['total_agents'] > 0:
             total_caps = sum(len(agent['capabilities']) for agent in network_map['agents'].values())
             network_map['statistics']['avg_capabilities_per_agent'] = total_caps / network_map['statistics']['total_agents']
+            network_map['statistics']['avg_agent_utilization'] = total_utilization / network_map['statistics']['total_agents']
+            network_map['statistics']['total_capacity'] = total_capacity
+            network_map['statistics']['used_capacity'] = used_capacity
 
         return network_map
 
