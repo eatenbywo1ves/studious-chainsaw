@@ -4,6 +4,8 @@
 
 import { z } from 'zod';
 import { EventEmitter } from 'events';
+import { PersistenceBackend } from './persistence/interface.js';
+import { JsonFilePersistence } from './persistence/json-file.js';
 
 const ServiceSchema = z.object({
   id: z.string(),
@@ -27,9 +29,14 @@ export type Service = z.infer<typeof ServiceSchema>;
 export class ServiceRegistry extends EventEmitter {
   private services: Map<string, Service> = new Map();
   private servicesByName: Map<string, Set<string>> = new Map();
+  private persistence: PersistenceBackend;
+  private autoSave: boolean;
+  private saveDebounceTimer?: NodeJS.Timeout;
 
-  constructor() {
+  constructor(persistencePath: string = '.mcp-gateway', autoSave: boolean = true) {
     super();
+    this.persistence = new JsonFilePersistence(persistencePath);
+    this.autoSave = autoSave;
   }
 
   async registerService(serviceData: Partial<Service>): Promise<Service> {
@@ -55,6 +62,12 @@ export class ServiceRegistry extends EventEmitter {
     this.servicesByName.get(service.name)!.add(service.id);
 
     this.emit('service:registered', service);
+
+    // Auto-save if enabled
+    if (this.autoSave) {
+      this.debouncedSave();
+    }
+
     return service;
   }
 
@@ -76,6 +89,11 @@ export class ServiceRegistry extends EventEmitter {
     // Remove service
     this.services.delete(id);
     this.emit('service:unregistered', service);
+
+    // Auto-save if enabled
+    if (this.autoSave) {
+      this.debouncedSave();
+    }
   }
 
   getService(id: string): Service | undefined {
@@ -149,18 +167,98 @@ export class ServiceRegistry extends EventEmitter {
     return `svc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 
-  // Persistence methods
-  async save(): Promise<void> {
-    // Implement persistence to database or file
-    const data = {
-      services: Array.from(this.services.entries()),
-      servicesByName: Array.from(this.servicesByName.entries())
-        .map(([name, ids]) => [name, Array.from(ids)])
-    };
-    // TODO: Save to persistent storage
+  /**
+   * Debounced save - delays save operation to batch multiple changes
+   * Saves after 5 seconds of inactivity
+   */
+  private debouncedSave() {
+    if (this.saveDebounceTimer) {
+      clearTimeout(this.saveDebounceTimer);
+    }
+
+    this.saveDebounceTimer = setTimeout(() => {
+      this.save().catch(err => {
+        console.error('Failed to auto-save registry:', err);
+      });
+    }, 5000); // Save after 5 seconds of inactivity
   }
 
+  /**
+   * Save registry state to persistent storage
+   */
+  async save(): Promise<void> {
+    try {
+      const data = {
+        services: Array.from(this.services.entries()).map(([id, service]) => ({
+          id,
+          ...service
+        })),
+        servicesByName: Object.fromEntries(
+          Array.from(this.servicesByName.entries()).map(([name, ids]) => [
+            name,
+            Array.from(ids)
+          ])
+        ),
+        savedAt: new Date().toISOString(),
+        version: '1.0'
+      };
+
+      await this.persistence.save('registry', data);
+      this.emit('registry:saved', { serviceCount: this.services.size });
+    } catch (error) {
+      console.error('Failed to save registry:', error);
+      this.emit('registry:save:error', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Load registry state from persistent storage
+   */
   async load(): Promise<void> {
-    // TODO: Load from persistent storage
+    try {
+      const data = await this.persistence.load('registry');
+
+      if (!data) {
+        console.info('No existing registry found, starting fresh');
+        return;
+      }
+
+      // Restore services
+      this.services.clear();
+      this.servicesByName.clear();
+
+      for (const serviceData of data.services) {
+        try {
+          const service = ServiceSchema.parse(serviceData);
+          this.services.set(service.id, service);
+
+          // Rebuild name index
+          if (!this.servicesByName.has(service.name)) {
+            this.servicesByName.set(service.name, new Set());
+          }
+          this.servicesByName.get(service.name)!.add(service.id);
+        } catch (error) {
+          console.error(`Failed to restore service ${serviceData.id}:`, error);
+        }
+      }
+
+      console.info(`Loaded ${this.services.size} services from registry`);
+      this.emit('registry:loaded', { serviceCount: this.services.size });
+    } catch (error) {
+      console.error('Failed to load registry:', error);
+      this.emit('registry:load:error', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Clear all registry data (memory and storage)
+   */
+  async clear(): Promise<void> {
+    this.services.clear();
+    this.servicesByName.clear();
+    await this.persistence.delete('registry');
+    this.emit('registry:cleared');
   }
 }
