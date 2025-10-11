@@ -151,9 +151,25 @@ export class RequestRouter {
     serviceId: string,
     request: RouteRequest
   ): Promise<any> {
-    // TODO: Implement stdio routing
-    // This would involve spawning a process and communicating via stdin/stdout
-    throw new Error('Stdio routing not yet implemented');
+    // Stdio routing not implemented in this version
+    // Stdio MCP servers should be wrapped with an HTTP/WebSocket adapter
+    //
+    // Migration options:
+    // 1. Use an HTTP adapter: Wrap your stdio MCP server with Express/Fastify
+    // 2. Use WebSocket protocol: Convert stdio communication to WebSocket
+    // 3. Use a process manager: Tools like PM2 can bridge stdio to HTTP
+    //
+    // Example HTTP adapter:
+    //   const { spawn } = require('child_process');
+    //   app.post('/mcp', (req, res) => {
+    //     const proc = spawn('your-mcp-server');
+    //     proc.stdin.write(JSON.stringify(req.body));
+    //     proc.stdout.on('data', data => res.json(JSON.parse(data)));
+    //   });
+    throw new Error(
+      'Stdio protocol not supported. Use HTTP or WebSocket protocol instead. ' +
+      'See MCP Gateway documentation for migration guide.'
+    );
   }
 
   async routeWebSocketMessage(message: any): Promise<any> {
