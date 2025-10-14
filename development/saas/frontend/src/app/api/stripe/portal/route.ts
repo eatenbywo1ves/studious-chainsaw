@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { stripe } from '../config/route';
+import { stripe } from '@/lib/stripe';
 import { verifyResourceOwnership, unauthorizedResponse, forbiddenResponse } from '@/lib/auth';
 
 // POST /api/stripe/portal - Create billing portal session
