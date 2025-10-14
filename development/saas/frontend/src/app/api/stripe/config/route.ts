@@ -1,14 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Stripe from 'stripe';
+import { stripe } from '@/lib/stripe';
 import { verifyRequestAuth, unauthorizedResponse, forbiddenResponse } from '@/lib/auth';
 
-// Initialize Stripe with secret key
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-08-27.basil'
-});
-
 // Stripe configuration
-export const stripeConfig = {
+const stripeConfig = {
   publishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!,
   secretKey: process.env.STRIPE_SECRET_KEY!,
   webhookSecret: process.env.STRIPE_WEBHOOK_SECRET!,
@@ -153,5 +148,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
-export { stripe };
