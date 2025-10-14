@@ -10,6 +10,7 @@ from .data_poisoning_agent import DataPoisoningAgent
 from .model_extraction_agent import ModelExtractionAgent
 from .model_serialization_agent import ModelSerializationAgent
 from .adversarial_attack_agent import AdversarialAttackAgent
+from .edward_teller_agent import EdwardTellerAgent
 
 __all__ = [
     'PromptInjectionAgent',
@@ -18,4 +19,5 @@ __all__ = [
     'ModelExtractionAgent',
     'ModelSerializationAgent',
     'AdversarialAttackAgent',
+    'EdwardTellerAgent',
 ]

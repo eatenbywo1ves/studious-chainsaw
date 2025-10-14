@@ -32,6 +32,7 @@ class VulnerabilityType(Enum):
     MODEL_EXTRACTION = "model_extraction"
     MODEL_SERIALIZATION = "model_serialization"
     ADVERSARIAL_ATTACK = "adversarial_attack"
+    FUSION_ATTACK = "fusion_attack"
     MCP_SIGNATURE_CLOAKING = "mcp_signature_cloaking"
     SQL_INJECTION = "sql_injection"
     RCE = "remote_code_execution"

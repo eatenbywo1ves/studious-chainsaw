@@ -22,7 +22,8 @@ from agents import (
     DataPoisoningAgent,
     ModelExtractionAgent,
     ModelSerializationAgent,
-    AdversarialAttackAgent
+    AdversarialAttackAgent,
+    EdwardTellerAgent
 )
 from utils.report_generator import ReportGenerator
 
@@ -77,7 +78,8 @@ class MLSecTest:
             DataPoisoningAgent(),
             ModelExtractionAgent(),
             ModelSerializationAgent(),
-            AdversarialAttackAgent()
+            AdversarialAttackAgent(),
+            EdwardTellerAgent()
         ]
 
         for agent in agents:

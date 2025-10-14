@@ -16,6 +16,13 @@ from .orchestrator import (
     OrchestrationPlan,
     OrchestrationResult
 )
+from .agent_coordinator import (
+    AgentCoordinator,
+    CoordinationStrategy,
+    AgentSynergy,
+    CoordinationPlan,
+    CoordinationResult
+)
 
 __all__ = [
     'BaseSecurityAgent',
@@ -26,4 +33,9 @@ __all__ = [
     'SecurityOrchestrator',
     'OrchestrationPlan',
     'OrchestrationResult',
+    'AgentCoordinator',
+    'CoordinationStrategy',
+    'AgentSynergy',
+    'CoordinationPlan',
+    'CoordinationResult',
 ]
