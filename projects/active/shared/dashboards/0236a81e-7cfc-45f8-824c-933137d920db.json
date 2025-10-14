@@ -1,0 +1,19 @@
+{
+  "id": "0236a81e-7cfc-45f8-824c-933137d920db",
+  "name": "Protected Dashboard",
+  "description": "Cannot be deleted by non-owner",
+  "tenant_id": "test-tenant-001",
+  "owner_id": "user-admin-001",
+  "layout": "grid",
+  "theme": "default",
+  "background_color": "#ffffff",
+  "widgets": [],
+  "is_public": false,
+  "shared_users": [
+    "user-shared-001"
+  ],
+  "shared_roles": [],
+  "tags": [],
+  "created_at": "2025-10-12T00:01:30.757596",
+  "updated_at": "2025-10-12T00:01:30.757601"
+}
