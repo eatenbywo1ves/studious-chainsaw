@@ -1,0 +1,20 @@
+{
+  "id": "4c38aa9e-e631-4743-bc14-939d2e570872",
+  "name": "Dashboard to Share",
+  "description": "Will be shared",
+  "tenant_id": "test-tenant-001",
+  "owner_id": "user-admin-001",
+  "layout": "grid",
+  "theme": "default",
+  "background_color": "#ffffff",
+  "widgets": [],
+  "is_public": true,
+  "shared_users": [
+    "user-shared-001",
+    "user-operator-001"
+  ],
+  "shared_roles": [],
+  "tags": [],
+  "created_at": "2025-10-12T00:01:30.838364",
+  "updated_at": "2025-10-12T00:01:30.840487"
+}

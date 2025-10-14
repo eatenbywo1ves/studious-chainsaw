@@ -1,0 +1,17 @@
+{
+  "id": "e41e31cb-fc8d-4c4d-a831-b1fc6be7b435",
+  "name": "Public Dashboard",
+  "description": "Public dashboard",
+  "tenant_id": "test-tenant-001",
+  "owner_id": "user-admin-001",
+  "layout": "grid",
+  "theme": "default",
+  "background_color": "#ffffff",
+  "widgets": [],
+  "is_public": true,
+  "shared_users": [],
+  "shared_roles": [],
+  "tags": [],
+  "created_at": "2025-10-12T00:01:30.794560",
+  "updated_at": "2025-10-12T00:01:30.794565"
+}
