@@ -16,16 +16,14 @@ pytest==8.0.2
 pytest-cov==4.1.0
 pytest-asyncio==0.23.5
 
-# === Future API Deployment (FastAPI stack) ===
-# Uncomment when deploying REST API (Phase 6 of roadmap)
-# fastapi==0.110.0
-# uvicorn[standard]==0.27.1
-# pydantic==2.6.3
-# python-multipart==0.0.9
+# === API Deployment (FastAPI stack) - NOW ACTIVE ===
+fastapi==0.115.0
+uvicorn[standard]==0.32.0
+pydantic==2.9.2
+python-multipart==0.0.17
 
-# === Observability & Monitoring (Phase 5) ===
-# Uncomment when deploying to production
-# prometheus-client==0.20.0
+# === Observability & Monitoring - NOW ACTIVE ===
+prometheus-client==0.21.0
 
 # === Cloud Deployment Dependencies ===
 # Uncomment for AWS Lambda deployment (Phase 3A)
