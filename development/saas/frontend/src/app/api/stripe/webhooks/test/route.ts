@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { stripe } from '../../config/route';
+import { stripe } from '@/lib/stripe';
 
 // POST /api/stripe/webhooks/test - Test webhook endpoint with simulated events
 export async function POST(request: NextRequest) {
