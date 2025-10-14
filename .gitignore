@@ -270,3 +270,4 @@ development/.env.*.example
 # Planning and Implementation Documents (Keep in repo but track explicitly)
 # ===========================================
 # COMMANDS_AND_SHORTCUTS_IMPLEMENTATION_PLAN.md tracked explicitly
+Tools/plugins/ghidra/GhidraEmu/
