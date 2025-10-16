@@ -7,7 +7,6 @@ Tests for FastAPI endpoints, request validation, and response handling.
 import pytest
 from fastapi.testclient import TestClient
 from api.main import app
-import json
 
 client = TestClient(app)
 

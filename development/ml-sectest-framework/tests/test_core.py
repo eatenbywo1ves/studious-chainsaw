@@ -104,7 +104,7 @@ class TestAgentCoordination:
         orchestrator = orchestrator_with_agents
 
         for agent_id, agent in orchestrator.agents.items():
-            assert hasattr(agent, 'name'), f"Agent missing name attribute"
+            assert hasattr(agent, 'name'), "Agent missing name attribute"
             assert isinstance(agent.name, str)
             assert len(agent.name) > 0
 

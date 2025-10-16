@@ -11,13 +11,12 @@ License: MIT
 
 from fastapi import FastAPI, BackgroundTasks, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, HttpUrl, Field, validator
 from typing import List, Optional, Dict, Any, Literal
 from datetime import datetime
 from pathlib import Path
 import uuid
-import json
 import sys
 import os
 

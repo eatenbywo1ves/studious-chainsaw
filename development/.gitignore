@@ -258,3 +258,32 @@ proof_library.json
 .pyright/
 .dmypy.json
 dmypy.json
+
+# ===== DOCUMENTATION FREEZE (2025-10-14 to 2025-10-28) =====
+# Block new planning/status/analysis documents
+# See ../CORE_PROJECTS.md for rationale
+
+# Forbidden root-level documentation patterns
+*PLAN*.md
+*STATUS*.md
+*ANALYSIS*.md
+*ROADMAP*.md
+*CLEANUP*.md
+*CONSOLIDATION*.md
+*ORGANIZATION*.md
+*DEPLOYMENT_*.md
+*IMPLEMENTATION*.md
+*REPORT*.md
+*GUIDE*.md
+*INDEX*.md
+*REVIEW*.md
+*INVESTIGATION*.md
+*CHECKLIST*.md
+*RUNBOOK*.md
+*VALIDATION*.md
+*SYSTEM_*.md
+
+# Windows special folders (permission issues)
+NetHood/
+PrintHood/
+Templates/

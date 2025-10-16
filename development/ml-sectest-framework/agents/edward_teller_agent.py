@@ -415,7 +415,7 @@ class EdwardTellerAgent(BaseSecurityAgent):
 
                     self.logger.info(f"      ✅ Success (amp: {stage.amplification_factor:.2f}x)")
                 else:
-                    self.logger.info(f"      ❌ Failed")
+                    self.logger.info("      ❌ Failed")
                     break  # Chain broken
 
                 self.executed_stages.append(stage)
