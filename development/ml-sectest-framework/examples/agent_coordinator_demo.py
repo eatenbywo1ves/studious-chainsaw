@@ -107,7 +107,7 @@ def main():
         print(f"  Synergy Chains: {len(plan.synergy_chains)}")
 
         if plan.synergy_chains:
-            print(f"  Activated Synergies:")
+            print("  Activated Synergies:")
             for agent1_id, agent2_id in plan.synergy_chains:
                 agent1 = coordinator.agents[agent1_id]
                 agent2 = coordinator.agents[agent2_id]

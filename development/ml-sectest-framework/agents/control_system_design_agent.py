@@ -14,9 +14,7 @@ Author: Generated from Control Theory Documentation
 Date: 2025-10-09
 """
 
-import numpy as np
-import json
-from typing import Dict, List, Tuple, Optional, Any
+from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
 from enum import Enum
 import math
@@ -474,7 +472,7 @@ class ControlSystemDesignAgent:
                 ),
                 resolution_strategy="Strategy 2: Low-pass filter sensor signals",
                 implementation_notes=[
-                    f"Design for minimum required BW ≈ 0.45/tr",
+                    "Design for minimum required BW ≈ 0.45/tr",
                     "Add sensor filter at omegaf = 5-10 × control bandwidth",
                     "Consider Kalman filter for optimal state estimation",
                     "Use notch filters if structural resonances present"
@@ -676,11 +674,11 @@ def main():
     # Translate specifications
     params = agent.translate_specifications(specs, application_domain="aerospace")
 
-    print(f"Specifications:")
+    print("Specifications:")
     print(f"  - Settling time: < {specs.settling_time_max} seconds")
     print(f"  - Overshoot: < {specs.overshoot_max}%")
     print()
-    print(f"Design Parameters:")
+    print("Design Parameters:")
     print(f"  - Damping ratio (zeta): {params.damping_ratio:.3f}")
     print(f"  - Natural frequency (omega_n): {params.natural_frequency:.3f} rad/s")
     print(f"  - System type: {params.system_type.name}")
@@ -699,7 +697,7 @@ def main():
     # Generate report
     report = agent.generate_design_report(specs, params, tradeoffs=tradeoffs)
 
-    print(f"Predicted Performance:")
+    print("Predicted Performance:")
     perf = report['predicted_performance']
     print(f"  - Rise time: {perf['rise_time_predicted']:.3f} seconds")
     print(f"  - Settling time: {perf['settling_time_predicted']:.3f} seconds")
@@ -709,7 +707,7 @@ def main():
 
     # Tune PID controller
     pid_gains = agent.tune_pid_controller(params)
-    print(f"PID Controller Gains:")
+    print("PID Controller Gains:")
     print(f"  - Kp: {pid_gains['Kp']:.3f}")
     print(f"  - Ki: {pid_gains['Ki']:.3f}")
     print(f"  - Kd: {pid_gains['Kd']:.3f}")
