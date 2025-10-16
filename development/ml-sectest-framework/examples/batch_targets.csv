@@ -1,0 +1,5 @@
+url,name,agents
+https://api.example.com/v1/predict,Production ML API,prompt_injection_001;model_inversion_001
+https://api.example.com/v1/classify,Classification Endpoint,adversarial_attack_001
+https://staging-api.example.com/predict,Staging Environment,
+http://localhost:8000/api/predict,Local Development,prompt_injection_001;data_poisoning_001;model_extraction_001
