@@ -1,0 +1,15 @@
+# Example batch targets file for ML-SecTest
+# Format: One URL per line
+# Lines starting with # are comments
+
+# Production API endpoints
+https://api.example.com/v1/predict
+https://api.example.com/v1/classify
+https://api.example.com/v2/inference
+
+# Staging environment
+https://staging-api.example.com/predict
+
+# Development endpoints
+http://localhost:8000/api/predict
+http://localhost:8001/api/classify

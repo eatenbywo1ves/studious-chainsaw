@@ -1,0 +1,26 @@
+[
+  {
+    "url": "https://api.example.com/v1/predict",
+    "name": "Production ML API",
+    "agents": ["prompt_injection_001", "model_inversion_001", "adversarial_attack_001"]
+  },
+  {
+    "url": "https://api.example.com/v1/classify",
+    "name": "Classification Endpoint",
+    "agents": ["prompt_injection_001", "data_poisoning_001"]
+  },
+  {
+    "url": "https://staging-api.example.com/predict",
+    "name": "Staging Environment"
+  },
+  {
+    "url": "http://localhost:8000/api/predict",
+    "name": "Local Development",
+    "agents": ["prompt_injection_001"]
+  },
+  {
+    "url": "http://localhost:8001/api/inference",
+    "name": "Alternative Local Endpoint",
+    "agents": ["model_extraction_001", "adversarial_attack_001"]
+  }
+]
