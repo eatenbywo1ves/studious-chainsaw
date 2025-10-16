@@ -5,15 +5,12 @@ Tests for Von Neumann game-theoretic agent selection and Teller fusion chain coo
 """
 
 import pytest
-from unittest.mock import Mock, MagicMock
-from typing import List
 
 from core.base_agent import (
     BaseSecurityAgent,
     AgentContext,
     TestResult,
-    VulnerabilityType,
-    AgentStatus
+    VulnerabilityType
 )
 from core.agent_coordinator import (
     AgentCoordinator,

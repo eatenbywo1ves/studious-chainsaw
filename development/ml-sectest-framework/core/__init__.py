@@ -23,6 +23,27 @@ from .agent_coordinator import (
     CoordinationPlan,
     CoordinationResult
 )
+from .http_client import (
+    UnifiedHTTPClient,
+    HTTPResponse,
+    HTTPClientConfig,
+    HTTPMethod
+)
+from .test_utils import (
+    TestExecutor,
+    IndicatorMatcher,
+    TestCaseDefinition,
+    VulnerabilityIndicator,
+    IndicatorType,
+    CommonIndicators
+)
+from .logging_config import (
+    LoggingConfig,
+    LogLevel,
+    LogFormat,
+    get_logger,
+    setup_logging
+)
 
 __all__ = [
     'BaseSecurityAgent',
@@ -38,4 +59,19 @@ __all__ = [
     'AgentSynergy',
     'CoordinationPlan',
     'CoordinationResult',
+    'UnifiedHTTPClient',
+    'HTTPResponse',
+    'HTTPClientConfig',
+    'HTTPMethod',
+    'TestExecutor',
+    'IndicatorMatcher',
+    'TestCaseDefinition',
+    'VulnerabilityIndicator',
+    'IndicatorType',
+    'CommonIndicators',
+    'LoggingConfig',
+    'LogLevel',
+    'LogFormat',
+    'get_logger',
+    'setup_logging',
 ]

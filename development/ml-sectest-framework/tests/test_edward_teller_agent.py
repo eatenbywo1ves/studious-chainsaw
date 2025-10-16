@@ -6,9 +6,7 @@ Comprehensive test suite for fusion attack orchestration capabilities.
 """
 
 import unittest
-from unittest.mock import Mock, patch, MagicMock
-from typing import List, Dict, Any
-import json
+from unittest.mock import Mock, patch
 
 # Import agent under test
 from agents.edward_teller_agent import (

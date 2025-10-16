@@ -15,7 +15,6 @@ Design Principles:
 from typing import List, Dict, Any, Optional, Tuple
 from dataclasses import dataclass, field
 from enum import Enum
-import numpy as np
 import logging
 from datetime import datetime
 
@@ -502,7 +501,6 @@ class AgentCoordinator:
         self.logger.info(f"Target: {context.target_url}")
 
         agent_results: Dict[str, List[TestResult]] = {}
-        previous_result: Optional[TestResult] = None
 
         # Execute sequence
         for agent_id in plan.agent_sequence:
@@ -520,7 +518,7 @@ class AgentCoordinator:
 
                 # Update context with previous results for cascade effect
                 if results and results[-1].success:
-                    previous_result = results[-1]
+                    results[-1]
                     # Could pass previous_result to next agent here for true cascade
 
             except Exception as e:
@@ -543,7 +541,7 @@ class AgentCoordinator:
         # Update historical results for Bayesian learning
         self.historical_results.append(result)
 
-        self.logger.info(f"Coordination complete:")
+        self.logger.info("Coordination complete:")
         self.logger.info(f"  Expected amplification: {plan.expected_amplification:.2f}×")
         self.logger.info(f"  Observed amplification: {observed_amp:.2f}×")
         self.logger.info(f"  Synergy activated: {synergy_activated}")

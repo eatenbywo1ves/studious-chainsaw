@@ -128,7 +128,7 @@ class MetricsCollector:
                     ).inc()
                     return result
 
-                except Exception as e:
+                except Exception:
                     scan_requests_total.labels(
                         challenge_type=challenge_type,
                         status='error'
@@ -173,7 +173,7 @@ class MetricsCollector:
                     ).inc()
                     return result
 
-                except Exception as e:
+                except Exception:
                     agent_executions_total.labels(
                         agent_name=agent_name,
                         status='error'
@@ -214,7 +214,7 @@ class MetricsCollector:
                     result = await func(*args, **kwargs)
                     return result
 
-                except Exception as e:
+                except Exception:
                     status_code = 500
                     raise
 
