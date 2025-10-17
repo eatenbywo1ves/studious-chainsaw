@@ -11,7 +11,6 @@ Run with: pytest saas/tests/test_technical_debt_fixes.py -v
 
 import pytest
 import sys
-import os
 from pathlib import Path
 
 # Add saas directory to path
@@ -108,8 +107,6 @@ class TestConnectionPoolMonitoring:
     def test_pool_event_listeners_registered(self):
         """Verify pool event listeners are registered"""
         from database.connection import engine
-        from sqlalchemy.pool import Pool
-        from sqlalchemy import event
 
         # Check if listeners are registered (they should be from module import)
         # This is implicit - if module imported without error, listeners are registered
@@ -132,8 +129,8 @@ class TestImportIntegrity:
     def test_no_circular_imports(self):
         """Verify no circular import issues"""
         try:
-            from api.saas_server import app, engine, SessionLocal
-            from database.connection import get_db, engine as db_engine, SessionLocal as db_session
+            from api.saas_server import engine, SessionLocal
+            from database.connection import engine as db_engine, SessionLocal as db_session
 
             # Verify they're the same objects (not duplicates)
             assert engine is db_engine, "Engine should be same instance"

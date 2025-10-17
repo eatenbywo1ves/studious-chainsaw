@@ -49,7 +49,7 @@ async def lifespan(app: FastAPI):
     """Manage application lifecycle"""
     # Startup
     logger.info("Starting Catalytic Lattice API Server")
-    
+
     # Initialize Redis connection
     global redis_client
     try:
@@ -62,16 +62,16 @@ async def lifespan(app: FastAPI):
         logger.info("Connected to Redis")
     except Exception as e:
         logger.warning(f"Redis not available, using in-memory storage: {e}")
-    
+
     # Pre-warm JIT compilation
     logger.info("Pre-warming JIT compilation")
     _prewarm_jit()
-    
+
     # Start background monitoring
     asyncio.create_task(monitor_resources())
-    
+
     yield
-    
+
     # Shutdown
     logger.info("Shutting down Catalytic Lattice API Server")
     if redis_client:
@@ -98,7 +98,7 @@ class LatticeConfig(BaseModel):
     dimensions: int = Field(..., ge=2, le=100, description="Number of dimensions")
     lattice_size: int = Field(..., ge=2, le=1000, description="Size of lattice in each dimension")
     collapse_dims: Optional[int] = Field(3, ge=1, le=10, description="Target dimensions for collapse")
-    
+
     @validator('collapse_dims')
     def validate_collapse_dims(cls, v, values):
         if 'dimensions' in values and v > values['dimensions']:
@@ -139,7 +139,7 @@ async def health_check():
         # Check system resources
         cpu_percent = psutil.cpu_percent(interval=1)
         memory = psutil.virtual_memory()
-        
+
         health_status = {
             "status": "healthy",
             "timestamp": datetime.utcnow().isoformat(),
@@ -147,17 +147,17 @@ async def health_check():
             "memory_usage_percent": memory.percent,
             "memory_available_mb": memory.available / (1024 * 1024)
         }
-        
+
         # Fail health check if resources are exhausted
         if cpu_percent > 90 or memory.percent > 90:
             health_status["status"] = "degraded"
             return JSONResponse(status_code=503, content=health_status)
-        
+
         return health_status
     except Exception as e:
         logger.error(f"Health check failed: {e}")
         return JSONResponse(
-            status_code=503, 
+            status_code=503,
             content={"status": "unhealthy", "error": str(e)}
         )
 
@@ -178,10 +178,10 @@ async def process_lattice(
 ):
     """Queue lattice processing job"""
     request_count.labels(method="POST", endpoint="/process").inc()
-    
+
     # Generate job ID
     job_id = str(uuid.uuid4())
-    
+
     # Validate request
     try:
         points_array = np.array(request.points)
@@ -190,7 +190,7 @@ async def process_lattice(
     except Exception as e:
         error_count.labels(type="validation").inc()
         raise HTTPException(status_code=400, detail=str(e))
-    
+
     # Create job entry
     job = {
         "id": job_id,
@@ -200,17 +200,17 @@ async def process_lattice(
         "result": None,
         "error": None
     }
-    
+
     # Store job
     if redis_client:
         redis_client.setex(f"job:{job_id}", 3600, str(job))
     else:
         job_store[job_id] = job
-    
+
     # Queue background processing
     background_tasks.add_task(process_job, job_id, request)
     active_jobs.inc()
-    
+
     return JobResponse(
         job_id=job_id,
         status="queued",
@@ -223,7 +223,7 @@ async def process_lattice(
 async def get_job_status(job_id: str):
     """Get job processing status and results"""
     request_count.labels(method="GET", endpoint="/jobs").inc()
-    
+
     # Retrieve job
     if redis_client:
         job_data = redis_client.get(f"job:{job_id}")
@@ -234,7 +234,7 @@ async def get_job_status(job_id: str):
         if job_id not in job_store:
             raise HTTPException(status_code=404, detail="Job not found")
         job = job_store[job_id]
-    
+
     return JobResult(
         job_id=job_id,
         status=job["status"],
@@ -249,13 +249,13 @@ async def get_job_status(job_id: str):
 async def process_job(job_id: str, request: ProcessRequest):
     """Process lattice operation in background"""
     start_time = datetime.utcnow()
-    
+
     try:
         logger.info(f"Processing job {job_id}", operation=request.operation)
-        
+
         # Update job status
         update_job_status(job_id, "processing")
-        
+
         # Initialize appropriate processor
         if request.operation in ["collapse", "transform"]:
             processor = CatalyticLatticeComputer(
@@ -269,52 +269,52 @@ async def process_job(job_id: str, request: ProcessRequest):
                 lattice_size=request.config.lattice_size,
                 collapse_dims=request.config.collapse_dims
             )
-        
+
         # Process based on operation type
         points = np.array(request.points)
         result = None
-        
+
         if request.operation == "collapse":
             result = []
             for point in points:
                 collapsed = processor.dimensional_collapse_hash(
-                    point, 
+                    point,
                     request.config.collapse_dims,
                     processor.aux_memories[0]
                 )
                 result.append(collapsed.tolist())
-                
+
         elif request.operation == "eigenspace":
             result = processor.parallel_lattice_eigenspace(points, processor.n_cores)
             result = result.tolist()
-            
+
         elif request.operation == "superposition":
             result = processor.quantum_inspired_superposition(points)
             result = result.tolist()
-        
+
         # Calculate metrics
         end_time = datetime.utcnow()
         processing_time_ms = (end_time - start_time).total_seconds() * 1000
         memory_used_mb = psutil.Process().memory_info().rss / (1024 * 1024)
-        
+
         # Update job with results
         update_job_status(
-            job_id, 
+            job_id,
             "completed",
             result=result,
             processing_time_ms=processing_time_ms,
             memory_used_mb=memory_used_mb
         )
-        
-        logger.info(f"Job {job_id} completed", 
+
+        logger.info(f"Job {job_id} completed",
                    processing_time_ms=processing_time_ms,
                    memory_used_mb=memory_used_mb)
-        
+
     except Exception as e:
         error_count.labels(type="processing").inc()
         logger.error(f"Job {job_id} failed", error=str(e), traceback=traceback.format_exc())
         update_job_status(job_id, "failed", error=str(e))
-    
+
     finally:
         active_jobs.dec()
         # Cleanup
@@ -339,11 +339,11 @@ def estimate_processing_time(request: ProcessRequest) -> float:
     """Estimate processing time based on request parameters"""
     n_points = len(request.points)
     dims = request.config.dimensions
-    
+
     # Simple heuristic - improve with ML model
     base_time = 0.001  # 1ms base
     time_per_point = 0.0001 * dims  # Linear with dimensions
-    
+
     return base_time + (time_per_point * n_points)
 
 def _prewarm_jit():
