@@ -6,12 +6,10 @@ Run this to set up your reactive programming environment and start the BMAD plan
 Usage: python start_reactive_migration.py [--step STEP_NUMBER]
 """
 
-import os
 import sys
 import subprocess
 import shutil
 from pathlib import Path
-from typing import Optional
 import json
 
 
@@ -100,7 +98,7 @@ class ReactiveMigrationSetup:
             )
             print("\n   [OK] All packages installed successfully")
         except subprocess.CalledProcessError as e:
-            print(f"\n   [WARN]  Some packages failed to install:")
+            print("\n   [WARN]  Some packages failed to install:")
             print(f"      {e.stderr}")
             raise
 

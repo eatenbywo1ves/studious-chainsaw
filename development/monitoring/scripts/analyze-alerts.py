@@ -6,7 +6,7 @@ Analyzes alert.log to identify patterns, root causes, and provide actionable ins
 
 import re
 from collections import Counter, defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime
 import sys
 
 def parse_log_line(line):
@@ -94,7 +94,6 @@ def analyze_alert_log(filepath):
         for service, count in sorted(service_failures.items(), key=lambda x: x[1], reverse=True):
             percentage = (count / total_service_alerts) * 100
             # Estimate alert frequency (assuming 5 second interval)
-            estimated_checks = count
             print(f"  {service:30s}: {count:6d} alerts ({percentage:5.1f}% of service alerts)")
 
     print("\n" + "=" * 80)
@@ -186,7 +185,7 @@ if __name__ == '__main__':
     filepath = sys.argv[1] if len(sys.argv) > 1 else 'C:/Users/Corbin/development/monitoring/logs/alerts.log'
     try:
         results = analyze_alert_log(filepath)
-        print(f"\nAnalysis complete!")
+        print("\nAnalysis complete!")
     except FileNotFoundError:
         print(f"Error: File not found: {filepath}")
         sys.exit(1)

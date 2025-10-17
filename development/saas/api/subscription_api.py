@@ -17,8 +17,6 @@ from sqlalchemy.exc import IntegrityError
 # Add parent directories to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-logger = logging.getLogger(__name__)
-
 from database.models import (
     Tenant,
     User,
@@ -28,6 +26,8 @@ from database.models import (
     TenantStatus,
 )
 from database.connection import get_db
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/subscriptions", tags=["subscriptions"])
 

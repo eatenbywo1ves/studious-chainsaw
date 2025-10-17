@@ -15,7 +15,7 @@ def install_and_import(package_name):
             )
             __import__(package_name)
             return True
-        except:
+        except (subprocess.CalledProcessError, ImportError):
             print(f"Failed to install {package_name}")
             return False
 
