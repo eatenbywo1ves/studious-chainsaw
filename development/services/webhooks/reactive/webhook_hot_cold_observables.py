@@ -19,12 +19,10 @@ Your webhook_manager_reactive.py uses HOT observables because:
 - Using share() operator makes a cold observable hot
 """
 
-import asyncio
 import time
-from typing import List
 from dataclasses import dataclass
 
-from reactivex import Subject, Observable, create, operators as ops
+from reactivex import Subject, create, operators as ops
 from reactivex.subject import ReplaySubject, BehaviorSubject
 
 import logging
@@ -121,7 +119,7 @@ class HotVsColdDemonstration:
         print(f"  Execution count: {execution_count['count']} (2 independent executions)")
         print(f"  Subscriber 1 got: {len(subscriber1_events)} events")
         print(f"  Subscriber 2 got: {len(subscriber2_events)} events")
-        print(f"\n  ✅ Each subscriber triggered its OWN execution")
+        print("\n  ✅ Each subscriber triggered its OWN execution")
         print(f"     Event IDs are different: {subscriber1_events[0].event_id} vs {subscriber2_events[0].event_id}")
         print("="*80)
 
@@ -193,12 +191,12 @@ class HotVsColdDemonstration:
 
         print("\n" + "="*80)
         print("RESULTS:")
-        print(f"  Total events broadcast: 7")
+        print("  Total events broadcast: 7")
         print(f"  Subscriber 1 received: {len(subscriber1_events)} (joined early)")
         print(f"  Subscriber 2 received: {len(subscriber2_events)} (joined mid-way)")
         print(f"  Subscriber 3 received: {len(subscriber3_events)} (joined late)")
-        print(f"\n  ✅ All subscribers saw SAME events (same event IDs)")
-        print(f"     But late subscribers MISSED earlier events (no replay)")
+        print("\n  ✅ All subscribers saw SAME events (same event IDs)")
+        print("     But late subscribers MISSED earlier events (no replay)")
         print("="*80)
 
         return len(subscriber1_events), len(subscriber2_events), len(subscriber3_events)
@@ -255,12 +253,12 @@ class HotVsColdDemonstration:
 
         print("\n" + "="*80)
         print("RESULTS:")
-        print(f"  Events broadcast before subscription: 5")
-        print(f"  ReplaySubject buffer size: 3")
+        print("  Events broadcast before subscription: 5")
+        print("  ReplaySubject buffer size: 3")
         print(f"  Subscriber received: {len(subscriber1_events)} events")
-        print(f"    - 3 from history buffer (events 3, 4, 5)")
-        print(f"    - 2 from live stream (events 6, 7)")
-        print(f"\n  ✅ Late subscribers get recent history automatically!")
+        print("    - 3 from history buffer (events 3, 4, 5)")
+        print("    - 2 from live stream (events 6, 7)")
+        print("\n  ✅ Late subscribers get recent history automatically!")
         print("="*80)
 
         return len(subscriber1_events)
@@ -328,8 +326,8 @@ class HotVsColdDemonstration:
         print("RESULTS:")
         print(f"  Subscriber 1 saw: {subscriber1_states}")
         print(f"  Subscriber 2 saw: {subscriber2_states}")
-        print(f"\n  ✅ Sub2 immediately got current state when subscribing!")
-        print(f"     Then both received all subsequent updates")
+        print("\n  ✅ Sub2 immediately got current state when subscribing!")
+        print("     Then both received all subsequent updates")
         print("="*80)
 
         return subscriber1_states, subscriber2_states
@@ -412,10 +410,10 @@ class HotVsColdDemonstration:
 
         print("\n" + "="*80)
         print("RESULTS:")
-        print(f"  Cold (no share): 2 executions")
-        print(f"  Hot (with share): 1 execution")
-        print(f"\n  ✅ share() prevents duplicate work!")
-        print(f"     This is why webhook_manager_reactive.py uses .pipe(ops.share())")
+        print("  Cold (no share): 2 executions")
+        print("  Hot (with share): 1 execution")
+        print("\n  ✅ share() prevents duplicate work!")
+        print("     This is why webhook_manager_reactive.py uses .pipe(ops.share())")
         print("="*80)
 
         return execution_count['count']

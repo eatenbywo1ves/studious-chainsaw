@@ -12,23 +12,14 @@ They represent time-based event sequences as ASCII art:
 Time moves left to right. Each character represents a time unit.
 """
 
-import pytest
-import time
-from datetime import datetime
-from typing import List, Any, Dict
 
 # RxPy testing imports
 from reactivex import operators as ops
 from reactivex.testing import TestScheduler, ReactiveTest
-from reactivex.testing.subscription import Subscription
-from reactivex.testing.recorded import Recorded
 
 from webhook_manager_reactive import (
     WebhookPriority,
     WebhookPayload,
-    WebhookEndpoint,
-    WebhookDeliveryResult,
-    CircuitBreaker,
     CircuitBreakerState
 )
 
@@ -76,7 +67,6 @@ class TestReactiveWebhookPipeline:
         )
 
         # Group by priority and collect high priority events only
-        high_priority_events = []
 
         def create_pipeline():
             return source.pipe(
@@ -164,7 +154,7 @@ class TestReactiveWebhookPipeline:
         Source:    -a-#           (Event a, then error)
         Retry(3):  -a-a-a-a-#     (Retries 3 times, then gives up)
         """
-        scheduler = TestScheduler()
+        TestScheduler()
 
         attempt_count = {'count': 0}
 

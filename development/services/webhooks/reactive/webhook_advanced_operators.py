@@ -12,10 +12,8 @@ This demonstrates sophisticated reactive patterns beyond basic map/filter:
 
 import asyncio
 import time
-from datetime import datetime, timedelta
-from typing import Dict, Any, List
+from typing import Dict, Any
 from dataclasses import dataclass
-import json
 
 from reactivex import Subject, operators as ops, interval, combine_latest
 from reactivex.scheduler.eventloop import AsyncIOScheduler
@@ -200,7 +198,7 @@ class AdvancedWebhookPatterns:
 
         # Emit metrics over 5 seconds
         print("📤 Emitting metrics over 5 seconds...")
-        start = time.time()
+        time.time()
         for i in range(8):
             self.event_stream.on_next(WebhookEvent(
                 event_type="metric.updated",
@@ -482,7 +480,7 @@ class AdvancedWebhookPatterns:
             ))
             time.sleep(0.2)
 
-        print(f"\n✅ Success:")
+        print("\n✅ Success:")
         print(f"   Urgent lane: {len(urgent_results)} events")
         print(f"   Normal lane: {len(normal_results)} events\n")
 

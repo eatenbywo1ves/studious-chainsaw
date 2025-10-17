@@ -48,7 +48,6 @@ class QualityFixer:
 
         # Pattern to match the function signature on line 513
         old_pattern = r'def generate_api_key\(tenant_id: str, name: str, permissions: list = None\) -> Tuple\[str, str\]:'
-        new_pattern = r'def generate_api_key(tenant_id: str, name: str, permissions: Optional[list[str]] = None) -> Tuple[str, str]:'
 
         if old_pattern in content.replace('\n', ' '):
             if not self.dry_run:
@@ -76,8 +75,6 @@ class QualityFixer:
         content = file_path.read_text(encoding='utf-8')
 
         # Pattern to match the assignment on line 584
-        old_pattern = r'self\._original_settings = \{\}'
-        new_pattern = r'self._original_settings: dict[str, Any] = {}'
 
         if re.search(r'self\._original_settings = \{\}(?!\s*#.*type:)', content):
             if not self.dry_run:
@@ -107,8 +104,6 @@ class QualityFixer:
         content = file_path.read_text(encoding='utf-8')
 
         # Pattern for bare except around line 30
-        old_pattern = r'try:\s+sys\.stdout\.reconfigure\(encoding=\'utf-8\'\)\s+except:\s+pass'
-        new_pattern = 'try:\n        sys.stdout.reconfigure(encoding=\'utf-8\')\n    except (AttributeError, OSError):\n        pass'
 
         if 'except:' in content and 'sys.stdout.reconfigure' in content:
             if not self.dry_run:

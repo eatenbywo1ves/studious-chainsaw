@@ -212,7 +212,7 @@ def main():
     backup_txt = create_backup(RESUME_TXT)
 
     # Prepare replacements dictionary
-    replacements = {
+    {
         'phone': user_info.get('phone'),
         'linkedin': user_info.get('linkedin'),
         'degree': degree,
@@ -239,20 +239,20 @@ def main():
 
     if user_info.get('phone'):
         content_md = content_md.replace(PLACEHOLDERS['phone'], user_info['phone'])
-        print(f"  ✅ Updated phone number")
+        print("  ✅ Updated phone number")
 
     if user_info.get('linkedin'):
         content_md = content_md.replace(PLACEHOLDERS['linkedin'], user_info['linkedin'])
-        print(f"  ✅ Updated LinkedIn URL")
+        print("  ✅ Updated LinkedIn URL")
 
     content_md = content_md.replace(old_education, new_education)
-    print(f"  ✅ Updated education information")
+    print("  ✅ Updated education information")
 
     # Remove example line
     example_line = "*Example: B.S. Computer Science | University of Texas | 2022*"
     if example_line in content_md:
         content_md = content_md.replace(f"\n{example_line}\n", "\n")
-        print(f"  ✅ Removed example line")
+        print("  ✅ Removed example line")
 
     with open(RESUME_MD, 'w', encoding='utf-8') as f:
         f.write(content_md)
@@ -267,20 +267,20 @@ def main():
 
     if user_info.get('phone'):
         content_txt = content_txt.replace(PLACEHOLDERS['phone'], user_info['phone'])
-        print(f"  ✅ Updated phone number")
+        print("  ✅ Updated phone number")
 
     if user_info.get('linkedin'):
         content_txt = content_txt.replace(PLACEHOLDERS['linkedin'], user_info['linkedin'])
-        print(f"  ✅ Updated LinkedIn URL")
+        print("  ✅ Updated LinkedIn URL")
 
     content_txt = content_txt.replace(old_education, new_education)
-    print(f"  ✅ Updated education information")
+    print("  ✅ Updated education information")
 
     # Remove example line (different format in TXT)
     example_line_txt = "Example: B.S. Computer Science | University of Texas | 2022"
     if example_line_txt in content_txt:
         content_txt = content_txt.replace(f"\n{example_line_txt}\n", "\n")
-        print(f"  ✅ Removed example line")
+        print("  ✅ Removed example line")
 
     with open(RESUME_TXT, 'w', encoding='utf-8') as f:
         f.write(content_txt)
@@ -291,11 +291,11 @@ def main():
     print("\n" + "=" * 80)
     print("✅ RESUME UPDATE COMPLETE!")
     print("=" * 80)
-    print(f"\n📄 Updated Files:")
+    print("\n📄 Updated Files:")
     print(f"  - {RESUME_MD}")
     print(f"  - {RESUME_TXT}")
 
-    print(f"\n💾 Backup Files:")
+    print("\n💾 Backup Files:")
     if backup_md:
         print(f"  - {backup_md}")
     if backup_txt:
