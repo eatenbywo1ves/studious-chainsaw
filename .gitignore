@@ -286,3 +286,12 @@ Tools/plugins/ghidra/Ghidrathon/
 Tools/plugins/ghidra/LazyGhidra/
 Tools/plugins/ghidra/kaiju/
 Tools/plugins/ghidra/ret-sync/
+
+# Temporary test artifacts
+screenshot_*.png
+take_screenshot.ps1
+
+# Workspace planning documents (use GitHub Issues per doc freeze policy)
+Tools/workspace-launcher/BMAD_WORKSPACE_LAUNCHER_PLAN.md
+Tools/workspace-launcher/*_PLAN.md
+Tools/workspace-launcher/*_ROADMAP.md
