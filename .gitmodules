@@ -1,0 +1,18 @@
+[submodule "Tools/plugins/ghidra/GhidraEmu"]
+	path = Tools/plugins/ghidra/GhidraEmu
+	url = https://github.com/Nalen98/GhidraEmu.git
+[submodule "Tools/plugins/ghidra/Ghidra-Cpp-Class-Analyzer"]
+	path = Tools/plugins/ghidra/Ghidra-Cpp-Class-Analyzer
+	url = https://github.com/astrelsky/Ghidra-Cpp-Class-Analyzer.git
+[submodule "Tools/plugins/ghidra/Ghidrathon"]
+	path = Tools/plugins/ghidra/Ghidrathon
+	url = https://github.com/mandiant/Ghidrathon.git
+[submodule "Tools/plugins/ghidra/LazyGhidra"]
+	path = Tools/plugins/ghidra/LazyGhidra
+	url = https://github.com/AllsafeCyberSecurity/LazyGhidra.git
+[submodule "Tools/plugins/ghidra/kaiju"]
+	path = Tools/plugins/ghidra/kaiju
+	url = https://github.com/CERTCC/kaiju.git
+[submodule "Tools/plugins/ghidra/ret-sync"]
+	path = Tools/plugins/ghidra/ret-sync
+	url = https://github.com/bootleg/ret-sync.git
