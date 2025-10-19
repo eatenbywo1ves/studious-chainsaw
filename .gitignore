@@ -278,3 +278,11 @@ Tools/plugins/ghidra/GhidraEmu/
 # .NET SDK and Runtime Caches (Added 2025-10-16)
 # ===========================================
 .dotnet/
+
+# Ghidra third-party plugins (managed separately)
+Tools/plugins/ghidra/GhidraEmu/
+Tools/plugins/ghidra/Ghidra-Cpp-Class-Analyzer/
+Tools/plugins/ghidra/Ghidrathon/
+Tools/plugins/ghidra/LazyGhidra/
+Tools/plugins/ghidra/kaiju/
+Tools/plugins/ghidra/ret-sync/
