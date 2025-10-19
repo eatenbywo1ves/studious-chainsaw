@@ -7,26 +7,40 @@ Manages the startup and coordination of:
 - Development services
 - Project environments
 - Monitoring tools
+
+Enhanced with:
+- Structured JSON logging
+- Automatic retry with exponential backoff
+- Advanced health checking (TCP + HTTP)
 """
 
-import json
 import os
 import subprocess
 import sys
 import time
 import socket
-import psutil
+import shlex
 from pathlib import Path
-from datetime import datetime
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 from dataclasses import dataclass
-from enum import Enum
 import argparse
 import webbrowser
 
 # Add paths
 sys.path.insert(0, 'C:\\Users\\Corbin\\shared')
 sys.path.insert(0, 'C:\\Users\\Corbin\\Tools\\mcp-orchestrator')
+
+# Import our new enhanced modules
+from workspace_logger import WorkspaceLogger
+from retry_handler import RetryHandler, ExponentialBackoff
+from health_checker import HealthChecker
+from config_loader import ConfigLoader
+from dependency_graph import DependencyGraph
+
+
+class SecurityError(Exception):
+    """Raised when security validation fails"""
+    pass
 
 
 @dataclass
@@ -55,103 +69,223 @@ class WorkspaceProfile:
 class WorkspaceManager:
     """Manages workspace initialization and service coordination"""
 
-    def __init__(self):
-        self.base_dir = Path("C:\\Users\\Corbin")
+    # Security: Whitelist of allowed command executables
+    ALLOWED_COMMANDS = {
+        'python', 'python3', 'python.exe',
+        'node', 'node.exe',
+        'npm', 'npm.cmd',
+        'jupyter', 'jupyter.exe',
+        'code', 'code.exe',
+        'cmd', 'cmd.exe',
+        'wt', 'wt.exe',
+        # Add more as needed
+    }
+
+    # Security: Whitelist of allowed environment variables
+    # Common development environment variables that are safe to set
+    ALLOWED_ENV_VARS = {
+        # Python
+        'PYTHONPATH', 'PYTHONHOME', 'PYTHONIOENCODING', 'PYTHONUNBUFFERED',
+        # Node.js
+        'NODE_ENV', 'NODE_PATH', 'NODE_OPTIONS',
+        # General development
+        'PATH', 'HOME', 'USER', 'USERNAME', 'USERPROFILE',
+        'TEMP', 'TMP', 'TMPDIR',
+        # Application-specific
+        'PORT', 'HOST', 'DEBUG', 'LOG_LEVEL',
+        'DATABASE_URL', 'DATABASE_NAME', 'DB_HOST', 'DB_PORT',
+        'REDIS_URL', 'REDIS_HOST', 'REDIS_PORT', 'REDIS_PASSWORD',
+        'API_KEY', 'API_URL', 'API_TOKEN',
+        # Build tools
+        'MAVEN_OPTS', 'GRADLE_OPTS', 'JAVA_HOME',
+        'CARGO_HOME', 'RUSTUP_HOME',
+        # Editor/IDE
+        'EDITOR', 'VISUAL', 'PAGER',
+        # MCP specific
+        'MCP_SERVER_PORT', 'MCP_LOG_LEVEL',
+        # Add more as needed for your specific environment
+    }
+
+    def __init__(self, config_path: Optional[Path] = None):
+        # Security: Use platform-independent home directory
+        self.base_dir = Path.home()
+
+        # Initialize logging system
+        log_dir = self.base_dir / "Tools" / "workspace-launcher" / "logs"
+        self.logger = WorkspaceLogger(log_dir)
+
+        # Initialize health checker
+        self.health_checker = HealthChecker(timeout=10)
+
+        # Initialize retry handler with exponential backoff
+        retry_strategy = ExponentialBackoff(max_retries=3, initial_delay=2.0, backoff_factor=2.0)
+        self.retry_handler = RetryHandler(retry_strategy)
+
+        # Load YAML configuration
+        if config_path is None:
+            config_path = self.base_dir / "Tools" / "workspace-launcher" / "workspace-config.yaml"
+
+        self.config_loader = ConfigLoader(config_path)
+        if not self.config_loader.load():
+            # Security: Log full path internally, show generic error to user
+            self.logger.log_error("Failed to load configuration", config_path=str(config_path))
+            raise RuntimeError("Failed to load workspace configuration file")
+
+        # Validate configuration
+        errors = self.config_loader.validate()
+        if errors:
+            self.logger.log_error("Configuration validation failed", errors=errors)
+            for error in errors:
+                print(f"[ERROR] Configuration: {error}")
+            raise RuntimeError("Configuration validation failed")
+
+        # Initialize dependency graph
+        self.dependency_graph = DependencyGraph(self.config_loader.get_services())
+
+        # Convert YAML config to internal Service/Profile objects
         self.services = self._define_services()
         self.profiles = self._define_profiles()
         self.active_processes = {}
-        self.log_file = self.base_dir / "Tools" / "workspace-launcher" / "workspace.log"
+
+        # Legacy log file path (kept for compatibility)
+        self.log_file = log_dir / "workspace.log"
+
+        self.logger.log_info("Workspace Manager initialized",
+                           services_count=len(self.services),
+                           profiles_count=len(self.profiles))
 
     def _define_services(self) -> Dict[str, Service]:
-        """Define available services"""
-        return {
-            "mcp-orchestrator": Service(
-                name="MCP Orchestrator",
-                command="python Tools/mcp-orchestrator/mcp_orchestrator.py monitor",
-                directory=str(self.base_dir)
-            ),
-            "mcp-dashboard": Service(
-                name="MCP Dashboard",
-                command="python Tools/mcp-orchestrator/dashboard.py",
-                directory=str(self.base_dir),
-                port=5000,
-                url="http://localhost:5000",
-                wait_for_port=True,
-                auto_open_browser=True
-            ),
-            "ghidra-bridge": Service(
-                name="Ghidra-Claude Bridge",
-                command="python ghidra-claude/ghidra_claude_bridge.py",
-                directory=str(self.base_dir)
-            ),
-            "financial-simulator": Service(
-                name="Financial Simulator",
-                command="npm run dev",
-                directory=str(self.base_dir / "projects" / "financial-apps" / "financial-simulator"),
-                port=5173,
-                url="http://localhost:5173",
-                wait_for_port=True
-            ),
-            "api-gateway": Service(
-                name="API Gateway",
-                command='python api_gateway.py',
-                directory=str(self.base_dir),
-                environment={"PYTHONPATH": "C:\\Users\\Corbin\\development\\shared"}
-            ),
-            "jupyter": Service(
-                name="Jupyter Lab",
-                command="jupyter lab --no-browser",
-                directory=str(self.base_dir / "projects"),
-                port=8888,
-                url="http://localhost:8888",
-                wait_for_port=True
-            ),
-            "code-server": Service(
-                name="VS Code Server",
-                command="code . --new-window",
-                directory=str(self.base_dir / "projects" / "active")
+        """Convert YAML ServiceConfig objects to internal Service dataclass"""
+        services = {}
+
+        for service_key, service_config in self.config_loader.get_services().items():
+            # Convert ServiceConfig to Service
+            services[service_key] = Service(
+                name=service_config.name,
+                command=service_config.command,
+                directory=service_config.directory,
+                port=service_config.port,
+                url=service_config.url,
+                wait_for_port=service_config.wait_for_port,
+                auto_open_browser=service_config.auto_open_browser,
+                environment=service_config.environment if service_config.environment else None
             )
-        }
+
+        return services
 
     def _define_profiles(self) -> Dict[str, WorkspaceProfile]:
-        """Define workspace profiles"""
-        return {
-            "full": WorkspaceProfile(
-                name="Full Development",
-                description="All services and tools",
-                services=["mcp-orchestrator", "mcp-dashboard", "ghidra-bridge", "api-gateway"],
-                projects=["financial-simulator"],
-                environment={"NODE_ENV": "development", "PYTHONPATH": "C:\\Users\\Corbin\\shared"}
-            ),
-            "mcp": WorkspaceProfile(
-                name="MCP Services Only",
-                description="MCP orchestrator and dashboard",
-                services=["mcp-orchestrator", "mcp-dashboard"],
-                projects=[],
-                environment={}
-            ),
-            "financial": WorkspaceProfile(
-                name="Financial Development",
-                description="Financial apps and MCP services",
-                services=["mcp-orchestrator", "mcp-dashboard"],
-                projects=["financial-simulator"],
-                environment={"NODE_ENV": "development"}
-            ),
-            "reverse-engineering": WorkspaceProfile(
-                name="Reverse Engineering",
-                description="Ghidra integration tools",
-                services=["ghidra-bridge"],
-                projects=[],
-                environment={"GHIDRA_HOME": "C:\\Users\\Corbin\\Downloads\\ghidra-master\\build\\ghidra_12.0_DEV"}
-            ),
-            "minimal": WorkspaceProfile(
-                name="Minimal",
-                description="Basic workspace with code editor",
-                services=["code-server"],
-                projects=[],
-                environment={}
+        """Convert YAML ProfileConfig objects to internal WorkspaceProfile dataclass"""
+        profiles = {}
+
+        for profile_key, profile_config in self.config_loader.get_profiles().items():
+            # Convert ProfileConfig to WorkspaceProfile
+            profiles[profile_key] = WorkspaceProfile(
+                name=profile_config.name,
+                description=profile_config.description,
+                services=profile_config.services,
+                projects=profile_config.projects,
+                environment=profile_config.environment
             )
-        }
+
+        return profiles
+
+    def _validate_and_prepare_command(self, command: str, service_key: str) -> List[str]:
+        """
+        Validate command and prepare it for safe execution
+
+        Security: Prevents command injection by:
+        1. Whitelisting allowed executables
+        2. Using argument list instead of shell=True
+
+        Args:
+            command: Command string from configuration
+            service_key: Service identifier for logging
+
+        Returns:
+            List of command arguments for subprocess (shell=False)
+
+        Raises:
+            SecurityError: If command uses unauthorized executable
+        """
+        # Parse command into arguments
+        try:
+            cmd_args = shlex.split(command)
+        except ValueError as e:
+            self.logger.log_error(
+                f"Invalid command syntax for service '{service_key}'",
+                error=e,
+                command=command
+            )
+            raise ValueError(f"Invalid command syntax: {command}")
+
+        if not cmd_args:
+            raise ValueError(f"Empty command for service '{service_key}'")
+
+        # Extract base command (first argument)
+        base_cmd = os.path.basename(cmd_args[0]).lower()
+
+        # Check against whitelist
+        if base_cmd not in self.ALLOWED_COMMANDS:
+            self.logger.log_error(
+                "Security: Unauthorized command blocked",
+                service=service_key,
+                command=base_cmd,
+                allowed=list(self.ALLOWED_COMMANDS)
+            )
+            raise SecurityError(
+                f"Command '{base_cmd}' not in whitelist. "
+                f"Allowed: {', '.join(sorted(self.ALLOWED_COMMANDS))}"
+            )
+
+        # Log approved command
+        self.logger.log_info(
+            f"Command validated for service '{service_key}'",
+            command=base_cmd,
+            args_count=len(cmd_args) - 1
+        )
+
+        return cmd_args
+
+    def _validate_environment_variables(self, env_vars: Dict[str, str], service_key: str) -> Dict[str, str]:
+        """
+        Validate and filter environment variables against whitelist
+
+        Security: Prevents unauthorized environment variable injection
+
+        Args:
+            env_vars: Environment variables from configuration
+            service_key: Service identifier for logging
+
+        Returns:
+            Dictionary of allowed environment variables only
+        """
+        if not env_vars:
+            return {}
+
+        validated_env = {}
+        blocked_vars = []
+
+        for key, value in env_vars.items():
+            if key in self.ALLOWED_ENV_VARS:
+                validated_env[key] = value
+            else:
+                blocked_vars.append(key)
+                self.logger.log_warning(
+                    f"Security: Blocked unauthorized environment variable for service '{service_key}'",
+                    service=service_key,
+                    blocked_var=key
+                )
+
+        if blocked_vars:
+            self.logger.log_info(
+                f"Environment variables filtered for service '{service_key}'",
+                service=service_key,
+                allowed_count=len(validated_env),
+                blocked_count=len(blocked_vars),
+                blocked_vars=blocked_vars
+            )
+
+        return validated_env
 
     def check_port(self, port: int, timeout: int = 30) -> bool:
         """Check if a port is open"""
@@ -164,7 +298,7 @@ class WorkspaceManager:
                 sock.close()
                 if result == 0:
                     return True
-            except:
+            except (socket.error, OSError):
                 pass
             time.sleep(1)
         return False
@@ -203,114 +337,223 @@ class WorkspaceManager:
 
         # Check for Python packages
         try:
-            import flask
+            import flask  # noqa: F401
             checks['Flask'] = True
-        except:
+        except ImportError:
             checks['Flask'] = False
 
         try:
-            import psutil
+            import psutil  # noqa: F401
             checks['psutil'] = True
-        except:
+        except ImportError:
             checks['psutil'] = False
 
         return checks
 
     def start_service(self, service_key: str) -> bool:
-        """Start a specific service"""
+        """Start a specific service with retry logic and enhanced health checking"""
         if service_key not in self.services:
+            self.logger.log_error(f"Service '{service_key}' not found", service=service_key)
             print(f"[ERROR] Service '{service_key}' not found")
             return False
 
         service = self.services[service_key]
+        start_time = time.time()
+
+        # Log service startup attempt
+        self.logger.log_service_start(service_key, service.command, service.directory)
         print(f"[INFO] Starting {service.name}...")
 
         try:
+            # Security: Validate and prepare command
+            cmd_args = self._validate_and_prepare_command(service.command, service_key)
+
+            # Create log files for service output
+            stdout_file, stderr_file = self.logger.create_service_log_file(service_key)
+
             # Setup environment
             env = os.environ.copy()
             if service.environment:
-                env.update(service.environment)
+                # Security: Validate environment variables against whitelist
+                validated_env_vars = self._validate_environment_variables(service.environment, service_key)
+                env.update(validated_env_vars)
 
-            # Start process
+            # Start process with output capture (SECURE: shell=False)
             if sys.platform == 'win32':
                 # Use Windows Terminal for better process management
                 process = subprocess.Popen(
-                    service.command,
-                    shell=True,
+                    cmd_args,
+                    shell=False,  # ✅ Security: Disable shell interpretation
                     cwd=service.directory,
                     env=env,
+                    stdout=open(stdout_file, 'w', encoding='utf-8'),
+                    stderr=open(stderr_file, 'w', encoding='utf-8'),
                     creationflags=subprocess.CREATE_NEW_CONSOLE
                 )
             else:
                 process = subprocess.Popen(
-                    service.command,
-                    shell=True,
+                    cmd_args,
+                    shell=False,  # ✅ Security: Disable shell interpretation
                     cwd=service.directory,
-                    env=env
+                    env=env,
+                    stdout=open(stdout_file, 'w', encoding='utf-8'),
+                    stderr=open(stderr_file, 'w', encoding='utf-8')
                 )
 
             self.active_processes[service_key] = process
 
-            # Wait for port if needed
+            # Wait for health check if configured
             if service.wait_for_port and service.port:
                 print(f"[INFO] Waiting for {service.name} on port {service.port}...")
-                if self.check_port(service.port):
-                    print(f"[OK] {service.name} is ready on port {service.port}")
+
+                # Use smart health checking with exponential backoff
+                health_result = self.health_checker.check_tcp_port_smart(
+                    'localhost',
+                    service.port,
+                    max_wait=30
+                )
+
+                # Log health check result
+                self.logger.log_health_check(
+                    service_key,
+                    health_result.healthy,
+                    health_result.latency_ms,
+                    check_type='tcp'
+                )
+
+                if health_result.healthy:
+                    duration_ms = (time.time() - start_time) * 1000
+                    self.logger.log_service_success(service_key, duration_ms, service.port)
+                    print(f"[OK] {service.name} is ready on port {service.port} ({health_result.latency_ms:.0f}ms)")
 
                     # Open browser if configured
                     if service.auto_open_browser and service.url:
                         time.sleep(2)  # Brief delay for service to fully initialize
                         webbrowser.open(service.url)
                 else:
+                    self.logger.log_warning(
+                        f"{service.name} port {service.port} did not respond in time",
+                        service=service_key,
+                        port=service.port,
+                        error=health_result.error
+                    )
                     print(f"[WARN] {service.name} port {service.port} did not respond in time")
+            else:
+                # No health check configured - consider it successful if process started
+                duration_ms = (time.time() - start_time) * 1000
+                self.logger.log_service_success(service_key, duration_ms)
+                print(f"[OK] {service.name} started")
 
             return True
 
         except Exception as e:
-            print(f"[ERROR] Failed to start {service.name}: {e}")
+            # Security: Log full error details internally
+            self.logger.log_service_failure(service_key, e, attempt=1)
+
+            # Show sanitized error to user (no stack traces or paths)
+            error_type = type(e).__name__
+            print(f"[ERROR] Failed to start {service.name}: {error_type}")
+
+            # Show first line of error only (truncated)
+            error_msg = str(e).split('\n')[0][:100]
+            if error_msg:
+                print(f"[ERROR] Details: {error_msg}")
+
             return False
 
     def start_profile(self, profile_name: str):
-        """Start a workspace profile"""
+        """Start a workspace profile with dependency-aware ordering"""
         if profile_name not in self.profiles:
+            self.logger.log_error(f"Profile '{profile_name}' not found", profile=profile_name)
             print(f"[ERROR] Profile '{profile_name}' not found")
             print(f"Available profiles: {', '.join(self.profiles.keys())}")
             return False
 
         profile = self.profiles[profile_name]
+        all_services = profile.services + profile.projects
+
+        # Log profile startup
+        self.logger.log_profile_start(profile_name, all_services)
+
         print(f"\n{'='*60}")
         print(f"Starting Workspace Profile: {profile.name}")
         print(f"Description: {profile.description}")
+        print(f"Services: {len(all_services)}")
         print(f"{'='*60}\n")
 
         # Set environment variables
         for key, value in profile.environment.items():
             os.environ[key] = value
 
-        # Start services
-        for service in profile.services:
-            self.start_service(service)
-            time.sleep(2)  # Stagger service starts
+        start_time = time.time()
+        success_count = 0
+        total_count = len(all_services)
 
-        # Start projects
-        for project in profile.projects:
-            if project in self.services:
-                self.start_service(project)
+        # Use dependency graph to determine startup order
+        try:
+            startup_tiers = self.dependency_graph.get_startup_order(all_services)
+
+            print(f"[INFO] Starting services in {len(startup_tiers)} tier(s) based on dependencies:\n")
+
+            # Start services tier by tier
+            for tier_num, tier_services in enumerate(startup_tiers, 1):
+                print(f"[INFO] Tier {tier_num}: {', '.join([self.services[s].name for s in tier_services])}")
+
+                # Start all services in this tier
+                for service_key in tier_services:
+                    if self.start_service(service_key):
+                        success_count += 1
+                    time.sleep(2)  # Brief delay between services
+
+                # Wait a bit longer between tiers to ensure dependencies are ready
+                if tier_num < len(startup_tiers):
+                    print(f"[INFO] Tier {tier_num} complete, waiting for next tier...\n")
+                    time.sleep(3)
+
+        except ValueError as e:
+            # Circular dependency or other dependency issue
+            # Security: Log full details internally
+            self.logger.log_error(f"Dependency resolution failed: {e}", profile=profile_name)
+
+            # Show sanitized error to user
+            print("[ERROR] Failed to resolve service dependencies")
+            print("[INFO] Starting services in profile order as fallback...")
+
+            # Fallback to sequential startup
+            for service in all_services:
+                if self.start_service(service):
+                    success_count += 1
                 time.sleep(2)
 
-        print(f"\n[OK] Workspace '{profile.name}' is ready!")
+        # Calculate total duration
+        duration_ms = (time.time() - start_time) * 1000
+
+        # Log profile completion
+        self.logger.log_profile_complete(profile_name, duration_ms, success_count, total_count)
+
+        print(f"\n{'='*60}")
+        print(f"[OK] Workspace '{profile.name}' is ready!")
+        print(f"Services started: {success_count}/{total_count}")
+        print(f"Total time: {duration_ms/1000:.1f}s")
+        print(f"{'='*60}\n")
+
         return True
 
     def stop_all(self):
-        """Stop all active processes"""
+        """Stop all active processes with logging"""
         print("\n[INFO] Stopping all services...")
+        self.logger.log_info("Stopping all services", active_count=len(self.active_processes))
+
         for name, process in self.active_processes.items():
             try:
                 process.terminate()
+                self.logger.log_service_stop(name, graceful=True)
                 print(f"[INFO] Stopped {name}")
-            except:
-                pass
+            except Exception as e:
+                self.logger.log_warning(f"Failed to stop {name}", service=name, error=str(e))
+
         self.active_processes.clear()
+        self.logger.log_info("All services stopped")
 
     def create_wt_layout(self, profile_name: str) -> str:
         """Create Windows Terminal layout configuration"""
@@ -360,6 +603,7 @@ class WorkspaceManager:
 
 def create_launcher_script():
     """Create a Windows batch launcher script"""
+    # Security: Use %USERPROFILE% instead of hardcoded path
     script_content = """@echo off
 REM Workspace Launcher - Quick start for development environment
 
@@ -368,7 +612,7 @@ echo       DEVELOPMENT WORKSPACE LAUNCHER
 echo ========================================
 echo.
 
-cd /d C:\\Users\\Corbin
+cd /d "%USERPROFILE%"
 
 echo Select workspace profile:
 echo.
@@ -392,7 +636,8 @@ if %errorlevel%==6 python Tools\\workspace-launcher\\workspace_manager.py launch
 pause
 """
 
-    launcher_path = Path("C:\\Users\\Corbin\\launch-workspace.bat")
+    # Security: Use Path.home() instead of hardcoded path
+    launcher_path = Path.home() / "launch-workspace.bat"
     launcher_path.write_text(script_content)
     return launcher_path
 
@@ -428,15 +673,17 @@ def main():
                     if 0 <= idx < len(service_keys):
                         manager.start_service(service_keys[idx])
                         time.sleep(2)
-                except:
+                except (ValueError, IndexError):
                     pass
 
         elif args.profile:
             if args.use_wt:
-                # Use Windows Terminal
-                wt_command = manager.create_wt_layout(args.profile)
-                if wt_command:
-                    subprocess.run(wt_command, shell=True)
+                # Security: Windows Terminal layout feature deprecated due to shell=True requirement
+                print("[WARN] Windows Terminal layout feature (--use-wt) is deprecated for security reasons")
+                print("[INFO] Reason: Command construction requires shell=True which poses injection risks")
+                print("[INFO] Alternative: Use standard profile launcher instead")
+                print("[INFO] Launching profile with standard method...\n")
+                manager.start_profile(args.profile)
             else:
                 manager.start_profile(args.profile)
         else:
@@ -460,11 +707,11 @@ def main():
 
 
 if __name__ == '__main__':
-    # Set working directory
-    os.chdir('C:\\Users\\Corbin')
+    # Security: Set working directory to home (platform-independent)
+    os.chdir(str(Path.home()))
 
     # Create launcher script if it doesn't exist
-    launcher = Path("C:\\Users\\Corbin\\launch-workspace.bat")
+    launcher = Path.home() / "launch-workspace.bat"
     if not launcher.exists():
         create_launcher_script()
         print(f"Created launcher script: {launcher}")
