@@ -38,12 +38,119 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
+import time
+import logging
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request as StarletteRequest
+
+# ============================================================================
+# Logging Configuration
+# ============================================================================
+
+# Configure API request logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger("ml_sectest_api")
+
+class RequestLoggingMiddleware(BaseHTTPMiddleware):
+    """
+    Middleware for logging all API requests and responses.
+
+    Logs:
+    - Request method, path, client IP
+    - Response status code
+    - Request duration
+    - Query parameters (if present)
+    """
+
+    async def dispatch(self, request: StarletteRequest, call_next):
+        # Record start time
+        start_time = time.time()
+
+        # Extract request details
+        client_ip = request.client.host if request.client else "unknown"
+        method = request.method
+        path = request.url.path
+        query_params = str(request.query_params) if request.query_params else ""
+
+        # Log incoming request
+        logger.info(
+            f"Request: {method} {path} | Client: {client_ip}" +
+            (f" | Params: {query_params}" if query_params else "")
+        )
+
+        # Process request
+        try:
+            response = await call_next(request)
+
+            # Calculate duration
+            duration = time.time() - start_time
+
+            # Log response
+            logger.info(
+                f"Response: {method} {path} | Status: {response.status_code} | "
+                f"Duration: {duration:.3f}s | Client: {client_ip}"
+            )
+
+            return response
+
+        except Exception as e:
+            # Log errors
+            duration = time.time() - start_time
+            logger.error(
+                f"Error: {method} {path} | Exception: {str(e)} | "
+                f"Duration: {duration:.3f}s | Client: {client_ip}"
+            )
+            raise
+
 # ============================================================================
 # Application Configuration
 # ============================================================================
 
 # Initialize rate limiter
 limiter = Limiter(key_func=get_remote_address)
+
+# OpenAPI tag metadata for better documentation organization
+tags_metadata = [
+    {
+        "name": "General",
+        "description": "General API information and health checks. Use these endpoints to verify API availability and get basic information.",
+    },
+    {
+        "name": "Scanning",
+        "description": """
+        **Security scanning operations.** Create scans, monitor progress, retrieve results.
+
+        Scanning workflow:
+        1. Create scan with `POST /api/v1/scan`
+        2. Monitor status with `GET /api/v1/scan/{scan_id}`
+        3. Retrieve results with `GET /api/v1/scan/{scan_id}/results`
+        4. Download report with `GET /api/v1/scan/{scan_id}/report`
+        """,
+        "externalDocs": {
+            "description": "Scanning Guide",
+            "url": "https://github.com/yourusername/ml-sectest-framework/wiki/Scanning",
+        },
+    },
+    {
+        "name": "Agents",
+        "description": "Agent management and information. List available security testing agents and their capabilities.",
+    },
+    {
+        "name": "Monitoring",
+        "description": """
+        **Monitoring and metrics endpoints.** Prometheus metrics for production monitoring.
+
+        Configure Prometheus to scrape `/metrics` endpoint for operational visibility.
+        """,
+        "externalDocs": {
+            "description": "Prometheus Integration",
+            "url": "https://prometheus.io/docs/introduction/overview/",
+        },
+    },
+]
 
 app = FastAPI(
     title="ML-SecTest API",
@@ -73,6 +180,7 @@ app = FastAPI(
     5. **Model Serialization Agent** - Tests for unsafe deserialization (OWASP ML06)
     6. **Adversarial Attack Agent** - Tests for adversarial examples
     """,
+    openapi_tags=tags_metadata,
     contact={
         "name": "ML-SecTest Team",
         "url": "https://github.com/yourusername/ml-sectest-framework",
@@ -88,13 +196,48 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # CORS middleware for web-based frontends
+# Get allowed origins from environment or use secure defaults
+cors_origins_env = os.getenv("CORS_ALLOWED_ORIGINS", "")
+if cors_origins_env:
+    # Parse comma-separated list from environment variable
+    allowed_origins = [origin.strip() for origin in cors_origins_env.split(",")]
+else:
+    # Secure defaults for production
+    # Development: Set CORS_ALLOWED_ORIGINS="http://localhost:3000,http://localhost:8080"
+    allowed_origins = [
+        "http://localhost:3000",  # Common React dev server
+        "http://localhost:8080",  # Common Vue/Webpack dev server
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:8080"
+    ]
+
+# Only allow credentials if not using wildcard origins (security best practice)
+allow_credentials = "*" not in allowed_origins
+
+# Log CORS configuration for debugging
+logger.info(f"CORS configured with origins: {allowed_origins}")
+logger.info(f"CORS credentials allowed: {allow_credentials}")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure appropriately for production
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=allowed_origins,
+    allow_credentials=allow_credentials,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  # Explicit methods
+    allow_headers=[
+        "Content-Type",
+        "Authorization",
+        "Accept",
+        "Origin",
+        "User-Agent",
+        "DNT",
+        "Cache-Control",
+        "X-Requested-With"
+    ],  # Specific headers instead of wildcard
+    max_age=600,  # Cache preflight requests for 10 minutes
 )
+
+# Request logging middleware
+app.add_middleware(RequestLoggingMiddleware)
 
 # In-memory storage for scan results (replace with Redis/DB in production)
 scan_storage: Dict[str, Dict[str, Any]] = {}
