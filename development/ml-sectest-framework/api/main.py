@@ -25,6 +25,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from core import SecurityOrchestrator
 from utils import ReportGenerator
+from config import get_settings, validate_settings
 
 # Prometheus metrics
 try:
@@ -44,13 +45,32 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request as StarletteRequest
 
 # ============================================================================
+# Configuration
+# ============================================================================
+
+# Load settings (cached singleton)
+settings = get_settings()
+
+# Validate settings at module import
+# This will print configuration summary and raise errors for invalid prod settings
+try:
+    validate_settings()
+except ValueError as e:
+    # In development, log warning; in production, this would crash
+    if settings.ENVIRONMENT != "production":
+        print(f"[WARNING] {e}")
+    else:
+        raise
+
+# ============================================================================
 # Logging Configuration
 # ============================================================================
 
-# Configure API request logging
+# Configure API request logging from settings
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=getattr(logging, settings.LOG_LEVEL),
+    format=settings.LOG_FORMAT,
+    filename=settings.LOG_FILE if settings.LOG_FILE else None
 )
 logger = logging.getLogger("ml_sectest_api")
 
@@ -153,8 +173,8 @@ tags_metadata = [
 ]
 
 app = FastAPI(
-    title="ML-SecTest API",
-    version="1.0.0",
+    title=settings.API_TITLE,
+    version=settings.API_VERSION,
     description="""
     **Automated ML Security Testing Framework API**
 
@@ -169,7 +189,7 @@ app = FastAPI(
     * 🎯 **CTF Challenge Testing**: Test specific security challenges
     * 📊 **Comprehensive Reports**: HTML and JSON output formats
     * ⚡ **Async Execution**: Non-blocking background task processing
-    * 🛡️ **Rate Limiting**: Prevents API abuse (10 scans/minute per IP)
+    * 🛡️ **Rate Limiting**: Prevents API abuse (configurable)
 
     ## Agents
 
@@ -189,40 +209,22 @@ app = FastAPI(
         "name": "MIT",
         "url": "https://opensource.org/licenses/MIT",
     },
+    debug=settings.DEBUG,
 )
 
 # Configure rate limiter
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# CORS middleware for web-based frontends
-# Get allowed origins from environment or use secure defaults
-cors_origins_env = os.getenv("CORS_ALLOWED_ORIGINS", "")
-if cors_origins_env:
-    # Parse comma-separated list from environment variable
-    allowed_origins = [origin.strip() for origin in cors_origins_env.split(",")]
-else:
-    # Secure defaults for production
-    # Development: Set CORS_ALLOWED_ORIGINS="http://localhost:3000,http://localhost:8080"
-    allowed_origins = [
-        "http://localhost:3000",  # Common React dev server
-        "http://localhost:8080",  # Common Vue/Webpack dev server
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:8080"
-    ]
-
-# Only allow credentials if not using wildcard origins (security best practice)
-allow_credentials = "*" not in allowed_origins
-
-# Log CORS configuration for debugging
-logger.info(f"CORS configured with origins: {allowed_origins}")
-logger.info(f"CORS credentials allowed: {allow_credentials}")
+# CORS middleware configuration from settings
+logger.info(f"CORS configured with {len(settings.cors_origins_list)} origins from settings")
+logger.info(f"CORS credentials: {settings.CORS_ALLOW_CREDENTIALS}")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
-    allow_credentials=allow_credentials,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  # Explicit methods
+    allow_origins=settings.cors_origins_list,
+    allow_credentials=settings.CORS_ALLOW_CREDENTIALS,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=[
         "Content-Type",
         "Authorization",
@@ -232,8 +234,8 @@ app.add_middleware(
         "DNT",
         "Cache-Control",
         "X-Requested-With"
-    ],  # Specific headers instead of wildcard
-    max_age=600,  # Cache preflight requests for 10 minutes
+    ],
+    max_age=settings.CORS_MAX_AGE,
 )
 
 # Request logging middleware
