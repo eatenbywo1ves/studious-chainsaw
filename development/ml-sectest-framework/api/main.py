@@ -9,7 +9,7 @@ Version: 1.0.0
 License: MIT
 """
 
-from fastapi import FastAPI, BackgroundTasks, HTTPException, Query, Request
+from fastapi import FastAPI, BackgroundTasks, HTTPException, Query, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel, HttpUrl, Field, validator
@@ -19,6 +19,9 @@ from pathlib import Path
 import uuid
 import sys
 import os
+import csv
+import json
+import io
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -244,6 +247,9 @@ app.add_middleware(RequestLoggingMiddleware)
 # In-memory storage for scan results (replace with Redis/DB in production)
 scan_storage: Dict[str, Dict[str, Any]] = {}
 
+# Batch scan storage
+batch_storage: Dict[str, Dict[str, Any]] = {}
+
 # ============================================================================
 # Pydantic Models (Request/Response Schemas)
 # ============================================================================
@@ -351,6 +357,58 @@ class HealthResponse(BaseModel):
     timestamp: datetime
 
 
+class BatchScanItem(BaseModel):
+    """Single scan item in a batch."""
+
+    target_url: HttpUrl
+    challenge_name: Optional[str] = "custom"
+    agents: Optional[List[str]] = None
+    parallel: bool = False
+    timeout: Optional[int] = 300
+
+
+class BatchScanResponse(BaseModel):
+    """Response model for batch scan initiation."""
+
+    batch_id: str = Field(..., description="Unique batch identifier")
+    status: str = Field(..., description="Batch status")
+    message: str = Field(..., description="Status message")
+    total_scans: int = Field(..., description="Total number of scans in batch")
+    created_at: datetime = Field(..., description="Batch creation timestamp")
+    scan_ids: List[str] = Field(..., description="List of individual scan IDs")
+
+
+class BatchScanStatus(BaseModel):
+    """Status model for batch scans."""
+
+    batch_id: str
+    status: Literal["queued", "running", "completed", "failed", "partial"]
+    total_scans: int
+    completed_scans: int
+    failed_scans: int
+    running_scans: int
+    queued_scans: int
+    progress: int = Field(ge=0, le=100, description="Overall progress percentage")
+    created_at: datetime
+    updated_at: datetime
+    scan_ids: List[str]
+
+
+class BatchScanResult(BaseModel):
+    """Complete batch scan result model."""
+
+    batch_id: str
+    status: str
+    total_scans: int
+    completed_scans: int
+    failed_scans: int
+    created_at: datetime
+    completed_at: Optional[datetime] = None
+    duration_seconds: Optional[float] = None
+    scan_results: List[Dict[str, Any]]
+    summary: Dict[str, Any]
+
+
 # ============================================================================
 # Background Task Functions
 # ============================================================================
@@ -451,6 +509,136 @@ def run_scan_task(
             "error": str(e),
             "updated_at": datetime.now()
         })
+
+
+def parse_csv_file(file_content: bytes) -> List[BatchScanItem]:
+    """
+    Parse CSV file content into list of BatchScanItem objects.
+
+    Expected CSV format:
+    target_url,challenge_name,agents,parallel,timeout
+
+    Args:
+        file_content: Raw bytes of CSV file
+
+    Returns:
+        List of BatchScanItem objects
+
+    Raises:
+        ValueError: If CSV format is invalid
+    """
+    try:
+        # Decode bytes to string
+        csv_text = file_content.decode('utf-8')
+        csv_reader = csv.DictReader(io.StringIO(csv_text))
+
+        scan_items = []
+        for row in csv_reader:
+            # Parse agents (comma-separated string to list)
+            agents = None
+            if 'agents' in row and row['agents']:
+                agents = [a.strip() for a in row['agents'].split(',') if a.strip()]
+
+            scan_item = BatchScanItem(
+                target_url=row['target_url'],
+                challenge_name=row.get('challenge_name', 'custom'),
+                agents=agents,
+                parallel=row.get('parallel', 'false').lower() == 'true',
+                timeout=int(row.get('timeout', 300))
+            )
+            scan_items.append(scan_item)
+
+        return scan_items
+
+    except Exception as e:
+        raise ValueError(f"Invalid CSV format: {str(e)}")
+
+
+def parse_json_file(file_content: bytes) -> List[BatchScanItem]:
+    """
+    Parse JSON file content into list of BatchScanItem objects.
+
+    Expected JSON format:
+    [
+      {
+        "target_url": "http://example.com",
+        "challenge_name": "custom",
+        "agents": ["prompt_injection", "model_inversion"],
+        "parallel": false,
+        "timeout": 300
+      }
+    ]
+
+    Args:
+        file_content: Raw bytes of JSON file
+
+    Returns:
+        List of BatchScanItem objects
+
+    Raises:
+        ValueError: If JSON format is invalid
+    """
+    try:
+        # Decode bytes to string and parse JSON
+        json_text = file_content.decode('utf-8')
+        json_data = json.loads(json_text)
+
+        # Ensure it's a list
+        if not isinstance(json_data, list):
+            raise ValueError("JSON must be an array of scan configurations")
+
+        scan_items = []
+        for item in json_data:
+            scan_item = BatchScanItem(**item)
+            scan_items.append(scan_item)
+
+        return scan_items
+
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Invalid JSON format: {str(e)}")
+    except Exception as e:
+        raise ValueError(f"Invalid JSON structure: {str(e)}")
+
+
+def run_batch_scan_task(batch_id: str, background_tasks: BackgroundTasks):
+    """
+    Background task to process batch scans.
+
+    Args:
+        batch_id: Unique batch identifier
+        background_tasks: FastAPI background task handler
+    """
+    try:
+        batch_storage[batch_id]["status"] = "running"
+        batch_storage[batch_id]["updated_at"] = datetime.now()
+
+        # Queue individual scans
+        scan_ids = batch_storage[batch_id]["scan_ids"]
+
+        for scan_id in scan_ids:
+            if scan_id in scan_storage:
+                scan = scan_storage[scan_id]
+
+                # Queue the scan task
+                background_tasks.add_task(
+                    run_scan_task,
+                    scan_id=scan_id,
+                    target_url=scan["target_url"],
+                    challenge_name=scan["challenge_name"],
+                    agents=scan.get("agents"),
+                    parallel=scan.get("parallel", False),
+                    report_format=scan.get("report_format", "json"),
+                    timeout=scan.get("timeout", 300)
+                )
+
+        # Batch is now running (individual scans are queued)
+        batch_storage[batch_id]["status"] = "running"
+        batch_storage[batch_id]["updated_at"] = datetime.now()
+
+    except Exception as e:
+        batch_storage[batch_id]["status"] = "failed"
+        batch_storage[batch_id]["error"] = str(e)
+        batch_storage[batch_id]["updated_at"] = datetime.now()
 
 
 # ============================================================================
@@ -725,6 +913,280 @@ async def metrics():
     return Response(
         content=generate_latest(),
         media_type=CONTENT_TYPE_LATEST
+    )
+
+
+# ============================================================================
+# Batch Scan Endpoints
+# ============================================================================
+
+@app.post(
+    "/api/v1/batch/scan",
+    response_model=BatchScanResponse,
+    tags=["Batch Scans"],
+    summary="Upload batch scan file",
+    description="Upload CSV or JSON file containing multiple scan configurations"
+)
+async def create_batch_scan(
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(..., description="CSV or JSON file with scan configurations")
+):
+    """
+    Create a batch scan from uploaded file.
+
+    **CSV Format:**
+    ```csv
+    target_url,challenge_name,agents,parallel,timeout
+    http://example.com,custom,"prompt_injection,model_inversion",false,300
+    http://test.com,ctf,"data_poisoning",true,600
+    ```
+
+    **JSON Format:**
+    ```json
+    [
+      {
+        "target_url": "http://example.com",
+        "challenge_name": "custom",
+        "agents": ["prompt_injection", "model_inversion"],
+        "parallel": false,
+        "timeout": 300
+      }
+    ]
+    ```
+
+    Returns:
+        BatchScanResponse with batch ID and scan IDs
+    """
+    # Read file content
+    file_content = await file.read()
+
+    # Determine file type and parse
+    if file.filename.endswith('.csv'):
+        try:
+            scan_items = parse_csv_file(file_content)
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+    elif file.filename.endswith('.json'):
+        try:
+            scan_items = parse_json_file(file_content)
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid file type. Only CSV and JSON files are supported."
+        )
+
+    if not scan_items:
+        raise HTTPException(
+            status_code=400,
+            detail="No valid scan configurations found in file"
+        )
+
+    # Create batch ID
+    batch_id = str(uuid.uuid4())
+    scan_ids = []
+
+    # Create individual scans
+    for item in scan_items:
+        scan_id = str(uuid.uuid4())
+        scan_ids.append(scan_id)
+
+        # Store scan configuration
+        scan_storage[scan_id] = {
+            "scan_id": scan_id,
+            "target_url": str(item.target_url),
+            "challenge_name": item.challenge_name,
+            "agents": item.agents,
+            "parallel": item.parallel,
+            "timeout": item.timeout,
+            "status": "queued",
+            "created_at": datetime.now(),
+            "updated_at": datetime.now(),
+            "report_format": "json"
+        }
+
+    # Create batch record
+    batch_storage[batch_id] = {
+        "batch_id": batch_id,
+        "status": "queued",
+        "total_scans": len(scan_items),
+        "completed_scans": 0,
+        "failed_scans": 0,
+        "running_scans": 0,
+        "queued_scans": len(scan_items),
+        "created_at": datetime.now(),
+        "updated_at": datetime.now(),
+        "scan_ids": scan_ids,
+        "scan_results": []
+    }
+
+    # Queue batch processing
+    background_tasks.add_task(run_batch_scan_task, batch_id, background_tasks)
+
+    return BatchScanResponse(
+        batch_id=batch_id,
+        status="queued",
+        message=f"Batch scan created with {len(scan_items)} scans",
+        total_scans=len(scan_items),
+        created_at=batch_storage[batch_id]["created_at"],
+        scan_ids=scan_ids
+    )
+
+
+@app.get(
+    "/api/v1/batch/{batch_id}",
+    response_model=BatchScanStatus,
+    tags=["Batch Scans"],
+    summary="Get batch scan status",
+    description="Retrieve status information for a batch scan"
+)
+async def get_batch_status(batch_id: str):
+    """
+    Get the current status of a batch scan.
+
+    Returns scan counts, progress percentage, and individual scan IDs.
+    """
+    if batch_id not in batch_storage:
+        raise HTTPException(status_code=404, detail="Batch not found")
+
+    batch = batch_storage[batch_id]
+
+    # Count scan statuses
+    completed = 0
+    failed = 0
+    running = 0
+    queued = 0
+
+    for scan_id in batch["scan_ids"]:
+        if scan_id in scan_storage:
+            status = scan_storage[scan_id]["status"]
+            if status == "completed":
+                completed += 1
+            elif status == "failed":
+                failed += 1
+            elif status == "running":
+                running += 1
+            elif status == "queued":
+                queued += 1
+
+    # Update batch counts
+    batch["completed_scans"] = completed
+    batch["failed_scans"] = failed
+    batch["running_scans"] = running
+    batch["queued_scans"] = queued
+
+    # Calculate progress
+    total = batch["total_scans"]
+    progress = int((completed + failed) / total * 100) if total > 0 else 0
+
+    # Determine overall status
+    if completed + failed == total:
+        batch["status"] = "completed" if failed == 0 else "partial"
+    elif running > 0:
+        batch["status"] = "running"
+    else:
+        batch["status"] = "queued"
+
+    batch["updated_at"] = datetime.now()
+
+    return BatchScanStatus(
+        batch_id=batch_id,
+        status=batch["status"],
+        total_scans=total,
+        completed_scans=completed,
+        failed_scans=failed,
+        running_scans=running,
+        queued_scans=queued,
+        progress=progress,
+        created_at=batch["created_at"],
+        updated_at=batch["updated_at"],
+        scan_ids=batch["scan_ids"]
+    )
+
+
+@app.get(
+    "/api/v1/batch/{batch_id}/results",
+    response_model=BatchScanResult,
+    tags=["Batch Scans"],
+    summary="Get batch scan results",
+    description="Retrieve aggregated results from all scans in a batch"
+)
+async def get_batch_results(batch_id: str):
+    """
+    Get complete results for all scans in a batch.
+
+    Includes individual scan results and aggregated summary statistics.
+    """
+    if batch_id not in batch_storage:
+        raise HTTPException(status_code=404, detail="Batch not found")
+
+    batch = batch_storage[batch_id]
+
+    # Collect results from all scans
+    scan_results = []
+    total_vulnerabilities = 0
+    vulnerability_types = {}
+    severity_counts = {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0}
+
+    for scan_id in batch["scan_ids"]:
+        if scan_id in scan_storage:
+            scan = scan_storage[scan_id]
+            scan_result = {
+                "scan_id": scan_id,
+                "target_url": scan["target_url"],
+                "status": scan["status"],
+                "created_at": scan["created_at"],
+                "updated_at": scan["updated_at"]
+            }
+
+            # Add results if scan completed
+            if scan["status"] == "completed" and "result" in scan:
+                scan_result["result"] = scan["result"]
+
+                # Aggregate vulnerability statistics
+                if "vulnerabilities" in scan["result"]:
+                    vulns = scan["result"]["vulnerabilities"]
+                    total_vulnerabilities += len(vulns)
+
+                    for vuln in vulns:
+                        # Count by type
+                        vuln_type = vuln.get("type", "unknown")
+                        vulnerability_types[vuln_type] = vulnerability_types.get(vuln_type, 0) + 1
+
+                        # Count by severity
+                        severity = vuln.get("severity", "info").lower()
+                        if severity in severity_counts:
+                            severity_counts[severity] += 1
+
+            scan_results.append(scan_result)
+
+    # Calculate duration if completed
+    duration = None
+    completed_at = None
+    if batch["status"] in ["completed", "partial"]:
+        completed_at = batch["updated_at"]
+        duration = (completed_at - batch["created_at"]).total_seconds()
+
+    # Create summary
+    summary = {
+        "total_vulnerabilities": total_vulnerabilities,
+        "vulnerability_types": vulnerability_types,
+        "severity_counts": severity_counts,
+        "success_rate": (batch["completed_scans"] / batch["total_scans"] * 100) if batch["total_scans"] > 0 else 0
+    }
+
+    return BatchScanResult(
+        batch_id=batch_id,
+        status=batch["status"],
+        total_scans=batch["total_scans"],
+        completed_scans=batch["completed_scans"],
+        failed_scans=batch["failed_scans"],
+        created_at=batch["created_at"],
+        completed_at=completed_at,
+        duration_seconds=duration,
+        scan_results=scan_results,
+        summary=summary
     )
 
 
