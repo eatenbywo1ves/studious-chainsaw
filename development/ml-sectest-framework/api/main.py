@@ -9,7 +9,7 @@ Version: 1.0.0
 License: MIT
 """
 
-from fastapi import FastAPI, BackgroundTasks, HTTPException, Query
+from fastapi import FastAPI, BackgroundTasks, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel, HttpUrl, Field, validator
@@ -346,7 +346,8 @@ async def health_check():
 @app.post("/api/v1/scan", response_model=ScanResponse, tags=["Scanning"])
 @limiter.limit("10/minute")
 async def create_scan(
-    request: ScanRequest,
+    scan_request: ScanRequest,
+    request: Request,
     background_tasks: BackgroundTasks
 ):
     """
@@ -375,12 +376,12 @@ async def create_scan(
         "scan_id": scan_id,
         "status": "queued",
         "progress": 0,
-        "target_url": str(request.target_url),
-        "challenge_name": request.challenge_name,
+        "target_url": str(scan_request.target_url),
+        "challenge_name": scan_request.challenge_name,
         "created_at": datetime.now(),
         "updated_at": datetime.now(),
         "agents_completed": 0,
-        "agents_total": 6 if not request.agents else len(request.agents),
+        "agents_total": 6 if not scan_request.agents else len(scan_request.agents),
         "vulnerabilities_found": 0,
         "report_available": False
     }
@@ -389,12 +390,12 @@ async def create_scan(
     background_tasks.add_task(
         run_scan_task,
         scan_id=scan_id,
-        target_url=str(request.target_url),
-        challenge_name=request.challenge_name,
-        agents=request.agents,
-        parallel=request.parallel,
-        report_format=request.report_format,
-        timeout=request.timeout
+        target_url=str(scan_request.target_url),
+        challenge_name=scan_request.challenge_name,
+        agents=scan_request.agents,
+        parallel=scan_request.parallel,
+        report_format=scan_request.report_format,
+        timeout=scan_request.timeout
     )
 
     return ScanResponse(
@@ -402,7 +403,7 @@ async def create_scan(
         status="queued",
         message=f"Scan {scan_id} queued successfully",
         created_at=scan_storage[scan_id]["created_at"],
-        estimated_duration=request.timeout if not request.parallel else request.timeout // 2
+        estimated_duration=scan_request.timeout if not scan_request.parallel else scan_request.timeout // 2
     )
 
 
