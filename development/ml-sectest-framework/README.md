@@ -93,6 +93,50 @@ python ml_sectest.py scan http://localhost:8000
 python ml_sectest.py scan http://target.com --parallel --format json
 ```
 
+### Batch Scanning
+
+Scan multiple targets in one command:
+
+```bash
+# Scan from CSV file
+python ml_sectest.py batch-scan --input targets.csv
+
+# Scan from JSON file  
+python ml_sectest.py batch-scan --input targets.json
+
+# Scan from text file (one URL per line)
+python ml_sectest.py batch-scan --input targets.txt
+
+# Parallel batch execution
+python ml_sectest.py batch-scan --input targets.csv --parallel
+```
+
+**Batch File Formats:**
+
+**CSV Format:**
+```csv
+target_url,challenge_name,difficulty
+http://target1.com,Challenge1,Easy
+http://target2.com,Challenge2,Hard
+```
+
+**JSON Format:**
+```json
+[
+  {"target_url": "http://target1.com", "challenge_name": "Challenge1", "difficulty": "Easy"},
+  {"target_url": "http://target2.com", "challenge_name": "Challenge2", "difficulty": "Hard"}
+]
+```
+
+**Text Format:**
+```
+http://target1.com
+http://target2.com
+http://target3.com
+```
+
+See `examples/batch_targets.{csv,json,txt}` for templates.
+
 ## 🎓 Supported CTF Challenges
 
 Based on [alexdevassy/Machine_Learning_CTF_Challenges](https://github.com/alexdevassy/Machine_Learning_CTF_Challenges):
