@@ -308,3 +308,5 @@ deployment_verify.ps1
 # External Tools and Repositories (Added 2025-10-20)
 # ===========================================
 wayback-url-finder/
+docucode-pipeline/
+backups/
