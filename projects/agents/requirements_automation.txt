@@ -1,0 +1,27 @@
+# Agentic Project Management Automation System
+# Python dependencies for the automation components
+
+# Core async functionality (built-in, but listing for completeness)
+# asyncio - Built-in to Python 3.8+
+
+# Task scheduling
+schedule>=1.1.0
+
+# Redis integration (optional)
+redis>=4.5.0
+
+# Email notifications (built-in smtplib, but these may help)
+# secure-smtplib>=0.1.1  # Optional: enhanced SMTP security
+
+# For the existing agents (if not already installed)
+# These should already be available from the agent implementations
+
+# Optional Windows service support
+# pywin32>=305  # For advanced Windows service integration (optional)
+
+# Development and testing (optional)
+# pytest>=7.0.0
+# pytest-asyncio>=0.21.0
+
+# Note: Most functionality uses Python standard library
+# Only 'schedule' and 'redis' (if enabled) are required external dependencies

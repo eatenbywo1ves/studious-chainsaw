@@ -4,7 +4,7 @@ Security Test Report Generator
 Generates comprehensive HTML and JSON reports from security testing results.
 """
 
-from typing import Dict, Any
+from typing import Dict, Any, Optional, cast
 from datetime import datetime
 import json
 from pathlib import Path
@@ -18,7 +18,7 @@ from core.orchestrator import OrchestrationResult
 class ReportGenerator:
     """
     Generates professional security testing reports.
-    
+
     Features:
     - HTML reports with visualizations
     - JSON exports for programmatic analysis
@@ -32,15 +32,15 @@ class ReportGenerator:
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
     def generate_html_report(
-        self, result: OrchestrationResult, output_filename: str = None
+        self, result: OrchestrationResult, output_filename: Optional[str] = None
     ) -> str:
         """
         Generate HTML security report.
-        
+
         Args:
             result: Orchestration result to report
             output_filename: Custom output filename
-            
+
         Returns:
             Path to generated HTML file
         """
@@ -58,15 +58,15 @@ class ReportGenerator:
         return str(output_path)
 
     def generate_json_report(
-        self, result: OrchestrationResult, output_filename: str = None
+        self, result: OrchestrationResult, output_filename: Optional[str] = None
     ) -> str:
         """
         Generate JSON security report.
-        
+
         Args:
             result: Orchestration result to report
             output_filename: Custom output filename
-            
+
         Returns:
             Path to generated JSON file
         """
@@ -88,7 +88,7 @@ class ReportGenerator:
 
         # Calculate statistics
         total_tests = sum(len(tests) for tests in result.agent_results.values())
-        successful_tests = sum(
+        sum(
             sum(1 for t in tests if t.success)
             for tests in result.agent_results.values()
         )
@@ -109,7 +109,7 @@ class ReportGenerator:
             padding: 0;
             box-sizing: border-box;
         }}
-        
+
         body {{
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             line-height: 1.6;
@@ -117,7 +117,7 @@ class ReportGenerator:
             background: #f5f5f5;
             padding: 20px;
         }}
-        
+
         .container {{
             max-width: 1200px;
             margin: 0 auto;
@@ -126,36 +126,36 @@ class ReportGenerator:
             border-radius: 8px;
             overflow: hidden;
         }}
-        
+
         .header {{
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             padding: 40px;
         }}
-        
+
         .header h1 {{
             font-size: 2.5em;
             margin-bottom: 10px;
         }}
-        
+
         .header .subtitle {{
             font-size: 1.2em;
             opacity: 0.9;
         }}
-        
+
         .summary {{
             padding: 30px 40px;
             background: #f9f9f9;
             border-bottom: 1px solid #e0e0e0;
         }}
-        
+
         .summary-grid {{
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 20px;
             margin-top: 20px;
         }}
-        
+
         .summary-card {{
             background: white;
             padding: 20px;
@@ -163,20 +163,20 @@ class ReportGenerator:
             border-left: 4px solid #667eea;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }}
-        
+
         .summary-card h3 {{
             font-size: 0.9em;
             color: #666;
             text-transform: uppercase;
             margin-bottom: 10px;
         }}
-        
+
         .summary-card .value {{
             font-size: 2em;
             font-weight: bold;
             color: #333;
         }}
-        
+
         .severity-badge {{
             display: inline-block;
             padding: 8px 16px;
@@ -185,35 +185,35 @@ class ReportGenerator:
             text-transform: uppercase;
             font-size: 0.9em;
         }}
-        
+
         .severity-critical {{
             background: #ff4444;
             color: white;
         }}
-        
+
         .severity-vulnerable {{
             background: #ff9800;
             color: white;
         }}
-        
+
         .severity-partially_vulnerable {{
             background: #ffc107;
             color: #333;
         }}
-        
+
         .severity-secure {{
             background: #4caf50;
             color: white;
         }}
-        
+
         .content {{
             padding: 40px;
         }}
-        
+
         .section {{
             margin-bottom: 40px;
         }}
-        
+
         .section h2 {{
             font-size: 1.8em;
             margin-bottom: 20px;
@@ -221,11 +221,11 @@ class ReportGenerator:
             border-bottom: 2px solid #667eea;
             padding-bottom: 10px;
         }}
-        
+
         .vulnerability-list {{
             list-style: none;
         }}
-        
+
         .vulnerability-item {{
             background: #fff3e0;
             border-left: 4px solid #ff9800;
@@ -233,7 +233,7 @@ class ReportGenerator:
             margin-bottom: 10px;
             border-radius: 4px;
         }}
-        
+
         .agent-result {{
             background: #f9f9f9;
             border-radius: 8px;
@@ -241,12 +241,12 @@ class ReportGenerator:
             margin-bottom: 20px;
             border: 1px solid #e0e0e0;
         }}
-        
+
         .agent-result h3 {{
             color: #667eea;
             margin-bottom: 15px;
         }}
-        
+
         .test-result {{
             background: white;
             padding: 15px;
@@ -254,15 +254,15 @@ class ReportGenerator:
             border-radius: 4px;
             border-left: 4px solid #ccc;
         }}
-        
+
         .test-result.success {{
             border-left-color: #4caf50;
         }}
-        
+
         .test-result.failure {{
             border-left-color: #f44336;
         }}
-        
+
         .evidence {{
             background: #f5f5f5;
             padding: 10px;
@@ -271,7 +271,7 @@ class ReportGenerator:
             font-family: 'Courier New', monospace;
             font-size: 0.9em;
         }}
-        
+
         .recommendations {{
             background: #e8f5e9;
             border-left: 4px solid #4caf50;
@@ -279,16 +279,16 @@ class ReportGenerator:
             margin: 15px 0;
             border-radius: 4px;
         }}
-        
+
         .recommendations h4 {{
             color: #2e7d32;
             margin-bottom: 10px;
         }}
-        
+
         .recommendations ul {{
             margin-left: 20px;
         }}
-        
+
         .footer {{
             background: #f5f5f5;
             padding: 20px 40px;
@@ -296,7 +296,7 @@ class ReportGenerator:
             color: #666;
             border-top: 1px solid #e0e0e0;
         }}
-        
+
         .timestamp {{
             color: #999;
             font-size: 0.9em;
@@ -310,7 +310,7 @@ class ReportGenerator:
             <div class="subtitle">{result.plan.challenge_name}</div>
             <div class="timestamp">Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</div>
         </div>
-        
+
         <div class="summary">
             <h2>Executive Summary</h2>
             <div class="summary-grid">
@@ -352,7 +352,7 @@ class ReportGenerator:
                 </div>
             </div>
         </div>
-        
+
         <div class="content">
             <div class="section">
                 <h2>🎯 Target Information</h2>
@@ -362,18 +362,18 @@ class ReportGenerator:
                 <p><strong>OWASP Reference:</strong> {result.plan.owasp_reference}</p>
                 <p><strong>MITRE Reference:</strong> {result.plan.mitre_reference or 'N/A'}</p>
             </div>
-            
+
             <div class="section">
                 <h2>⚠️ Vulnerabilities Detected</h2>
                 {self._generate_vulnerabilities_section(result)}
             </div>
-            
+
             <div class="section">
                 <h2>🔍 Detailed Test Results</h2>
                 {self._generate_detailed_results(result)}
             </div>
         </div>
-        
+
         <div class="footer">
             <p><strong>ML-SecTest Framework</strong> - Automated ML Security Testing</p>
             <p class="timestamp">Report generated on {datetime.now().strftime('%Y-%m-%d at %H:%M:%S')}</p>
@@ -463,8 +463,11 @@ class ReportGenerator:
         }
 
         # Add detailed agent results
+        results_section = cast(Dict[str, Any], report["results"])
+        agent_results_dict = cast(Dict[str, Any], results_section["agent_results"])
+
         for agent_id, tests in result.agent_results.items():
-            report["results"]["agent_results"][agent_id] = [
+            agent_results_dict[agent_id] = [
                 {
                     "test_name": t.test_name,
                     "vulnerability_type": t.vulnerability_type.value,
@@ -487,7 +490,7 @@ class ReportGenerator:
 
     def _get_severity_color(self, status: str) -> str:
         """Get color for severity status."""
-        colors = {
+        colors: Dict[str, str] = {
             "critical": "#ff4444",
             "vulnerable": "#ff9800",
             "partially_vulnerable": "#ffc107",

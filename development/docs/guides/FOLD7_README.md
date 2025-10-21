@@ -52,10 +52,10 @@
 | File | Purpose | Who Needs It |
 |------|---------|--------------|
 | **[IDENTIFY_YOUR_SSH_APP.md](IDENTIFY_YOUR_SSH_APP.md)** | Identify which SSH app you have | Everyone (start here if unsure) |
-| **[fold7_ssh_monitor.py](fold7_ssh_monitor.py)** | Auto-reconnection monitor script | Everyone (runs on PC) |
-| **[fold7_config.json](fold7_config.json)** | Configuration file | Everyone (edit before running) |
+| **[fold7_ssh_monitor.py](../../scripts/deployment/fold7_ssh_monitor.py)** | Auto-reconnection monitor script | Everyone (runs on PC) |
+| **[fold7_config.json](../../fold7_config.json)** | Configuration file | Everyone (edit before running) |
 | **[FOLD7_SSH_SETUP.md](FOLD7_SSH_SETUP.md)** | Termux setup guide | Termux users only |
-| **[setup_termux_ssh_server.sh](setup_termux_ssh_server.sh)** | Termux auto-setup script | Termux users only |
+| **[setup_termux_ssh_server.sh](../../setup_termux_ssh_server.sh)** | Termux auto-setup script | Termux users only |
 | **[setup_xnano_ssh_server.md](setup_xnano_ssh_server.md)** | xnano SSH Server guide | xnano users only |
 
 ---

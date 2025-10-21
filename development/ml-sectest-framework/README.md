@@ -32,9 +32,12 @@ ML-SecTest is a comprehensive, multi-agent security testing framework designed s
 ### Key Features
 
 - **🤖 Multi-Agent Architecture**: Specialized agents for each vulnerability type
+- **🎯 Game-Theoretic Coordination**: Von Neumann Nash equilibrium optimization for agent sequencing
+- **💥 Fusion Attack Chains**: Edward Teller Agent executes multi-stage coordinated attacks
 - **🔍 Comprehensive Coverage**: Tests for 7+ ML/AI attack vectors
 - **📊 Professional Reporting**: HTML and JSON reports with detailed findings
 - **⚡ Parallel Execution**: Optional parallel agent execution for faster assessments
+- **🧠 Bayesian Learning**: Adaptive strategy optimization based on historical performance
 - **🎓 CTF-Ready**: Pre-configured for popular ML CTF challenges
 - **🛡️ Defensive Focus**: Built for security testing and vulnerability research
 
@@ -44,16 +47,20 @@ ML-SecTest is a comprehensive, multi-agent security testing framework designed s
 ml-sectest-framework/
 ├── core/                      # Core framework components
 │   ├── base_agent.py         # Base agent class and data structures
-│   └── orchestrator.py       # Agent orchestration system
+│   ├── orchestrator.py       # Agent orchestration system
+│   └── agent_coordinator.py  # Game-theoretic agent coordination
 ├── agents/                    # Specialized security agents
 │   ├── prompt_injection_agent.py
 │   ├── model_inversion_agent.py
 │   ├── data_poisoning_agent.py
 │   ├── model_extraction_agent.py
 │   ├── model_serialization_agent.py
-│   └── adversarial_attack_agent.py
+│   ├── adversarial_attack_agent.py
+│   └── edward_teller_agent.py    # Fusion chain attack coordinator
 ├── utils/                     # Utility modules
 │   └── report_generator.py   # Report generation system
+├── api/                       # REST API
+│   └── main.py               # FastAPI application
 ├── ml_sectest.py             # Main CLI application
 └── requirements.txt          # Dependencies
 ```
@@ -85,6 +92,50 @@ python ml_sectest.py scan http://localhost:8000
 # Parallel execution with JSON output
 python ml_sectest.py scan http://target.com --parallel --format json
 ```
+
+### Batch Scanning
+
+Scan multiple targets in one command:
+
+```bash
+# Scan from CSV file
+python ml_sectest.py batch-scan --input targets.csv
+
+# Scan from JSON file  
+python ml_sectest.py batch-scan --input targets.json
+
+# Scan from text file (one URL per line)
+python ml_sectest.py batch-scan --input targets.txt
+
+# Parallel batch execution
+python ml_sectest.py batch-scan --input targets.csv --parallel
+```
+
+**Batch File Formats:**
+
+**CSV Format:**
+```csv
+target_url,challenge_name,difficulty
+http://target1.com,Challenge1,Easy
+http://target2.com,Challenge2,Hard
+```
+
+**JSON Format:**
+```json
+[
+  {"target_url": "http://target1.com", "challenge_name": "Challenge1", "difficulty": "Easy"},
+  {"target_url": "http://target2.com", "challenge_name": "Challenge2", "difficulty": "Hard"}
+]
+```
+
+**Text Format:**
+```
+http://target1.com
+http://target2.com
+http://target3.com
+```
+
+See `examples/batch_targets.{csv,json,txt}` for templates.
 
 ## 🎓 Supported CTF Challenges
 
@@ -159,12 +210,105 @@ results = agent.execute(context)
 - Deserialization attacks
 
 ### 6. Adversarial Attack Agent
-**Target**: ML classifiers  
+**Target**: ML classifiers
 **Techniques**:
 - Input perturbation (FGSM-style)
 - Boundary attacks
 - Transfer attacks
 - Evasion techniques
+
+### 7. Edward Teller Agent (Fusion Chain Coordinator)
+**Target**: Complex ML/AI systems requiring multi-stage attacks
+**Vulnerability Type**: Fusion Attack
+
+**Pre-configured Fusion Chains**:
+- **Trinity**: Prompt Injection → Data Poisoning → Model Extraction
+- **Ivy Mike**: Model Inversion → Serialization Exploit → Data Exfiltration
+- **Castle Bravo**: Adversarial Input → Model Confusion → Backdoor Insertion
+- **Tsar Bomba**: Full-spectrum coordinated attack (all agents)
+- **Little Boy**: Rapid two-stage exploitation
+
+**Cascade Amplification**: Each stage amplifies the next attack's effectiveness (1.5x-3.0x multiplier)
+
+**Example**:
+```python
+from agents import EdwardTellerAgent
+from core.base_agent import AgentContext
+
+agent = EdwardTellerAgent()
+context = AgentContext(
+    target_url="http://localhost:8000",
+    challenge_name="Advanced Defense System",
+    difficulty_level="Hard"
+)
+
+# Agent automatically selects optimal fusion chain based on target
+results = agent.execute(context)
+
+# View blast radius analysis
+print(f"Cascade Amplification: {results.metadata['cascade_amplification']}x")
+print(f"Affected Systems: {results.metadata['blast_radius']['affected_systems']}")
+```
+
+## 🎮 Agent Coordinator (Game-Theoretic Optimization)
+
+The Agent Coordinator uses **Von Neumann game theory** to optimize agent execution strategies.
+
+### Coordination Strategies
+
+1. **Nash Equilibrium Optimization**: Finds optimal agent sequences using game-theoretic Nash equilibrium
+2. **Sequential Execution**: Traditional waterfall approach with dependency management
+3. **Parallel Execution**: Concurrent agent execution for independent attacks
+4. **Synergy Chains**: Exploits agent synergies for cascade amplification
+
+### Synergy Matrix
+
+The coordinator maintains a synergy matrix defining amplification effects between agents:
+
+| Agent Pair | Synergy Score | Amplification |
+|------------|---------------|---------------|
+| Prompt Injection → Model Inversion | 2.5 | 150% effectiveness |
+| Model Inversion → Data Poisoning | 2.0 | 100% effectiveness |
+| Data Poisoning → Model Extraction | 2.2 | 120% effectiveness |
+| Adversarial → Model Serialization | 1.8 | 80% effectiveness |
+
+### Bayesian Learning
+
+The coordinator adapts over time using Bayesian updates:
+- Tracks historical attack success rates
+- Updates confidence scores based on observed outcomes
+- Recommends optimal strategies for similar targets
+
+**Example**:
+```python
+from core.agent_coordinator import AgentCoordinator
+from agents import PromptInjectionAgent, ModelInversionAgent
+
+coordinator = AgentCoordinator()
+
+# Register agents
+coordinator.register_agent(PromptInjectionAgent())
+coordinator.register_agent(ModelInversionAgent())
+
+# Create optimal attack plan using Nash equilibrium
+plan = coordinator.create_fusion_chain_plan(
+    strategy="nash",
+    max_chain_length=3,
+    context=context
+)
+
+print(f"Strategy: {plan.strategy}")
+print(f"Agent Sequence: {plan.agent_sequence}")
+print(f"Expected Amplification: {plan.expected_amplification}x")
+
+# Execute coordinated attack
+results = coordinator.execute_coordinated_attack(context, plan)
+
+# View synergy report
+report = coordinator.get_synergy_report()
+print(f"Total Attacks: {report['total_attacks']}")
+print(f"Synergy Activations: {report['synergy_activations']}")
+```
 
 ## 📊 Report Generation
 

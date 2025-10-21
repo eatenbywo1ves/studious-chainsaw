@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { headers } from 'next/headers';
-import { stripe } from '../config/route';
+import { stripe } from '@/lib/stripe';
 import { createWebhookTimer } from '@/lib/webhook-logger';
 import { apiClient } from '@/lib/api-client';
 import { EmailHelpers } from '@/lib/email/email-service';

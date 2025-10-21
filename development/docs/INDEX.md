@@ -12,7 +12,7 @@ This is your starting point for all technical documentation. Choose your path be
 |--------------|-------|
 | Get started in 5 minutes | [Quick Start Guides](#-quick-start-guides) |
 | Understand the system architecture | [Architecture Docs](#-architecture--design) |
-| Deploy to production | [Deployment Guide](./PRODUCTION_DEPLOYMENT_GUIDE.md) |
+| Deploy to production | [Deployment Guide](../saas/PRODUCTION_DEPLOYMENT.md) |
 | Find API documentation | [API Reference](#-reference--api) |
 | Troubleshoot an issue | [Guides & Tutorials](#-guides--tutorials) |
 
@@ -67,7 +67,7 @@ docs/
 **Step-by-step instructions:**
 
 ### Deployment & Infrastructure
-- [Production Deployment Guide](./PRODUCTION_DEPLOYMENT_GUIDE.md)
+- [Production Deployment Guide](../saas/PRODUCTION_DEPLOYMENT.md)
 - [Environment Configuration](./guides/ENV_CONFIGURATION_GUIDE.md)
 - [B-MAD Master Guide](./guides/BMAD_MASTER_GUIDE.md)
 - [Kubernetes Deployment](./guides/ka-lattice-deployment-guide.md)
@@ -108,7 +108,7 @@ docs/
 
 **Everything you need for production:**
 
-- [**Production Deployment Guide**](./PRODUCTION_DEPLOYMENT_GUIDE.md) ⭐ Start here
+- [**Production Deployment Guide**](../saas/PRODUCTION_DEPLOYMENT.md) ⭐ Start here
 - [Deployment Checklist](./deployment/PRODUCTION_READINESS_CHECKLIST.md)
 - [B-MAD Deployment Guide](./deployment/BMAD_DEPLOYMENT_GUIDE.md)
 - [Database Migrations](./deployment/DATABASE_MIGRATIONS.md)
@@ -179,7 +179,7 @@ docs/
 | **Ghidra** | [GhidraGo Quick Start](./quickstart/ghidrago-5min.md), [GhidraGo Spec](./specifications/GHIDRAGO_SPECIFICATION.md), [Extensions](./specifications/GHIDRA_EXTENSIONS_SUMMARY.md) |
 | **Security** | [Security Tools](./quickstart/security-tools-5min.md), [Defense Strategy](./specifications/WIZ_ZERODAY_CLOUD_2025_DEFENSE_STRATEGY.md), [D3FEND Architecture](./specifications/DEFENSIVE_SECURITY_AGENT_ARCHITECTURE.md) |
 | **Monitoring** | [Monitoring Overview](./monitoring/README.md), [Dashboards](./monitoring/dashboard_guide.md), [Runbooks](./monitoring/runbooks/) |
-| **Deployment** | [Production Guide](./PRODUCTION_DEPLOYMENT_GUIDE.md), [B-MAD Deployment](./deployment/BMAD_DEPLOYMENT_GUIDE.md), [Rollback](./deployment/ROLLBACK_PROCEDURES.md) |
+| **Deployment** | [Production Guide](../saas/PRODUCTION_DEPLOYMENT.md), [B-MAD Deployment](./deployment/BMAD_DEPLOYMENT_GUIDE.md), [Rollback](./deployment/ROLLBACK_PROCEDURES.md) |
 
 ---
 
@@ -210,7 +210,7 @@ docs/
 
 ## 🎯 Quick Links (Most Used)
 
-1. [Production Deployment Guide](./PRODUCTION_DEPLOYMENT_GUIDE.md) ⭐
+1. [Production Deployment Guide](../saas/PRODUCTION_DEPLOYMENT.md) ⭐
 2. [Redis Pool Optimization](./guides/REDIS_POOL_OPTIMIZATION_GUIDE.md)
 3. [API Documentation](./api/README.md)
 4. [Monitoring Dashboard Guide](./monitoring/dashboard_guide.md)

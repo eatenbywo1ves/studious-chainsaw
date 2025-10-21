@@ -9,7 +9,7 @@ References:
 - MITRE AML.T0020: Poison Training Data
 """
 
-from typing import Dict, Any
+from typing import Dict, Any, List
 import requests
 import random
 import string
@@ -26,7 +26,7 @@ from core.base_agent import (
 class DataPoisoningAgent(BaseSecurityAgent):
     """
     Agent specialized in data poisoning attacks.
-    
+
     Techniques:
     1. Label flipping: Injecting mislabeled data
     2. Backdoor insertion: Planting triggers in training data
@@ -34,14 +34,14 @@ class DataPoisoningAgent(BaseSecurityAgent):
     4. Availability poisoning: Degrading model performance
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             agent_id="data_poisoning_001",
             name="Data Poisoning Specialist",
             description="Detects data poisoning vulnerabilities in ML training pipelines"
         )
 
-        self.poison_samples = []
+        self.poison_samples: List[Dict[str, Any]] = []
 
     def _get_vulnerability_type(self) -> VulnerabilityType:
         """Return data poisoning vulnerability type."""
@@ -50,7 +50,7 @@ class DataPoisoningAgent(BaseSecurityAgent):
     def analyze(self, context: AgentContext) -> TestResult:
         """
         Analyze system for data poisoning vulnerabilities.
-        
+
         Checks:
         1. User data submission capability
         2. Input validation presence
@@ -112,7 +112,7 @@ class DataPoisoningAgent(BaseSecurityAgent):
     def exploit(self, context: AgentContext, test_result: TestResult) -> TestResult:
         """
         Attempt data poisoning attack.
-        
+
         Strategies:
         1. Submit malicious training samples
         2. Flip labels on existing data
@@ -187,7 +187,7 @@ class DataPoisoningAgent(BaseSecurityAgent):
                     # If we get anything other than 404, endpoint exists
                     if response.status_code != 404:
                         return True
-                except:
+                except Exception:
                     continue
 
             # Also test base URL with submission data
@@ -207,7 +207,7 @@ class DataPoisoningAgent(BaseSecurityAgent):
     def _test_input_validation(self, target_url: str) -> float:
         """
         Test strength of input validation.
-        
+
         Returns:
             Score from 0 (no validation) to 1 (strong validation)
         """
@@ -240,7 +240,7 @@ class DataPoisoningAgent(BaseSecurityAgent):
                 elif "error" in response.text.lower() or "invalid" in response.text.lower():
                     rejected_count += 1
 
-            except:
+            except Exception:
                 rejected_count += 1  # Assume rejection if error
 
         validation_score = rejected_count / total_tests

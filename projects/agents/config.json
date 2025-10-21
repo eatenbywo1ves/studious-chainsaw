@@ -1,0 +1,105 @@
+{
+  "system": {
+    "name": "Agentic Project Management System",
+    "version": "1.0.0",
+    "workspace_root": "C:/Users/Corbin",
+    "reports_dir": "C:/Users/Corbin/daily-briefings",
+    "logs_dir": "C:/Users/Corbin/projects/agents/logs"
+  },
+  
+  "agents": {
+    "strategic_planner": {
+      "enabled": true,
+      "scan_interval": 300,
+      "roadmap_files": [
+        "C:/Users/Corbin/MASTER_IMPLEMENTATION_PLAN.md",
+        "C:/Users/Corbin/development/PLUGIN_ROADMAP_2025.md",
+        "C:/Users/Corbin/development/DIRECTORY_ORGANIZATION_ROADMAP.md",
+        "C:/Users/Corbin/development/docs/specifications/FRAMEWORK_CAPABILITY_ASSESSMENT.md"
+      ]
+    },
+    
+    "log_analyzer": {
+      "enabled": true,
+      "analysis_interval": 300,
+      "max_lines_per_file": 10000,
+      "error_spike_threshold": 0.15,
+      "log_files": [
+        "C:/Users/Corbin/development/monitoring/monitoring.log",
+        "C:/Users/Corbin/development/monitoring/logs/alerts.log",
+        "C:/Users/Corbin/development/logs/centralized/archives/2025-09-21-SYS-INITIALIZER.log"
+      ]
+    },
+    
+    "progress_tracker": {
+      "enabled": true,
+      "tracking_interval": 3600,
+      "core_projects": {
+        "ML Security Framework": "C:/Users/Corbin/development/ml-sectest-framework",
+        "GhidraGo Tools": "C:/Users/Corbin/development/GhidraGo",
+        "Financial Modeling": "C:/Users/Corbin/projects/financial-apps",
+        "Multi-Agent System": "C:/Users/Corbin/projects/agents"
+      },
+      "baseline_metrics": {
+        "feature_doc_ratio": 0.73,
+        "organization_score": 6.5,
+        "active_projects": 10,
+        "directory_count": 65
+      },
+      "target_metrics": {
+        "feature_doc_ratio": 3.0,
+        "organization_score": 9.5,
+        "active_projects": 4,
+        "directory_count": 45
+      }
+    }
+  },
+  
+  "orchestrator": {
+    "health_check_interval": 60,
+    "auto_restart_on_failure": true,
+    "max_restarts": 5
+  },
+  
+  "scheduler": {
+    "daily_briefing_time": "09:00",
+    "enabled": true,
+    "save_reports": true
+  },
+  
+  "notification": {
+    "notifications_dir": "C:/Users/Corbin/notifications",
+    "file_notifications_enabled": true,
+    "email_enabled": false,
+    "smtp_server": "smtp.gmail.com",
+    "smtp_port": 587,
+    "smtp_username": "",
+    "smtp_password": "",
+    "from_email": "",
+    "to_emails": [],
+    "alert_on_anomalies": true,
+    "alert_on_blockers": true,
+    "alert_on_agent_errors": true
+  },
+  
+  "redis": {
+    "enabled": false,
+    "host": "localhost",
+    "port": 6379,
+    "db": 0,
+    "channels": {
+      "roadmap_updates": "roadmap-updates",
+      "project_status": "project-status",
+      "log_alerts": "log-alerts",
+      "metrics_feed": "metrics-feed",
+      "agent_coordination": "agent-coordination"
+    }
+  },
+  
+  "thresholds": {
+    "error_rate_alert": 0.15,
+    "blocker_alert": true,
+    "agent_offline_minutes": 10,
+    "feature_doc_ratio_warning": 1.0
+  }
+}

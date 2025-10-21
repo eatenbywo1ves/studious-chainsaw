@@ -9,8 +9,8 @@ import re
 import sys
 import os
 from pathlib import Path
-from typing import Dict, List, Tuple
-from dataclasses import dataclass, field
+from typing import List
+from dataclasses import dataclass
 from collections import defaultdict
 
 # Fix Windows console encoding
@@ -18,7 +18,7 @@ if sys.platform == 'win32':
     os.system('chcp 65001 >nul 2>&1')
     try:
         sys.stdout.reconfigure(encoding='utf-8')
-    except:
+    except (AttributeError, OSError):
         pass
 
 @dataclass
@@ -211,13 +211,13 @@ def print_report(links: List[BrokenLink]):
     """Print detailed analysis report"""
 
     # Filter to only active docs
-    active_links = [l for l in links if l.is_active]
+    active_links = [link for link in links if link.is_active]
 
     print("\n" + "="*80)
     print("📊 ACTIVE DOCUMENTATION BROKEN LINKS ANALYSIS")
     print("="*80)
 
-    print(f"\n📈 Summary:")
+    print("\n📈 Summary:")
     print(f"  Total broken links: {len(links)}")
     print(f"  Active docs: {len(active_links)}")
     print(f"  Archived docs: {len(links) - len(active_links)}")
@@ -227,7 +227,7 @@ def print_report(links: List[BrokenLink]):
     for link in active_links:
         by_fix_type[link.fix_type].append(link)
 
-    print(f"\n🔧 By Fix Difficulty:")
+    print("\n🔧 By Fix Difficulty:")
     print(f"  Easy:   {len(by_fix_type['easy'])} links")
     print(f"  Medium: {len(by_fix_type['medium'])} links")
     print(f"  Hard:   {len(by_fix_type['hard'])} links")
@@ -237,7 +237,7 @@ def print_report(links: List[BrokenLink]):
     for link in active_links:
         by_priority[link.priority].append(link)
 
-    print(f"\n⚡ By Priority:")
+    print("\n⚡ By Priority:")
     print(f"  High:   {len(by_priority['high'])} links")
     print(f"  Medium: {len(by_priority['medium'])} links")
     print(f"  Low:    {len(by_priority['low'])} links")
@@ -255,17 +255,17 @@ def print_report(links: List[BrokenLink]):
     # Sort by priority (high first)
     priority_order = {'high': 0, 'medium': 1, 'low': 2}
     sorted_files = sorted(by_file.keys(),
-                         key=lambda f: min(priority_order[l.priority] for l in by_file[f]))
+                         key=lambda f: min(priority_order[link.priority] for link in by_file[f]))
 
     for source_file in sorted_files:
         file_links = by_file[source_file]
-        max_priority = min(file_links, key=lambda l: priority_order[l.priority]).priority
+        max_priority = min(file_links, key=lambda link: priority_order[link.priority]).priority
 
         print(f"\n📄 {source_file}")
         print(f"   Priority: {max_priority.upper()} | Links: {len(file_links)}")
         print("-" * 80)
 
-        for link in sorted(file_links, key=lambda l: l.line_number):
+        for link in sorted(file_links, key=lambda link: link.line_number):
             print(f"\n  Line {link.line_number}: [{link.link_text}]({link.target_path})")
             print(f"  ├─ Fix Type: {link.fix_type.upper()}")
             print(f"  ├─ Priority: {link.priority.upper()}")
@@ -277,7 +277,7 @@ def print_report(links: List[BrokenLink]):
     print("="*80)
 
     print("\n### Phase 1: High Priority Easy Fixes (Do First)")
-    high_easy = [l for l in active_links if l.priority == 'high' and l.fix_type == 'easy']
+    high_easy = [link for link in active_links if link.priority == 'high' and link.fix_type == 'easy']
     if high_easy:
         for link in high_easy:
             print(f"\n  [ ] {link.source_file}:{link.line_number}")
@@ -286,7 +286,7 @@ def print_report(links: List[BrokenLink]):
         print("  ✅ None!")
 
     print("\n### Phase 2: High Priority Medium Fixes")
-    high_medium = [l for l in active_links if l.priority == 'high' and l.fix_type == 'medium']
+    high_medium = [link for link in active_links if link.priority == 'high' and link.fix_type == 'medium']
     if high_medium:
         for link in high_medium:
             print(f"\n  [ ] {link.source_file}:{link.line_number}")
@@ -295,7 +295,7 @@ def print_report(links: List[BrokenLink]):
         print("  ✅ None!")
 
     print("\n### Phase 3: Medium Priority Fixes")
-    medium = [l for l in active_links if l.priority == 'medium']
+    medium = [link for link in active_links if link.priority == 'medium']
     if medium:
         print(f"  {len(medium)} fixes needed:")
         for link in medium[:5]:  # Show first 5
@@ -307,7 +307,7 @@ def print_report(links: List[BrokenLink]):
         print("  ✅ None!")
 
     print("\n### Phase 4: Low Priority / Cleanup")
-    low = [l for l in active_links if l.priority == 'low']
+    low = [link for link in active_links if link.priority == 'low']
     if low:
         print(f"  {len(low)} fixes (templates, examples, optional links)")
     else:

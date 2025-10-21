@@ -418,10 +418,10 @@ curl http://localhost:8000/health
 ## 📚 Related Documentation
 
 - **Environment Configuration Guide:** [ENV_CONFIGURATION_GUIDE.md](../guides/ENV_CONFIGURATION_GUIDE.md)
-- **Deployment Guide:** [PRODUCTION_DEPLOYMENT_GUIDE.md](../PRODUCTION_DEPLOYMENT_GUIDE.md)
+- **Deployment Guide:** [PRODUCTION_DEPLOYMENT_GUIDE.md](../saas/PRODUCTION_DEPLOYMENT.md)
 - **Environment Variables (Deployment):** [ENVIRONMENT_VARIABLES.md](../deployment/ENVIRONMENT_VARIABLES.md)
 - **SaaS Architecture:** [saas-architecture.md](../architecture/saas-architecture.md)
 
 ---
 
-**Navigation:** [← Index](../INDEX.md) | [Deployment Guide →](../PRODUCTION_DEPLOYMENT_GUIDE.md)
+**Navigation:** [← Index](../INDEX.md) | [Deployment Guide →](../saas/PRODUCTION_DEPLOYMENT.md)

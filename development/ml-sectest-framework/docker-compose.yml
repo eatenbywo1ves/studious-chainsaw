@@ -1,49 +1,162 @@
+# ============================================================================
+# ML-SecTest Framework - Docker Compose Configuration
+# ============================================================================
+# Local development and testing environment with security scanning
+# ============================================================================
+
 version: '3.8'
 
 services:
+  # ====================================
   # ML-SecTest Agent Framework
+  # ====================================
   ml-sectest:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        - VERSION=1.0.0
     image: ml-sectest:latest
     container_name: ml-sectest-agent
+
+    # Volume mounts
     volumes:
       - ./reports:/app/reports
       - ./config:/app/config:ro
       - ./logs:/app/logs
+
+    # Environment configuration
     environment:
       - ENVIRONMENT=development
       - LOG_LEVEL=INFO
       - PYTHONIOENCODING=UTF-8
+      - ML_SECTEST_VERSION=1.0.0
+
+    # Security configuration
+    security_opt:
+      - no-new-privileges:true
+    read_only: false  # Need write access for reports/logs
+
+    # Resource limits (prevent DoS)
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
     networks:
       - sectest-network
+
     restart: unless-stopped
     command: list-challenges
-    
-  # Mock target server for testing (nginx)
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; from core import SecurityOrchestrator; sys.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # ====================================
+  # Mock Target Server for Testing
+  # ====================================
   test-target:
-    image: nginx:alpine
+    image: nginx:1.25-alpine
     container_name: ml-sectest-target
+
     ports:
       - "8000:80"
+
     volumes:
       - ./tests/mock-server:/usr/share/nginx/html:ro
+
     networks:
       - sectest-network
+
+    # Security configuration
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx
+      - /var/run
+
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost"]
       interval: 10s
       timeout: 5s
       retries: 3
+      start_period: 5s
 
+    restart: unless-stopped
+
+  # ====================================
+  # Trivy Security Scanner (Optional)
+  # ====================================
+  # Uncomment to enable automated security scanning
+  # trivy:
+  #   image: aquasec/trivy:latest
+  #   container_name: ml-sectest-scanner
+  #   command: image --severity HIGH,CRITICAL ml-sectest:latest
+  #   volumes:
+  #     - /var/run/docker.sock:/var/run/docker.sock:ro
+  #     - ./security-reports:/reports
+  #   networks:
+  #     - sectest-network
+  #   profiles:
+  #     - security-scan
+
+# ====================================
+# Network Configuration
+# ====================================
 networks:
   sectest-network:
     driver: bridge
     ipam:
       config:
         - subnet: 172.20.0.0/16
+          gateway: 172.20.0.1
+    driver_opts:
+      com.docker.network.bridge.name: br-sectest
+      com.docker.network.bridge.enable_icc: "true"
+      com.docker.network.bridge.enable_ip_masquerade: "true"
 
+# ====================================
+# Named Volumes
+# ====================================
 volumes:
   reports:
+    driver: local
   logs:
+    driver: local
+
+# ============================================================================
+# Usage Instructions:
+# ============================================================================
+#
+# Start all services:
+#   docker-compose up -d
+#
+# View logs:
+#   docker-compose logs -f ml-sectest
+#
+# Run a specific challenge:
+#   docker-compose run --rm ml-sectest test-challenge vault --url http://test-target
+#
+# Run custom scan:
+#   docker-compose run --rm ml-sectest scan http://test-target --format json
+#
+# Stop all services:
+#   docker-compose down
+#
+# Rebuild after code changes:
+#   docker-compose build --no-cache
+#
+# Run security scan (requires trivy service enabled):
+#   docker-compose --profile security-scan up trivy
+#
+# ============================================================================

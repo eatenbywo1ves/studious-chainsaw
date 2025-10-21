@@ -1,0 +1,17 @@
+{
+  "id": "dff9b9c4-1e6f-45e1-8d78-1e9d335f3d08",
+  "name": "Owner Dashboard",
+  "description": "Owned dashboard",
+  "tenant_id": "test-tenant-001",
+  "owner_id": "user-admin-001",
+  "layout": "grid",
+  "theme": "default",
+  "background_color": "#ffffff",
+  "widgets": [],
+  "is_public": false,
+  "shared_users": [],
+  "shared_roles": [],
+  "tags": [],
+  "created_at": "2025-10-12T00:01:30.784036",
+  "updated_at": "2025-10-12T00:01:30.784041"
+}

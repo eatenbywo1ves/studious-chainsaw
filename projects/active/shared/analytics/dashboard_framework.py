@@ -17,7 +17,7 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
 import aiofiles
@@ -25,6 +25,8 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from fastapi import WebSocket
+
+from security.rbac import RBACManager, ResourceType, Action
 
 
 class WidgetType(Enum):
@@ -166,7 +168,7 @@ class Dashboard:
 class DashboardFramework:
     """Custom dashboard framework with real-time capabilities"""
 
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: Dict[str, Any], enable_rbac: bool = True):
         self.config = config
         self.dashboards: Dict[str, Dashboard] = {}
         self.active_connections: Dict[str, List[WebSocket]] = {}
@@ -179,6 +181,10 @@ class DashboardFramework:
 
         # Widget templates
         self.widget_templates = self._create_widget_templates()
+
+        # RBAC integration
+        self.enable_rbac = enable_rbac
+        self.rbac_manager = RBACManager() if enable_rbac else None
 
         self.logger = logging.getLogger(__name__)
 
@@ -308,10 +314,121 @@ class DashboardFramework:
 
         return templates
 
-    async def create_dashboard(self, dashboard_config: Dict[str, Any]) -> Dashboard:
-        """Create a new dashboard"""
+    async def _check_dashboard_permission(
+        self,
+        user_id: str,
+        dashboard: Dashboard,
+        action: Action,
+        tenant_id: Optional[str] = None,
+    ) -> bool:
+        """
+        Check if user has permission to perform action on dashboard.
+
+        Args:
+            user_id: ID of the user requesting access
+            dashboard: Dashboard object being accessed
+            action: Action being performed (CREATE, READ, UPDATE, DELETE, MANAGE)
+            tenant_id: Optional tenant context
+
+        Returns:
+            bool: True if user has permission, False otherwise
+
+        Raises:
+            PermissionError: If RBAC is enabled and user lacks permission
+        """
+        if not self.enable_rbac or not self.rbac_manager:
+            # RBAC disabled, allow all operations
+            return True
+
+        # Prepare context for permission check
+        context = {
+            "user_id": user_id,
+            "resource_owner": dashboard.owner_id,
+            "resource_tenant_id": dashboard.tenant_id,
+            "user_tenant_id": tenant_id or dashboard.tenant_id,
+        }
+
+        # Special handling for DELETE - owner-only requirement
+        if action == Action.DELETE:
+            if dashboard.owner_id != user_id:
+                self.logger.warning(
+                    f"User {user_id} attempted to delete dashboard {dashboard.id} "
+                    f"owned by {dashboard.owner_id}"
+                )
+                raise PermissionError(
+                    "Only the dashboard owner can delete this dashboard"
+                )
+
+        # Check if user is in shared_users (for READ/UPDATE operations)
+        if user_id in dashboard.shared_users:
+            if action in [Action.READ, Action.UPDATE]:
+                self.logger.info(
+                    f"User {user_id} accessing shared dashboard {dashboard.id}"
+                )
+                return True
+
+        # Check role-based permissions via RBAC manager
+        decision = await self.rbac_manager.check_access(
+            user_id=user_id,
+            resource_type=ResourceType.DASHBOARD,
+            resource_id=dashboard.id,
+            action=action,
+            tenant_id=tenant_id or dashboard.tenant_id,
+            context=context,
+        )
+
+        if not decision.allowed:
+            self.logger.warning(
+                f"Access denied for user {user_id} on dashboard {dashboard.id}: "
+                f"{decision.reason}"
+            )
+            raise PermissionError(
+                f"Access denied: {decision.reason}"
+            )
+
+        self.logger.info(
+            f"Access granted for user {user_id} on dashboard {dashboard.id}: "
+            f"{decision.reason}"
+        )
+        return True
+
+    async def create_dashboard(self, dashboard_config: Dict[str, Any], user_id: Optional[str] = None) -> Dashboard:
+        """
+        Create a new dashboard.
+
+        Args:
+            dashboard_config: Dashboard configuration dictionary
+            user_id: ID of user creating the dashboard (required if RBAC enabled)
+
+        Returns:
+            Dashboard: Created dashboard object
+
+        Raises:
+            PermissionError: If user lacks CREATE permission
+        """
         dashboard = Dashboard(**dashboard_config)
         dashboard.updated_at = datetime.utcnow()
+
+        # Check CREATE permission if RBAC enabled
+        if self.enable_rbac and user_id:
+            # For creation, check against a placeholder dashboard
+            decision = await self.rbac_manager.check_access(
+                user_id=user_id,
+                resource_type=ResourceType.DASHBOARD,
+                resource_id="*",
+                action=Action.CREATE,
+                tenant_id=dashboard.tenant_id,
+            )
+
+            if not decision.allowed:
+                self.logger.warning(
+                    f"User {user_id} denied dashboard creation: {decision.reason}"
+                )
+                raise PermissionError(f"Access denied: {decision.reason}")
+
+            self.logger.info(
+                f"User {user_id} granted dashboard creation: {decision.reason}"
+            )
 
         self.dashboards[dashboard.id] = dashboard
 
@@ -322,13 +439,36 @@ class DashboardFramework:
         return dashboard
 
     async def update_dashboard(
-        self, dashboard_id: str, updates: Dict[str, Any]
+        self, dashboard_id: str, updates: Dict[str, Any], user_id: Optional[str] = None
     ) -> Dashboard:
-        """Update existing dashboard"""
+        """
+        Update existing dashboard.
+
+        Args:
+            dashboard_id: ID of dashboard to update
+            updates: Dictionary of fields to update
+            user_id: ID of user performing update (required if RBAC enabled)
+
+        Returns:
+            Dashboard: Updated dashboard object
+
+        Raises:
+            ValueError: If dashboard not found
+            PermissionError: If user lacks UPDATE permission
+        """
         if dashboard_id not in self.dashboards:
             raise ValueError(f"Dashboard not found: {dashboard_id}")
 
         dashboard = self.dashboards[dashboard_id]
+
+        # Check UPDATE permission if RBAC enabled
+        if self.enable_rbac and user_id:
+            await self._check_dashboard_permission(
+                user_id=user_id,
+                dashboard=dashboard,
+                action=Action.UPDATE,
+                tenant_id=dashboard.tenant_id,
+            )
 
         # Apply updates
         for key, value in updates.items():
@@ -346,16 +486,40 @@ class DashboardFramework:
         return dashboard
 
     async def delete_dashboard(self, dashboard_id: str, user_id: str) -> bool:
-        """Delete dashboard"""
+        """
+        Delete dashboard (owner-only operation).
+
+        Args:
+            dashboard_id: ID of dashboard to delete
+            user_id: ID of user performing deletion (must be owner)
+
+        Returns:
+            bool: True if deletion successful
+
+        Raises:
+            ValueError: If dashboard not found
+            PermissionError: If user is not the dashboard owner
+        """
         if dashboard_id not in self.dashboards:
             raise ValueError(f"Dashboard not found: {dashboard_id}")
 
         dashboard = self.dashboards[dashboard_id]
 
-        # Check permissions (owner or admin)
-        if dashboard.owner_id != user_id:
-            # TODO: Add role-based permission check
-            pass
+        # Check DELETE permission - strict owner-only requirement
+        if self.enable_rbac and user_id:
+            await self._check_dashboard_permission(
+                user_id=user_id,
+                dashboard=dashboard,
+                action=Action.DELETE,
+                tenant_id=dashboard.tenant_id,
+            )
+        elif dashboard.owner_id != user_id:
+            # Even without RBAC, enforce owner-only deletion
+            self.logger.warning(
+                f"User {user_id} attempted to delete dashboard {dashboard_id} "
+                f"owned by {dashboard.owner_id}"
+            )
+            raise PermissionError("Only the dashboard owner can delete this dashboard")
 
         # Remove from memory
         del self.dashboards[dashboard_id]
@@ -367,7 +531,20 @@ class DashboardFramework:
         return True
 
     async def get_dashboard(self, dashboard_id: str, user_id: str = None) -> Dashboard:
-        """Get dashboard by ID"""
+        """
+        Get dashboard by ID with permission check.
+
+        Args:
+            dashboard_id: ID of dashboard to retrieve
+            user_id: ID of user requesting dashboard (required if RBAC enabled)
+
+        Returns:
+            Dashboard: Retrieved dashboard object
+
+        Raises:
+            ValueError: If dashboard not found
+            PermissionError: If user lacks READ permission
+        """
         if dashboard_id not in self.dashboards:
             # Try to load from persistent storage
             await self._load_dashboard(dashboard_id)
@@ -377,8 +554,18 @@ class DashboardFramework:
 
         dashboard = self.dashboards[dashboard_id]
 
-        # Check access permissions
-        if not self._check_dashboard_access(dashboard, user_id):
+        # Check READ permission if RBAC enabled
+        if self.enable_rbac and user_id:
+            # Public dashboards are readable by everyone
+            if not dashboard.is_public:
+                await self._check_dashboard_permission(
+                    user_id=user_id,
+                    dashboard=dashboard,
+                    action=Action.READ,
+                    tenant_id=dashboard.tenant_id,
+                )
+        elif not self._check_dashboard_access(dashboard, user_id):
+            # Fallback to basic access check if RBAC disabled
             raise PermissionError("Access denied to dashboard")
 
         return dashboard
@@ -386,7 +573,16 @@ class DashboardFramework:
     def _check_dashboard_access(
         self, dashboard: Dashboard, user_id: str = None
     ) -> bool:
-        """Check if user has access to dashboard"""
+        """
+        Legacy access check method (used when RBAC is disabled).
+
+        Args:
+            dashboard: Dashboard to check access for
+            user_id: User requesting access
+
+        Returns:
+            bool: True if user has access, False otherwise
+        """
         if dashboard.is_public:
             return True
 
@@ -399,17 +595,38 @@ class DashboardFramework:
         if user_id in dashboard.shared_users:
             return True
 
-        # TODO: Add role-based access check
-
         return False
 
     async def add_widget(
-        self, dashboard_id: str, widget_config: Dict[str, Any]
+        self, dashboard_id: str, widget_config: Dict[str, Any], user_id: Optional[str] = None
     ) -> WidgetConfig:
-        """Add widget to dashboard"""
+        """
+        Add widget to dashboard.
+
+        Args:
+            dashboard_id: ID of dashboard to add widget to
+            widget_config: Widget configuration dictionary
+            user_id: ID of user adding widget (required if RBAC enabled)
+
+        Returns:
+            WidgetConfig: Added widget configuration
+
+        Raises:
+            ValueError: If dashboard not found
+            PermissionError: If user lacks UPDATE permission
+        """
         dashboard = self.dashboards.get(dashboard_id)
         if not dashboard:
             raise ValueError(f"Dashboard not found: {dashboard_id}")
+
+        # Check UPDATE permission (adding widget modifies dashboard)
+        if self.enable_rbac and user_id:
+            await self._check_dashboard_permission(
+                user_id=user_id,
+                dashboard=dashboard,
+                action=Action.UPDATE,
+                tenant_id=dashboard.tenant_id,
+            )
 
         widget = WidgetConfig(**widget_config)
         dashboard.widgets.append(widget)
@@ -424,12 +641,36 @@ class DashboardFramework:
         return widget
 
     async def update_widget(
-        self, dashboard_id: str, widget_id: str, updates: Dict[str, Any]
+        self, dashboard_id: str, widget_id: str, updates: Dict[str, Any], user_id: Optional[str] = None
     ) -> WidgetConfig:
-        """Update widget configuration"""
+        """
+        Update widget configuration.
+
+        Args:
+            dashboard_id: ID of dashboard containing widget
+            widget_id: ID of widget to update
+            updates: Dictionary of fields to update
+            user_id: ID of user updating widget (required if RBAC enabled)
+
+        Returns:
+            WidgetConfig: Updated widget configuration
+
+        Raises:
+            ValueError: If dashboard or widget not found
+            PermissionError: If user lacks UPDATE permission
+        """
         dashboard = self.dashboards.get(dashboard_id)
         if not dashboard:
             raise ValueError(f"Dashboard not found: {dashboard_id}")
+
+        # Check UPDATE permission
+        if self.enable_rbac and user_id:
+            await self._check_dashboard_permission(
+                user_id=user_id,
+                dashboard=dashboard,
+                action=Action.UPDATE,
+                tenant_id=dashboard.tenant_id,
+            )
 
         widget = next((w for w in dashboard.widgets if w.id == widget_id), None)
         if not widget:
@@ -450,11 +691,34 @@ class DashboardFramework:
 
         return widget
 
-    async def remove_widget(self, dashboard_id: str, widget_id: str) -> bool:
-        """Remove widget from dashboard"""
+    async def remove_widget(self, dashboard_id: str, widget_id: str, user_id: Optional[str] = None) -> bool:
+        """
+        Remove widget from dashboard.
+
+        Args:
+            dashboard_id: ID of dashboard containing widget
+            widget_id: ID of widget to remove
+            user_id: ID of user removing widget (required if RBAC enabled)
+
+        Returns:
+            bool: True if removal successful
+
+        Raises:
+            ValueError: If dashboard not found
+            PermissionError: If user lacks UPDATE permission
+        """
         dashboard = self.dashboards.get(dashboard_id)
         if not dashboard:
             raise ValueError(f"Dashboard not found: {dashboard_id}")
+
+        # Check UPDATE permission (removing widget modifies dashboard)
+        if self.enable_rbac and user_id:
+            await self._check_dashboard_permission(
+                user_id=user_id,
+                dashboard=dashboard,
+                action=Action.UPDATE,
+                tenant_id=dashboard.tenant_id,
+            )
 
         dashboard.widgets = [w for w in dashboard.widgets if w.id != widget_id]
         dashboard.updated_at = datetime.utcnow()
@@ -468,12 +732,37 @@ class DashboardFramework:
         return True
 
     async def get_widget_data(
-        self, dashboard_id: str, widget_id: str, tenant_id: str = None
+        self, dashboard_id: str, widget_id: str, user_id: Optional[str] = None, tenant_id: str = None
     ) -> Dict[str, Any]:
-        """Get data for widget"""
+        """
+        Get data for widget.
+
+        Args:
+            dashboard_id: ID of dashboard containing widget
+            widget_id: ID of widget to get data for
+            user_id: ID of user requesting data (required if RBAC enabled)
+            tenant_id: Optional tenant context
+
+        Returns:
+            Dict[str, Any]: Widget data and visualization
+
+        Raises:
+            ValueError: If dashboard or widget not found
+            PermissionError: If user lacks READ permission
+        """
         dashboard = self.dashboards.get(dashboard_id)
         if not dashboard:
             raise ValueError(f"Dashboard not found: {dashboard_id}")
+
+        # Check READ permission (viewing widget data requires read access)
+        if self.enable_rbac and user_id:
+            if not dashboard.is_public:
+                await self._check_dashboard_permission(
+                    user_id=user_id,
+                    dashboard=dashboard,
+                    action=Action.READ,
+                    tenant_id=tenant_id or dashboard.tenant_id,
+                )
 
         widget = next((w for w in dashboard.widgets if w.id == widget_id), None)
         if not widget:
@@ -481,11 +770,11 @@ class DashboardFramework:
 
         # Get data from configured data source
         data_source = widget.data_source
-        if data_source not in self.data_sources:
+        if data_source and data_source not in self.data_sources:
             raise ValueError(f"Unknown data source: {data_source}")
 
         # Execute query to get data
-        data = await self._execute_widget_query(widget, tenant_id)
+        data = await self._execute_widget_query(widget, tenant_id or dashboard.tenant_id)
 
         # Generate visualization based on widget type
         visualization = await self._generate_visualization(widget, data)
@@ -812,9 +1101,100 @@ class DashboardFramework:
         """Get available themes"""
         return self.themes.copy()
 
-    async def export_dashboard(self, dashboard_id: str, format: str = "json") -> bytes:
-        """Export dashboard in specified format"""
-        dashboard = await self.get_dashboard(dashboard_id)
+    async def share_dashboard(
+        self,
+        dashboard_id: str,
+        owner_id: str,
+        shared_user_ids: Optional[List[str]] = None,
+        shared_role_ids: Optional[List[str]] = None,
+        is_public: Optional[bool] = None,
+    ) -> Dashboard:
+        """
+        Share dashboard with users or roles, or make it public.
+
+        Args:
+            dashboard_id: ID of dashboard to share
+            owner_id: ID of dashboard owner (must match actual owner)
+            shared_user_ids: List of user IDs to share with (None = no change)
+            shared_role_ids: List of role IDs to share with (None = no change)
+            is_public: Whether to make dashboard public (None = no change)
+
+        Returns:
+            Dashboard: Updated dashboard object
+
+        Raises:
+            ValueError: If dashboard not found
+            PermissionError: If owner_id doesn't match or lacks MANAGE permission
+        """
+        if dashboard_id not in self.dashboards:
+            raise ValueError(f"Dashboard not found: {dashboard_id}")
+
+        dashboard = self.dashboards[dashboard_id]
+
+        # Check MANAGE permission (owner-only operation)
+        if self.enable_rbac and owner_id:
+            # Verify owner
+            if dashboard.owner_id != owner_id:
+                self.logger.warning(
+                    f"User {owner_id} attempted to share dashboard {dashboard_id} "
+                    f"owned by {dashboard.owner_id}"
+                )
+                raise PermissionError(
+                    "Only the dashboard owner can share this dashboard"
+                )
+
+            # Check MANAGE permission
+            await self._check_dashboard_permission(
+                user_id=owner_id,
+                dashboard=dashboard,
+                action=Action.MANAGE,
+                tenant_id=dashboard.tenant_id,
+            )
+        elif dashboard.owner_id != owner_id:
+            # Even without RBAC, enforce owner-only sharing
+            raise PermissionError("Only the dashboard owner can share this dashboard")
+
+        # Update sharing settings
+        if shared_user_ids is not None:
+            dashboard.shared_users = shared_user_ids
+
+        if shared_role_ids is not None:
+            dashboard.shared_roles = shared_role_ids
+
+        if is_public is not None:
+            dashboard.is_public = is_public
+
+        dashboard.updated_at = datetime.utcnow()
+
+        # Save updated dashboard
+        await self._save_dashboard(dashboard)
+
+        self.logger.info(
+            f"Dashboard {dashboard_id} sharing updated by owner {owner_id}: "
+            f"shared_users={len(dashboard.shared_users)}, "
+            f"shared_roles={len(dashboard.shared_roles)}, "
+            f"is_public={dashboard.is_public}"
+        )
+
+        return dashboard
+
+    async def export_dashboard(self, dashboard_id: str, user_id: Optional[str] = None, format: str = "json") -> bytes:
+        """
+        Export dashboard in specified format.
+
+        Args:
+            dashboard_id: ID of dashboard to export
+            user_id: ID of user exporting dashboard (required if RBAC enabled)
+            format: Export format (json, pdf)
+
+        Returns:
+            bytes: Exported dashboard data
+
+        Raises:
+            ValueError: If dashboard not found or format unsupported
+            PermissionError: If user lacks READ permission
+        """
+        dashboard = await self.get_dashboard(dashboard_id, user_id=user_id)
 
         if format == "json":
             return json.dumps(dashboard.to_dict(), indent=2).encode("utf-8")
@@ -825,14 +1205,31 @@ class DashboardFramework:
             raise ValueError(f"Unsupported export format: {format}")
 
     async def import_dashboard(
-        self, data: bytes, format: str = "json", user_id: str = None
+        self, data: bytes, format: str = "json", user_id: Optional[str] = None
     ) -> Dashboard:
-        """Import dashboard from data"""
+        """
+        Import dashboard from data.
+
+        Args:
+            data: Dashboard data bytes
+            format: Import format (json)
+            user_id: ID of user importing dashboard (mandatory - sets ownership)
+
+        Returns:
+            Dashboard: Imported dashboard object
+
+        Raises:
+            ValueError: If format unsupported or user_id missing
+            PermissionError: If user lacks CREATE permission
+        """
+        if not user_id:
+            raise ValueError("user_id is required for importing dashboards")
+
         if format == "json":
             dashboard_data = json.loads(data.decode("utf-8"))
             dashboard_data["id"] = str(uuid4())  # Generate new ID
             dashboard_data["owner_id"] = user_id
 
-            return await self.create_dashboard(dashboard_data)
+            return await self.create_dashboard(dashboard_data, user_id=user_id)
         else:
             raise ValueError(f"Unsupported import format: {format}")

@@ -27,6 +27,8 @@ const ConfigSchema = z.object({
   maxConcurrency: z.number().default(100),
   cacheEnabled: z.boolean().default(true),
   cacheTTL: z.number().default(300),
+  registryStoragePath: z.string().default('.mcp-gateway/registry.json'),
+  registryAutoSave: z.boolean().default(true),
 });
 
 type Config = z.infer<typeof ConfigSchema>;
@@ -48,8 +50,11 @@ export class MCPGateway {
     this.app = express();
     this.wss = new WebSocketServer({ port: this.config.wsPort });
 
-    // Initialize components
-    this.registry = new ServiceRegistry();
+    // Initialize components with persistence
+    this.registry = new ServiceRegistry(
+      this.config.registryStoragePath,
+      this.config.registryAutoSave
+    );
     this.loadBalancer = new LoadBalancer(this.registry);
     this.healthChecker = new HealthChecker(this.registry, this.config.healthCheckInterval);
     this.router = new RequestRouter(this.loadBalancer);
@@ -222,6 +227,14 @@ export class MCPGateway {
   }
 
   async start() {
+    // Load existing registry before starting
+    try {
+      await this.registry.load();
+      logger.info('Registry loaded from persistent storage');
+    } catch (error) {
+      logger.error('Failed to load registry, starting fresh:', error);
+    }
+
     // Start health checker
     await this.healthChecker.start();
 
@@ -233,6 +246,14 @@ export class MCPGateway {
   }
 
   async stop() {
+    // Save registry before stopping
+    try {
+      await this.registry.save();
+      logger.info('Registry saved before shutdown');
+    } catch (error) {
+      logger.error('Failed to save registry on shutdown:', error);
+    }
+
     await this.healthChecker.stop();
     this.wss.close();
   }

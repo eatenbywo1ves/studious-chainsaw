@@ -5,7 +5,7 @@ Step-by-step tutorials and comprehensive guides for all aspects of the platform.
 ## Deployment & Infrastructure
 
 ### Production Deployment
-- [**Production Deployment Guide**](../PRODUCTION_DEPLOYMENT_GUIDE.md) ⭐ - Complete production deployment walkthrough
+- [**Production Deployment Guide**](../saas/PRODUCTION_DEPLOYMENT.md) ⭐ - Complete production deployment walkthrough
 - [Environment Configuration](./ENV_CONFIGURATION_GUIDE.md) - Setting up environment variables
 - [B-MAD Master Guide](./BMAD_MASTER_GUIDE.md) - Bare Metal as Defaulted deployment strategy
 - [NVIDIA B-MAD Deployment](./NVIDIA_BMAD_DEPLOYMENT_PLAN.md) - GPU-enabled production deployment
@@ -44,7 +44,7 @@ Step-by-step tutorials and comprehensive guides for all aspects of the platform.
 
 ### Third-Party Services
 - [Stripe & Email Integration](./STRIPE_EMAIL_INTEGRATION_GUIDE.md) - Payment and email service setup
-- [Webhook Integration](../services/webhooks/) - Webhook system configuration
+- [Webhook Integration](../../services/webhooks/WEBHOOK_DOCUMENTATION.md) - Webhook system configuration
 
 ---
 
@@ -52,7 +52,7 @@ Step-by-step tutorials and comprehensive guides for all aspects of the platform.
 
 ### 🚀 For Getting Started
 1. Start with [Quick Start Guides](../quickstart/)
-2. Then read [Production Deployment Guide](../PRODUCTION_DEPLOYMENT_GUIDE.md)
+2. Then read [Production Deployment Guide](../saas/PRODUCTION_DEPLOYMENT.md)
 3. Configure with [Environment Configuration](./ENV_CONFIGURATION_GUIDE.md)
 
 ### ⚡ For Performance Tuning
@@ -66,7 +66,7 @@ Step-by-step tutorials and comprehensive guides for all aspects of the platform.
 3. [Security Specifications](../specifications/)
 
 ### 🌐 For Deployment
-1. [Production Deployment Guide](../PRODUCTION_DEPLOYMENT_GUIDE.md)
+1. [Production Deployment Guide](../saas/PRODUCTION_DEPLOYMENT.md)
 2. [B-MAD Master Guide](./BMAD_MASTER_GUIDE.md)
 3. [Deployment Checklist](../deployment/PRODUCTION_READINESS_CHECKLIST.md)
 

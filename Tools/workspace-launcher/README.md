@@ -11,14 +11,6 @@ C:\Users\Corbin\launch-workspace.bat
 
 ## Features
 
-- **Profile-Based Launch**: Pre-configured workspace profiles for different tasks
-- **Service Orchestration**: Manages MCP servers, development tools, and projects
-- **Health Monitoring**: Tracks service status and resource usage
-- **Quick Launchers**: Single-command shortcuts for common tasks
-- **Environment Validation**: Checks and installs dependencies
-- **Windows Terminal Integration**: Multi-tab layouts for better organization
-
-## Available Profiles
 
 ### 1. Full Development
 Everything you need for comprehensive development:

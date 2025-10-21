@@ -26,7 +26,6 @@ Success Criteria:
 import sys
 import os
 import time
-import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List, Dict, Any
 import io
@@ -37,7 +36,8 @@ sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from database.connection import get_db, engine, SessionLocal, get_pool_status
+# Import after path is set up
+from database.connection import get_db, engine, get_pool_status  # noqa: E402
 
 # ============================================================================
 # TEST CONFIGURATION
@@ -97,7 +97,7 @@ def create_session_and_verify(session_id: int) -> Dict[str, Any]:
 
         # Simulate database query (simple check)
         # In production this would be actual queries
-        connection = db.connection()
+        db.connection()
 
         # Clean up
         try:
@@ -190,18 +190,18 @@ def print_results(analysis: Dict[str, Any]):
     print(f"Failed:             {analysis['failed']}")
     print(f"Success Rate:       {analysis['success_rate']:.2f}%")
     print(f"\n{'─'*80}")
-    print(f"ENGINE VALIDATION:")
+    print("ENGINE VALIDATION:")
     print(f"{'─'*80}")
     print(f"Unique Engines:     {analysis['unique_engines']}")
 
     if analysis['shared_engine']:
-        print(f"Shared Engine:      ✅ YES - All sessions use the same engine!")
+        print("Shared Engine:      ✅ YES - All sessions use the same engine!")
     else:
         print(f"Shared Engine:      ❌ NO - Found {analysis['unique_engines']} different engines")
-        print(f"                    ⚠️  WARNING: This indicates per-session engine creation!")
+        print("                    ⚠️  WARNING: This indicates per-session engine creation!")
 
     print(f"\n{'─'*80}")
-    print(f"PERFORMANCE METRICS:")
+    print("PERFORMANCE METRICS:")
     print(f"{'─'*80}")
     print(f"Avg Duration:       {analysis['avg_duration_ms']:.2f}ms")
     print(f"Min Duration:       {analysis['min_duration_ms']:.2f}ms")
@@ -220,7 +220,7 @@ def print_results(analysis: Dict[str, Any]):
     try:
         pool_status = get_pool_status()
         print(f"\n{'─'*80}")
-        print(f"CONNECTION POOL STATUS:")
+        print("CONNECTION POOL STATUS:")
         print(f"{'─'*80}")
         print(f"Pool Size:          {pool_status['size']}")
         print(f"Checked In:         {pool_status['checked_in']}")
@@ -301,7 +301,7 @@ Engine URL: {engine.url}
 
     # Print final summary
     print(f"\n\n{'='*80}")
-    print(f"FINAL SUMMARY")
+    print("FINAL SUMMARY")
     print(f"{'='*80}")
 
     for scenario_key, analysis in all_results.items():
@@ -316,12 +316,12 @@ Engine URL: {engine.url}
 
     print(f"\n{'='*80}")
     if overall_passed:
-        print(f"✅ ALL TESTS PASSED - Database connection pooling fix is validated!")
-        print(f"\n✅ The system can handle concurrent load without per-request engine creation.")
-        print(f"✅ Production capacity: ~5,000 concurrent users (vs ~50 before fix)")
-        print(f"✅ Ready for production deployment!")
+        print("✅ ALL TESTS PASSED - Database connection pooling fix is validated!")
+        print("\n✅ The system can handle concurrent load without per-request engine creation.")
+        print("✅ Production capacity: ~5,000 concurrent users (vs ~50 before fix)")
+        print("✅ Ready for production deployment!")
     else:
-        print(f"❌ SOME TESTS FAILED - Review results above for details")
+        print("❌ SOME TESTS FAILED - Review results above for details")
     print(f"{'='*80}\n")
 
     return 0 if overall_passed else 1

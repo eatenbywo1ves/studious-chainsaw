@@ -271,7 +271,7 @@ DEPLOYMENT_ENV=production docker compose --profile saas up -d
 ## 📚 Related Documentation
 
 - **Quick Start:** [SaaS 5-Minute Guide](../quickstart/saas-5min.md)
-- **Deployment:** [Production Deployment Guide](../PRODUCTION_DEPLOYMENT_GUIDE.md)
+- **Deployment:** [Production Deployment Guide](../saas/PRODUCTION_DEPLOYMENT.md)
 - **Redis Optimization:** [Redis Pool Guide](../guides/REDIS_POOL_OPTIMIZATION_GUIDE.md)
 - **Monitoring:** [Monitoring Overview](../monitoring/README.md)
 - **Security:** [JWT Analysis](../specifications/JWT_CONSOLIDATION_ANALYSIS.md)
@@ -282,9 +282,9 @@ DEPLOYMENT_ENV=production docker compose --profile saas up -d
 
 1. **Get it running:** [5-Minute Quick Start](../quickstart/saas-5min.md)
 2. **Understand monitoring:** [Monitoring Guide](../monitoring/README.md)
-3. **Deploy to production:** [Deployment Guide](../PRODUCTION_DEPLOYMENT_GUIDE.md)
+3. **Deploy to production:** [Deployment Guide](../saas/PRODUCTION_DEPLOYMENT.md)
 4. **Integrate payments:** [Stripe Integration](../guides/STRIPE_EMAIL_INTEGRATION_GUIDE.md)
 
 ---
 
-**Navigation:** [← System Overview](./system-overview.md) | [← Index](../INDEX.md) | [Deployment →](../PRODUCTION_DEPLOYMENT_GUIDE.md)
+**Navigation:** [← System Overview](./system-overview.md) | [← Index](../INDEX.md) | [Deployment →](../saas/PRODUCTION_DEPLOYMENT.md)

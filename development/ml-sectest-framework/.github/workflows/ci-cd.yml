@@ -1,0 +1,405 @@
+name: ML-SecTest CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop, feat/**]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: '3.13'
+  DOCKER_IMAGE: ghcr.io/${{ github.repository }}/ml-sectest
+
+jobs:
+  # ============================================================================
+  # Job 1: Code Quality & Type Safety
+  # ============================================================================
+  quality:
+    name: Code Quality & Type Checking
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Ruff linting
+        run: |
+          ruff check . --output-format=github
+        continue-on-error: true
+
+      - name: Run MyPy type checking
+        run: |
+          mypy agents/ core/ utils/ api/ --strict --no-error-summary
+        continue-on-error: false
+
+      - name: Check code formatting
+        run: |
+          ruff format --check .
+
+  # ============================================================================
+  # Job 2: Security Scanning
+  # ============================================================================
+  security:
+    name: Security Vulnerability Scan
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install bandit safety
+
+      - name: Run Bandit security scan
+        run: |
+          bandit -r agents/ core/ utils/ api/ -f json -o bandit-report.json || true
+          bandit -r agents/ core/ utils/ api/ -f screen
+
+      - name: Run Safety dependency check
+        run: |
+          safety check --json > safety-report.json || true
+          safety check
+        continue-on-error: true
+
+      - name: Upload Bandit results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-reports
+          path: |
+            bandit-report.json
+            safety-report.json
+
+  # ============================================================================
+  # Job 3: Unit Tests
+  # ============================================================================
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    needs: [quality]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run pytest with coverage
+        run: |
+          pytest tests/ -v --cov=. --cov-report=xml --cov-report=term
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          file: ./coverage.xml
+          flags: unittests
+          name: codecov-ml-sectest
+        continue-on-error: true
+
+  # ============================================================================
+  # Job 4: Docker Build & Scan
+  # ============================================================================
+  docker:
+    name: Build & Scan Docker Image
+    runs-on: ubuntu-latest
+    needs: [quality, test]
+    permissions:
+      contents: read
+      packages: write
+      security-events: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.DOCKER_IMAGE }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          load: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.DOCKER_IMAGE }}:latest
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Push Docker image
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+
+  # ============================================================================
+  # Job 5: Integration Tests
+  # ============================================================================
+  integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: [docker]
+
+    services:
+      test-target:
+        image: nginx:alpine
+        ports:
+          - 8000:80
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run integration tests
+        run: |
+          # Start API server in background
+          uvicorn api.main:app --host 0.0.0.0 --port 8080 &
+          sleep 5
+
+          # Test API health endpoint
+          curl -f http://localhost:8080/health || exit 1
+
+          # Test scan endpoint
+          curl -X POST http://localhost:8080/api/v1/scan \
+            -H "Content-Type: application/json" \
+            -d '{"target_url": "http://localhost:8000", "challenge_name": "test"}' \
+            || exit 1
+
+          echo "✓ Integration tests passed"
+
+  # ============================================================================
+  # Job 6: Infrastructure Security Scan
+  # ============================================================================
+  infrastructure:
+    name: Infrastructure Security (IaC)
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Checkov IaC scanner
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: .
+          framework: dockerfile,kubernetes,github_actions
+          output_format: sarif
+          output_file_path: checkov-results.sarif
+          soft_fail: true
+
+      - name: Upload Checkov results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: checkov-results.sarif
+
+  # ============================================================================
+  # Job 7: Performance Tests
+  # ============================================================================
+  performance:
+    name: Performance Benchmarks
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install locust
+
+      - name: Run performance tests
+        run: |
+          # Start API server
+          uvicorn api.main:app --host 0.0.0.0 --port 8080 &
+          sleep 5
+
+          # Run basic performance test
+          echo "✓ Performance testing setup complete"
+          echo "  (Full load testing requires production deployment)"
+
+  # ============================================================================
+  # Job 8: Deploy to Production (Manual Trigger)
+  # ============================================================================
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [docker, integration, security]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment:
+      name: production
+      url: https://ml-sectest.example.com
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy notification
+        run: |
+          echo "🚀 Deployment triggered for commit ${{ github.sha }}"
+          echo "   Docker image: ${{ env.DOCKER_IMAGE }}:${{ github.sha }}"
+          echo ""
+          echo "   Deployment steps:"
+          echo "   1. Pull latest Docker image"
+          echo "   2. Update Kubernetes deployment"
+          echo "   3. Run smoke tests"
+          echo "   4. Monitor metrics"
+
+      # Add actual deployment steps here based on your infrastructure
+      # Examples:
+      # - kubectl apply -f k8s/
+      # - aws lambda update-function-code
+      # - terraform apply
+
+  # ============================================================================
+  # Job 9: Create Release
+  # ============================================================================
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [deploy]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          echo "## Changes in this release" > CHANGELOG.md
+          git log --pretty=format:"- %s (%h)" $(git describe --tags --abbrev=0 2>/dev/null || echo "")..HEAD >> CHANGELOG.md
+
+      - name: Create Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          release_name: Release v1.0.${{ github.run_number }}
+          body_path: CHANGELOG.md
+          draft: false
+          prerelease: false
+        continue-on-error: true
+
+# ============================================================================
+# Workflow Status Notifications
+# ============================================================================
+  notify:
+    name: Workflow Notifications
+    runs-on: ubuntu-latest
+    needs: [quality, security, test, docker]
+    if: always()
+
+    steps:
+      - name: Workflow Summary
+        run: |
+          echo "# ML-SecTest CI/CD Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Workflow:** ${{ github.workflow }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Trigger:** ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Job Results:" >> $GITHUB_STEP_SUMMARY
+          echo "- Code Quality: ${{ needs.quality.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Security Scan: ${{ needs.security.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Unit Tests: ${{ needs.test.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Docker Build: ${{ needs.docker.result }}" >> $GITHUB_STEP_SUMMARY
