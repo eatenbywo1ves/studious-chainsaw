@@ -11,7 +11,7 @@ License: MIT
 
 from fastapi import FastAPI, BackgroundTasks, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel, HttpUrl, Field, validator
 from typing import List, Optional, Dict, Any, Literal
 from datetime import datetime
@@ -26,9 +26,24 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from core import SecurityOrchestrator
 from utils import ReportGenerator
 
+# Prometheus metrics
+try:
+    from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
+    METRICS_AVAILABLE = True
+except ImportError:
+    METRICS_AVAILABLE = False
+
+# Rate limiting
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+
 # ============================================================================
 # Application Configuration
 # ============================================================================
+
+# Initialize rate limiter
+limiter = Limiter(key_func=get_remote_address)
 
 app = FastAPI(
     title="ML-SecTest API",
@@ -47,6 +62,7 @@ app = FastAPI(
     * 🎯 **CTF Challenge Testing**: Test specific security challenges
     * 📊 **Comprehensive Reports**: HTML and JSON output formats
     * ⚡ **Async Execution**: Non-blocking background task processing
+    * 🛡️ **Rate Limiting**: Prevents API abuse (10 scans/minute per IP)
 
     ## Agents
 
@@ -66,6 +82,10 @@ app = FastAPI(
         "url": "https://opensource.org/licenses/MIT",
     },
 )
+
+# Configure rate limiter
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # CORS middleware for web-based frontends
 app.add_middleware(
@@ -324,6 +344,7 @@ async def health_check():
 
 
 @app.post("/api/v1/scan", response_model=ScanResponse, tags=["Scanning"])
+@limiter.limit("10/minute")
 async def create_scan(
     request: ScanRequest,
     background_tasks: BackgroundTasks
@@ -334,12 +355,17 @@ async def create_scan(
     This endpoint queues a security scan to run in the background and returns
     immediately with a scan ID that can be used to check status and retrieve results.
 
+    **Rate Limit:** 10 scans per minute per IP address
+
     Args:
         request: Scan configuration parameters
         background_tasks: FastAPI background task handler
 
     Returns:
         Scan initiation response with scan_id
+
+    Raises:
+        HTTPException: 429 if rate limit exceeded
     """
     # Generate unique scan ID
     scan_id = str(uuid.uuid4())
@@ -517,6 +543,43 @@ async def list_agents():
         "total": len(agents),
         "agents": agents
     }
+
+
+@app.get("/metrics", tags=["Monitoring"], include_in_schema=True)
+async def metrics():
+    """
+    Prometheus metrics endpoint.
+
+    Exposes metrics for monitoring and alerting:
+    - Scan execution metrics (requests, duration)
+    - Agent performance metrics
+    - Vulnerability detection counters
+    - System health gauges
+    - API request metrics
+
+    This endpoint is designed to be scraped by Prometheus.
+    Configure your prometheus.yml:
+
+    ```yaml
+    scrape_configs:
+      - job_name: 'ml-sectest'
+        static_configs:
+          - targets: ['localhost:8081']
+    ```
+
+    Returns:
+        Prometheus-formatted metrics (text/plain)
+    """
+    if not METRICS_AVAILABLE:
+        raise HTTPException(
+            status_code=503,
+            detail="Metrics not available - prometheus_client not installed"
+        )
+
+    return Response(
+        content=generate_latest(),
+        media_type=CONTENT_TYPE_LATEST
+    )
 
 
 # ============================================================================
