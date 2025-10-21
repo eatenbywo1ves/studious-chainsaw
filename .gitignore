@@ -295,3 +295,11 @@ take_screenshot.ps1
 Tools/workspace-launcher/BMAD_WORKSPACE_LAUNCHER_PLAN.md
 Tools/workspace-launcher/*_PLAN.md
 Tools/workspace-launcher/*_ROADMAP.md
+
+# Documentation Freeze - Root Level Blocks
+DEPLOYMENT_CHECKLIST.md
+DEPLOYMENT_RUNBOOK.md
+SYSTEMATIC_*.md
+SYSTEM_*.md
+*_ANALYSIS_*.md
+deployment_verify.ps1
