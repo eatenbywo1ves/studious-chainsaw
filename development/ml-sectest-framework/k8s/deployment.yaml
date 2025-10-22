@@ -1,68 +1,114 @@
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ml-sectest-agents
+  name: ml-sectest-api
   namespace: ml-sectest
   labels:
-    app: ml-sectest
-    version: v1
+    app: ml-sectest-framework
+    component: api
 spec:
   replicas: 3
   selector:
     matchLabels:
-      app: ml-sectest
+      app: ml-sectest-framework
+      component: api
   template:
     metadata:
       labels:
-        app: ml-sectest
-        version: v1
+        app: ml-sectest-framework
+        component: api
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
     spec:
       containers:
-      - name: agent
-        image: ml-sectest:latest
+      - name: ml-sectest-api
+        # TODO: Replace with your actual Docker image
+        image: ml-sectest-framework:1.0.0
         imagePullPolicy: IfNotPresent
-        resources:
-          requests:
-            memory: "256Mi"
-            cpu: "250m"
-          limits:
-            memory: "512Mi"
-            cpu: "500m"
+        ports:
+        - name: http
+          containerPort: 8081
+          protocol: TCP
+        - name: metrics
+          containerPort: 9090
+          protocol: TCP
+        
+        # Environment variables from ConfigMap
         envFrom:
         - configMapRef:
             name: ml-sectest-config
+        
+        # Environment variables from Secret
+        env:
+        - name: SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: ml-sectest-secret
+              key: SECRET_KEY
+        
+        # Optional: API keys
+        # - name: API_KEYS
+        #   valueFrom:
+        #     secretKeyRef:
+        #       name: ml-sectest-secret
+        #       key: API_KEYS
+        #       optional: true
+        
+        # Volume mounts for persistent storage
         volumeMounts:
-        - name: reports
-          mountPath: /app/reports
-        - name: logs
-          mountPath: /app/logs
+        - name: data
+          mountPath: /data
+        
+        # Resource limits and requests
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "2000m"
+        
+        # Health checks
         livenessProbe:
-          exec:
-            command:
-            - python
-            - -c
-            - "from core import SecurityOrchestrator"
-          initialDelaySeconds: 10
-          periodSeconds: 30
-          timeoutSeconds: 5
-        readinessProbe:
-          exec:
-            command:
-            - python
-            - -c
-            - "from core import SecurityOrchestrator"
-          initialDelaySeconds: 5
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 30
           periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 5
           timeoutSeconds: 3
+          failureThreshold: 2
+        
+        # Security context
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          runAsUser: 1000
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: false  # Need write access for SQLite
+      
+      # Volumes
       volumes:
-      - name: reports
+      - name: data
         persistentVolumeClaim:
-          claimName: ml-sectest-reports-pvc
-      - name: logs
-        persistentVolumeClaim:
-          claimName: ml-sectest-logs-pvc
-      restartPolicy: Always
+          claimName: ml-sectest-data
+      
+      # Pod security
       securityContext:
-        runAsNonRoot: true
-        runAsUser: 1000
         fsGroup: 1000
+      
+      # Restart policy
+      restartPolicy: Always
