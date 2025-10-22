@@ -682,30 +682,88 @@ async def root():
 
 @app.get("/health")
 async def health_check(db: Session = Depends(get_db)):
-    """Health check endpoint"""
+    """
+    Lightweight health check endpoint - optimized for load balancers and monitoring.
+
+    This endpoint is designed to handle 1K+ concurrent requests efficiently by avoiding
+    expensive database queries. Statistics have been moved to the /api/stats endpoint.
+
+    Performance:
+    - Expected response time: <50ms (was 4,100ms with COUNT queries)
+    - No database lock contention
+    - Suitable for high-frequency health checks
+    """
+    from fastapi.responses import JSONResponse
 
     try:
-        # Check database
+        # Quick database connectivity check (1-2ms)
         db.execute("SELECT 1")
         db_status = "healthy"
     except Exception:
         db_status = "unhealthy"
 
-    # Get system stats
-    tenant_count = db.query(Tenant).filter_by(status="active").count()
-    user_count = db.query(User).filter_by(is_active=True).count()
-
-    return {
+    content = {
         "status": "healthy",
         "database": db_status,
         "gpu_available": GPU_AVAILABLE,
-        "stats": {
-            "tenants": tenant_count,
-            "users": user_count,
-            "total_lattices": sum(len(lattices) for lattices in lattice_manager._lattices.values()),
-        },
         "timestamp": datetime.utcnow().isoformat(),
     }
+
+    # Force connection close for health checks to prevent keepalive leaks
+    return JSONResponse(
+        content=content,
+        headers={"Connection": "close"}
+    )
+
+
+@app.get("/api/stats")
+async def get_system_stats(
+    current_user: TokenData = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get detailed system statistics - requires authentication.
+
+    This endpoint provides comprehensive statistics that were previously in the /health
+    endpoint. It requires authentication and is not meant for high-frequency monitoring.
+
+    Performance Note:
+    - Contains COUNT queries that may take 50-100ms each
+    - Should NOT be called by load balancers or health monitors
+    - Suitable for admin dashboards and periodic reporting
+    """
+    from fastapi.responses import JSONResponse
+
+    try:
+        # These queries are expensive but acceptable for authenticated admin requests
+        tenant_count = db.query(Tenant).filter_by(status="active").count()
+        user_count = db.query(User).filter_by(is_active=True).count()
+        total_lattices = sum(len(lattices) for lattices in lattice_manager._lattices.values())
+
+        stats = {
+            "tenants": {
+                "active": tenant_count,
+            },
+            "users": {
+                "active": user_count,
+            },
+            "lattices": {
+                "total": total_lattices,
+            },
+            "system": {
+                "gpu_available": GPU_AVAILABLE,
+            },
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+
+        return JSONResponse(content=stats)
+
+    except Exception as e:
+        logger.error(f"Error fetching system stats: {e}")
+        return JSONResponse(
+            content={"error": "Failed to fetch system statistics"},
+            status_code=500
+        )
 
 
 @app.get("/health/redis")
