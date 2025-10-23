@@ -32,10 +32,33 @@ from config import get_settings, validate_settings
 
 # Prometheus metrics
 try:
-    from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
+    from prometheus_client import generate_latest, CONTENT_TYPE_LATEST, Counter, Histogram
     METRICS_AVAILABLE = True
+
+    # Rate limiting metrics
+    rate_limit_hits_total = Counter(
+        'api_rate_limit_hits_total',
+        'Total number of requests that hit rate limit check',
+        ['endpoint', 'method']
+    )
+
+    rate_limit_blocks_total = Counter(
+        'api_rate_limit_blocks_total',
+        'Total number of requests blocked by rate limiting',
+        ['endpoint', 'method']
+    )
+
+    rate_limit_check_duration = Histogram(
+        'api_rate_limit_check_duration_seconds',
+        'Time spent checking rate limits',
+        ['endpoint']
+    )
+
 except ImportError:
     METRICS_AVAILABLE = False
+    rate_limit_hits_total = None
+    rate_limit_blocks_total = None
+    rate_limit_check_duration = None
 
 # Rate limiting
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -129,6 +152,35 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             raise
 
 # ============================================================================
+# Rate Limiting with Metrics
+# ============================================================================
+
+async def custom_rate_limit_handler(request: StarletteRequest, exc: RateLimitExceeded):
+    """
+    Custom rate limit exception handler that records metrics.
+
+    Records:
+    - Rate limit blocks in Prometheus
+    - Logs blocked requests
+    """
+    # Record metrics if available
+    if METRICS_AVAILABLE and rate_limit_blocks_total:
+        rate_limit_blocks_total.labels(
+            endpoint=request.url.path,
+            method=request.method
+        ).inc()
+
+    # Log rate limit block
+    client_ip = request.client.host if request.client else "unknown"
+    logger.warning(
+        f"Rate limit exceeded: {request.method} {request.url.path} | "
+        f"Client: {client_ip} | Limit: {exc.detail}"
+    )
+
+    # Call default handler to return proper response
+    return await _rate_limit_exceeded_handler(request, exc)
+
+# ============================================================================
 # Application Configuration
 # ============================================================================
 
@@ -217,7 +269,7 @@ app = FastAPI(
 
 # Configure rate limiter
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_exception_handler(RateLimitExceeded, custom_rate_limit_handler)
 
 # CORS middleware configuration from settings
 logger.info(f"CORS configured with {len(settings.cors_origins_list)} origins from settings")
@@ -701,6 +753,13 @@ async def create_scan(
     Raises:
         HTTPException: 429 if rate limit exceeded
     """
+    # Record rate limit hit metrics
+    if METRICS_AVAILABLE and rate_limit_hits_total:
+        rate_limit_hits_total.labels(
+            endpoint="/api/v1/scan",
+            method="POST"
+        ).inc()
+
     # Generate unique scan ID
     scan_id = str(uuid.uuid4())
 
