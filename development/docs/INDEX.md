@@ -95,7 +95,7 @@ docs/
 
 - [API Documentation](./api/README.md)
 - [OpenAPI Specification](./openapi.yaml)
-- [Configuration Reference](./reference/config-reference.md) *(coming soon)*
+- [Configuration Reference](./reference/config-reference.md)
 - [Environment Variables](./deployment/ENVIRONMENT_VARIABLES.md)
 
 **Status Reports:**
@@ -167,6 +167,41 @@ docs/
 
 ---
 
+## 🛠️ Documentation Maintenance
+
+**Tools and guides for maintaining this documentation:**
+
+- [Documentation Health Index](./DOCUMENTATION_HEALTH_INDEX.md) - Overall documentation quality assessment
+- [Documentation Maintenance Guide](./DOCUMENTATION_MAINTENANCE_GUIDE.md) - Daily maintenance workflows
+- [Fix Broken Links Guide](./FIX_BROKEN_LINKS_GUIDE.md) - 5-minute action plan for link issues
+- [Documentation Metrics](./DOCUMENTATION_METRICS.md) - Quality metrics and tracking
+
+**Additional Resources:**
+- [Documentation Tools Implementation](./DOCUMENTATION_TOOLS_IMPLEMENTATION.md)
+- [Feedback Collection System](./FEEDBACK_COLLECTION_SYSTEM.md)
+- [Feedback Triage Process](./FEEDBACK_TRIAGE_PROCESS.md)
+- [Documentation Migration Plan](./DOCUMENTATION_MIGRATION_PLAN.md)
+- [Archive Strategy](./ARCHIVE_STRATEGY.md)
+- [Broken Links Quick Reference](./BROKEN_LINKS_QUICK_REFERENCE.md)
+
+---
+
+## 📐 Technical References
+
+**Engineering reference materials and quick lookup guides:**
+
+- [Implementation Guide Index](./IMPLEMENTATION_GUIDE_INDEX.md) - Master index for implementation guides
+- [Control Theory Quick Reference Index](./CONTROL_THEORY_QUICK_REFERENCE_INDEX.md) - Control theory navigation hub
+
+**Control Theory Resources:**
+- [Control Theory Master Formula Sheet](./CONTROL_THEORY_MASTER_FORMULA_SHEET.md) - Essential formulas
+- [Control Theory Engineers Cheat Sheet](./CONTROL_THEORY_ENGINEERS_CHEAT_SHEET.md) - Quick reference
+- [Control Theory Method Selection Guide](./CONTROL_THEORY_METHOD_SELECTION_GUIDE.md) - Choose the right method
+- [Control Theory Industry Standards](./CONTROL_THEORY_INDUSTRY_STANDARDS.md) - Standards and best practices
+- [Control Theory Design Values Quick Reference](./CONTROL_THEORY_DESIGN_VALUES_QUICK_REFERENCE.md) - Common design values
+
+---
+
 ## 🔍 Finding What You Need
 
 **Search by topic:**
@@ -197,7 +232,7 @@ docs/
 
 ## 📈 Documentation Status
 
-**Last Updated:** 2025-10-08
+**Last Updated:** 2025-10-22
 **Documentation Version:** 2.0 (Reorganized)
 **Active Projects:** SaaS Platform, GhidraGo, Security Tools, GPU Computing
 
