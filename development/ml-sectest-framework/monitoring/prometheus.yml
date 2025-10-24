@@ -1,0 +1,13 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'ml-sectest-api'
+    static_configs:
+      - targets: ['ml-sectest-api.ml-sectest.svc.cluster.local:9090']
+        labels:
+          app: 'ml-sectest-framework'
+          environment: 'local'
+    metrics_path: '/metrics'
+    scheme: 'http'

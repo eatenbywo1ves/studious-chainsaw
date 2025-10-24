@@ -8,7 +8,7 @@ metadata:
     app: ml-sectest-framework
     component: api
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
       app: ml-sectest-framework
@@ -25,9 +25,9 @@ spec:
     spec:
       containers:
       - name: ml-sectest-api
-        # TODO: Replace with your actual Docker image
-        image: ml-sectest-framework:1.0.0
-        imagePullPolicy: IfNotPresent
+        # Using local Docker image (Docker Desktop Kubernetes)
+        image: ml-sectest:1.0.0
+        imagePullPolicy: Never
         ports:
         - name: http
           containerPort: 8081
