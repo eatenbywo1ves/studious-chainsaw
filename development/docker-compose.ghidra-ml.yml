@@ -83,6 +83,9 @@ services:
 
     deploy:
       resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
         reservations:
           devices:
             - driver: nvidia
@@ -104,6 +107,9 @@ services:
 
     restart: unless-stopped
 
+    # Note: No health check for this minimal container image (no wget/curl/bash)
+    # Health is monitored via Prometheus scraping of /metrics endpoint
+
   # Simple monitoring dashboard
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:latest
@@ -121,6 +127,12 @@ services:
       - ghidra-ml-network
 
     restart: unless-stopped
+
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
 
     logging:
       driver: json-file
