@@ -287,3 +287,23 @@ dmypy.json
 NetHood/
 PrintHood/
 Templates/
+
+# ===== TECHNICAL DEBT PREVENTION (Added 2025-10-23) =====
+# Backup files (prevent future clutter)
+*_backup_*.py
+*_backup_*.js
+*_backup_*.ts
+*.py.backup
+*.js.backup
+*backup*.py
+*backup*.js
+
+# Test artifacts (prevent accumulation)
+batch_summary_*.json
+test_batch.json
+scan_request.json
+
+# Completion markers (archive instead of committing)
+*_COMPLETE.md
+*_COMPLETE.txt
+*MIGRATION_COMPLETE*
