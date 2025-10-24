@@ -17,60 +17,60 @@ Usage:
 """
 
 import os
+import sys
 import logging
 from typing import Generator
+from pathlib import Path
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.pool import Pool
-from dotenv import load_dotenv
 
 # Setup logging
 logger = logging.getLogger(__name__)
 
+# ✅ MIGRATED: Import centralized configuration system
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+from shared.config import get_settings
+
+# Load configuration (validated and type-safe)
+_config = get_settings()
+
 # ============================================================================
-# ENVIRONMENT CONFIGURATION - Load once at module level
+# DATABASE CONFIGURATION - From centralized Pydantic settings
 # ============================================================================
 
-env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env")
-load_dotenv(env_path)
-
-DATABASE_URL = os.getenv("DATABASE_URL")
-
-if not DATABASE_URL:
-    # Default to SQLite for development
-    sqlite_path = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "catalytic.db"
-    )
-    DATABASE_URL = f"sqlite:///{sqlite_path}"
+DATABASE_URL = _config.database.url
 
 # ============================================================================
 # DATABASE ENGINE - Created ONCE at module level (NOT per-request)
 # ============================================================================
 
-if DATABASE_URL.startswith("sqlite"):
+if _config.database.is_sqlite:
     # SQLite configuration for development
     logger.info("Initializing SQLite database engine", extra={"database": "SQLite"})
     engine = create_engine(
         DATABASE_URL,
         connect_args={"check_same_thread": False},
-        echo=False,
+        echo=_config.database.echo,
     )
     logger.info("SQLite engine created successfully")
 else:
     # PostgreSQL configuration for production
-    # pool_size=20: Number of connections to keep open
-    # max_overflow=40: Additional connections allowed under high load
-    # pool_pre_ping=True: Verify connections are alive before using
+    # ✅ MIGRATED: All pool settings from centralized config
     logger.info(
         "Initializing PostgreSQL database engine",
-        extra={"database": "PostgreSQL", "pool_size": 20, "max_overflow": 40},
+        extra={
+            "database": "PostgreSQL",
+            "pool_size": _config.database.pool_size,
+            "max_overflow": _config.database.max_overflow,
+        },
     )
     engine = create_engine(
         DATABASE_URL,
-        pool_pre_ping=True,
-        pool_size=20,
-        max_overflow=40,
-        echo=False,
+        pool_pre_ping=_config.database.pool_pre_ping,
+        pool_size=_config.database.pool_size,
+        max_overflow=_config.database.max_overflow,
+        echo=_config.database.echo,
     )
     logger.info("PostgreSQL engine created successfully with connection pooling")
 

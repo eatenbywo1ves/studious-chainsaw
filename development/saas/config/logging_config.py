@@ -13,9 +13,16 @@ Usage:
 
 import logging
 import sys
-import os
+from pathlib import Path
 from datetime import datetime
 from typing import Optional
+
+# ✅ MIGRATED: Import centralized configuration system
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+from shared.config import get_settings
+
+# Load configuration (validated and type-safe)
+_config = get_settings()
 
 # ============================================================================
 # LOG FORMAT CONFIGURATION
@@ -46,12 +53,12 @@ def setup_logging(
     Returns:
         Configured logger instance
     """
-    # Determine environment and log level
+    # ✅ MIGRATED: Use centralized configuration for environment and log level
     if environment is None:
-        environment = os.getenv("DEPLOYMENT_ENV", "development")
+        environment = _config.app.env.value  # Type-safe environment from Pydantic
 
     if level is None:
-        level = os.getenv("LOG_LEVEL", "INFO" if environment == "production" else "DEBUG")
+        level = _config.app.log_level.value  # Type-safe log level from Pydantic
 
     # Configure root logger
     root_logger = logging.getLogger()
