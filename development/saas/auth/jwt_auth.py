@@ -4,10 +4,11 @@ Implements secure token generation, validation, and tenant isolation
 """
 
 import os
-import secrets
+import sys
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any, Tuple
+from pathlib import Path
 
 import jwt
 from jwt.exceptions import PyJWTError, ExpiredSignatureError
@@ -20,12 +21,21 @@ from passlib.context import CryptContext
 
 logger = logging.getLogger(__name__)
 
-# Configuration
-JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", secrets.token_urlsafe(32))
-JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "RS256")
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "15"))
-REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "30"))
-API_KEY_PREFIX = "clc_"  # Catalytic Lattice Computing
+# Add path for shared config
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+
+# ✅ MIGRATED: Import centralized configuration system
+from shared.config import get_settings
+
+# Load configuration (validated and type-safe)
+_config = get_settings()
+
+# Configuration - Now loaded from Pydantic settings with validation
+JWT_SECRET_KEY = _config.auth.secret_key.get_secret_value() if _config.auth.secret_key else None
+JWT_ALGORITHM = _config.auth.algorithm
+ACCESS_TOKEN_EXPIRE_MINUTES = _config.auth.access_token_expire_minutes
+REFRESH_TOKEN_EXPIRE_DAYS = _config.auth.refresh_token_expire_days
+API_KEY_PREFIX = _config.auth.api_key_prefix
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -66,15 +76,19 @@ except ImportError as e:
     redis_client = None
     redis_manager = None
     try:
+        # ✅ MIGRATED: Use centralized Redis configuration
         redis_client = redis.Redis(
-            host=os.getenv("REDIS_HOST", "localhost"),
-            port=int(os.getenv("REDIS_PORT", "6379")),
-            db=0,
-            decode_responses=True,
-            password=os.getenv("REDIS_PASSWORD"),
+            host=_config.redis.host,
+            port=_config.redis.port,
+            db=_config.redis.db,
+            decode_responses=_config.redis.decode_responses,
+            password=_config.redis.password.get_secret_value() if _config.redis.password else None,
+            socket_timeout=_config.redis.socket_timeout,
+            socket_connect_timeout=_config.redis.socket_connect_timeout,
         )
         redis_client.ping()
-        print("[OK] Redis connected (basic mode - upgrade to RedisConnectionManager recommended)")
+        print(f"[OK] Redis connected to {_config.redis.host}:{_config.redis.port} (basic mode)")
+        print("[INFO] Upgrade to RedisConnectionManager recommended for production")
     except Exception as fallback_error:
         print(f"[ERROR] Redis not available: {fallback_error}")
         print("[WARNING] Using in-memory storage (NOT recommended for production)")
@@ -92,8 +106,9 @@ class RSAKeyManager:
 
     def _load_or_generate_keys(self):
         """Load existing RSA keys or generate new ones"""
-        private_key_path = os.getenv("JWT_PRIVATE_KEY_PATH", "keys/jwt_private.pem")
-        public_key_path = os.getenv("JWT_PUBLIC_KEY_PATH", "keys/jwt_public.pem")
+        # ✅ MIGRATED: Use centralized configuration for key paths
+        private_key_path = str(_config.auth.private_key_path) if _config.auth.private_key_path else "keys/jwt_private.pem"
+        public_key_path = str(_config.auth.public_key_path) if _config.auth.public_key_path else "keys/jwt_public.pem"
 
         if os.path.exists(private_key_path) and os.path.exists(public_key_path):
             # Load existing keys
