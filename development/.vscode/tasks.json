@@ -1,0 +1,97 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Start Development Environment",
+      "type": "shell",
+      "command": "./scripts/dev-start.sh all",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    },
+    {
+      "label": "Start SaaS Dev Server",
+      "type": "shell",
+      "command": "./scripts/dev-start.sh saas",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    },
+    {
+      "label": "Start ML SecTest Server",
+      "type": "shell",
+      "command": "./scripts/dev-start.sh mlsec",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    },
+    {
+      "label": "Stop All Services",
+      "type": "shell",
+      "command": "./scripts/dev-start.sh stop",
+      "problemMatcher": []
+    },
+    {
+      "label": "Run Tests",
+      "type": "shell",
+      "command": "pytest -v",
+      "problemMatcher": [],
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "Run Linter",
+      "type": "shell",
+      "command": "ruff check .",
+      "problemMatcher": []
+    },
+    {
+      "label": "Format Code",
+      "type": "shell",
+      "command": "black . && ruff check --fix .",
+      "problemMatcher": []
+    },
+    {
+      "label": "Claude: Fix Linting",
+      "type": "shell",
+      "command": "claude 'Fix all linting errors found by ruff'",
+      "problemMatcher": []
+    },
+    {
+      "label": "Claude: Review Status",
+      "type": "shell",
+      "command": "claude 'Review our current project status and check for incomplete tasks'",
+      "problemMatcher": []
+    },
+    {
+      "label": "Docker: Build and Start",
+      "type": "shell",
+      "command": "docker-compose build && docker-compose up -d",
+      "problemMatcher": []
+    },
+    {
+      "label": "Docker: Stop",
+      "type": "shell",
+      "command": "docker-compose down",
+      "problemMatcher": []
+    },
+    {
+      "label": "Claude Workflow Helper",
+      "type": "shell",
+      "command": "./scripts/claude-workflow.sh",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    }
+  ]
+}

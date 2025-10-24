@@ -1,0 +1,64 @@
+[
+  // Claude Code Integration Shortcuts
+  {
+    "key": "ctrl+shift+c",
+    "command": "claude-code.startSession",
+    "when": "!terminalFocus"
+  },
+  {
+    "key": "ctrl+shift+alt+c",
+    "command": "claude-code.stopSession"
+  },
+
+  // Quick Claude Commands
+  {
+    "key": "ctrl+alt+l",
+    "command": "workbench.action.terminal.sendSequence",
+    "args": { "text": "clint\n" },
+    "when": "terminalFocus"
+  },
+  {
+    "key": "ctrl+alt+t",
+    "command": "workbench.action.terminal.sendSequence",
+    "args": { "text": "ctypecheck\n" },
+    "when": "terminalFocus"
+  },
+  {
+    "key": "ctrl+alt+s",
+    "command": "workbench.action.terminal.sendSequence",
+    "args": { "text": "cstatus\n" },
+    "when": "terminalFocus"
+  },
+
+  // Terminal Navigation
+  {
+    "key": "ctrl+alt+d",
+    "command": "workbench.action.terminal.sendSequence",
+    "args": { "text": "dev\n" },
+    "when": "terminalFocus"
+  },
+
+  // Git Shortcuts
+  {
+    "key": "ctrl+alt+g s",
+    "command": "workbench.action.terminal.sendSequence",
+    "args": { "text": "status\n" },
+    "when": "terminalFocus"
+  },
+
+  // Testing
+  {
+    "key": "ctrl+alt+shift+t",
+    "command": "workbench.action.terminal.sendSequence",
+    "args": { "text": "test\n" },
+    "when": "terminalFocus"
+  },
+
+  // Docker
+  {
+    "key": "ctrl+alt+shift+d",
+    "command": "workbench.action.terminal.sendSequence",
+    "args": { "text": "dcup\n" },
+    "when": "terminalFocus"
+  }
+]
