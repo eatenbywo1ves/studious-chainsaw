@@ -1,0 +1,18 @@
+{
+  "name": "@mcp-servers/random-walk",
+  "version": "1.0.0",
+  "description": "MCP server for random walk simulations and analysis",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "keywords": ["mcp", "random-walk", "monte-carlo", "simulation"],
+  "author": "Corbin",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "mathjs": "^13.2.2"
+  }
+}
