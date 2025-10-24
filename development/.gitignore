@@ -70,14 +70,24 @@ ipython_config.py
 
 # Environments
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
+!.env*.template
+!.env*.example
 .venv
 env/
 venv/
 ENV/
 env.bak/
 venv.bak/
+
+# SECURITY: Explicitly block all environment variants to prevent credential exposure
+# See SECURITY_INCIDENT_REMEDIATION.md for details
+.env.production
+.env.staging
+.env.development
+.env.test
+*.env.local
 
 # Database
 *.db
