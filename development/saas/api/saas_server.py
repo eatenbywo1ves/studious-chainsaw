@@ -13,19 +13,24 @@ from datetime import datetime
 from contextlib import asynccontextmanager
 from typing import Optional, Dict
 from uuid import UUID
+from pathlib import Path
 
-# Load environment variables from parent .env file
-from dotenv import load_dotenv
+# ✅ MIGRATED: Import centralized configuration system
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+from shared.config import get_settings, Environment
 
-env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env")
-load_dotenv(env_path)
+# Load configuration (validated and type-safe)
+_config = get_settings()
 
-# Setup logging
+# ✅ MIGRATED: Setup logging from centralized config
 logging.basicConfig(
-    level=logging.INFO if os.getenv("DEPLOYMENT_ENV") == "production" else logging.DEBUG,
+    level=logging.getLevelName(_config.app.log_level.value),
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
+
+# Log environment on startup
+logger.info(f"Starting SaaS server in {_config.app.env.value} environment")
 
 from fastapi import FastAPI, Depends, HTTPException, status  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
@@ -169,9 +174,10 @@ async def lifespan(app: FastAPI):
     logger.info("Starting Catalytic Computing SaaS API Server")
     logger.info("=" * 60)
     logger.info(f"GPU Available: {GPU_AVAILABLE}")
-    logger.info(f"Environment: {os.getenv('DEPLOYMENT_ENV', 'development')}")
-    logger.info(f"Port: {os.getenv('PORT', '8000')}")
-    logger.info(f"Workers: {os.getenv('WORKERS', '4')}")
+    # ✅ MIGRATED: Use centralized configuration
+    logger.info(f"Environment: {_config.app.env.value}")
+    logger.info(f"Port: {_config.app.port}")
+    logger.info(f"Workers: {_config.app.workers}")
 
     # Create database tables
     try:
@@ -253,7 +259,8 @@ app = FastAPI(
 app.add_middleware(CORSMiddleware, **get_cors_config())
 
 # Add security headers middleware
-environment = os.getenv("ENVIRONMENT", "development")
+# ✅ MIGRATED: Use centralized configuration
+environment = _config.app.env.value
 security_headers_middleware = create_custom_security_headers(
     environment=environment,
     allow_inline_scripts=True,  # For React/Vue frontend
@@ -1019,7 +1026,8 @@ async def get_gpu_status(current_user: Optional[TokenData] = Depends(get_current
 # TEST-ONLY ENDPOINTS (for monitoring/alert testing)
 # ============================================================================
 
-TESTING_MODE = os.getenv("TESTING_MODE", "false").lower() == "true"
+# ✅ MIGRATED: Use centralized configuration (testing mode)
+TESTING_MODE = _config.app.env == Environment.TESTING
 
 
 class ErrorRequest(BaseModel):
@@ -1081,9 +1089,10 @@ async def slow_endpoint(
 if __name__ == "__main__":
     import uvicorn
 
+    # ✅ MIGRATED: Use centralized configuration
     uvicorn.run(
         app,
-        host="0.0.0.0",
-        port=int(os.getenv("PORT", "8000")),
-        workers=int(os.getenv("WORKERS", "4")),
+        host=_config.app.host,
+        port=_config.app.port,
+        workers=_config.app.workers,
     )

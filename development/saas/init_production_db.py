@@ -6,6 +6,7 @@ Creates all tables and seeds initial data for Catalytic Computing SaaS
 
 import os
 import sys
+from pathlib import Path
 from datetime import datetime, timezone
 from decimal import Decimal
 
@@ -18,6 +19,13 @@ from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
+
+# ✅ MIGRATED: Import centralized configuration system
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from shared.config import get_settings
+
+# Load configuration (validated and type-safe)
+_config = get_settings()
 
 # Import models
 from database.models import (  # noqa: E402
@@ -34,10 +42,9 @@ from auth.jwt_auth import hash_password  # noqa: E402
 
 
 def get_database_url():
-    """Get database URL from environment or use SQLite default"""
-    return os.getenv(
-        "DATABASE_URL", f"sqlite:///{os.path.join(os.path.dirname(__file__), 'catalytic_saas.db')}"
-    )
+    """Get database URL from centralized configuration"""
+    # ✅ MIGRATED: Use centralized database configuration
+    return _config.database.url
 
 
 def create_tables(engine):
@@ -160,10 +167,12 @@ def seed_subscription_plans(session):
 
 def create_demo_tenant(session):
     """Create a demo tenant for testing (optional)"""
-    demo_mode = os.getenv("CREATE_DEMO_TENANT", "false").lower() == "true"
+    # ✅ MIGRATED: Use centralized environment configuration
+    # Demo tenant creation controlled by environment type
+    demo_mode = _config.app.env.value == "development"
 
     if not demo_mode:
-        print("\nSkipping demo tenant creation (set CREATE_DEMO_TENANT=true to enable)")
+        print(f"\nSkipping demo tenant creation (only enabled in development, current: {_config.app.env.value})")
         return
 
     print("\nCreating demo tenant...")
@@ -280,7 +289,8 @@ def main():
         print("2. Access API docs: http://localhost:8000/docs")
         print("3. Start frontend: cd frontend && npm run dev")
 
-        if os.getenv("CREATE_DEMO_TENANT", "false").lower() == "true":
+        # ✅ MIGRATED: Use centralized environment configuration
+        if _config.app.env.value == "development":
             print("\nDemo credentials:")
             print("  Email: admin@demo.catalyticcomputing.com")
             print("  Password: DemoPassword123!")

@@ -8,9 +8,17 @@ import os
 import sys
 import json
 import subprocess
+from pathlib import Path
 from datetime import datetime
 import urllib.request
 import urllib.error
+
+# ✅ MIGRATED: Import centralized configuration system
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from shared.config import get_settings
+
+# Load configuration (validated and type-safe)
+_config = get_settings()
 
 
 # Color codes for output
@@ -75,7 +83,8 @@ def check_redis():
     """Check Redis connection"""
     try:
         redis_cli = "C:/Program Files/Memurai/memurai-cli.exe"
-        password = os.getenv("REDIS_PASSWORD", "RLr5E73KjlPcAghcLXjBEdWJzqFVeV3EQ1GyQzqoOxo=")
+        # ✅ MIGRATED: Use centralized Redis configuration
+        password = _config.redis.password.get_secret_value() if _config.redis.password else None
 
         # Test PING
         result = subprocess.run(
@@ -112,9 +121,10 @@ def check_redis():
 def check_database():
     """Check database connection"""
     try:
-        db_url = os.getenv("DATABASE_URL")
+        # ✅ MIGRATED: Use centralized database configuration
+        db_url = _config.database.url
         if not db_url:
-            print_error("DATABASE_URL not set")
+            print_error("DATABASE_URL not configured")
             return False
 
         if db_url.startswith("sqlite"):
@@ -169,24 +179,24 @@ def check_backend_health():
 
 
 def check_environment():
-    """Check environment variables"""
-    required_vars = [
-        "DATABASE_URL",
-        "REDIS_HOST",
-        "REDIS_PORT",
-        "REDIS_PASSWORD",
-        "JWT_PRIVATE_KEY_PATH",
-        "JWT_PUBLIC_KEY_PATH",
+    """Check configuration values"""
+    # ✅ MIGRATED: Check centralized configuration instead of environment variables
+    checks = [
+        ("DATABASE_URL", _config.database.url),
+        ("REDIS_HOST", _config.redis.host),
+        ("REDIS_PORT", _config.redis.port),
+        ("REDIS_PASSWORD", _config.redis.password is not None),
+        ("JWT_PRIVATE_KEY_PATH", _config.auth.private_key_path),
+        ("JWT_PUBLIC_KEY_PATH", _config.auth.public_key_path),
     ]
 
     missing = []
-    for var in required_vars:
-        value = os.getenv(var)
+    for var_name, value in checks:
         if value:
-            print_success(f"{var} is set")
+            print_success(f"{var_name} is configured")
         else:
-            print_error(f"{var} is NOT set")
-            missing.append(var)
+            print_error(f"{var_name} is NOT configured")
+            missing.append(var_name)
 
     return len(missing) == 0
 
