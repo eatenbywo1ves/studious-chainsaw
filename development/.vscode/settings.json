@@ -1,0 +1,53 @@
+{
+  // Claude Code Integration Settings
+  "claude-code.autoConnect": true,
+  "claude-code.showInlineEdits": true,
+
+  // Terminal Integration
+  "terminal.integrated.defaultProfile.windows": "Git Bash",
+  "terminal.integrated.profiles.windows": {
+    "Git Bash": {
+      "path": "C:\\Program Files\\Git\\bin\\bash.exe",
+      "args": ["--login", "-i"],
+      "env": {
+        "BASH_ENV": "${workspaceFolder}/.bash_aliases"
+      }
+    }
+  },
+  "terminal.integrated.cwd": "${workspaceFolder}",
+  "terminal.integrated.automationProfile.windows": {
+    "path": "C:\\Program Files\\Git\\bin\\bash.exe"
+  },
+
+  // Python Settings (for your development work)
+  "python.defaultInterpreterPath": "${workspaceFolder}/venv/Scripts/python.exe",
+  "python.terminal.activateEnvironment": true,
+  "python.linting.enabled": true,
+  "python.linting.ruffEnabled": true,
+  "python.formatting.provider": "black",
+
+  // Editor Settings
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": "explicit"
+  },
+  "editor.rulers": [80, 120],
+
+  // File Associations
+  "files.associations": {
+    "*.md": "markdown",
+    ".env*": "properties",
+    "Dockerfile*": "dockerfile"
+  },
+
+  // Exclude from Search
+  "search.exclude": {
+    "**/__pycache__": true,
+    "**/.pytest_cache": true,
+    "**/.ruff_cache": true,
+    "**/node_modules": true,
+    "**/.git": true,
+    "**/venv": true,
+    "**/gpu_env": true
+  }
+}
