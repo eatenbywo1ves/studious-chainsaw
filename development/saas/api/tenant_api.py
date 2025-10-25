@@ -4,6 +4,7 @@ Handles tenant registration, user management, and subscriptions
 """
 
 import os
+import sys
 import logging
 from typing import List, Optional
 from datetime import datetime, timedelta
@@ -14,13 +15,10 @@ from pydantic import BaseModel, EmailStr, Field, validator
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
-# Import auth components
-import sys
-
+# Add parent directories to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-logger = logging.getLogger(__name__)
-
+# Import auth components
 from auth.jwt_auth import create_token_pair, generate_api_key
 from auth.middleware import get_current_active_user, require_admin, TokenData
 
@@ -38,6 +36,8 @@ from database.models import (
     TenantLattice,
 )
 from database.connection import get_db
+
+logger = logging.getLogger(__name__)
 
 # ============================================================================
 # REQUEST/RESPONSE MODELS
@@ -287,7 +287,7 @@ async def register_tenant(
             "tokens": tokens.dict(),
         }
 
-    except IntegrityError as e:
+    except IntegrityError:
         db.rollback()
         logger.warning(
             "Email already registered",

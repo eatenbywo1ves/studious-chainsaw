@@ -1,5 +1,7 @@
 # GPU Acceleration Setup Status
 
+*Last Updated: 2025-10-22*
+
 ## Current Configuration
 
 ### Hardware
@@ -52,8 +54,7 @@
 
 ## Non-Working Components
 
-❌ **CuPy**: DLL version mismatch
-❌ **PyTorch CUDA**: CPU-only version installed
+❌ **CuPy**: DLL version mismatch (CUDA 12.x vs 13.0)
 ❌ **Numba CUDA Kernels**: CUDA reported as unavailable
 
 ## Recommended Actions
@@ -103,5 +104,6 @@ The GPU acceleration setup is partially complete:
 
 ---
 
-*Last Updated: 2025-09-20*
-*Status: GPU hardware ready, software configuration pending*
+## Status Summary
+
+GPU hardware ready, PyTorch CUDA working (20.54x speedup), CuPy/Numba pending

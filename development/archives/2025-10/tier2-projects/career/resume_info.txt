@@ -1,0 +1,26 @@
+# Resume Information Configuration
+# Fill in your information below, then run: python apply_resume_info.py
+
+# ============================================================================
+# PERSONAL INFORMATION
+# ============================================================================
+
+PHONE=(555) 123-4567
+LINKEDIN=linkedin.com/in/your-profile
+DEGREE=B.S.
+MAJOR=Computer Science
+UNIVERSITY=University of Texas at Austin
+GRAD_YEAR=2022
+
+# ============================================================================
+# INSTRUCTIONS
+# ============================================================================
+# 1. Edit the values above with your actual information
+# 2. Save this file
+# 3. Run: python apply_resume_info.py
+# 4. Both resume files will be automatically updated
+#
+# CONFIRMED (Already in resume):
+#   Name:   Mark R. Corbin
+#   Email:  markrcorbin88@gmail.com
+#   GitHub: github.com/eatenbywo1ves

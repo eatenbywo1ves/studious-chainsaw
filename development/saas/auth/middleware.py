@@ -11,6 +11,8 @@ from starlette.responses import Response
 import time
 import logging
 import os
+import sys
+from pathlib import Path
 
 from .jwt_auth import (
     verify_token,
@@ -21,9 +23,15 @@ from .jwt_auth import (
 )
 
 # Import centralized database connection
-import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from database.connection import SessionLocal
+
+# ✅ MIGRATED: Import centralized configuration system
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+from shared.config import get_settings
+
+# Load configuration (validated and type-safe)
+_config = get_settings()
 
 logger = logging.getLogger(__name__)
 
@@ -453,15 +461,11 @@ class PermissionChecker:
 
 def get_cors_config():
     """Get CORS configuration for FastAPI"""
-    # Read allowed origins from environment - NO WILDCARD for security
-    allowed_origins = os.getenv(
-        "CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:3001"
-    ).split(",")
-
+    # ✅ MIGRATED: Use centralized CORS configuration
     return {
-        "allow_origins": allowed_origins,  # Explicit whitelist from .env
-        "allow_credentials": True,
-        "allow_methods": ["GET", "POST", "PUT", "DELETE", "PATCH"],  # Explicit methods
+        "allow_origins": _config.cors.allowed_origins,  # From Pydantic settings
+        "allow_credentials": _config.cors.allow_credentials,
+        "allow_methods": _config.cors.allow_methods,
         "allow_headers": [
             "Authorization",
             "Content-Type",
@@ -476,4 +480,5 @@ def get_cors_config():
             "X-Process-Time",
             "X-Request-ID",
         ],
+        "max_age": _config.cors.max_age,
     }

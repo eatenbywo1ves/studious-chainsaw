@@ -97,7 +97,7 @@ Key diagrams and visualizations:
 
 ## Related Documentation
 
-- [Deployment Guide](../PRODUCTION_DEPLOYMENT_GUIDE.md) - How to deploy this architecture
+- [Deployment Guide](../saas/PRODUCTION_DEPLOYMENT.md) - How to deploy this architecture
 - [API Reference](../api/) - API endpoints and schemas
 - [Monitoring](../monitoring/) - Observability setup
 - [Specifications](../specifications/) - Detailed technical specs

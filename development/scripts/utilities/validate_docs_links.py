@@ -18,7 +18,7 @@ import re
 import sys
 import os
 from pathlib import Path
-from typing import Dict, List, Tuple, Set
+from typing import List
 from dataclasses import dataclass
 from collections import defaultdict
 
@@ -27,7 +27,7 @@ if sys.platform == 'win32':
     os.system('chcp 65001 >nul 2>&1')
     try:
         sys.stdout.reconfigure(encoding='utf-8')
-    except:
+    except (AttributeError, OSError):
         pass
 
 
@@ -139,7 +139,7 @@ class DocsLinkValidator:
         print("="*70)
 
         # Statistics
-        print(f"\n📈 Statistics:")
+        print("\n📈 Statistics:")
         print(f"  Files scanned:    {self.stats['files_scanned']}")
         print(f"  Links checked:    {self.stats['links_checked']}")
         print(f"  Valid links:      {self.stats['links_valid']} "
@@ -188,7 +188,7 @@ class DocsLinkValidator:
                     print(f"     ... and {len(issues) - 5} more")
 
             # Most broken targets
-            print(f"\n🔗 Most Frequently Broken Targets:")
+            print("\n🔗 Most Frequently Broken Targets:")
             print("-"*70)
 
             target_counts = defaultdict(int)

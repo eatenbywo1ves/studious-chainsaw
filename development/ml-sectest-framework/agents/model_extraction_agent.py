@@ -8,7 +8,7 @@ References:
 - MITRE AML.T0044: Full ML Model Access
 """
 
-from typing import List, Dict, Any
+from typing import List, Dict, Any, cast
 import requests
 
 import sys
@@ -23,7 +23,7 @@ from core.base_agent import (
 class ModelExtractionAgent(BaseSecurityAgent):
     """
     Agent specialized in model extraction attacks.
-    
+
     Techniques:
     1. Query-based extraction: Build substitute model via queries
     2. Equation solving: Extract model parameters directly
@@ -31,7 +31,7 @@ class ModelExtractionAgent(BaseSecurityAgent):
     4. Knowledge distillation: Clone model behavior
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             agent_id="model_extraction_001",
             name="Model Extraction Specialist",
@@ -39,7 +39,7 @@ class ModelExtractionAgent(BaseSecurityAgent):
         )
 
         self.query_budget = 1000
-        self.extracted_samples = []
+        self.extracted_samples: List[Dict[str, Any]] = []
 
     def _get_vulnerability_type(self) -> VulnerabilityType:
         """Return model extraction vulnerability type."""
@@ -48,7 +48,7 @@ class ModelExtractionAgent(BaseSecurityAgent):
     def analyze(self, context: AgentContext) -> TestResult:
         """
         Analyze system for model extraction vulnerabilities.
-        
+
         Checks:
         1. Query limit enforcement
         2. Prediction detail level
@@ -114,7 +114,7 @@ class ModelExtractionAgent(BaseSecurityAgent):
     def exploit(self, context: AgentContext, test_result: TestResult) -> TestResult:
         """
         Attempt model extraction attack.
-        
+
         Strategies:
         1. Active learning extraction
         2. Decision boundary extraction
@@ -248,8 +248,8 @@ class ModelExtractionAgent(BaseSecurityAgent):
                     response = requests.get(test_url, timeout=5)
                     if response.status_code == 200:
                         result["exposed"] = True
-                        result["info"].append(f"{endpoint}: {response.text[:100]}")
-                except:
+                        cast(List[str], result["info"]).append(f"{endpoint}: {response.text[:100]}")
+                except Exception:
                     continue
 
             # Check response headers for model info
@@ -259,7 +259,7 @@ class ModelExtractionAgent(BaseSecurityAgent):
             for header in headers_to_check:
                 if header in response.headers:
                     result["exposed"] = True
-                    result["info"].append(f"Header {header}: {response.headers[header]}")
+                    cast(List[str], result["info"]).append(f"Header {header}: {response.headers[header]}")
 
         except Exception as error:
             self.logger.debug(f"Metadata exposure test failed: {str(error)}")
@@ -281,7 +281,7 @@ class ModelExtractionAgent(BaseSecurityAgent):
                 )
 
                 if response.status_code in [400, 413]:
-                    result["architecture_hints"].append(f"Max input size: ~{size}")
+                    cast(List[str], result["architecture_hints"]).append(f"Max input size: ~{size}")
                     break
 
             # Test response time patterns (can indicate model complexity)
@@ -293,19 +293,19 @@ class ModelExtractionAgent(BaseSecurityAgent):
                 response_times.append(time.time() - start)
 
             avg_time = sum(response_times) / len(response_times)
-            result["architecture_hints"].append(f"Avg response time: {avg_time:.3f}s")
+            cast(List[str], result["architecture_hints"]).append(f"Avg response time: {avg_time:.3f}s")
 
             # Classify based on response time
             if avg_time < 0.1:
-                result["architecture_hints"].append("Likely: Simple model (linear/tree)")
+                cast(List[str], result["architecture_hints"]).append("Likely: Simple model (linear/tree)")
             elif avg_time < 0.5:
-                result["architecture_hints"].append("Likely: Medium complexity (shallow NN)")
+                cast(List[str], result["architecture_hints"]).append("Likely: Medium complexity (shallow NN)")
             else:
-                result["architecture_hints"].append("Likely: Complex model (deep NN/transformer)")
+                cast(List[str], result["architecture_hints"]).append("Likely: Complex model (deep NN/transformer)")
 
             if result["architecture_hints"]:
                 result["success"] = True
-                result["details"] = "; ".join(result["architecture_hints"])
+                result["details"] = "; ".join(cast(List[str], result["architecture_hints"]))
 
         except Exception as error:
             self.logger.debug(f"Architecture probing failed: {str(error)}")
@@ -375,7 +375,7 @@ class ModelExtractionAgent(BaseSecurityAgent):
 
                 if response_a.status_code == 200 and response_b.status_code == 200:
                     if response_a.text != response_b.text:
-                        result["boundaries"].append({
+                        cast(List[Dict[str, Any]], result["boundaries"]).append({
                             "input_a": option_a,
                             "output_a": response_a.text[:50],
                             "input_b": option_b,
@@ -428,11 +428,11 @@ class ModelExtractionAgent(BaseSecurityAgent):
 
                 for keyword, framework in frameworks.items():
                     if keyword in error_text:
-                        result["architecture"][keyword] = framework
+                        cast(Dict[str, str], result["architecture"])[keyword] = framework
                         result["success"] = True
 
             if result["success"]:
-                result["details"] = f"Detected frameworks: {', '.join(result['architecture'].values())}"
+                result["details"] = f"Detected frameworks: {', '.join(cast(Dict[str, str], result['architecture']).values())}"
 
         except Exception as error:
             self.logger.debug(f"Architecture extraction failed: {str(error)}")

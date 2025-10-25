@@ -119,7 +119,7 @@ See [Redis Guide](./guides/REDIS_POOL_OPTIMIZATION_GUIDE.md)
 
 **New pattern (consistent with INDEX.md):**
 ```markdown
-See [Redis Pool Optimization](../guides/REDIS_POOL_OPTIMIZATION_GUIDE.md)
+See [Redis Pool Optimization](guides/REDIS_POOL_OPTIMIZATION_GUIDE.md)
 ```
 
 ### Files Needing Link Updates
@@ -188,12 +188,12 @@ Most existing docs already use relative links correctly. Only minor updates need
    ```markdown
    ## 📚 Documentation
 
-   **👉 [Complete Documentation Index](./docs/INDEX.md)**
+   **👉 [Complete Documentation Index](INDEX.md)**
 
    Quick Links:
-   - [5-Minute Quick Starts](./docs/INDEX.md#-quick-start-guides)
-   - [Architecture Overview](./docs/architecture/system-overview.md)
-   - [Production Deployment](./docs/PRODUCTION_DEPLOYMENT_GUIDE.md)
+   - [5-Minute Quick Starts](INDEX.md#-quick-start-guides)
+   - [Architecture Overview](architecture/system-overview.md)
+   - [Production Deployment](../saas/PRODUCTION_DEPLOYMENT.md)
    ```
 
 ---

@@ -8,7 +8,7 @@ References:
 - Evasion attacks on neural networks
 """
 
-from typing import Dict, Any
+from typing import Dict, Any, List, cast
 import requests
 
 import sys
@@ -23,7 +23,7 @@ from core.base_agent import (
 class AdversarialAttackAgent(BaseSecurityAgent):
     """
     Agent specialized in adversarial attacks on ML models.
-    
+
     Techniques:
     1. FGSM (Fast Gradient Sign Method)
     2. Input perturbation
@@ -31,7 +31,7 @@ class AdversarialAttackAgent(BaseSecurityAgent):
     4. Transfer attacks
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             agent_id="adversarial_attack_001",
             name="Adversarial Attack Specialist",
@@ -48,7 +48,7 @@ class AdversarialAttackAgent(BaseSecurityAgent):
     def analyze(self, context: AgentContext) -> TestResult:
         """
         Analyze model for adversarial vulnerability.
-        
+
         Tests:
         1. Sensitivity to input perturbation
         2. Robustness to noise
@@ -112,7 +112,7 @@ class AdversarialAttackAgent(BaseSecurityAgent):
     def exploit(self, context: AgentContext, test_result: TestResult) -> TestResult:
         """
         Craft and deploy adversarial examples.
-        
+
         Strategies:
         1. Pixel manipulation
         2. Feature space perturbation
@@ -332,7 +332,7 @@ class AdversarialAttackAgent(BaseSecurityAgent):
                     # If properly handled (rejected or normalized), adversarial training likely
                     if response.status_code in [400, 422]:
                         consistent_handling += 1
-                except:
+                except Exception:
                     consistent_handling += 1
 
             # If most adversarial inputs are handled, training is likely
@@ -383,7 +383,7 @@ class AdversarialAttackAgent(BaseSecurityAgent):
                     if response.status_code == 200:
                         # Check if perturbation changed classification
                         if response.text != baseline_class:
-                            result["examples"].append({
+                            cast(List[Dict[str, Any]], result["examples"]).append({
                                 "original": base_input,
                                 "adversarial": perturbed,
                                 "original_class": baseline_class,
@@ -392,7 +392,7 @@ class AdversarialAttackAgent(BaseSecurityAgent):
                             result["success"] = True
 
             if result["success"]:
-                result["details"] = f"Generated {len(result['examples'])} adversarial examples"
+                result["details"] = f"Generated {len(cast(List[Dict[str, Any]], result['examples']))} adversarial examples"
 
         except Exception as error:
             self.logger.debug(f"Perturbation attack failed: {str(error)}")
@@ -442,14 +442,14 @@ class AdversarialAttackAgent(BaseSecurityAgent):
                         )
 
                         if response.status_code == 200:
-                            result["examples"].append({
+                            cast(List[Dict[str, Any]], result["examples"]).append({
                                 "boundary_input": mixed,
                                 "classification": response.text
                             })
                             result["success"] = True
 
             if result["success"]:
-                result["details"] = f"Explored {len(result['examples'])} boundary points"
+                result["details"] = f"Explored {len(cast(List[Dict[str, Any]], result['examples']))} boundary points"
 
         except Exception as error:
             self.logger.debug(f"Boundary attack failed: {str(error)}")
@@ -493,14 +493,14 @@ class AdversarialAttackAgent(BaseSecurityAgent):
                 if response.status_code == 200:
                     # Check if adversarial input caused misclassification
                     if response.text != baseline_class or "error" in response.text.lower():
-                        result["examples"].append({
+                        cast(List[Dict[str, Any]], result["examples"]).append({
                             "adversarial_input": adv_input,
                             "response": response.text[:100]
                         })
                         result["success"] = True
 
             if result["success"]:
-                result["details"] = f"Transfer attack succeeded with {len(result['examples'])} examples"
+                result["details"] = f"Transfer attack succeeded with {len(cast(List[Dict[str, Any]], result['examples']))} examples"
 
         except Exception as error:
             self.logger.debug(f"Transfer attack failed: {str(error)}")

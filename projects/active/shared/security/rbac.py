@@ -37,6 +37,7 @@ class ResourceType(Enum):
     SYSTEM = "system"
     API_ENDPOINT = "api_endpoint"
     DATA = "data"
+    DASHBOARD = "dashboard"  # Added for dashboard access control
 
 
 class Action(Enum):
@@ -382,6 +383,11 @@ class RBACManager:
             ("task_update", "Update Tasks", ResourceType.TASK, Action.UPDATE),
             ("task_delete", "Delete Tasks", ResourceType.TASK, Action.DELETE),
             ("task_assign", "Assign Tasks", ResourceType.TASK, Action.ASSIGN),
+            ("dashboard_create", "Create Dashboards", ResourceType.DASHBOARD, Action.CREATE),
+            ("dashboard_read", "Read Dashboards", ResourceType.DASHBOARD, Action.READ),
+            ("dashboard_update", "Update Dashboards", ResourceType.DASHBOARD, Action.UPDATE),
+            ("dashboard_delete", "Delete Dashboards", ResourceType.DASHBOARD, Action.DELETE),
+            ("dashboard_manage", "Manage Dashboards", ResourceType.DASHBOARD, Action.MANAGE),
         ]
 
         for perm_id, name, resource_type, action in system_permissions:
@@ -428,6 +434,11 @@ class RBACManager:
             "task_update",
             "task_delete",
             "task_assign",
+            "dashboard_create",
+            "dashboard_read",
+            "dashboard_update",
+            "dashboard_delete",
+            "dashboard_manage",
         ]
         for perm_id in tenant_perms:
             tenant_admin.add_permission(perm_id)
@@ -446,6 +457,9 @@ class RBACManager:
             "task_create",
             "task_read",
             "task_assign",
+            "dashboard_create",
+            "dashboard_read",
+            "dashboard_update",
         ]
         for perm_id in operator_perms:
             agent_operator.add_permission(perm_id)
@@ -458,7 +472,7 @@ class RBACManager:
             description="Read-only access",
             is_system_role=True,
         )
-        viewer_perms = ["user_read", "agent_read", "task_read"]
+        viewer_perms = ["user_read", "agent_read", "task_read", "dashboard_read"]
         for perm_id in viewer_perms:
             viewer.add_permission(perm_id)
         self.roles["viewer"] = viewer
