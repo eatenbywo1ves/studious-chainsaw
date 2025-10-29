@@ -62,6 +62,9 @@ services:
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - MAX_RETRIES=${MAX_RETRIES:-3}
       - RETRY_DELAY=${RETRY_DELAY:-5}
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
     volumes:
       - webhook-data:/app/data
       - ./logs/webhooks:/app/logs

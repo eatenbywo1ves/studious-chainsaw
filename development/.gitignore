@@ -89,6 +89,10 @@ venv.bak/
 .env.test
 *.env.local
 
+# SECURITY: Redis password rotation temporary files (GitGuardian-001 remediation)
+# Prevents accidental commit of temporary password files created by rotation scripts
+.redis_password*
+
 # Database
 *.db
 *.sqlite
