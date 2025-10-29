@@ -309,13 +309,19 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
-    """Middleware for rate limiting based on tenant/user"""
+    """
+    Middleware for rate limiting based on tenant/user
 
-    def __init__(self, app, default_limit: int = 100, window_seconds: int = 60):
+    SECURITY (SEC-008 Fix): Redis-based distributed rate limiting
+    """
+
+    def __init__(self, app, redis_client=None, default_limit: int = 100, window_seconds: int = 60):
         super().__init__(app)
         self.default_limit = default_limit
         self.window_seconds = window_seconds
-        self.request_counts = {}  # Simple in-memory storage
+        self.redis_client = redis_client
+        # Fallback to in-memory for backwards compatibility (not recommended)
+        self.request_counts = {}
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         # Get identifier (tenant_id or IP)
@@ -328,7 +334,83 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             # Fall back to IP
             identifier = f"ip:{request.client.host}"
 
-        # Check rate limit
+        # ============================================================================
+        # SECURITY (SEC-008 Fix): Use Redis for distributed rate limiting
+        # ============================================================================
+        # Benefits:
+        # - Survives server restarts
+        # - Works across multiple workers/instances
+        # - Atomic operations prevent race conditions
+        # - Automatic expiration with TTL
+
+        if self.redis_client:
+            # Redis-based sliding window rate limiting (production-ready)
+            key = f"ratelimit:{identifier}"
+            current_time = time.time()
+
+            try:
+                # Use Redis sorted set for sliding window algorithm
+                # Score = timestamp, Value = unique request ID
+                pipe = self.redis_client.pipeline()
+
+                # Remove entries older than window
+                pipe.zremrangebyscore(key, 0, current_time - self.window_seconds)
+
+                # Add current request
+                pipe.zadd(key, {f"{current_time}": current_time})
+
+                # Get count in window
+                pipe.zcard(key)
+
+                # Set expiration to prevent memory leak
+                pipe.expire(key, self.window_seconds + 1)
+
+                # Execute pipeline atomically
+                results = pipe.execute()
+                request_count = results[2]  # Result from zcard
+
+                if request_count > self.default_limit:
+                    retry_after = self.window_seconds
+                    logger.warning(
+                        "Rate limit exceeded (Redis)",
+                        extra={
+                            "identifier": identifier,
+                            "count": request_count,
+                            "limit": self.default_limit,
+                            "window": self.window_seconds,
+                        },
+                    )
+                    return Response(
+                        content=f'{{"detail": "Rate limit exceeded. Try again in {retry_after} seconds."}}',
+                        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                        headers={"Retry-After": str(retry_after)},
+                        media_type="application/json",
+                    )
+
+                # Continue processing
+                response = await call_next(request)
+                return response
+
+            except Exception as redis_error:
+                logger.error(
+                    f"Redis rate limiting error: {redis_error}. Falling back to in-memory.",
+                    exc_info=True
+                )
+                # Fallback to in-memory on Redis failure
+
+        # ============================================================================
+        # FALLBACK: In-memory rate limiting (for development/testing only)
+        # ============================================================================
+        # WARNING: This is NOT production-ready:
+        # - Lost on server restart
+        # - Doesn't work across multiple workers
+        # - Can be bypassed by restarting server
+
+        logger.warning(
+            f"Using in-memory rate limiting for {identifier}. "
+            "Configure Redis for production-grade rate limiting."
+        )
+
         current_time = time.time()
         window_start = current_time - self.window_seconds
 

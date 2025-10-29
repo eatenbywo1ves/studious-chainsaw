@@ -148,37 +148,78 @@ class RSAKeyManager:
         self._load_or_generate_keys()
 
     def _load_or_generate_keys(self):
-        """Load existing RSA keys or generate new ones"""
+        """
+        Load existing RSA keys or generate new ones
+
+        SECURITY (SEC-005 Fix): Private keys are now encrypted with password protection
+        """
         # ✅ MIGRATED: Use centralized configuration for key paths
         private_key_path = str(_config.auth.private_key_path) if _config.auth.private_key_path else "keys/jwt_private.pem"
         public_key_path = str(_config.auth.public_key_path) if _config.auth.public_key_path else "keys/jwt_public.pem"
 
+        # ============================================================================
+        # SECURITY (SEC-005 Fix): Get encryption password for private key
+        # ============================================================================
+        # Private keys MUST be encrypted to prevent key theft via filesystem access
+        key_password = os.getenv("JWT_KEY_PASSWORD")
+        if not key_password:
+            raise RuntimeError(
+                "\n"
+                "=" * 80 + "\n"
+                "CRITICAL SECURITY ERROR: JWT_KEY_PASSWORD not configured!\n"
+                "=" * 80 + "\n"
+                "Private RSA keys must be encrypted with a password.\n"
+                "This prevents key theft if an attacker gains filesystem access.\n"
+                "\n"
+                "To fix this:\n"
+                "1. Set JWT_KEY_PASSWORD in your environment or .env.production.local\n"
+                "2. Generate a secure password:\n"
+                "   python -c 'import secrets; print(secrets.token_urlsafe(32))'\n"
+                "\n"
+                "For production: Use environment variables or key management service\n"
+                "=" * 80
+            )
+
+        key_password_bytes = key_password.encode()
+
         if os.path.exists(private_key_path) and os.path.exists(public_key_path):
-            # Load existing keys
-            with open(private_key_path, "rb") as f:
-                self.private_key = serialization.load_pem_private_key(
-                    f.read(), password=None, backend=default_backend()
-                )
-            with open(public_key_path, "rb") as f:
-                self.public_key = serialization.load_pem_public_key(
-                    f.read(), backend=default_backend()
+            # Load existing encrypted keys
+            try:
+                with open(private_key_path, "rb") as f:
+                    self.private_key = serialization.load_pem_private_key(
+                        f.read(),
+                        password=key_password_bytes,  # ← Password required to decrypt
+                        backend=default_backend()
+                    )
+                with open(public_key_path, "rb") as f:
+                    self.public_key = serialization.load_pem_public_key(
+                        f.read(), backend=default_backend()
+                    )
+                logger.info("✓ RSA keys loaded successfully (encrypted private key)")
+            except ValueError as e:
+                raise RuntimeError(
+                    f"Failed to load RSA keys. Wrong JWT_KEY_PASSWORD? Error: {e}"
                 )
         else:
             # Generate new RSA key pair
+            logger.info("Generating new RSA key pair (2048-bit)...")
             self.private_key = rsa.generate_private_key(
                 public_exponent=65537, key_size=2048, backend=default_backend()
             )
             self.public_key = self.private_key.public_key()
 
-            # Save keys
+            # Save keys with encryption
             os.makedirs(os.path.dirname(private_key_path), exist_ok=True)
+
+            # Use BestAvailableEncryption to protect private key
+            from cryptography.hazmat.primitives.serialization import BestAvailableEncryption
 
             with open(private_key_path, "wb") as f:
                 f.write(
                     self.private_key.private_bytes(
                         encoding=serialization.Encoding.PEM,
                         format=serialization.PrivateFormat.PKCS8,
-                        encryption_algorithm=serialization.NoEncryption(),
+                        encryption_algorithm=BestAvailableEncryption(key_password_bytes),  # ← ENCRYPTED
                     )
                 )
 

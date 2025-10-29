@@ -141,7 +141,9 @@ services:
       - PYTHONUNBUFFERED=1
       - DATABASE_URL=postgresql://${POSTGRES_USER:-catalytic}:${POSTGRES_PASSWORD:-secure_password_change_me}@postgres:5432/${POSTGRES_DB:-catalytic_saas}
       - REDIS_URL=redis://redis:6379
-      - JWT_SECRET=${JWT_SECRET:-change_me_in_production}
+      # SECURITY (SEC-007 Fix): NO DEFAULT - Force explicit JWT secret configuration
+      # Application will fail to start if JWT_SECRET not set (fail-secure design)
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET environment variable required - no default allowed}
       - JWT_ALGORITHM=${JWT_ALGORITHM:-RS256}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - ENVIRONMENT=${ENVIRONMENT:-production}
