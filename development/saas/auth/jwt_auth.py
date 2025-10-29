@@ -37,6 +37,49 @@ ACCESS_TOKEN_EXPIRE_MINUTES = _config.auth.access_token_expire_minutes
 REFRESH_TOKEN_EXPIRE_DAYS = _config.auth.refresh_token_expire_days
 API_KEY_PREFIX = _config.auth.api_key_prefix
 
+# ============================================================================
+# SECURITY: Validate JWT Secret at Module Load (SEC-002 Fix)
+# ============================================================================
+# CRITICAL: Application MUST NOT start without valid JWT secret
+# This prevents authentication bypass vulnerabilities from misconfigurations
+
+if not JWT_SECRET_KEY:
+    raise RuntimeError(
+        "\n"
+        "=" * 80 + "\n"
+        "CRITICAL SECURITY ERROR: JWT_SECRET_KEY is not configured!\n"
+        "=" * 80 + "\n"
+        "The application cannot start without a valid JWT secret key.\n"
+        "This prevents token forgery and authentication bypass vulnerabilities.\n"
+        "\n"
+        "To fix this:\n"
+        "1. Set AUTH_SECRET_KEY in your environment or configuration file\n"
+        "2. Generate a secure secret:\n"
+        "   python -c 'import secrets; print(secrets.token_urlsafe(32))'\n"
+        "\n"
+        "For production: Use environment variables or secure key management (AWS Secrets Manager, etc.)\n"
+        "=" * 80
+    )
+
+# Validate secret key length (minimum 32 bytes for security)
+if len(JWT_SECRET_KEY) < 32:
+    raise RuntimeError(
+        f"\n"
+        f"=" * 80 + "\n"
+        f"CRITICAL SECURITY ERROR: JWT_SECRET_KEY is too short!\n"
+        f"=" * 80 + "\n"
+        f"Current length: {len(JWT_SECRET_KEY)} bytes\n"
+        f"Minimum required: 32 bytes\n"
+        f"\n"
+        f"Your JWT secret is not secure enough. Short secrets can be brute-forced.\n"
+        f"\n"
+        f"Generate a secure 32-byte secret:\n"
+        f"  python -c 'import secrets; print(secrets.token_urlsafe(32))'\n"
+        f"=" * 80
+    )
+
+logger.info(f"✓ JWT secret key validated (length: {len(JWT_SECRET_KEY)} bytes, algorithm: {JWT_ALGORITHM})")
+
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 

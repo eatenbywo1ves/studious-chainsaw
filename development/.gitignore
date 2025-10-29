@@ -87,7 +87,13 @@ venv.bak/
 .env.staging
 .env.development
 .env.test
+
+# SECURITY (SEC-001 Fix): Block local environment files containing secrets
+# Deployment scripts now load Redis password from .env.production.local (gitignored)
 *.env.local
+.env.production.local
+.env.staging.local
+.env.development.local
 
 # SECURITY: Redis password rotation temporary files (GitGuardian-001 remediation)
 # Prevents accidental commit of temporary password files created by rotation scripts

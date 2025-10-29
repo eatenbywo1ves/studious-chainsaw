@@ -8,7 +8,27 @@ REM Set production environment variables
 set DEPLOYMENT_ENV=production
 set REDIS_HOST=localhost
 set REDIS_PORT=6379
-set REDIS_PASSWORD=RLr5E73KjlPcAghcLXjBEdWJzqFVeV3EQ1GyQzqoOxo=
+
+REM SECURITY: Check for .env.production.local file (gitignored)
+if not exist .env.production.local (
+    echo ERROR: .env.production.local not found!
+    echo Create this file with: REDIS_PASSWORD=your_secure_password
+    echo Generate password: python -c "import secrets; print(secrets.token_urlsafe(32))"
+    exit /b 1
+)
+
+REM Load Redis password from secure file
+for /f "tokens=1,* delims==" %%a in (.env.production.local) do (
+    if "%%a"=="REDIS_PASSWORD" set REDIS_PASSWORD=%%b
+)
+
+REM Validate password is set
+if "%REDIS_PASSWORD%"=="" (
+    echo ERROR: REDIS_PASSWORD not found in .env.production.local
+    exit /b 1
+)
+
+echo [OK] Redis password loaded from .env.production.local
 
 REM Display configuration
 echo ========================================
