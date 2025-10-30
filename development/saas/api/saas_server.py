@@ -53,6 +53,11 @@ from auth.middleware import (  # noqa: E402
     get_current_user,
     TokenData,
 )
+from auth.password_validation import validate_password  # noqa: E402
+from auth.csrf_protection import create_csrf_middleware  # noqa: E402
+from auth.request_limits import RequestSizeLimitMiddleware  # noqa: E402
+from auth.account_lockout import AccountLockoutManager  # noqa: E402
+from auth.jwt_auth import redis_client  # noqa: E402
 
 # Import tenant API
 from api.tenant_api import router as tenant_router  # noqa: E402
@@ -160,6 +165,14 @@ from api.reactive_auth import ReactiveAuthService, ReactiveLatticeService  # noq
 auth_service = ReactiveAuthService(max_workers=4)
 lattice_service = ReactiveLatticeService(lattice_manager, max_workers=4)
 
+# Initialize account lockout manager (SEC-012 Fix)
+lockout_manager = AccountLockoutManager(
+    redis_client=redis_client,
+    max_attempts=5,
+    lockout_duration=900,  # 15 minutes
+    attempt_window=300,  # 5 minutes
+)
+
 # ============================================================================
 # LIFESPAN MANAGEMENT
 # ============================================================================
@@ -248,11 +261,21 @@ async def lifespan(app: FastAPI):
 # FASTAPI APPLICATION
 # ============================================================================
 
+# ============================================================================
+# SECURITY (SEC-011 Fix): Request size limits to prevent DOS attacks
+# ============================================================================
+# Limit request body size to prevent memory exhaustion attacks
+# 10MB for API requests, 100MB for file uploads (configured separately)
+from fastapi.middleware.trustedhost import TrustedHostMiddleware  # noqa: E402
+
 app = FastAPI(
     title="Catalytic Computing SaaS API",
     description="Multi-tenant SaaS platform for revolutionary lattice computing",
     version="2.0.0",
     lifespan=lifespan,
+    # Limit request body size (10MB default)
+    # Prevents DOS attacks via large payloads
+    swagger_ui_parameters={"syntaxHighlight.theme": "obsidian"},
 )
 
 # Add CORS middleware
@@ -273,6 +296,26 @@ app.add_middleware(
     frame_options=security_headers_middleware.frame_options,
     enable_permissions_policy=security_headers_middleware.enable_permissions_policy,
     enable_referrer_policy=security_headers_middleware.enable_referrer_policy,
+)
+
+# Add security middleware
+# ============================================================================
+# SECURITY (SEC-010 Fix): CSRF protection for state-changing operations
+# ============================================================================
+csrf_middleware = create_csrf_middleware(environment=environment)
+app.add_middleware(
+    type(csrf_middleware),
+    secret_key=None,  # Uses CSRF_SECRET_KEY from environment
+    exempt_paths=csrf_middleware.exempt_paths,
+)
+
+# ============================================================================
+# SECURITY (SEC-011 Fix): Request size limits to prevent DOS
+# ============================================================================
+app.add_middleware(
+    RequestSizeLimitMiddleware,
+    max_request_size=10 * 1024 * 1024,  # 10MB for API requests
+    max_upload_size=100 * 1024 * 1024,  # 100MB for file uploads
 )
 
 # Add custom middleware
@@ -328,6 +371,24 @@ async def register_user(request: RegisterRequest, db: Session = Depends(get_db))
     from uuid import uuid4
 
     logger.info(f"Registration attempt for email: {request.email}")
+
+    # ============================================================================
+    # SECURITY (SEC-009 Fix): Validate password strength
+    # ============================================================================
+    # Enforce OWASP-compliant password requirements to prevent weak passwords
+    is_valid, errors = validate_password(request.password)
+    if not is_valid:
+        logger.warning(
+            f"Registration failed - weak password: {request.email}",
+            extra={"validation_errors": errors}
+        )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "message": "Password does not meet security requirements",
+                "errors": errors
+            }
+        )
 
     # Generate tenant slug from email if not provided
     tenant_slug = request.tenant_slug or request.email.split("@")[0]
@@ -409,6 +470,27 @@ async def login(request: LoginRequest, db: Session = Depends(get_db)):
         f"Login attempt for email: {request.email}, tenant: {request.tenant_slug or 'default'}"
     )
 
+    # ============================================================================
+    # SECURITY (SEC-012 Fix): Check account lockout status
+    # ============================================================================
+    # Prevent brute force attacks by locking accounts after failed attempts
+    is_locked, seconds_remaining = lockout_manager.is_locked_out(request.email)
+    if is_locked:
+        minutes_remaining = seconds_remaining // 60
+        logger.warning(
+            f"Login attempt for locked account: {request.email}",
+            extra={
+                "email": request.email,
+                "seconds_remaining": seconds_remaining,
+                "client_ip": "unknown",  # Add IP tracking if available
+            }
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Account temporarily locked due to too many failed login attempts. "
+                   f"Please try again in {minutes_remaining} minutes."
+        )
+
     # Import RxPY operators for async execution
     from rx import operators as ops
 
@@ -421,10 +503,34 @@ async def login(request: LoginRequest, db: Session = Depends(get_db)):
         # Execute reactive pipeline and await result
         result = await login_observable.pipe(ops.to_future())
 
+        # ============================================================================
+        # SECURITY (SEC-012): Clear failed attempts on successful login
+        # ============================================================================
+        lockout_manager.record_successful_login(request.email)
+
         logger.info(f"Login successful for email: {request.email}")
         return result
     except Exception as e:
-        logger.warning(f"Login failed for email: {request.email}, error: {str(e)}")
+        # ============================================================================
+        # SECURITY (SEC-012): Record failed login attempt
+        # ============================================================================
+        lockout_manager.record_failed_attempt(request.email)
+
+        # Get remaining attempts for user feedback
+        remaining = lockout_manager.get_remaining_attempts(request.email)
+
+        logger.warning(
+            f"Login failed for email: {request.email}, error: {str(e)}, "
+            f"remaining attempts: {remaining}"
+        )
+
+        # If this was the last attempt that triggered lockout
+        if remaining == 0:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Too many failed login attempts. Account locked for 15 minutes."
+            )
+
         raise
 
 
