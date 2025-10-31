@@ -1,0 +1,500 @@
+# ========================================
+# PostgreSQL StatefulSet
+# Persistent database with automatic backups
+# ========================================
+
+---
+# PersistentVolumeClaim for PostgreSQL Data
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc
+  namespace: catalytic-staging
+  labels:
+    app: postgres
+    environment: staging
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+  # Adjust storageClassName based on your cluster
+  # storageClassName: standard
+
+---
+# PostgreSQL StatefulSet
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: catalytic-staging
+  labels:
+    app: postgres
+    component: database
+    environment: staging
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+        component: database
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9187"
+    spec:
+      securityContext:
+        fsGroup: 999
+        runAsUser: 999
+        runAsNonRoot: true
+
+      containers:
+      - name: postgres
+        image: postgres:15-alpine
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: postgres
+          containerPort: 5432
+          protocol: TCP
+
+        env:
+        - name: POSTGRES_DB
+          valueFrom:
+            configMapKeyRef:
+              name: postgres-config
+              key: POSTGRES_DB
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-credentials
+              key: username
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-credentials
+              key: password
+        - name: POSTGRES_INITDB_ARGS
+          valueFrom:
+            configMapKeyRef:
+              name: postgres-config
+              key: POSTGRES_INITDB_ARGS
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+
+        volumeMounts:
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data
+        - name: postgres-init
+          mountPath: /docker-entrypoint-initdb.d
+          readOnly: true
+        - name: postgres-config-volume
+          mountPath: /etc/postgresql/postgresql.conf
+          subPath: postgresql.conf
+          readOnly: true
+
+        # Startup probe - allows up to 5 minutes for crash recovery
+        startupProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - pg_isready -U $POSTGRES_USER -d $POSTGRES_DB
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 30        # Allows up to 300s for crash recovery
+          successThreshold: 1
+
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - pg_isready -U $POSTGRES_USER -d $POSTGRES_DB
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 6         # Allows 60s of failures before restart
+
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - pg_isready -U $POSTGRES_USER -d $POSTGRES_DB
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3         # Allows 15s of failures before removing from service
+
+      # PostgreSQL Exporter for Prometheus metrics
+      - name: postgres-exporter
+        image: prometheuscommunity/postgres-exporter:latest
+        ports:
+        - name: metrics
+          containerPort: 9187
+        env:
+        - name: DATA_SOURCE_NAME
+          value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@localhost:5432/$(POSTGRES_DB)?sslmode=disable"
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-credentials
+              key: username
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-credentials
+              key: password
+        - name: POSTGRES_DB
+          valueFrom:
+            configMapKeyRef:
+              name: postgres-config
+              key: POSTGRES_DB
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+
+      volumes:
+      - name: postgres-storage
+        persistentVolumeClaim:
+          claimName: postgres-pvc
+      - name: postgres-init
+        configMap:
+          name: postgres-init-scripts
+      - name: postgres-config-volume
+        configMap:
+          name: postgres-performance-config
+
+---
+# PostgreSQL Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: catalytic-staging
+  labels:
+    app: postgres
+    component: database
+spec:
+  type: ClusterIP
+  ports:
+  - name: postgres
+    port: 5432
+    targetPort: 5432
+    protocol: TCP
+  - name: metrics
+    port: 9187
+    targetPort: 9187
+    protocol: TCP
+  selector:
+    app: postgres
+  sessionAffinity: None
+
+---
+# ConfigMap for PostgreSQL Performance Tuning
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-performance-config
+  namespace: catalytic-staging
+  labels:
+    app: postgres
+data:
+  postgresql.conf: |
+    # PostgreSQL Configuration for Kubernetes
+
+    # Connection Settings
+    max_connections = 100
+    superuser_reserved_connections = 3
+
+    # Memory Settings
+    shared_buffers = 256MB
+    effective_cache_size = 1GB
+    maintenance_work_mem = 64MB
+    work_mem = 4MB
+
+    # Checkpoint Settings
+    checkpoint_completion_target = 0.9
+    wal_buffers = 16MB
+
+    # Query Planner Settings
+    default_statistics_target = 100
+    random_page_cost = 1.1
+    effective_io_concurrency = 200
+
+    # Write-Ahead Log (WAL) Settings
+    min_wal_size = 1GB
+    max_wal_size = 4GB
+
+    # Logging Settings
+    log_destination = 'stderr'
+    logging_collector = on
+    log_directory = 'log'
+    log_filename = 'postgresql-%Y-%m-%d_%H%M%S.log'
+    log_rotation_age = 1d
+    log_rotation_size = 100MB
+    log_line_prefix = '%m [%p] %u@%d '
+    log_timezone = 'UTC'
+
+    # Slow Query Logging
+    log_min_duration_statement = 1000
+    log_statement = 'all'
+    log_duration = off
+
+    # Autovacuum Settings
+    autovacuum = on
+    autovacuum_max_workers = 3
+    autovacuum_naptime = 1min
+
+---
+# ConfigMap for Database Initialization Scripts
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init-scripts
+  namespace: catalytic-staging
+  labels:
+    app: postgres
+data:
+  01-init.sql: |
+    -- Database initialization script
+    -- This runs only on first database creation
+
+    -- Enable required extensions
+    CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+    CREATE EXTENSION IF NOT EXISTS "pg_trgm";
+    CREATE EXTENSION IF NOT EXISTS "btree_gin";
+
+    -- Create schemas
+    CREATE SCHEMA IF NOT EXISTS auth;
+    CREATE SCHEMA IF NOT EXISTS api;
+    CREATE SCHEMA IF NOT EXISTS audit;
+
+    -- Grant permissions
+    GRANT USAGE ON SCHEMA auth TO catalytic_staging;
+    GRANT USAGE ON SCHEMA api TO catalytic_staging;
+    GRANT USAGE ON SCHEMA audit TO catalytic_staging;
+
+    GRANT ALL PRIVILEGES ON SCHEMA auth TO catalytic_staging;
+    GRANT ALL PRIVILEGES ON SCHEMA api TO catalytic_staging;
+    GRANT ALL PRIVILEGES ON SCHEMA audit TO catalytic_staging;
+
+---
+# PRODUCTION PostgreSQL (Higher resources)
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc
+  namespace: catalytic-production
+  labels:
+    app: postgres
+    environment: production
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Gi
+  # storageClassName: fast-ssd
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: catalytic-production
+  labels:
+    app: postgres
+    component: database
+    environment: production
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+        component: database
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9187"
+    spec:
+      securityContext:
+        fsGroup: 999
+        runAsUser: 999
+        runAsNonRoot: true
+
+      containers:
+      - name: postgres
+        image: postgres:15-alpine
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: postgres
+          containerPort: 5432
+          protocol: TCP
+
+        env:
+        - name: POSTGRES_DB
+          valueFrom:
+            configMapKeyRef:
+              name: postgres-config
+              key: POSTGRES_DB
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-credentials
+              key: username
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-credentials
+              key: password
+        - name: POSTGRES_INITDB_ARGS
+          valueFrom:
+            configMapKeyRef:
+              name: postgres-config
+              key: POSTGRES_INITDB_ARGS
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "4Gi"
+            cpu: "2000m"
+
+        volumeMounts:
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data
+        - name: postgres-init
+          mountPath: /docker-entrypoint-initdb.d
+          readOnly: true
+        - name: postgres-config-volume
+          mountPath: /etc/postgresql/postgresql.conf
+          subPath: postgresql.conf
+          readOnly: true
+
+        # Startup probe - allows up to 5 minutes for crash recovery
+        startupProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - pg_isready -U $POSTGRES_USER -d $POSTGRES_DB
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 30        # Allows up to 300s for crash recovery
+          successThreshold: 1
+
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - pg_isready -U $POSTGRES_USER -d $POSTGRES_DB
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 6         # Allows 60s of failures before restart
+
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - pg_isready -U $POSTGRES_USER -d $POSTGRES_DB
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3         # Allows 15s of failures before removing from service
+
+      - name: postgres-exporter
+        image: prometheuscommunity/postgres-exporter:latest
+        ports:
+        - name: metrics
+          containerPort: 9187
+        env:
+        - name: DATA_SOURCE_NAME
+          value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@localhost:5432/$(POSTGRES_DB)?sslmode=disable"
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-credentials
+              key: username
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-credentials
+              key: password
+        - name: POSTGRES_DB
+          valueFrom:
+            configMapKeyRef:
+              name: postgres-config
+              key: POSTGRES_DB
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+
+      volumes:
+      - name: postgres-storage
+        persistentVolumeClaim:
+          claimName: postgres-pvc
+      - name: postgres-init
+        configMap:
+          name: postgres-init-scripts-prod
+      - name: postgres-config-volume
+        configMap:
+          name: postgres-performance-config-prod
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: catalytic-production
+  labels:
+    app: postgres
+    component: database
+spec:
+  type: ClusterIP
+  ports:
+  - name: postgres
+    port: 5432
+    targetPort: 5432
+    protocol: TCP
+  - name: metrics
+    port: 9187
+    targetPort: 9187
+    protocol: TCP
+  selector:
+    app: postgres
+  sessionAffinity: None

@@ -5,8 +5,6 @@
 # - docker compose --profile dev up        (Development environment)
 # - docker compose --profile all up        (Everything)
 
-version: '3.8'
-
 services:
   # ============================================================================
   # CORE SERVICES (Always included)
@@ -109,7 +107,14 @@ services:
   redis:
     image: redis:7-alpine
     container_name: catalytic-redis
-    command: redis-server --appendonly yes --maxmemory ${REDIS_MAX_MEMORY:-256mb} --maxmemory-policy allkeys-lru
+    command: >
+      sh -c "
+      if [ -n \"${REDIS_PASSWORD}\" ]; then
+        redis-server --appendonly yes --maxmemory ${REDIS_MAX_MEMORY:-256mb} --maxmemory-policy allkeys-lru --requirepass ${REDIS_PASSWORD}
+      else
+        redis-server --appendonly yes --maxmemory ${REDIS_MAX_MEMORY:-256mb} --maxmemory-policy allkeys-lru
+      fi
+      "
     volumes:
       - redis_data:/data
     ports:
@@ -117,7 +122,11 @@ services:
     networks:
       - catalytic-network
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test:
+        - CMD
+        - sh
+        - -c
+        - "if [ -n \"${REDIS_PASSWORD}\" ]; then redis-cli -a ${REDIS_PASSWORD} ping; else redis-cli ping; fi"
       interval: 10s
       timeout: 5s
       retries: 3
@@ -142,8 +151,8 @@ services:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-catalytic}:${POSTGRES_PASSWORD:-secure_password_change_me}@postgres:5432/${POSTGRES_DB:-catalytic_saas}
       - REDIS_URL=redis://redis:6379
       # SECURITY (SEC-007 Fix): NO DEFAULT - Force explicit JWT secret configuration
-      # Application will fail to start if JWT_SECRET not set (fail-secure design)
-      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET environment variable required - no default allowed}
+      # Application will fail to start if JWT_SECRET_KEY not set (fail-secure design)
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:?JWT_SECRET_KEY environment variable required - no default allowed}
       - JWT_ALGORITHM=${JWT_ALGORITHM:-RS256}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - ENVIRONMENT=${ENVIRONMENT:-production}
@@ -245,7 +254,7 @@ networks:
     driver: bridge
     ipam:
       config:
-        - subnet: 172.28.0.0/16
+        - subnet: 172.29.0.0/16
 
 # ============================================================================
 # VOLUMES

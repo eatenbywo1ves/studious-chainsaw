@@ -1,0 +1,591 @@
+# ========================================
+# SaaS API Deployment (Auth Service with Circuit Breaker)
+# Main authentication and authorization service
+# ========================================
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: saas-api
+  namespace: catalytic-staging
+  labels:
+    app: saas-api
+    component: auth
+    environment: staging
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: saas-api
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: saas-api
+        component: auth
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8001"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: saas-api
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+
+      # initContainers:
+      # # Database migration init container - DISABLED for Docker Desktop deployment
+      # - name: db-migrate
+      #   image: catalytic-saas:staging
+      #   imagePullPolicy: IfNotPresent
+      #   command:
+      #     - python
+      #     - -m
+      #     - alembic
+      #     - upgrade
+      #     - head
+      #   env:
+      #   - name: DATABASE_URL
+      #     value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@postgres:5432/$(POSTGRES_DB)"
+      #   - name: POSTGRES_USER
+      #     valueFrom:
+      #       secretKeyRef:
+      #         name: postgres-credentials
+      #         key: username
+      #   - name: POSTGRES_PASSWORD
+      #     valueFrom:
+      #       secretKeyRef:
+      #         name: postgres-credentials
+      #         key: password
+      #   - name: POSTGRES_DB
+      #     valueFrom:
+      #       configMapKeyRef:
+      #         name: saas-api-config
+      #         key: POSTGRES_DB
+
+      containers:
+      - name: saas-api
+        image: catalytic-saas:staging  # Local Docker Desktop image
+        imagePullPolicy: IfNotPresent  # Use local images for Docker Desktop
+        ports:
+        - name: http
+          containerPort: 8000
+          protocol: TCP
+        - name: metrics
+          containerPort: 8001
+          protocol: TCP
+
+        env:
+        # Application Configuration
+        - name: SAAS_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: saas-api-config
+              key: SAAS_PORT
+        - name: SAAS_METRICS_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: saas-api-config
+              key: SAAS_METRICS_PORT
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: saas-api-config
+              key: LOG_LEVEL
+        - name: ENVIRONMENT
+          valueFrom:
+            configMapKeyRef:
+              name: saas-api-config
+              key: ENVIRONMENT
+
+        # JWT Configuration
+        - name: JWT_ALGORITHM
+          valueFrom:
+            configMapKeyRef:
+              name: saas-api-config
+              key: JWT_ALGORITHM
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: jwt-secrets
+              key: jwt-secret
+        # Pydantic config expects JWT_SECRET_KEY (not AUTH_SECRET_KEY)
+        - name: JWT_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: jwt-secrets
+              key: jwt-secret
+        # CSRF protection secret key (reuse same secret for staging)
+        - name: CSRF_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: jwt-secrets
+              key: jwt-secret
+        - name: ACCESS_TOKEN_EXPIRE_MINUTES
+          valueFrom:
+            configMapKeyRef:
+              name: saas-api-config
+              key: ACCESS_TOKEN_EXPIRE_MINUTES
+        - name: REFRESH_TOKEN_EXPIRE_DAYS
+          valueFrom:
+            configMapKeyRef:
+              name: saas-api-config
+              key: REFRESH_TOKEN_EXPIRE_DAYS
+
+        # Database Configuration
+        - name: DATABASE_URL
+          value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@postgres:5432/$(POSTGRES_DB)"
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-credentials
+              key: username
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-credentials
+              key: password
+        - name: POSTGRES_DB
+          valueFrom:
+            configMapKeyRef:
+              name: saas-api-config
+              key: POSTGRES_DB
+
+        # Redis Configuration
+        - name: REDIS_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: saas-api-config
+              key: REDIS_HOST
+        - name: REDIS_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: saas-api-config
+              key: REDIS_PORT
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: redis-credentials
+              key: password
+
+        # Circuit Breaker Configuration
+        - name: REDIS_CIRCUIT_BREAKER_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: saas-api-config
+              key: REDIS_CIRCUIT_BREAKER_ENABLED
+        - name: CIRCUIT_BREAKER_FAILURE_THRESHOLD
+          valueFrom:
+            configMapKeyRef:
+              name: saas-api-config
+              key: CIRCUIT_BREAKER_FAILURE_THRESHOLD
+        - name: CIRCUIT_BREAKER_FAILURE_TIMEOUT
+          valueFrom:
+            configMapKeyRef:
+              name: saas-api-config
+              key: CIRCUIT_BREAKER_FAILURE_TIMEOUT
+        - name: CIRCUIT_BREAKER_RESET_TIMEOUT
+          valueFrom:
+            configMapKeyRef:
+              name: saas-api-config
+              key: CIRCUIT_BREAKER_RESET_TIMEOUT
+        - name: CIRCUIT_BREAKER_SUCCESS_THRESHOLD
+          valueFrom:
+            configMapKeyRef:
+              name: saas-api-config
+              key: CIRCUIT_BREAKER_SUCCESS_THRESHOLD
+        - name: CIRCUIT_BREAKER_FALLBACK_STRATEGY
+          valueFrom:
+            configMapKeyRef:
+              name: saas-api-config
+              key: CIRCUIT_BREAKER_FALLBACK_STRATEGY
+
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "50m"  # Reduced for Docker Desktop
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+
+        volumeMounts:
+        - name: logs
+          mountPath: /app/logs
+        - name: keys
+          mountPath: /app/keys
+          readOnly: true
+
+        livenessProbe:
+          httpGet:
+            path: /health/liveness
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+
+        readinessProbe:
+          httpGet:
+            path: /health/readiness
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 2
+
+        startupProbe:
+          httpGet:
+            path: /health/startup
+            port: 8000
+          initialDelaySeconds: 0
+          periodSeconds: 5
+          failureThreshold: 30
+
+      volumes:
+      - name: logs
+        emptyDir: {}
+      - name: keys
+        secret:
+          secretName: jwt-secrets
+          optional: true
+
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - saas-api
+              topologyKey: kubernetes.io/hostname
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: saas-api
+  namespace: catalytic-staging
+  labels:
+    app: saas-api
+    component: auth
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8000
+    protocol: TCP
+  - name: metrics
+    port: 8001
+    targetPort: 8001
+    protocol: TCP
+  selector:
+    app: saas-api
+  sessionAffinity: None
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: saas-api
+  namespace: catalytic-staging
+  labels:
+    app: saas-api
+
+---
+# PRODUCTION Deployment (Higher resources, fail-closed circuit breaker)
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: saas-api
+  namespace: catalytic-production
+  labels:
+    app: saas-api
+    component: auth
+    environment: production
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: saas-api
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: saas-api
+        component: auth
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8001"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: saas-api
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+
+      initContainers:
+      - name: db-migrate
+        image: catalytic-saas:latest  # REPLACE with your registry
+        command:
+          - python
+          - -m
+          - alembic
+          - upgrade
+          - head
+        env:
+        - name: DATABASE_URL
+          value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@postgres:5432/$(POSTGRES_DB)"
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-credentials
+              key: username
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-credentials
+              key: password
+        - name: POSTGRES_DB
+          valueFrom:
+            configMapKeyRef:
+              name: saas-api-config
+              key: POSTGRES_DB
+
+      containers:
+      - name: saas-api
+        image: catalytic-saas:latest  # REPLACE with your registry
+        imagePullPolicy: Always
+        ports:
+        - name: http
+          containerPort: 8000
+          protocol: TCP
+        - name: metrics
+          containerPort: 8001
+          protocol: TCP
+
+        env:
+        - name: SAAS_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: saas-api-config
+              key: SAAS_PORT
+        - name: SAAS_METRICS_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: saas-api-config
+              key: SAAS_METRICS_PORT
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: saas-api-config
+              key: LOG_LEVEL
+        - name: ENVIRONMENT
+          valueFrom:
+            configMapKeyRef:
+              name: saas-api-config
+              key: ENVIRONMENT
+        - name: JWT_ALGORITHM
+          valueFrom:
+            configMapKeyRef:
+              name: saas-api-config
+              key: JWT_ALGORITHM
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: jwt-secrets
+              key: jwt-secret
+        # Pydantic config expects JWT_SECRET_KEY (not AUTH_SECRET_KEY)
+        - name: JWT_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: jwt-secrets
+              key: jwt-secret
+        # CSRF protection secret key (reuse same secret for staging)
+        - name: CSRF_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: jwt-secrets
+              key: jwt-secret
+        - name: ACCESS_TOKEN_EXPIRE_MINUTES
+          valueFrom:
+            configMapKeyRef:
+              name: saas-api-config
+              key: ACCESS_TOKEN_EXPIRE_MINUTES
+        - name: REFRESH_TOKEN_EXPIRE_DAYS
+          valueFrom:
+            configMapKeyRef:
+              name: saas-api-config
+              key: REFRESH_TOKEN_EXPIRE_DAYS
+        - name: DATABASE_URL
+          value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@postgres:5432/$(POSTGRES_DB)"
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-credentials
+              key: username
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-credentials
+              key: password
+        - name: POSTGRES_DB
+          valueFrom:
+            configMapKeyRef:
+              name: saas-api-config
+              key: POSTGRES_DB
+        - name: REDIS_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: saas-api-config
+              key: REDIS_HOST
+        - name: REDIS_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: saas-api-config
+              key: REDIS_PORT
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: redis-credentials
+              key: password
+        - name: REDIS_CIRCUIT_BREAKER_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: saas-api-config
+              key: REDIS_CIRCUIT_BREAKER_ENABLED
+        - name: CIRCUIT_BREAKER_FAILURE_THRESHOLD
+          valueFrom:
+            configMapKeyRef:
+              name: saas-api-config
+              key: CIRCUIT_BREAKER_FAILURE_THRESHOLD
+        - name: CIRCUIT_BREAKER_FAILURE_TIMEOUT
+          valueFrom:
+            configMapKeyRef:
+              name: saas-api-config
+              key: CIRCUIT_BREAKER_FAILURE_TIMEOUT
+        - name: CIRCUIT_BREAKER_RESET_TIMEOUT
+          valueFrom:
+            configMapKeyRef:
+              name: saas-api-config
+              key: CIRCUIT_BREAKER_RESET_TIMEOUT
+        - name: CIRCUIT_BREAKER_SUCCESS_THRESHOLD
+          valueFrom:
+            configMapKeyRef:
+              name: saas-api-config
+              key: CIRCUIT_BREAKER_SUCCESS_THRESHOLD
+        - name: CIRCUIT_BREAKER_FALLBACK_STRATEGY
+          valueFrom:
+            configMapKeyRef:
+              name: saas-api-config
+              key: CIRCUIT_BREAKER_FALLBACK_STRATEGY
+
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "4Gi"
+            cpu: "2000m"
+
+        volumeMounts:
+        - name: logs
+          mountPath: /app/logs
+        - name: keys
+          mountPath: /app/keys
+          readOnly: true
+
+        livenessProbe:
+          httpGet:
+            path: /health/liveness
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+
+        readinessProbe:
+          httpGet:
+            path: /health/readiness
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 2
+
+        startupProbe:
+          httpGet:
+            path: /health/startup
+            port: 8000
+          initialDelaySeconds: 0
+          periodSeconds: 5
+          failureThreshold: 30
+
+      volumes:
+      - name: logs
+        emptyDir: {}
+      - name: keys
+        secret:
+          secretName: jwt-secrets
+          optional: true
+
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - saas-api
+              topologyKey: kubernetes.io/hostname
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: saas-api
+  namespace: catalytic-production
+  labels:
+    app: saas-api
+    component: auth
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8000
+    protocol: TCP
+  - name: metrics
+    port: 8001
+    targetPort: 8001
+    protocol: TCP
+  selector:
+    app: saas-api
+  sessionAffinity: None
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: saas-api
+  namespace: catalytic-production
+  labels:
+    app: saas-api

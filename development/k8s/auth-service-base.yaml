@@ -1,0 +1,163 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-service-stable
+  namespace: production
+  labels:
+    app: auth-service
+    version: stable
+    component: authentication
+spec:
+  replicas: 3  # Stable deployment maintains 3 replicas
+  selector:
+    matchLabels:
+      app: auth-service
+      version: stable
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0  # Zero-downtime deployment
+  template:
+    metadata:
+      labels:
+        app: auth-service
+        version: stable
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: auth-service
+      containers:
+      - name: auth-service
+        image: your-registry/auth-service:stable  # Current production version WITHOUT circuit breaker
+        imagePullPolicy: Always
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        - name: metrics
+          containerPort: 9090
+          protocol: TCP
+
+        env:
+        # Redis configuration (current implementation)
+        - name: REDIS_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: auth-config
+              key: redis.host
+        - name: REDIS_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: auth-config
+              key: redis.port
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: redis-credentials
+              key: password
+
+        # Feature flag - Circuit breaker DISABLED for stable version
+        - name: REDIS_CIRCUIT_BREAKER_ENABLED
+          value: "false"
+
+        # Application configuration
+        - name: JWT_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: auth-secrets
+              key: jwt-secret
+        - name: ENV
+          value: "production"
+        - name: LOG_LEVEL
+          value: "INFO"
+
+        # Resource limits
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+
+        # Liveness probe - checks if container is alive
+        livenessProbe:
+          httpGet:
+            path: /health/liveness
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+
+        # Readiness probe - checks if container can serve traffic
+        readinessProbe:
+          httpGet:
+            path: /health/readiness
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 2
+
+        # Startup probe - for slow-starting containers
+        startupProbe:
+          httpGet:
+            path: /health/startup
+            port: 8080
+          initialDelaySeconds: 0
+          periodSeconds: 5
+          failureThreshold: 30  # 30 * 5s = 150s max startup time
+
+      # Security context
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+
+      # Node affinity for high-availability
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - auth-service
+              topologyKey: kubernetes.io/hostname
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-service
+  namespace: production
+  labels:
+    app: auth-service
+spec:
+  selector:
+    app: auth-service  # Selects BOTH stable and canary pods
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+    protocol: TCP
+  - name: metrics
+    port: 9090
+    targetPort: 9090
+    protocol: TCP
+  type: ClusterIP
+  sessionAffinity: None  # No session affinity for stateless auth
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: auth-service
+  namespace: production
