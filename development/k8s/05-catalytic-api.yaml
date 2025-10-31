@@ -1,0 +1,402 @@
+# ========================================
+# Catalytic API Deployment
+# Main API Gateway with auto-scaling
+# ========================================
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: catalytic-api
+  namespace: catalytic-staging
+  labels:
+    app: catalytic-api
+    component: api-gateway
+    environment: staging
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: catalytic-api
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: catalytic-api
+        component: api-gateway
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8082"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: catalytic-api
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+
+      containers:
+      - name: catalytic-api
+        image: catalytic-computing:staging  # Local Docker Desktop image
+        imagePullPolicy: IfNotPresent  # Use local images for Docker Desktop
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        - name: metrics
+          containerPort: 8082
+          protocol: TCP
+
+        env:
+        - name: API_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: catalytic-api-config
+              key: API_PORT
+        - name: METRICS_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: catalytic-api-config
+              key: METRICS_PORT
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: catalytic-api-config
+              key: LOG_LEVEL
+        - name: ENVIRONMENT
+          valueFrom:
+            configMapKeyRef:
+              name: catalytic-api-config
+              key: ENVIRONMENT
+        - name: LATTICE_MEMORY_OPTIMIZATION
+          valueFrom:
+            configMapKeyRef:
+              name: catalytic-api-config
+              key: LATTICE_MEMORY_OPTIMIZATION
+        - name: PARALLEL_CORES
+          valueFrom:
+            configMapKeyRef:
+              name: catalytic-api-config
+              key: PARALLEL_CORES
+        - name: MAX_LATTICES
+          valueFrom:
+            configMapKeyRef:
+              name: catalytic-api-config
+              key: MAX_LATTICES
+        - name: CACHE_SIZE
+          valueFrom:
+            configMapKeyRef:
+              name: catalytic-api-config
+              key: CACHE_SIZE
+        - name: REDIS_URL
+          valueFrom:
+            configMapKeyRef:
+              name: catalytic-api-config
+              key: REDIS_URL
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: redis-credentials
+              key: password
+        - name: API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: api-keys
+              key: catalytic-api-key
+
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "50m"  # Reduced for Docker Desktop
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+
+        volumeMounts:
+        - name: logs
+          mountPath: /app/logs
+        - name: cache
+          mountPath: /app/cache
+
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 2
+
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 0
+          periodSeconds: 5
+          failureThreshold: 30
+
+      volumes:
+      - name: logs
+        emptyDir: {}
+      - name: cache
+        emptyDir:
+          sizeLimit: 2Gi
+
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - catalytic-api
+              topologyKey: kubernetes.io/hostname
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: catalytic-api
+  namespace: catalytic-staging
+  labels:
+    app: catalytic-api
+    component: api-gateway
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+    protocol: TCP
+  - name: metrics
+    port: 8082
+    targetPort: 8082
+    protocol: TCP
+  selector:
+    app: catalytic-api
+  sessionAffinity: None
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: catalytic-api
+  namespace: catalytic-staging
+  labels:
+    app: catalytic-api
+
+---
+# PRODUCTION Deployment (Higher resources)
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: catalytic-api
+  namespace: catalytic-production
+  labels:
+    app: catalytic-api
+    component: api-gateway
+    environment: production
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: catalytic-api
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: catalytic-api
+        component: api-gateway
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8082"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: catalytic-api
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+
+      containers:
+      - name: catalytic-api
+        image: catalytic-computing:latest  # REPLACE with your registry
+        imagePullPolicy: Always
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        - name: metrics
+          containerPort: 8082
+          protocol: TCP
+
+        env:
+        - name: API_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: catalytic-api-config
+              key: API_PORT
+        - name: METRICS_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: catalytic-api-config
+              key: METRICS_PORT
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: catalytic-api-config
+              key: LOG_LEVEL
+        - name: ENVIRONMENT
+          valueFrom:
+            configMapKeyRef:
+              name: catalytic-api-config
+              key: ENVIRONMENT
+        - name: LATTICE_MEMORY_OPTIMIZATION
+          valueFrom:
+            configMapKeyRef:
+              name: catalytic-api-config
+              key: LATTICE_MEMORY_OPTIMIZATION
+        - name: PARALLEL_CORES
+          valueFrom:
+            configMapKeyRef:
+              name: catalytic-api-config
+              key: PARALLEL_CORES
+        - name: MAX_LATTICES
+          valueFrom:
+            configMapKeyRef:
+              name: catalytic-api-config
+              key: MAX_LATTICES
+        - name: CACHE_SIZE
+          valueFrom:
+            configMapKeyRef:
+              name: catalytic-api-config
+              key: CACHE_SIZE
+        - name: REDIS_URL
+          valueFrom:
+            configMapKeyRef:
+              name: catalytic-api-config
+              key: REDIS_URL
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: redis-credentials
+              key: password
+        - name: API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: api-keys
+              key: catalytic-api-key
+
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "4Gi"
+            cpu: "2000m"
+
+        volumeMounts:
+        - name: logs
+          mountPath: /app/logs
+        - name: cache
+          mountPath: /app/cache
+
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 2
+
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 0
+          periodSeconds: 5
+          failureThreshold: 30
+
+      volumes:
+      - name: logs
+        emptyDir: {}
+      - name: cache
+        emptyDir:
+          sizeLimit: 5Gi
+
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - catalytic-api
+              topologyKey: kubernetes.io/hostname
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: catalytic-api
+  namespace: catalytic-production
+  labels:
+    app: catalytic-api
+    component: api-gateway
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+    protocol: TCP
+  - name: metrics
+    port: 8082
+    targetPort: 8082
+    protocol: TCP
+  selector:
+    app: catalytic-api
+  sessionAffinity: None
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: catalytic-api
+  namespace: catalytic-production
+  labels:
+    app: catalytic-api

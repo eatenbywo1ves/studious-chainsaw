@@ -1,0 +1,331 @@
+# Prometheus ServiceMonitor - Automatically discovers and scrapes metrics
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: auth-service
+  namespace: monitoring
+  labels:
+    app: auth-service
+    prometheus: kube-prometheus
+spec:
+  # Select services to monitor
+  selector:
+    matchLabels:
+      app: auth-service
+  # Target the production namespace
+  namespaceSelector:
+    matchNames:
+    - production
+  # Scrape configuration
+  endpoints:
+  - port: metrics  # Named port from service
+    interval: 15s  # Scrape every 15 seconds
+    path: /metrics
+    scheme: http
+    # Add labels to all metrics
+    relabelings:
+    - sourceLabels: [__meta_kubernetes_pod_name]
+      targetLabel: pod
+    - sourceLabels: [__meta_kubernetes_pod_node_name]
+      targetLabel: node
+    - sourceLabels: [__meta_kubernetes_pod_label_version]
+      targetLabel: version  # stable or canary
+    - sourceLabels: [__meta_kubernetes_namespace]
+      targetLabel: namespace
+
+---
+# PrometheusRule - Define alerting rules for circuit breaker
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: auth-service-circuit-breaker-alerts
+  namespace: monitoring
+  labels:
+    prometheus: kube-prometheus
+    role: alert-rules
+spec:
+  groups:
+  - name: circuit_breaker
+    interval: 30s
+    rules:
+
+    # ========================================
+    # CRITICAL ALERTS - Immediate Action Required
+    # ========================================
+
+    - alert: CircuitBreakerOpen
+      expr: |
+        circuit_breaker_state{job="auth-service",state="OPEN"} > 0
+      for: 2m
+      labels:
+        severity: critical
+        component: circuit-breaker
+        team: platform
+      annotations:
+        summary: "Circuit breaker OPEN for {{ $labels.pod }}"
+        description: |
+          The Redis circuit breaker has been OPEN for more than 2 minutes.
+          This indicates sustained Redis failures and the system is in degraded mode.
+
+          Pod: {{ $labels.pod }}
+          Version: {{ $labels.version }}
+          Namespace: {{ $labels.namespace }}
+
+          IMMEDIATE ACTIONS:
+          1. Check Redis cluster health
+          2. Review circuit breaker metrics
+          3. Verify fallback behavior is working
+          4. Consider rolling back canary if version=canary
+
+    - alert: CanarySuccessRateLow
+      expr: |
+        (
+          sum(rate(auth_requests_total{version="canary",status="success"}[5m]))
+          /
+          sum(rate(auth_requests_total{version="canary"}[5m]))
+        ) * 100 < 99.0
+      for: 5m
+      labels:
+        severity: critical
+        component: canary-deployment
+        team: platform
+      annotations:
+        summary: "Canary success rate below 99% threshold"
+        description: |
+          The canary deployment success rate has been below 99% for 5 minutes.
+          This triggers automated rollback conditions.
+
+          Current success rate: {{ $value | humanizePercentage }}
+          Threshold: 99.0%
+
+          IMMEDIATE ACTIONS:
+          1. Initiate rollback procedure
+          2. Check circuit breaker state
+          3. Review error logs
+          4. Create incident report
+
+    - alert: CanaryErrorRateHigh
+      expr: |
+        (
+          sum(rate(auth_requests_total{version="canary",status="error"}[5m]))
+          /
+          sum(rate(auth_requests_total{version="canary"}[5m]))
+        ) * 100 > 1.0
+      for: 5m
+      labels:
+        severity: critical
+        component: canary-deployment
+        team: platform
+      annotations:
+        summary: "Canary error rate above 1% threshold"
+        description: |
+          The canary deployment error rate has been above 1% for 5 minutes.
+          This triggers automated rollback conditions.
+
+          Current error rate: {{ $value | humanizePercentage }}
+          Threshold: 1.0%
+
+          IMMEDIATE ACTIONS:
+          1. Initiate rollback procedure
+          2. Investigate error patterns
+          3. Check Redis connectivity
+          4. Review circuit breaker logs
+
+    # ========================================
+    # WARNING ALERTS - Monitor Closely
+    # ========================================
+
+    - alert: CanarySuccessRateDegraded
+      expr: |
+        (
+          sum(rate(auth_requests_total{version="canary",status="success"}[5m]))
+          /
+          sum(rate(auth_requests_total{version="canary"}[5m]))
+        ) * 100 < 99.5
+      for: 3m
+      labels:
+        severity: warning
+        component: canary-deployment
+        team: platform
+      annotations:
+        summary: "Canary success rate below target (99.5%)"
+        description: |
+          The canary deployment success rate is below the 99.5% target.
+          Not yet at rollback threshold (99.0%) but requires attention.
+
+          Current success rate: {{ $value | humanizePercentage }}
+          Target: 99.5%
+          Rollback threshold: 99.0%
+
+          RECOMMENDED ACTIONS:
+          1. Monitor closely for further degradation
+          2. Review recent changes
+          3. Check Redis performance metrics
+          4. Prepare for potential rollback
+
+    - alert: CircuitBreakerHalfOpen
+      expr: |
+        circuit_breaker_state{job="auth-service",state="HALF_OPEN"} > 0
+      for: 5m
+      labels:
+        severity: warning
+        component: circuit-breaker
+        team: platform
+      annotations:
+        summary: "Circuit breaker in HALF_OPEN state for {{ $labels.pod }}"
+        description: |
+          The circuit breaker has been in HALF_OPEN state for 5 minutes.
+          This indicates recovery attempts from previous failures.
+
+          Pod: {{ $labels.pod }}
+          Version: {{ $labels.version }}
+
+          RECOMMENDED ACTIONS:
+          1. Monitor recovery progress
+          2. Check Redis health
+          3. Review failure patterns
+          4. Ensure successful recovery transitions to CLOSED
+
+    - alert: HighCircuitBreakerFailureRate
+      expr: |
+        rate(circuit_breaker_failures_total[5m]) > 1
+      for: 3m
+      labels:
+        severity: warning
+        component: circuit-breaker
+        team: platform
+      annotations:
+        summary: "High circuit breaker failure rate"
+        description: |
+          Circuit breaker is recording more than 1 failure per second.
+          This may indicate Redis instability.
+
+          Current failure rate: {{ $value | humanize }} failures/sec
+          Pod: {{ $labels.pod }}
+          Version: {{ $labels.version }}
+
+          RECOMMENDED ACTIONS:
+          1. Check Redis connection pool health
+          2. Review Redis server metrics
+          3. Monitor for circuit opening
+          4. Investigate failure causes
+
+    - alert: CanaryLatencyHigh
+      expr: |
+        histogram_quantile(0.99,
+          sum(rate(auth_request_duration_seconds_bucket{version="canary"}[5m]))
+          by (le)
+        ) * 1000 > 100
+      for: 5m
+      labels:
+        severity: warning
+        component: canary-deployment
+        team: platform
+      annotations:
+        summary: "Canary P99 latency above 100ms"
+        description: |
+          The canary deployment P99 latency has exceeded 100ms for 5 minutes.
+
+          Current P99 latency: {{ $value | humanize }}ms
+          Threshold: 100ms
+
+          RECOMMENDED ACTIONS:
+          1. Check for performance degradation
+          2. Review circuit breaker overhead
+          3. Investigate slow queries
+          4. Monitor resource utilization
+
+    # ========================================
+    # INFO ALERTS - Informational
+    # ========================================
+
+    - alert: CircuitBreakerStateChange
+      expr: |
+        changes(circuit_breaker_state_changes_total[5m]) > 0
+      labels:
+        severity: info
+        component: circuit-breaker
+        team: platform
+      annotations:
+        summary: "Circuit breaker state changed"
+        description: |
+          The circuit breaker has changed state in the last 5 minutes.
+
+          Pod: {{ $labels.pod }}
+          Total state changes: {{ $value }}
+
+          This is informational - review logs for details.
+
+    - alert: CanaryTrafficSplitActive
+      expr: |
+        sum(rate(auth_requests_total{version="canary"}[5m])) > 0
+      labels:
+        severity: info
+        component: canary-deployment
+        team: platform
+      annotations:
+        summary: "Canary deployment receiving traffic"
+        description: |
+          Canary deployment is actively receiving traffic.
+          Current RPS: {{ $value | humanize }}
+
+          This is informational - canary is deployed.
+
+---
+# PrometheusRule - Recording rules for aggregations
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: auth-service-circuit-breaker-recording-rules
+  namespace: monitoring
+  labels:
+    prometheus: kube-prometheus
+    role: recording-rules
+spec:
+  groups:
+  - name: circuit_breaker_aggregations
+    interval: 15s
+    rules:
+
+    # Overall success rate by version
+    - record: auth:success_rate:5m
+      expr: |
+        sum(rate(auth_requests_total{status="success"}[5m])) by (version)
+        /
+        sum(rate(auth_requests_total[5m])) by (version)
+
+    # Overall error rate by version
+    - record: auth:error_rate:5m
+      expr: |
+        sum(rate(auth_requests_total{status="error"}[5m])) by (version)
+        /
+        sum(rate(auth_requests_total[5m])) by (version)
+
+    # P99 latency by version
+    - record: auth:latency_p99:5m
+      expr: |
+        histogram_quantile(0.99,
+          sum(rate(auth_request_duration_seconds_bucket[5m])) by (version, le)
+        )
+
+    # P95 latency by version
+    - record: auth:latency_p95:5m
+      expr: |
+        histogram_quantile(0.95,
+          sum(rate(auth_request_duration_seconds_bucket[5m])) by (version, le)
+        )
+
+    # Circuit breaker open percentage
+    - record: circuit_breaker:open_percentage:5m
+      expr: |
+        avg(circuit_breaker_state{state="OPEN"}) by (version) * 100
+
+    # Total requests per second by version
+    - record: auth:requests_per_second:5m
+      expr: |
+        sum(rate(auth_requests_total[5m])) by (version)
+
+    # Circuit breaker state distribution
+    - record: circuit_breaker:state_distribution
+      expr: |
+        sum(circuit_breaker_state) by (version, state)

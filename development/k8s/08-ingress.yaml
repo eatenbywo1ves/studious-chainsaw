@@ -1,0 +1,215 @@
+# ========================================
+# Ingress Configuration
+# External access to services with TLS termination
+# Requires NGINX Ingress Controller or similar
+# ========================================
+
+---
+# Staging Ingress
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: catalytic-ingress
+  namespace: catalytic-staging
+  labels:
+    environment: staging
+  annotations:
+    # NGINX Ingress Controller annotations
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+
+    # Rate limiting
+    nginx.ingress.kubernetes.io/limit-rps: "100"
+    nginx.ingress.kubernetes.io/limit-connections: "50"
+
+    # CORS
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization"
+
+    # Timeouts
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+
+    # Body size
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+
+    # cert-manager for automatic TLS certificates (optional)
+    # cert-manager.io/cluster-issuer: "letsencrypt-staging"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - staging.catalytic.example.com  # REPLACE with your domain
+    secretName: catalytic-tls-staging
+  rules:
+  - host: staging.catalytic.example.com  # REPLACE with your domain
+    http:
+      paths:
+      # Catalytic API
+      - path: /api/v1
+        pathType: Prefix
+        backend:
+          service:
+            name: catalytic-api
+            port:
+              number: 80
+
+      # SaaS API (Auth)
+      - path: /auth
+        pathType: Prefix
+        backend:
+          service:
+            name: saas-api
+            port:
+              number: 80
+
+      # Webhook System
+      - path: /webhooks
+        pathType: Prefix
+        backend:
+          service:
+            name: webhook-system
+            port:
+              number: 80
+
+---
+# Production Ingress (stricter rate limits, production domain)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: catalytic-ingress
+  namespace: catalytic-production
+  labels:
+    environment: production
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+
+    # Stricter rate limiting for production
+    nginx.ingress.kubernetes.io/limit-rps: "500"
+    nginx.ingress.kubernetes.io/limit-connections: "100"
+    nginx.ingress.kubernetes.io/limit-burst-multiplier: "5"
+
+    # CORS - more restrictive in production
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "https://app.catalytic.example.com"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization"
+    nginx.ingress.kubernetes.io/cors-allow-credentials: "true"
+
+    # Timeouts
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "120"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "120"
+
+    # Body size
+    nginx.ingress.kubernetes.io/proxy-body-size: "20m"
+
+    # Security headers
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      more_set_headers "X-Frame-Options: DENY";
+      more_set_headers "X-Content-Type-Options: nosniff";
+      more_set_headers "X-XSS-Protection: 1; mode=block";
+      more_set_headers "Referrer-Policy: strict-origin-when-cross-origin";
+      more_set_headers "Strict-Transport-Security: max-age=31536000; includeSubDomains; preload";
+
+    # cert-manager for automatic TLS certificates
+    # cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - api.catalytic.example.com  # REPLACE with your domain
+    - auth.catalytic.example.com  # REPLACE with your domain
+    secretName: catalytic-tls-production
+  rules:
+  - host: api.catalytic.example.com  # REPLACE with your domain
+    http:
+      paths:
+      # Catalytic API
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: catalytic-api
+            port:
+              number: 80
+
+      # Webhook System
+      - path: /webhooks
+        pathType: Prefix
+        backend:
+          service:
+            name: webhook-system
+            port:
+              number: 80
+
+  - host: auth.catalytic.example.com  # REPLACE with your domain
+    http:
+      paths:
+      # SaaS API (Auth)
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: saas-api
+            port:
+              number: 80
+
+---
+# Metrics Ingress (for Prometheus scraping - internal only)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: metrics-ingress
+  namespace: catalytic-production
+  labels:
+    app: metrics
+  annotations:
+    nginx.ingress.kubernetes.io/whitelist-source-range: "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"  # Internal IPs only
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: metrics.catalytic.internal  # Internal domain
+    http:
+      paths:
+      - path: /catalytic-api
+        pathType: Prefix
+        backend:
+          service:
+            name: catalytic-api
+            port:
+              number: 8082
+      - path: /saas-api
+        pathType: Prefix
+        backend:
+          service:
+            name: saas-api
+            port:
+              number: 8001
+      - path: /webhook-system
+        pathType: Prefix
+        backend:
+          service:
+            name: webhook-system
+            port:
+              number: 9090
+      - path: /postgres
+        pathType: Prefix
+        backend:
+          service:
+            name: postgres
+            port:
+              number: 9187
+      - path: /redis
+        pathType: Prefix
+        backend:
+          service:
+            name: redis
+            port:
+              number: 9121
