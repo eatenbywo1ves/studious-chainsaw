@@ -312,7 +312,7 @@ $env:REDIS_PASSWORD = $password
 
 **Example Output:**
 ```
-Generated Redis Password: RLr5E73KjlPcAghcLXjBEdWJzqFVeV3EQ1GyQzqoOxo=
+Generated Redis Password: <REDACTED>
 Save this password securely!
 ```
 
@@ -334,7 +334,7 @@ timeout 0
 tcp-keepalive 300
 
 # SECURITY
-requirepass RLr5E73KjlPcAghcLXjBEdWJzqFVeV3EQ1GyQzqoOxo=
+requirepass <REDACTED>
 maxclients 10000
 
 # PERSISTENCE - RDB Snapshots
@@ -454,7 +454,7 @@ Replica 2 (read-only)     ← Sentinel monitors
 DEPLOYMENT_ENV=production
 REDIS_HOST=localhost
 REDIS_PORT=6379
-REDIS_PASSWORD=RLr5E73KjlPcAghcLXjBEdWJzqFVeV3EQ1GyQzqoOxo=
+REDIS_PASSWORD=<REDACTED>
 UVICORN_WORKERS=4
 ```
 
@@ -464,7 +464,7 @@ UVICORN_WORKERS=4
 DEPLOYMENT_ENV=staging
 REDIS_HOST=localhost
 REDIS_PORT=6379
-REDIS_PASSWORD=RLr5E73KjlPcAghcLXjBEdWJzqFVeV3EQ1GyQzqoOxo=
+REDIS_PASSWORD=<REDACTED>
 UVICORN_WORKERS=2
 ```
 
@@ -474,7 +474,7 @@ UVICORN_WORKERS=2
 DEPLOYMENT_ENV=development
 REDIS_HOST=localhost
 REDIS_PORT=6379
-REDIS_PASSWORD=RLr5E73KjlPcAghcLXjBEdWJzqFVeV3EQ1GyQzqoOxo=
+REDIS_PASSWORD=<REDACTED>
 UVICORN_WORKERS=1
 ```
 
