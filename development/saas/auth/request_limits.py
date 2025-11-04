@@ -3,7 +3,7 @@ Request Size Limit Middleware
 Prevents DOS attacks via large request payloads
 
 SECURITY (SEC-011 Fix): Request size limits with streaming validation
-Version: 2.0 (100% complete - includes streaming body validation)
+Version: 2.1 (100% complete - includes streaming validation + Prometheus metrics)
 """
 
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -12,6 +12,38 @@ from starlette.responses import Response, JSONResponse
 from starlette.types import ASGIApp
 from starlette.exceptions import HTTPException
 import logging
+
+# Prometheus metrics for monitoring
+try:
+    from prometheus_client import Counter, Histogram
+
+    # Request size rejections counter
+    request_size_exceeded = Counter(
+        'request_size_limit_exceeded_total',
+        'Total number of requests rejected due to size limits',
+        ['method', 'path', 'limit_type', 'rejection_type']
+    )
+
+    # Request body size distribution histogram
+    request_body_bytes = Histogram(
+        'request_body_bytes',
+        'Distribution of request body sizes in bytes',
+        ['method', 'limit_type'],
+        buckets=[
+            1024,           # 1KB
+            10*1024,        # 10KB
+            100*1024,       # 100KB
+            1*1024*1024,    # 1MB
+            10*1024*1024,   # 10MB
+            100*1024*1024,  # 100MB
+            1000*1024*1024  # 1GB
+        ]
+    )
+
+    METRICS_ENABLED = True
+except ImportError:
+    # Prometheus client not installed - metrics disabled
+    METRICS_ENABLED = False
 
 logger = logging.getLogger(__name__)
 
@@ -83,6 +115,16 @@ class RequestSizeLimitMiddleware(BaseHTTPMiddleware):
                         }
                     )
 
+                    # Increment metrics for streaming rejection
+                    if METRICS_ENABLED:
+                        limit_type = "upload" if is_upload else "regular"
+                        request_size_exceeded.labels(
+                            method=request.method,
+                            path=str(request.url.path),
+                            limit_type=limit_type,
+                            rejection_type="streaming"
+                        ).inc()
+
                     raise HTTPException(
                         status_code=413,
                         detail=f"Request body too large. Maximum: {limit_mb:.0f}MB, "
@@ -102,6 +144,14 @@ class RequestSizeLimitMiddleware(BaseHTTPMiddleware):
                         "max_size": max_size
                     }
                 )
+
+                # Record successful request body size in histogram
+                if METRICS_ENABLED:
+                    limit_type = "upload" if is_upload else "regular"
+                    request_body_bytes.labels(
+                        method=request.method,
+                        limit_type=limit_type
+                    ).observe(bytes_read)
 
     async def dispatch(self, request: Request, call_next) -> Response:
         """
@@ -146,6 +196,16 @@ class RequestSizeLimitMiddleware(BaseHTTPMiddleware):
                         "client_ip": request.client.host if request.client else "unknown",
                     }
                 )
+
+                # Increment metrics for Content-Length rejection (fast path)
+                if METRICS_ENABLED:
+                    limit_type = "upload" if is_upload else "regular"
+                    request_size_exceeded.labels(
+                        method=request.method,
+                        path=str(request.url.path),
+                        limit_type=limit_type,
+                        rejection_type="content_length"
+                    ).inc()
 
                 return JSONResponse(
                     status_code=413,  # Payload Too Large

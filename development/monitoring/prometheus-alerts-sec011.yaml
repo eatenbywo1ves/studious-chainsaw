@@ -1,0 +1,191 @@
+# Prometheus Alert Rules for SEC-011 (Request Size Bypass Fix)
+#
+# These alerts monitor the SEC-011 streaming validation middleware
+# to detect potential DoS attacks and unusual request patterns.
+#
+# Deployment: kubectl apply -f prometheus-alerts-sec011.yaml
+# Namespace: monitoring
+
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: sec-011-request-size-alerts
+  namespace: monitoring
+  labels:
+    prometheus: kube-prometheus-stack
+    role: alert-rules
+    security: sec-011
+spec:
+  groups:
+    - name: sec-011-request-size-limits
+      interval: 30s
+      rules:
+        # Alert 1: High Request Size Rejection Rate
+        # Triggers when many requests are being rejected due to size limits
+        - alert: HighRequestSizeRejection
+          expr: |
+            rate(request_size_limit_exceeded_total[5m]) > 10
+          for: 5m
+          labels:
+            severity: warning
+            component: request-size-middleware
+            security_fix: SEC-011
+          annotations:
+            summary: "High rate of request size rejections detected"
+            description: |
+              {{ $value | humanize }} requests/sec are being rejected due to size limits.
+              This could indicate:
+              - Legitimate spike in large uploads
+              - Misconfigured client applications
+              - Possible DoS attack attempt
+
+              Current rate: {{ $value | humanize }} rejections/sec
+              Threshold: 10 rejections/sec
+
+              Check Grafana dashboard for breakdown by endpoint and rejection type.
+            dashboard_url: "http://grafana:3000/d/sec-011/request-size-monitoring"
+            runbook_url: "https://wiki.internal/runbooks/sec-011-high-rejection-rate"
+
+        # Alert 2: Unusual Request Size Distribution
+        # Triggers when p99 request sizes are very large AND rejections are occurring
+        - alert: UnusualRequestSizeDistribution
+          expr: |
+            histogram_quantile(0.99, rate(request_body_bytes_bucket[5m])) > 50*1024*1024
+            and
+            rate(request_size_limit_exceeded_total[5m]) > 1
+          for: 10m
+          labels:
+            severity: info
+            component: request-size-middleware
+            security_fix: SEC-011
+          annotations:
+            summary: "Unusual request size distribution detected"
+            description: |
+              The 99th percentile of request body sizes is {{ $value | humanize }}MB,
+              which is unusually high, and rejections are occurring.
+
+              This could indicate:
+              - Clients attempting to send oversized payloads
+              - Legitimate change in usage patterns
+              - Gradual DoS attack probing
+
+              p99 request size: {{ $value | humanize }}MB
+              Threshold: 50MB
+
+              Review request patterns in Grafana to identify source.
+            dashboard_url: "http://grafana:3000/d/sec-011/request-size-monitoring"
+
+        # Alert 3: Request Size Attack
+        # Triggers on very high rejection rates indicating a likely DoS attack
+        - alert: RequestSizeAttack
+          expr: |
+            rate(request_size_limit_exceeded_total[1m]) > 50
+          for: 2m
+          labels:
+            severity: critical
+            component: request-size-middleware
+            security_fix: SEC-011
+            incident: true
+          annotations:
+            summary: "⚠️ CRITICAL: Possible request size DoS attack detected"
+            description: |
+              CRITICAL: {{ $value | humanize }} requests/sec are being rejected
+              due to size limits. This rate is extremely high and likely indicates
+              a DoS attack targeting the request size endpoint.
+
+              IMMEDIATE ACTIONS:
+              1. Check client IP distribution in logs
+              2. Consider rate limiting at load balancer
+              3. Review WAF rules
+              4. Check if specific endpoints are targeted
+              5. Consider temporarily blocking suspicious IPs
+
+              Current rate: {{ $value | humanize }} rejections/sec
+              Critical threshold: 50 rejections/sec
+              Duration: 2 minutes sustained
+
+              This alert creates an incident ticket automatically.
+            dashboard_url: "http://grafana:3000/d/sec-011/request-size-monitoring"
+            runbook_url: "https://wiki.internal/runbooks/sec-011-dos-attack-response"
+            pagerduty_severity: "critical"
+
+        # Alert 4: Request Size Monitoring Disabled
+        # Triggers when metrics stop being reported (middleware disabled or crashed)
+        - alert: RequestSizeMonitoringDown
+          expr: |
+            absent(request_size_limit_exceeded_total) == 1
+            or
+            absent(request_body_bytes) == 1
+          for: 5m
+          labels:
+            severity: warning
+            component: request-size-middleware
+            security_fix: SEC-011
+          annotations:
+            summary: "SEC-011 request size metrics not being reported"
+            description: |
+              The SEC-011 request size limit middleware metrics have stopped
+              being reported. This could mean:
+
+              1. Middleware is disabled
+              2. Application has crashed
+              3. Prometheus scraping is failing
+              4. Metrics endpoint is down
+
+              SEC-011 security fix relies on this monitoring. Investigate immediately.
+            dashboard_url: "http://grafana:3000/d/sec-011/request-size-monitoring"
+            runbook_url: "https://wiki.internal/runbooks/sec-011-metrics-missing"
+
+        # Alert 5: Streaming Rejection Rate Higher Than Fast-Path
+        # Triggers when more rejections happen via streaming than Content-Length check
+        # This could indicate clients deliberately omitting Content-Length headers
+        - alert: StreamingRejectionsDominant
+          expr: |
+            sum(rate(request_size_limit_exceeded_total{rejection_type="streaming"}[10m]))
+            >
+            sum(rate(request_size_limit_exceeded_total{rejection_type="content_length"}[10m])) * 2
+          for: 15m
+          labels:
+            severity: info
+            component: request-size-middleware
+            security_fix: SEC-011
+          annotations:
+            summary: "More streaming rejections than fast-path rejections"
+            description: |
+              Streaming rejections ({{ $value | humanize }}/sec) are significantly
+              higher than fast-path Content-Length rejections.
+
+              This pattern could indicate:
+              - Clients omitting Content-Length headers to bypass fast-path checks
+              - Chunked transfer encoding being used maliciously
+              - Legitimate clients with streaming uploads
+
+              Review request patterns to determine if this is intentional bypass attempt.
+
+              Streaming rejection rate: {{ $value | humanize }}/sec
+            dashboard_url: "http://grafana:3000/d/sec-011/request-size-monitoring"
+
+        # Alert 6: Upload Limit Rejections
+        # Monitors rejections on upload endpoints specifically
+        - alert: HighUploadRejectionRate
+          expr: |
+            rate(request_size_limit_exceeded_total{limit_type="upload"}[5m]) > 5
+          for: 10m
+          labels:
+            severity: info
+            component: request-size-middleware
+            security_fix: SEC-011
+          annotations:
+            summary: "High rejection rate on upload endpoints"
+            description: |
+              Upload endpoints are rejecting {{ $value | humanize }} requests/sec
+              due to size limits (100MB threshold).
+
+              This could indicate:
+              - Users attempting to upload very large files
+              - Upload limit may need adjustment
+              - Possible attack targeting upload functionality
+
+              Current rate: {{ $value | humanize }} rejections/sec
+              Upload limit: 100MB
+            dashboard_url: "http://grafana:3000/d/sec-011/request-size-monitoring"
