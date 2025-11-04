@@ -1,0 +1,533 @@
+{
+  "dashboard": {
+    "title": "SEC-011 Request Size Monitoring",
+    "uid": "sec-011",
+    "tags": ["security", "SEC-011", "request-limits", "middleware"],
+    "timezone": "browser",
+    "schemaVersion": 16,
+    "version": 1,
+    "refresh": "30s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Request Size Rejections (Rate)",
+        "type": "graph",
+        "gridPos": {
+          "x": 0,
+          "y": 0,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "rate(request_size_limit_exceeded_total[5m])",
+            "legendFormat": "{{method}} {{path}} ({{limit_type}})",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "reqps",
+            "label": "Rejections/sec"
+          },
+          {
+            "format": "short"
+          }
+        ],
+        "xaxis": {
+          "mode": "time"
+        },
+        "lines": true,
+        "fill": 1,
+        "linewidth": 2,
+        "pointradius": 5,
+        "tooltip": {
+          "shared": true,
+          "sort": 2,
+          "value_type": "individual"
+        },
+        "legend": {
+          "show": true,
+          "alignAsTable": true,
+          "avg": true,
+          "max": true,
+          "current": true
+        },
+        "nullPointMode": "null",
+        "thresholds": [
+          {
+            "value": 10,
+            "colorMode": "critical",
+            "op": "gt",
+            "fill": true,
+            "line": true
+          }
+        ],
+        "alert": {
+          "name": "High Request Size Rejection Rate",
+          "conditions": [
+            {
+              "evaluator": {
+                "params": [10],
+                "type": "gt"
+              },
+              "operator": {
+                "type": "and"
+              },
+              "query": {
+                "params": ["A", "5m", "now"]
+              },
+              "reducer": {
+                "params": [],
+                "type": "avg"
+              },
+              "type": "query"
+            }
+          ],
+          "frequency": "1m",
+          "handler": 1,
+          "message": "Request size rejections exceeded 10/sec threshold",
+          "noDataState": "no_data",
+          "executionErrorState": "alerting"
+        },
+        "description": "Rate of requests rejected due to exceeding size limits. Shows trends over time by endpoint and limit type."
+      },
+      {
+        "id": 2,
+        "title": "Rejection Type Breakdown",
+        "type": "piechart",
+        "gridPos": {
+          "x": 12,
+          "y": 0,
+          "w": 6,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "sum by (rejection_type) (request_size_limit_exceeded_total)",
+            "legendFormat": "{{rejection_type}}",
+            "refId": "A"
+          }
+        ],
+        "pieType": "pie",
+        "legend": {
+          "show": true,
+          "values": true,
+          "percentage": true
+        },
+        "valueName": "current",
+        "description": "Breakdown of rejections by type: content_length (fast-path) vs streaming (body validation)"
+      },
+      {
+        "id": 3,
+        "title": "Request Body Size Distribution",
+        "type": "heatmap",
+        "gridPos": {
+          "x": 18,
+          "y": 0,
+          "w": 6,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "rate(request_body_bytes_bucket[5m])",
+            "format": "heatmap",
+            "legendFormat": "{{le}}",
+            "refId": "A"
+          }
+        ],
+        "dataFormat": "tsbuckets",
+        "heatmap": {},
+        "cards": {
+          "cardPadding": 2,
+          "cardRound": 2
+        },
+        "color": {
+          "mode": "spectrum",
+          "cardColor": "#b4ff00",
+          "colorScale": "sqrt",
+          "exponent": 0.5,
+          "min": 0,
+          "max": null
+        },
+        "legend": {
+          "show": true
+        },
+        "yAxis": {
+          "format": "bytes",
+          "decimals": 0,
+          "logBase": 1024
+        },
+        "xAxis": {
+          "show": true
+        },
+        "tooltip": {
+          "show": true,
+          "showHistogram": true
+        },
+        "description": "Heatmap showing distribution of request body sizes over time. Darker colors indicate higher frequency."
+      },
+      {
+        "id": 4,
+        "title": "Request Size Stats (p50/p95/p99)",
+        "type": "stat",
+        "gridPos": {
+          "x": 0,
+          "y": 8,
+          "w": 8,
+          "h": 4
+        },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(request_body_bytes_bucket[5m]))",
+            "legendFormat": "p50",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(request_body_bytes_bucket[5m]))",
+            "legendFormat": "p95",
+            "refId": "B"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(request_body_bytes_bucket[5m]))",
+            "legendFormat": "p99",
+            "refId": "C"
+          }
+        ],
+        "options": {
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"]
+          },
+          "orientation": "horizontal",
+          "textMode": "value_and_name",
+          "colorMode": "value",
+          "graphMode": "area",
+          "justifyMode": "auto"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "bytes",
+            "decimals": 2,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": null,
+                  "color": "green"
+                },
+                {
+                  "value": 10485760,
+                  "color": "yellow"
+                },
+                {
+                  "value": 52428800,
+                  "color": "red"
+                }
+              ]
+            }
+          }
+        },
+        "description": "Statistical distribution of request body sizes. Green < 10MB, Yellow < 50MB, Red >= 50MB"
+      },
+      {
+        "id": 5,
+        "title": "Rejection Rate vs Success Rate",
+        "type": "graph",
+        "gridPos": {
+          "x": 8,
+          "y": 8,
+          "w": 8,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "rate(http_requests_total{status=~\"2..\"}[5m])",
+            "legendFormat": "Success (2xx)",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(request_size_limit_exceeded_total[5m])",
+            "legendFormat": "Rejected (413)",
+            "refId": "B"
+          }
+        ],
+        "stack": true,
+        "yaxes": [
+          {
+            "format": "reqps",
+            "label": "Requests/sec"
+          },
+          {
+            "format": "short"
+          }
+        ],
+        "xaxis": {
+          "mode": "time"
+        },
+        "lines": true,
+        "fill": 5,
+        "linewidth": 1,
+        "pointradius": 2,
+        "bars": false,
+        "percentage": false,
+        "tooltip": {
+          "shared": true,
+          "sort": 2,
+          "value_type": "individual"
+        },
+        "legend": {
+          "show": true,
+          "alignAsTable": true,
+          "avg": true,
+          "max": true,
+          "current": true,
+          "total": false
+        },
+        "nullPointMode": "null",
+        "description": "Comparison of successful requests vs rejected requests. Stacked view shows total request volume."
+      },
+      {
+        "id": 6,
+        "title": "Top 10 Endpoints by Rejection Count",
+        "type": "table",
+        "gridPos": {
+          "x": 16,
+          "y": 8,
+          "w": 8,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "topk(10, sum by (path, method, limit_type) (request_size_limit_exceeded_total))",
+            "format": "table",
+            "instant": true,
+            "refId": "A"
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {
+                "Time": true
+              },
+              "indexByName": {
+                "path": 0,
+                "method": 1,
+                "limit_type": 2,
+                "Value": 3
+              },
+              "renameByName": {
+                "path": "Endpoint",
+                "method": "Method",
+                "limit_type": "Limit Type",
+                "Value": "Total Rejections"
+              }
+            }
+          }
+        ],
+        "options": {
+          "showHeader": true,
+          "sortBy": [
+            {
+              "displayName": "Total Rejections",
+              "desc": true
+            }
+          ]
+        },
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "align": "left",
+              "displayMode": "auto"
+            }
+          },
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Total Rejections"
+              },
+              "properties": [
+                {
+                  "id": "custom.displayMode",
+                  "value": "color-background"
+                },
+                {
+                  "id": "thresholds",
+                  "value": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": null,
+                        "color": "green"
+                      },
+                      {
+                        "value": 100,
+                        "color": "yellow"
+                      },
+                      {
+                        "value": 1000,
+                        "color": "red"
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "description": "Top 10 endpoints with the most request size rejections. Helps identify problematic endpoints or attack targets."
+      },
+      {
+        "id": 7,
+        "title": "Streaming vs Fast-Path Rejection Comparison",
+        "type": "graph",
+        "gridPos": {
+          "x": 0,
+          "y": 16,
+          "w": 12,
+          "h": 6
+        },
+        "targets": [
+          {
+            "expr": "sum(rate(request_size_limit_exceeded_total{rejection_type=\"content_length\"}[5m]))",
+            "legendFormat": "Fast-Path (Content-Length)",
+            "refId": "A"
+          },
+          {
+            "expr": "sum(rate(request_size_limit_exceeded_total{rejection_type=\"streaming\"}[5m]))",
+            "legendFormat": "Streaming (Body Validation)",
+            "refId": "B"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "reqps",
+            "label": "Rejections/sec"
+          },
+          {
+            "format": "short"
+          }
+        ],
+        "xaxis": {
+          "mode": "time"
+        },
+        "lines": true,
+        "fill": 1,
+        "linewidth": 2,
+        "pointradius": 3,
+        "bars": false,
+        "stack": false,
+        "percentage": false,
+        "tooltip": {
+          "shared": true,
+          "sort": 2,
+          "value_type": "individual"
+        },
+        "legend": {
+          "show": true,
+          "alignAsTable": true,
+          "avg": true,
+          "max": true,
+          "current": true
+        },
+        "nullPointMode": "null",
+        "description": "Comparison of fast-path (Content-Length header check) vs streaming (actual body validation) rejections. If streaming >> fast-path, clients may be bypassing Content-Length headers."
+      },
+      {
+        "id": 8,
+        "title": "Upload vs Regular Endpoint Rejections",
+        "type": "graph",
+        "gridPos": {
+          "x": 12,
+          "y": 16,
+          "w": 12,
+          "h": 6
+        },
+        "targets": [
+          {
+            "expr": "sum(rate(request_size_limit_exceeded_total{limit_type=\"regular\"}[5m]))",
+            "legendFormat": "Regular Endpoints (10MB limit)",
+            "refId": "A"
+          },
+          {
+            "expr": "sum(rate(request_size_limit_exceeded_total{limit_type=\"upload\"}[5m]))",
+            "legendFormat": "Upload Endpoints (100MB limit)",
+            "refId": "B"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "reqps",
+            "label": "Rejections/sec"
+          },
+          {
+            "format": "short"
+          }
+        ],
+        "xaxis": {
+          "mode": "time"
+        },
+        "lines": true,
+        "fill": 1,
+        "linewidth": 2,
+        "pointradius": 3,
+        "bars": false,
+        "stack": false,
+        "percentage": false,
+        "tooltip": {
+          "shared": true,
+          "sort": 2,
+          "value_type": "individual"
+        },
+        "legend": {
+          "show": true,
+          "alignAsTable": true,
+          "avg": true,
+          "max": true,
+          "current": true
+        },
+        "nullPointMode": "null",
+        "description": "Comparison of rejections on regular endpoints (10MB limit) vs upload endpoints (100MB limit). Helps identify if limits need adjustment."
+      }
+    ],
+    "time": {
+      "from": "now-6h",
+      "to": "now"
+    },
+    "timepicker": {
+      "refresh_intervals": ["5s", "10s", "30s", "1m", "5m", "15m", "30m", "1h", "2h", "1d"]
+    },
+    "templating": {
+      "list": [
+        {
+          "name": "datasource",
+          "type": "datasource",
+          "query": "prometheus",
+          "current": {
+            "text": "Prometheus",
+            "value": "Prometheus"
+          }
+        }
+      ]
+    },
+    "annotations": {
+      "list": [
+        {
+          "datasource": "Prometheus",
+          "enable": true,
+          "expr": "ALERTS{alertname=~\".*RequestSize.*\"}",
+          "iconColor": "red",
+          "name": "SEC-011 Alerts",
+          "step": "60s",
+          "tagKeys": "alertname,severity",
+          "textFormat": "{{alertname}}: {{description}}",
+          "titleFormat": "Alert"
+        }
+      ]
+    },
+    "description": "Monitoring dashboard for SEC-011 request size limit middleware. Tracks rejections, body size distribution, and potential DoS attack patterns."
+  }
+}
