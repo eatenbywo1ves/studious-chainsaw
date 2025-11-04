@@ -12,7 +12,7 @@
 **Exposed Secret:** Redis production password
 **Location:** `development/saas/.env.production:4`
 **Commit:** `ccf83bbf` - "docs: B-MAD deployment validation + production deployment scripts"
-**Exposed Value:** `REDIS_PASSWORD=RLr5E73KjlPcAghcLXjBEdWJzqFVeV3EQ1GyQzqoOxo=`
+**Exposed Value:** `REDIS_PASSWORD=<REDACTED>`
 **Repository:** https://github.com/eatenbywo1ves/studious-chainsaw
 **Branch:** feat/todo-deployment-phase-1 (pushed to remote)
 
@@ -49,7 +49,7 @@ NEW_REDIS_PASSWORD=$(python3 -c "import secrets; print(secrets.token_urlsafe(32)
 echo "REDIS_PASSWORD=$NEW_REDIS_PASSWORD" >> development/saas/.env.production.local
 
 # Connect to production Redis and change password
-redis-cli -h localhost -p 6379 -a "RLr5E73KjlPcAghcLXjBEdWJzqFVeV3EQ1GyQzqoOxo=" CONFIG SET requirepass "$NEW_REDIS_PASSWORD"
+redis-cli -h localhost -p 6379 -a "<OLD_PASSWORD_REDACTED>" CONFIG SET requirepass "$NEW_REDIS_PASSWORD"
 
 # Verify new password works
 redis-cli -h localhost -p 6379 -a "$NEW_REDIS_PASSWORD" PING
@@ -147,7 +147,7 @@ cd ~/
 git clone --mirror https://github.com/eatenbywo1ves/studious-chainsaw.git
 
 # Remove the exposed password from ALL history
-bfg --replace-text <(echo 'RLr5E73KjlPcAghcLXjBEdWJzqFVeV3EQ1GyQzqoOxo=***REMOVED***') studious-chainsaw.git
+bfg --replace-text <(echo '<EXPOSED_PASSWORD>***REMOVED***') studious-chainsaw.git
 
 # Clean up
 cd studious-chainsaw.git

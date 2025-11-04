@@ -32,6 +32,21 @@ logger = logging.getLogger(__name__)
 # Log environment on startup
 logger.info(f"Starting SaaS server in {_config.app.env.value} environment")
 
+# ============================================================================
+# SECURITY: Validate required environment variables at startup
+# ============================================================================
+# This prevents the server from starting with missing critical configuration
+required_env_vars = ["CSRF_SECRET_KEY", "JWT_SECRET_KEY", "DATABASE_URL", "REDIS_HOST"]
+missing = [var for var in required_env_vars if not os.getenv(var)]
+if missing:
+    logger.critical(
+        f"Missing required environment variables: {missing}\n"
+        "Please configure these variables before starting the server."
+    )
+    sys.exit(1)
+
+logger.info("Environment variable validation passed")
+
 from fastapi import FastAPI, Depends, HTTPException, status  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 from sqlalchemy.orm import Session  # noqa: E402
@@ -54,7 +69,7 @@ from auth.middleware import (  # noqa: E402
     TokenData,
 )
 from auth.password_validation import validate_password  # noqa: E402
-from auth.csrf_protection import create_csrf_middleware  # noqa: E402
+from auth.csrf_protection import CSRFProtectionMiddleware  # noqa: E402
 from auth.request_limits import RequestSizeLimitMiddleware  # noqa: E402
 from auth.account_lockout import AccountLockoutManager  # noqa: E402
 from auth.jwt_auth import redis_client  # noqa: E402
@@ -302,11 +317,15 @@ app.add_middleware(
 # ============================================================================
 # SECURITY (SEC-010 Fix): CSRF protection for state-changing operations
 # ============================================================================
-csrf_middleware = create_csrf_middleware(environment=environment)
+# Initialize CSRF protection middleware
+# The CSRFProtectionMiddleware will automatically read CSRF_SECRET_KEY from environment
+# when secret_key=None is passed (see csrf_protection.py line 62)
 app.add_middleware(
-    type(csrf_middleware),
-    secret_key=None,  # Uses CSRF_SECRET_KEY from environment
-    exempt_paths=csrf_middleware.exempt_paths,
+    CSRFProtectionMiddleware,
+    secret_key=None,  # Will read from CSRF_SECRET_KEY env var
+    exempt_paths=["/", "/health", "/docs", "/openapi.json", "/redoc", "/api/auth/verify"],
+    cookie_secure=environment == "production",
+    cookie_samesite="strict" if environment == "production" else "lax",
 )
 
 # ============================================================================
