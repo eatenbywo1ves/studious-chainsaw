@@ -12,7 +12,7 @@
 
 ### Development Environment
 ```
-Password: +oEZBVpl9sogH5fLSuuLmEyNxlxqlrYeN61vd0b2BHs=
+Password: <REDACTED>
 Host: localhost
 Port: 6379
 Database: 0
@@ -20,12 +20,12 @@ Database: 0
 
 **Connection String**:
 ```
-redis://:+oEZBVpl9sogH5fLSuuLmEyNxlxqlrYeN61vd0b2BHs=@localhost:6379/0
+redis://:<REDACTED>@localhost:6379/0
 ```
 
 **Environment Variable**:
 ```bash
-export REDIS_PASSWORD="+oEZBVpl9sogH5fLSuuLmEyNxlxqlrYeN61vd0b2BHs="
+export REDIS_PASSWORD="<REDACTED>"
 ```
 
 ---
@@ -34,7 +34,7 @@ export REDIS_PASSWORD="+oEZBVpl9sogH5fLSuuLmEyNxlxqlrYeN61vd0b2BHs="
 
 1. **Redis Configuration**
    - File: `C:\Program Files\Memurai\memurai-production.conf`
-   - Line: `requirepass +oEZBVpl9sogH5fLSuuLmEyNxlxqlrYeN61vd0b2BHs=`
+   - Line: `requirepass <REDACTED>`
 
 2. **Application Environment**
    - File: `development/security/.env.development`
@@ -124,7 +124,7 @@ export REDIS_PASSWORD="+oEZBVpl9sogH5fLSuuLmEyNxlxqlrYeN61vd0b2BHs="
 
 ### Development (Current)
 ```
-Password: +oEZBVpl9sogH5fLSuuLmEyNxlxqlrYeN61vd0b2BHs=
+Password: <REDACTED>
 Status: ✅ Active
 Last Rotated: October 2, 2025
 Next Rotation: January 2, 2026
@@ -169,7 +169,7 @@ $encrypted | Out-File REDIS_CREDENTIALS.encrypted
 ### Option 3: Azure Key Vault (Production)
 ```bash
 # Store in Azure Key Vault
-az keyvault secret set --vault-name "MyKeyVault" --name "RedisPassword" --value "+oEZBVpl9sogH5fLSuuLmEyNxlxqlrYeN61vd0b2BHs="
+az keyvault secret set --vault-name "MyKeyVault" --name "RedisPassword" --value "<REDACTED>"
 
 # Retrieve when needed
 az keyvault secret show --vault-name "MyKeyVault" --name "RedisPassword" --query value -o tsv

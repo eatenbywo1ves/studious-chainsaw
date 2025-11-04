@@ -14,10 +14,11 @@ echo [1/4] Setting environment variables...
 set DEPLOYMENT_ENV=production
 set REDIS_HOST=localhost
 set REDIS_PORT=6379
-set REDIS_PASSWORD=RLr5E73KjlPcAghcLXjBEdWJzqFVeV3EQ1GyQzqoOxo=
+set REDIS_PASSWORD=%REDIS_PASSWORD%
 echo     - DEPLOYMENT_ENV: %DEPLOYMENT_ENV%
 echo     - REDIS_HOST: %REDIS_HOST%
 echo     - REDIS_PORT: %REDIS_PORT%
+echo     - NOTE: REDIS_PASSWORD must be set in environment before running this script
 echo.
 
 REM Verify Redis is running

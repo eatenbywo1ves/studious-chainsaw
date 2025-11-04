@@ -14,10 +14,9 @@
 .claude.json
 .mcp.json
 .config/
-.claude.json.backup
+.claude.json.backup*
 .claude.json.corrupted.*
-.mcp.json.backup
-.mcp.json.backup-
+.mcp.json.backup*
 
 # ===========================================
 # Windows System Files
@@ -119,6 +118,17 @@ orchestrator_state.json
 refactoring_data.json
 
 # ===========================================
+# Security and Secrets
+# ===========================================
+.redis_password*
+*.key
+*.pem
+*.cert
+*.crt
+secrets/
+private/
+
+# ===========================================
 # Database Files
 # ===========================================
 *.db
@@ -174,8 +184,14 @@ temp/
 # ===========================================
 # Claude Code Specific
 # ===========================================
-.claude/
+# Allow project-specific .claude directories but block personal config
+.claude.json
+.mcp.json
+/.claude/
 claude
+# Keep project-specific Claude configs
+!development/.claude/
+!projects/.claude/
 
 # ===========================================
 # Development Tools
@@ -310,3 +326,27 @@ deployment_verify.ps1
 wayback-url-finder/
 docucode-pipeline/
 backups/
+vndes-file-manager/
+windows-amd64/
+
+# ===========================================
+# Package Manager Directories (Added 2025-10-29)
+# ===========================================
+.chocolatey/
+.playwright-mcp/
+
+# ===========================================
+# Personal Insights and Review Documents (Added 2025-10-29)
+# ===========================================
+# Keep these in Insights/ directory if needed, not at root
+/fixes_verification.md
+/improvements.md
+/performance_review.md
+/security_review.md
+
+# ===========================================
+# Workspace Configuration (Added 2025-10-29)
+# ===========================================
+# Allow the workspace file to be tracked
+!corbin-workspace.code-workspace
+!WORKSPACE_SETUP_GUIDE.md

@@ -250,7 +250,7 @@ def example_load_testing_setup():
     os.environ["DEPLOYMENT_ENV"] = "production"
     os.environ["REDIS_HOST"] = "localhost"
     os.environ["REDIS_PORT"] = "6379"
-    os.environ["REDIS_PASSWORD"] = "RLr5E73KjlPcAghcLXjBEdWJzqFVeV3EQ1GyQzqoOxo="
+    os.environ["REDIS_PASSWORD"] = "${REDIS_PASSWORD}"  # Set from environment variable
 
     # Get optimized pool
     redis_pool = get_optimized_redis_pool()

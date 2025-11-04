@@ -5,6 +5,7 @@
 # ============================================================
 # NAVIGATION SHORTCUTS
 # ============================================================
+# Development directory (Python/Infrastructure)
 alias dev='cd ~/development'
 alias saas='cd ~/development/saas'
 alias mlsec='cd ~/development/ml-sectest-framework'
@@ -12,6 +13,16 @@ alias sec='cd ~/development/security'
 alias docs='cd ~/development/docs'
 alias k8s='cd ~/development/kubernetes'
 alias scripts='cd ~/development/scripts'
+
+# Projects directory (Node.js/TypeScript)
+alias proj='cd ~/projects'
+alias projdocs='cd ~/projects/docs'
+alias finance='cd ~/projects/financial-apps'
+alias genetic='cd ~/projects/genetic-simulation'
+
+# Workspace shortcuts
+alias workspace='code ~/corbin-workspace.code-workspace'
+alias ws='code ~/corbin-workspace.code-workspace'
 
 # Quick directory listing
 alias l='ls -lah'
@@ -227,24 +238,26 @@ envinfo() {
 loadenv() {
     if [ -f .env ]; then
         export $(cat .env | grep -v '^#' | xargs)
-        echo "✓ Loaded .env file"
+        echo "[OK] Loaded .env file"
     else
-        echo "✗ No .env file found"
+        echo "[ERROR] No .env file found"
     fi
 }
 
 # ============================================================
-# BANNER
+# BANNER (Only show in interactive shells, not in scripts)
 # ============================================================
-echo ""
-echo "🚀 Development Environment Ready!"
-echo "📍 Working directory: $(pwd)"
-echo "🔧 Custom aliases loaded (type 'alias' to see all)"
-echo ""
-echo "Quick Commands:"
-echo "  dev, saas, mlsec, sec  → Navigate to projects"
-echo "  c, cplan, copus        → Claude Code shortcuts"
-echo "  dcup, dcdown           → Docker Compose"
-echo "  test, lint, format     → Testing & Code Quality"
-echo "  status, envinfo        → Project status"
-echo ""
+if [ -t 1 ] && [ -z "$CLAUDE_CODE_EXEC" ]; then
+    echo ""
+    echo "Development Environment Ready!"
+    echo "Working directory: $(pwd)"
+    echo "Custom aliases loaded (type 'alias' to see all)"
+    echo ""
+    echo "Quick Commands:"
+    echo "  dev, saas, mlsec, sec  - Navigate to projects"
+    echo "  c, cplan, copus        - Claude Code shortcuts"
+    echo "  dcup, dcdown           - Docker Compose"
+    echo "  test, lint, format     - Testing & Code Quality"
+    echo "  status, envinfo        - Project status"
+    echo ""
+fi
