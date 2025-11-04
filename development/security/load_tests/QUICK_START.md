@@ -133,7 +133,7 @@ while ($true) { curl http://localhost:8000/health/redis; Start-Sleep 5 }
 ### Check Redis Server Stats
 
 ```bash
-"C:\Program Files\Memurai\memurai-cli.exe" -a "RLr5E73KjlPcAghcLXjBEdWJzqFVeV3EQ1GyQzqoOxo=" INFO stats
+"C:\Program Files\Memurai\memurai-cli.exe" -a "${REDIS_PASSWORD}" INFO stats
 ```
 
 **Key Metrics to Watch:**
@@ -185,7 +185,7 @@ while ($true) { curl http://localhost:8000/health/redis; Start-Sleep 5 }
 net start Memurai
 
 # Verify
-"C:\Program Files\Memurai\memurai-cli.exe" -a "RLr5E73KjlPcAghcLXjBEdWJzqFVeV3EQ1GyQzqoOxo=" PING
+"C:\Program Files\Memurai\memurai-cli.exe" -a "${REDIS_PASSWORD}" PING
 # Should return: PONG
 ```
 
@@ -289,7 +289,7 @@ C:\Users\Corbin\development\security\load_tests\results\
 
 **Redis CLI:**
 ```bash
-"C:\Program Files\Memurai\memurai-cli.exe" -a "RLr5E73KjlPcAghcLXjBEdWJzqFVeV3EQ1GyQzqoOxo="
+"C:\Program Files\Memurai\memurai-cli.exe" -a "${REDIS_PASSWORD}"
 ```
 
 ---

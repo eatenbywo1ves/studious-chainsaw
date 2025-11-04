@@ -436,7 +436,7 @@ async def redis_client() -> AsyncGenerator[aioredis.Redis, None]:
     """
     client = aioredis.from_url(
         "redis://localhost:6379",
-        password="RLr5E73KjlPcAghcLXjBEdWJzqFVeV3EQ1GyQzqoOxo=",
+        password=os.getenv("REDIS_PASSWORD"),
         decode_responses=True
     )
 
