@@ -19,8 +19,28 @@ except ImportError:
     print("Run: pip install stripe")
     sys.exit(1)
 
+# Phase 6B: Try to get Stripe config from Vault, fallback to environment
+try:
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "auth"))
+    from vault_client import get_stripe_config
+    VAULT_AVAILABLE = True
+except ImportError:
+    VAULT_AVAILABLE = False
+
 # Initialize Stripe
-stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
+if VAULT_AVAILABLE:
+    try:
+        stripe_config = get_stripe_config()
+        stripe.api_key = stripe_config.get("secret_key")
+        if stripe.api_key:
+            print("[INFO] Stripe API key loaded from Vault")
+        else:
+            raise ValueError("Empty Stripe key from Vault")
+    except Exception as e:
+        print(f"[WARNING] Failed to load Stripe config from Vault: {e}, using environment variable")
+        stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
+else:
+    stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 
 if not stripe.api_key or stripe.api_key == "sk_test_YOUR_SECRET_KEY_HERE":
     print("\n" + "=" * 70)
