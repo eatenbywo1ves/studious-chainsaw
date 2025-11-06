@@ -45,3 +45,6 @@ itsdangerous==2.1.2
 # Additional Security Tools
 bleach==6.1.0  # HTML sanitization
 argon2-cffi==23.1.0  # Password hashing
+
+# Secrets Management (Phase 6)
+hvac==2.1.0  # HashiCorp Vault Python client
