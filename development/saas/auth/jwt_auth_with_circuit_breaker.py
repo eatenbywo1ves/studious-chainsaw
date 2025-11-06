@@ -23,11 +23,35 @@ from passlib.context import CryptContext
 
 logger = logging.getLogger(__name__)
 
-# Configuration
-JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", secrets.token_urlsafe(32))
-JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "RS256")
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "15"))
-REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "30"))
+# Phase 6B: Import Vault client for secrets management
+try:
+    from auth.vault_client import get_jwt_config, get_redis_config
+    VAULT_AVAILABLE = True
+except ImportError:
+    logger.warning("vault_client not available - falling back to environment variables")
+    VAULT_AVAILABLE = False
+
+# Configuration - Phase 6B: Use Vault if available, fallback to env vars
+if VAULT_AVAILABLE:
+    try:
+        jwt_config = get_jwt_config()
+        JWT_SECRET_KEY = jwt_config.get("secret_key", secrets.token_urlsafe(32))
+        JWT_ALGORITHM = jwt_config.get("algorithm", "RS256")
+        ACCESS_TOKEN_EXPIRE_MINUTES = int(jwt_config.get("access_token_expire_minutes", "15"))
+        REFRESH_TOKEN_EXPIRE_DAYS = int(jwt_config.get("refresh_token_expire_days", "30"))
+        logger.info("✓ JWT configuration loaded from Vault")
+    except Exception as e:
+        logger.warning(f"Failed to load JWT config from Vault: {e}, using environment variables")
+        JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", secrets.token_urlsafe(32))
+        JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "RS256")
+        ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "15"))
+        REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "30"))
+else:
+    JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", secrets.token_urlsafe(32))
+    JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "RS256")
+    ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "15"))
+    REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "30"))
+
 API_KEY_PREFIX = "clc_"  # Catalytic Lattice Computing
 
 # Password hashing
@@ -84,12 +108,30 @@ except ImportError as e:
     redis_pool = None
     CircuitBreakerOpenError = Exception  # Fallback for exception handling
     try:
+        # Phase 6B: Get Redis config from Vault if available
+        if VAULT_AVAILABLE:
+            try:
+                redis_config = get_redis_config()
+                redis_host = redis_config.get("host", "localhost")
+                redis_port = int(redis_config.get("port", "6379"))
+                redis_password = redis_config.get("password")
+                logger.info("✓ Redis configuration loaded from Vault")
+            except Exception as vault_error:
+                logger.warning(f"Failed to load Redis config from Vault: {vault_error}, using environment variables")
+                redis_host = os.getenv("REDIS_HOST", "localhost")
+                redis_port = int(os.getenv("REDIS_PORT", "6379"))
+                redis_password = os.getenv("REDIS_PASSWORD")
+        else:
+            redis_host = os.getenv("REDIS_HOST", "localhost")
+            redis_port = int(os.getenv("REDIS_PORT", "6379"))
+            redis_password = os.getenv("REDIS_PASSWORD")
+
         redis_client = redis.Redis(
-            host=os.getenv("REDIS_HOST", "localhost"),
-            port=int(os.getenv("REDIS_PORT", "6379")),
+            host=redis_host,
+            port=redis_port,
             db=0,
             decode_responses=True,
-            password=os.getenv("REDIS_PASSWORD"),
+            password=redis_password,
         )
         redis_client.ping()
         print("[OK] Redis connected (basic mode - upgrade to ResilientRedisPool recommended)")

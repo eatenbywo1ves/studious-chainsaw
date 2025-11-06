@@ -18,6 +18,14 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# Phase 6B: Import Vault client for secrets management
+try:
+    from auth.vault_client import get_csrf_secret
+    VAULT_AVAILABLE = True
+except ImportError:
+    logger.warning("vault_client not available for CSRF - falling back to environment variables")
+    VAULT_AVAILABLE = False
+
 
 class CSRFProtectionMiddleware(BaseHTTPMiddleware):
     """
@@ -58,8 +66,23 @@ class CSRFProtectionMiddleware(BaseHTTPMiddleware):
         """
         super().__init__(app)
 
-        # Get secret key from environment
-        self.secret_key = (secret_key or os.getenv("CSRF_SECRET_KEY") or "").encode()
+        # Phase 6B: Get secret key from Vault if available, fallback to environment
+        if secret_key:
+            self.secret_key = secret_key.encode()
+        elif VAULT_AVAILABLE:
+            try:
+                csrf_secret = get_csrf_secret()
+                self.secret_key = (csrf_secret or "").encode()
+                if self.secret_key:
+                    logger.info("✓ CSRF secret loaded from Vault")
+                else:
+                    raise ValueError("Empty CSRF secret from Vault")
+            except Exception as e:
+                logger.warning(f"Failed to load CSRF secret from Vault: {e}, using environment variable")
+                self.secret_key = (os.getenv("CSRF_SECRET_KEY") or "").encode()
+        else:
+            self.secret_key = (os.getenv("CSRF_SECRET_KEY") or "").encode()
+
         if not self.secret_key:
             raise RuntimeError(
                 "\n"

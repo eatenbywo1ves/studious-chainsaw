@@ -824,6 +824,8 @@ async def health_check(db: Session = Depends(get_db)):
     - Expected response time: <50ms (was 4,100ms with COUNT queries)
     - No database lock contention
     - Suitable for high-frequency health checks
+
+    Phase 6B: Now includes Vault health status for secrets management monitoring
     """
     from fastapi.responses import JSONResponse
 
@@ -834,9 +836,24 @@ async def health_check(db: Session = Depends(get_db)):
     except Exception:
         db_status = "unhealthy"
 
+    # Phase 6B: Check Vault health (secrets management)
+    vault_status = "not_configured"
+    try:
+        from auth.vault_client import vault_health_check
+        vault_health = vault_health_check()
+        if vault_health.get("vault_connected"):
+            vault_status = "healthy"
+        elif vault_health.get("fallback_mode"):
+            vault_status = "fallback"  # Using .env fallback
+        else:
+            vault_status = "unavailable"
+    except Exception:
+        vault_status = "unavailable"
+
     content = {
         "status": "healthy",
         "database": db_status,
+        "vault": vault_status,  # Phase 6B: Vault health status
         "gpu_available": GPU_AVAILABLE,
         "timestamp": datetime.utcnow().isoformat(),
     }
