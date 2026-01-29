@@ -20,6 +20,7 @@ import sys
 import time
 import socket
 import shlex
+import shutil
 from pathlib import Path
 from typing import Dict, List, Optional
 from dataclasses import dataclass
@@ -236,6 +237,11 @@ class WorkspaceManager:
                 f"Command '{base_cmd}' not in whitelist. "
                 f"Allowed: {', '.join(sorted(self.ALLOWED_COMMANDS))}"
             )
+
+        # Resolve executable to full path (handles .cmd/.bat on Windows)
+        resolved = shutil.which(cmd_args[0])
+        if resolved:
+            cmd_args[0] = resolved
 
         # Log approved command
         self.logger.log_info(
