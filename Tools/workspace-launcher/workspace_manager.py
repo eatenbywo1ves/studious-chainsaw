@@ -294,19 +294,20 @@ class WorkspaceManager:
         return validated_env
 
     def check_port(self, port: int, timeout: int = 30) -> bool:
-        """Check if a port is open"""
+        """Check if a port is open, using exponential backoff between attempts"""
         start_time = time.time()
+        delay = 0.1
+        max_delay = 2.0
         while time.time() - start_time < timeout:
             try:
-                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                sock.settimeout(1)
-                result = sock.connect_ex(('localhost', port))
-                sock.close()
-                if result == 0:
-                    return True
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+                    sock.settimeout(1)
+                    if sock.connect_ex(('localhost', port)) == 0:
+                        return True
             except (socket.error, OSError):
                 pass
-            time.sleep(1)
+            time.sleep(delay)
+            delay = min(delay * 1.5, max_delay)
         return False
 
     def check_dependencies(self) -> Dict[str, bool]:

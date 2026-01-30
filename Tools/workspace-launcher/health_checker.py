@@ -81,10 +81,9 @@ class HealthChecker:
         error_msg = None
 
         try:
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.settimeout(timeout)
-            result = sock.connect_ex((host, port))
-            sock.close()
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+                sock.settimeout(timeout)
+                result = sock.connect_ex((host, port))
 
             latency_ms = (time.time() - start_time) * 1000
             healthy = (result == 0)
@@ -198,15 +197,15 @@ class HealthChecker:
             )
 
     def wait_for_health(self, check_func, *args, max_wait: int = 30,
-                       check_interval: float = 1.0, **kwargs) -> HealthCheckResult:
+                       check_interval: float = 0.1, **kwargs) -> HealthCheckResult:
         """
-        Wait for service to become healthy
+        Wait for service to become healthy with exponential backoff
 
         Args:
             check_func: Health check function (check_tcp_port or check_http_endpoint)
             *args: Arguments for check function
             max_wait: Maximum time to wait in seconds
-            check_interval: Seconds between check attempts
+            check_interval: Initial seconds between check attempts (grows via backoff)
             **kwargs: Keyword arguments for check function
 
         Returns:
@@ -214,6 +213,8 @@ class HealthChecker:
         """
         start_time = time.time()
         last_result = None
+        delay = check_interval
+        max_delay = 2.0
 
         while time.time() - start_time < max_wait:
             result = check_func(*args, **kwargs)
@@ -230,8 +231,9 @@ class HealthChecker:
                 )
                 return result
 
-            # Wait before next check
-            time.sleep(check_interval)
+            # Wait with exponential backoff before next check
+            time.sleep(delay)
+            delay = min(delay * 1.5, max_delay)
 
         # Timeout reached
         total_wait = time.time() - start_time
