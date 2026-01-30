@@ -385,28 +385,26 @@ class WorkspaceManager:
                 env.update(validated_env_vars)
 
             # Start process with output capture (SECURE: shell=False)
-            if sys.platform == 'win32':
-                # Use Windows Terminal for better process management
-                process = subprocess.Popen(
-                    cmd_args,
-                    shell=False,  # ✅ Security: Disable shell interpretation
-                    cwd=service.directory,
-                    env=env,
-                    stdout=open(stdout_file, 'w', encoding='utf-8'),
-                    stderr=open(stderr_file, 'w', encoding='utf-8'),
-                    creationflags=subprocess.CREATE_NEW_CONSOLE
-                )
-            else:
-                process = subprocess.Popen(
-                    cmd_args,
-                    shell=False,  # ✅ Security: Disable shell interpretation
-                    cwd=service.directory,
-                    env=env,
-                    stdout=open(stdout_file, 'w', encoding='utf-8'),
-                    stderr=open(stderr_file, 'w', encoding='utf-8')
-                )
+            stdout_handle = open(stdout_file, 'w', encoding='utf-8')
+            stderr_handle = open(stderr_file, 'w', encoding='utf-8')
 
-            self.active_processes[service_key] = process
+            popen_kwargs = dict(
+                args=cmd_args,
+                shell=False,  # ✅ Security: Disable shell interpretation
+                cwd=service.directory,
+                env=env,
+                stdout=stdout_handle,
+                stderr=stderr_handle,
+            )
+            if sys.platform == 'win32':
+                popen_kwargs['creationflags'] = subprocess.CREATE_NEW_CONSOLE
+
+            process = subprocess.Popen(**popen_kwargs)
+
+            self.active_processes[service_key] = {
+                'process': process,
+                'log_handles': (stdout_handle, stderr_handle),
+            }
 
             # Wait for health check if configured
             if service.wait_for_port and service.port:
@@ -550,13 +548,19 @@ class WorkspaceManager:
         print("\n[INFO] Stopping all services...")
         self.logger.log_info("Stopping all services", active_count=len(self.active_processes))
 
-        for name, process in self.active_processes.items():
+        for name, entry in self.active_processes.items():
             try:
-                process.terminate()
+                entry['process'].terminate()
                 self.logger.log_service_stop(name, graceful=True)
                 print(f"[INFO] Stopped {name}")
             except Exception as e:
                 self.logger.log_warning(f"Failed to stop {name}", service=name, error=str(e))
+            finally:
+                for handle in entry.get('log_handles', ()):
+                    try:
+                        handle.close()
+                    except Exception:
+                        pass
 
         self.active_processes.clear()
         self.logger.log_info("All services stopped")
@@ -596,8 +600,8 @@ class WorkspaceManager:
         # Show active processes
         print("\nActive Services:")
         if self.active_processes:
-            for name, process in self.active_processes.items():
-                if process.poll() is None:
+            for name, entry in self.active_processes.items():
+                if entry['process'].poll() is None:
                     print(f"  [RUNNING] {self.services[name].name}")
                 else:
                     print(f"  [STOPPED] {self.services[name].name}")
