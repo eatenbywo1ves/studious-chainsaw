@@ -8,6 +8,7 @@ exclude = [
     "GhidraLookup/",
     "Ghidraaas/",
     "Ghidrathon/",
+    "ghidra_scripts/",
     "archives/",
     "gpu_env/",
     ".mypy_cache/",
