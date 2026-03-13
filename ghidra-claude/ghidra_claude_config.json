@@ -4,7 +4,7 @@
   "headless_path": "C:\\Users\\Corbin\\Downloads\\ghidra-master\\build\\ghidra_12.0_DEV\\support\\analyzeHeadless.bat",
   "export_script": "ExportForClaude.py",
   "claude_api": {
-    "model": "claude-3-opus-20240229",
+    "model": "claude-sonnet-4-5-20250929",
     "max_tokens": 4096,
     "temperature": 0.7
   },

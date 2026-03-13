@@ -1,10 +1,11 @@
 # This Dockerfile is a modified version of https://github.com/bskaggs/ghidra-docker/blob/master/Dockerfile
 
-FROM openjdk:11-slim
-MAINTAINER anmarcel "anmarcel@cisco.com"
+FROM eclipse-temurin:11-jre
+LABEL maintainer="anmarcel@cisco.com"
+LABEL description="Ghidraaas - Ghidra 11.4.2 as a Service"
 
-ARG GHIDRA_VERSION=9.1.2_PUBLIC_20200212
-ARG GHIDRA_SHA256=ebe3fa4e1afd7d97650990b27777bb78bd0427e8e70c1d0ee042aeb52decac61
+ARG GHIDRA_VERSION=11.4.2_PUBLIC_20250826
+ARG GHIDRA_SHA256=44662bc4287df369e4382e4b721fe35d0c5fe802f5ed3831662806898199a7bf
 
 RUN useradd -m ghidra && \
     mkdir -p /srv/repositories && \
@@ -16,9 +17,9 @@ RUN apt-get update \
   && apt-get install unzip \
   && cd /usr/local/bin \
   && ln -s /usr/bin/python3 python \
-  && pip3 install --upgrade pip
+  && pip3 install --break-system-packages --ignore-installed --upgrade pip
 
-RUN apt-get install -y libgtk2.0 libidn11 libglu1-mesa
+RUN apt-get install -y libgtk2.0 libidn12 libglu1-mesa
 
 WORKDIR /opt
 RUN apt-get update && apt-get install -y wget gettext-base patch && \

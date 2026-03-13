@@ -1,11 +1,11 @@
 <?xml version='1.0' encoding='ISO-8859-1' ?>
 <tocroot>
-    <tocdef id="Anchor_GhidraGo">
-        <tocitem target="GhidraGo_Help" text="GhidraGo" sortpreference="500">
-            <tocitem target="GhidraGo_Overview" text="Overview" />
-            <tocitem target="Function_Recovery" text="Function Recovery" />
-            <tocitem target="Type_Extraction" text="Type Extraction" />
-            <tocitem target="Troubleshooting" text="Troubleshooting" />
-        </tocitem>
-    </tocdef>
+    <tocref id="Ghidra Functionality">
+        <tocdef id="GhidraGo_Help" text="GhidraGo" target="help/topics/ghidrago/GhidraGo.html">
+            <tocdef id="GhidraGo_Overview" text="Overview" target="help/topics/ghidrago/GhidraGo.html#GhidraGo_Overview" />
+            <tocdef id="Function_Recovery" text="Function Recovery" target="help/topics/ghidrago/function_recovery.html" />
+            <tocdef id="Type_Extraction" text="Type Extraction" target="help/topics/ghidrago/type_extraction.html" />
+            <tocdef id="Troubleshooting" text="Troubleshooting" target="help/topics/ghidrago/troubleshooting.html" />
+        </tocdef>
+    </tocref>
 </tocroot>
