@@ -5,7 +5,8 @@ LABEL maintainer="anmarcel@cisco.com"
 LABEL description="Ghidraaas - Ghidra 11.4.2 as a Service"
 
 ARG GHIDRA_VERSION=11.4.2_PUBLIC_20250826
-ARG GHIDRA_SHA256=44662bc4287df369e4382e4b721fe35d0c5fe802f5ed3831662806898199a7bf
+ARG GHIDRA_BUILD=Ghidra_11.4.2_build
+ARG GHIDRA_SHA256=795a02076af16257bd6f3f4736c4fc152ce9ff1f95df35cd47e2adc086e037a6
 
 RUN useradd -m ghidra && \
     mkdir -p /srv/repositories && \
@@ -23,7 +24,7 @@ RUN apt-get install -y libgtk2.0 libidn12 libglu1-mesa
 
 WORKDIR /opt
 RUN apt-get update && apt-get install -y wget gettext-base patch && \
-    wget -q -O ghidra.zip https://ghidra-sre.org/ghidra_${GHIDRA_VERSION}.zip 
+    wget -q -O ghidra.zip https://github.com/NationalSecurityAgency/ghidra/releases/download/${GHIDRA_BUILD}/ghidra_${GHIDRA_VERSION}.zip
 RUN echo "${GHIDRA_SHA256} *ghidra.zip" | sha256sum -c && \
     unzip ghidra.zip && \
     rm ghidra.zip && \
