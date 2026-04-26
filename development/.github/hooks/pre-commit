@@ -7,8 +7,14 @@
 # This hook blocks commits that add new documentation files
 # See CORE_PROJECTS.md for the freeze policy
 
-FREEZE_ACTIVE=false
+FREEZE_ACTIVE=true
 FREEZE_END_DATE="2025-10-28"
+
+# Path globs exempt from the freeze (regex form, evaluated with bash =~).
+# Files matching ANY of these are skipped from violation checks AND warnings.
+# Maintained as regexes so they can be ORed together inline below.
+EXEMPT_PATH_REGEX_ARCHIVES='^archives/'
+EXEMPT_PATH_REGEX_DOCS='(^|/)docs/'
 
 # ANSI color codes
 RED='\033[0;31m'
@@ -48,7 +54,13 @@ if [ "$FREEZE_ACTIVE" = true ]; then
 
     for file in $FILES; do
         # Check if file is markdown in root or project root
-        if [[ $file =~ \.md$ ]] && [[ ! $file =~ development/ml-sectest-framework/(README|CHANGELOG)\.md$ ]] && [[ ! $file =~ development/saas/README\.md$ ]] && [[ ! $file =~ development/GhidraGo/README\.md$ ]] && [[ ! $file =~ projects/platform/mcp-gateway/README\.md$ ]]; then
+        if [[ $file =~ \.md$ ]] \
+            && [[ ! $file =~ development/ml-sectest-framework/(README|CHANGELOG)\.md$ ]] \
+            && [[ ! $file =~ development/saas/README\.md$ ]] \
+            && [[ ! $file =~ development/GhidraGo/README\.md$ ]] \
+            && [[ ! $file =~ projects/platform/mcp-gateway/README\.md$ ]] \
+            && [[ ! $file =~ $EXEMPT_PATH_REGEX_ARCHIVES ]] \
+            && [[ ! $file =~ $EXEMPT_PATH_REGEX_DOCS ]]; then
 
             # Check for forbidden patterns in filename
             for pattern in "${FORBIDDEN_PATTERNS[@]}"; do
@@ -99,6 +111,15 @@ if [ ! -z "$UNTRACKED" ]; then
             fi
         done
     done
+
+    # Filter out exempt paths (archives/**, **/docs/**) from warnings.
+    FILTERED_WARNINGS=()
+    for file in "${WARNING_FILES[@]}"; do
+        if [[ ! $file =~ $EXEMPT_PATH_REGEX_ARCHIVES ]] && [[ ! $file =~ $EXEMPT_PATH_REGEX_DOCS ]]; then
+            FILTERED_WARNINGS+=("$file")
+        fi
+    done
+    WARNING_FILES=("${FILTERED_WARNINGS[@]}")
 
     if [ ${#WARNING_FILES[@]} -gt 0 ]; then
         echo -e "${YELLOW}⚠️  Warning: Untracked documentation files detected${NC}"
