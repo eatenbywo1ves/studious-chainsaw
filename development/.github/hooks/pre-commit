@@ -7,7 +7,7 @@
 # This hook blocks commits that add new documentation files
 # See CORE_PROJECTS.md for the freeze policy
 
-FREEZE_ACTIVE=true
+FREEZE_ACTIVE=false
 FREEZE_END_DATE="2025-10-28"
 
 # ANSI color codes
