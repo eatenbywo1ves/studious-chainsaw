@@ -350,3 +350,18 @@ windows-amd64/
 # Allow the workspace file to be tracked
 !corbin-workspace.code-workspace
 !WORKSPACE_SETUP_GUIDE.md
+
+# ===========================================
+# Shell / editor / tool state (Added 2026-04-29)
+# ===========================================
+.bash_history
+.minttyrc
+.esd_auth
+.agents/
+.claude-worktrees/
+.copilot/
+.redis-for-vscode/
+
+# Claude Code transient working-dir markers
+tmpclaude-*-cwd
+tmpclaude-*-cwd/
