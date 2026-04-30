@@ -1,0 +1,102 @@
+@startuml C4_Code_RLS
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+title Code Diagram - Row-Level Security Module
+
+package "rls" {
+    class RLSMiddleware {
+        -db_session: AsyncSession
+        +__call__(request: Request): Response
+        -set_tenant_context(tenant_id: UUID): void
+        -clear_tenant_context(): void
+    }
+
+    class TenantContext {
+        -_current_tenant: ContextVar[Optional[UUID]]
+        +get(): Optional[UUID]
+        +set(tenant_id: UUID): Token
+        +reset(token: Token): void
+    }
+
+    class RLSSessionFactory {
+        -engine: AsyncEngine
+        -tenant_context: TenantContext
+        +create_session(): AsyncSession
+        -configure_rls(session: AsyncSession): void
+    }
+}
+
+package "database" {
+    class RLSPolicy <<PostgreSQL>> {
+        +policy_name: str
+        +table_name: str
+        +command: str
+        +using_expression: str
+        +with_check_expression: str
+    }
+
+    note right of RLSPolicy
+        CREATE POLICY tenant_isolation
+        ON users
+        FOR ALL
+        USING (tenant_id = current_setting('app.tenant_id')::uuid)
+        WITH CHECK (tenant_id = current_setting('app.tenant_id')::uuid);
+    end note
+
+    class TenantTable <<abstract>> {
+        +tenant_id: UUID
+        --
+        All tenant-scoped tables
+        inherit this structure
+    }
+
+    class UserTable extends TenantTable {
+        +id: UUID
+        +email: str
+        +password_hash: str
+    }
+
+    class SubscriptionTable extends TenantTable {
+        +id: UUID
+        +user_id: UUID
+        +stripe_id: str
+        +status: str
+    }
+
+    class JobTable extends TenantTable {
+        +id: UUID
+        +user_id: UUID
+        +status: str
+        +result: JSONB
+    }
+}
+
+package "repository" {
+    class BaseRepository<T> {
+        #session: AsyncSession
+        +find_by_id(id: UUID): Optional[T]
+        +find_all(): List[T]
+        +create(data: dict): T
+        +update(id: UUID, data: dict): T
+        +delete(id: UUID): void
+    }
+
+    class UserRepository extends BaseRepository {
+        +find_by_email(email: str): Optional[User]
+        +find_active_users(): List[User]
+    }
+
+    note right of BaseRepository
+        All queries automatically
+        filtered by tenant_id
+        via PostgreSQL RLS
+    end note
+}
+
+RLSMiddleware --> TenantContext : sets
+RLSMiddleware --> RLSSessionFactory : uses
+RLSSessionFactory --> TenantContext : reads
+BaseRepository --> RLSSessionFactory : gets session from
+RLSPolicy ..> TenantTable : applies to
+
+@enduml

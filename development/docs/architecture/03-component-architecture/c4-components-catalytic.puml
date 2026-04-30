@@ -1,0 +1,51 @@
+@startuml C4_Components_Catalytic
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+title Component Diagram - Catalytic Computing Engine
+
+Container_Boundary(catalytic, "Catalytic Computing Engine") {
+    Component(compute_controller, "Compute Controller", "FastAPI Router", "Job submission and status endpoints")
+    Component(visualization_controller, "Visualization Controller", "FastAPI Router", "Result visualization endpoints")
+    Component(model_controller, "Model Controller", "FastAPI Router", "ML model management")
+
+    Component(job_orchestrator, "Job Orchestrator", "Python Class", "Manages GPU job lifecycle")
+    Component(gpu_scheduler, "GPU Scheduler", "Python Class", "Allocates GPU resources")
+    Component(backend_selector, "Backend Selector", "Python Class", "Chooses PyTorch/CuPy/Numba")
+
+    Component(pytorch_backend, "PyTorch Backend", "Python Module", "Deep learning operations")
+    Component(cupy_backend, "CuPy Backend", "Python Module", "NumPy-compatible GPU ops")
+    Component(numba_backend, "Numba Backend", "Python Module", "JIT-compiled kernels")
+
+    Component(visualizer, "Visualizer", "Python Class", "Matplotlib/Plotly rendering")
+    Component(result_serializer, "Result Serializer", "Python Class", "Output format conversion")
+
+    Component(metrics_collector, "Metrics Collector", "Python Class", "Prometheus metrics")
+    Component(health_checker, "Health Checker", "Python Class", "GPU/service health probes")
+}
+
+' Controller relationships
+Rel(compute_controller, job_orchestrator, "Submits jobs")
+Rel(visualization_controller, visualizer, "Requests renders")
+Rel(model_controller, pytorch_backend, "Manages models")
+
+' Orchestrator relationships
+Rel(job_orchestrator, gpu_scheduler, "Requests GPU")
+Rel(job_orchestrator, backend_selector, "Selects backend")
+
+' Backend selector relationships
+Rel(backend_selector, pytorch_backend, "For DL tasks")
+Rel(backend_selector, cupy_backend, "For array ops")
+Rel(backend_selector, numba_backend, "For custom kernels")
+
+' Output relationships
+Rel(pytorch_backend, result_serializer, "Returns results")
+Rel(cupy_backend, result_serializer, "Returns results")
+Rel(numba_backend, result_serializer, "Returns results")
+Rel(visualizer, result_serializer, "Formats output")
+
+' Monitoring
+Rel(job_orchestrator, metrics_collector, "Reports metrics")
+Rel(gpu_scheduler, health_checker, "Checks GPU health")
+
+SHOW_LEGEND()
+@enduml

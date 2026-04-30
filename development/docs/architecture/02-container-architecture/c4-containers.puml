@@ -1,0 +1,69 @@
+@startuml C4_Container
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+LAYOUT_WITH_LEGEND()
+
+title Container Diagram - Catalytic Computing Platform
+
+Person(user, "User", "Developer, Customer, Analyst")
+Person(devops, "DevOps", "Platform operator")
+
+System_Boundary(platform, "Catalytic Computing Platform") {
+
+    Container(nginx, "Nginx", "Reverse Proxy", "Load balancing, rate limiting, TLS termination")
+
+    Container(saas_api, "SaaS API", "FastAPI (Python 3.11+)", "Multi-tenant API with JWT authentication, payments, user management. Ports: 8000")
+
+    Container(catalytic_api, "Catalytic API", "FastAPI (Python 3.11+)", "GPU-accelerated computing with PyTorch, CuPy, Numba. Ports: 8080")
+
+    Container(webhook, "Webhook System", "FastAPI (Python 3.11+)", "Event processing for Stripe webhooks, async tasks. Ports: 8085")
+
+    ContainerDb(postgres, "PostgreSQL", "PostgreSQL 15", "Primary database with Row-Level Security (RLS) for multi-tenancy")
+
+    ContainerDb(redis, "Redis", "Redis 7", "Cache, session store, JWT blacklist, rate limiting, distributed locks")
+
+    Container(prometheus, "Prometheus", "Prometheus", "Metrics collection, time-series database, alerting. Ports: 9090")
+
+    Container(grafana, "Grafana", "Grafana", "Metrics visualization, dashboards, alerting UI. Ports: 3000")
+
+    Container(vault, "HashiCorp Vault", "Vault", "Secrets management with rotation and audit logging. Ports: 8200")
+}
+
+System_Ext(stripe, "Stripe", "Payment processing")
+System_Ext(sendgrid, "SendGrid", "Email delivery")
+System_Ext(ghidra, "Ghidra Framework", "Binary analysis")
+
+Rel(user, nginx, "Uses", "HTTPS")
+Rel(nginx, saas_api, "Routes requests", "HTTP")
+Rel(nginx, catalytic_api, "Routes requests", "HTTP")
+
+Rel(saas_api, postgres, "Reads/writes data", "TCP/5432, SQL")
+Rel(saas_api, redis, "Cache, sessions, blacklist", "TCP/6379, Redis protocol")
+Rel(saas_api, vault, "Retrieves secrets", "HTTPS/8200")
+Rel(saas_api, stripe, "Processes payments", "HTTPS")
+Rel(saas_api, sendgrid, "Sends emails", "HTTPS")
+Rel(saas_api, prometheus, "Exports metrics", "HTTP /metrics")
+
+Rel(catalytic_api, redis, "Caches results", "TCP/6379")
+Rel(catalytic_api, prometheus, "Exports metrics", "HTTP /metrics")
+
+Rel(webhook, postgres, "Updates subscriptions", "TCP/5432")
+Rel(webhook, sendgrid, "Sends notifications", "HTTPS")
+Rel(webhook, redis, "Queues tasks", "TCP/6379")
+
+Rel(stripe, webhook, "Sends events", "HTTPS webhooks")
+
+Rel(prometheus, saas_api, "Scrapes metrics", "HTTP :8000/metrics")
+Rel(prometheus, catalytic_api, "Scrapes metrics", "HTTP :8080/metrics")
+Rel(prometheus, postgres, "Monitors", "Postgres Exporter")
+Rel(prometheus, redis, "Monitors", "Redis Exporter")
+
+Rel(devops, prometheus, "Queries metrics", "HTTPS")
+Rel(devops, grafana, "Views dashboards", "HTTPS")
+Rel(grafana, prometheus, "Data source", "HTTP")
+
+Rel(ghidra, catalytic_api, "Submits analysis jobs", "HTTPS")
+
+SHOW_LEGEND()
+
+@enduml

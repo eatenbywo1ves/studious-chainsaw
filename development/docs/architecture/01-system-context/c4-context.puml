@@ -1,0 +1,42 @@
+@startuml C4_Context
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+LAYOUT_WITH_LEGEND()
+
+title System Context Diagram - Catalytic Computing Platform
+
+Person(dev, "Developer", "API consumer, integration partner")
+Person(analyst, "Security Analyst", "Binary analysis, malware research")
+Person(customer, "Enterprise Customer", "Multi-tenant SaaS user")
+Person(devops, "DevOps Engineer", "Platform operator, monitoring")
+Person(auditor, "Compliance Auditor", "Security assessment, compliance")
+
+System_Boundary(platform, "Catalytic Computing Platform") {
+    System(saas, "SaaS Platform", "Multi-tenant API with authentication, payments, and user management")
+    System(catalytic, "Catalytic Engine", "GPU-accelerated computing with lattice structures (28,571x memory efficiency)")
+    System(ghidrago, "GhidraGo Toolkit", "Reverse engineering and binary analysis tools")
+}
+
+System_Ext(stripe, "Stripe", "Payment processing, subscriptions, webhooks (PCI DSS compliant)")
+System_Ext(sendgrid, "SendGrid", "Transactional email delivery with templates")
+System_Ext(vault, "HashiCorp Vault", "Secrets management with rotation and audit logging")
+System_Ext(ghidra, "Ghidra Framework", "NSA reverse engineering platform (v11.4.2)")
+System_Ext(prometheus, "Prometheus", "Metrics collection and alerting")
+System_Ext(grafana, "Grafana", "Metrics visualization and dashboards")
+
+Rel(dev, saas, "Uses", "REST API / HTTPS")
+Rel(analyst, ghidrago, "Analyzes binaries", "CLI / Python scripts")
+Rel(customer, saas, "Accesses platform", "Web UI / HTTPS")
+Rel(devops, prometheus, "Monitors", "HTTPS")
+Rel(devops, grafana, "Views dashboards", "HTTPS")
+Rel(auditor, saas, "Audits", "API / Reports")
+
+Rel(saas, stripe, "Processes payments", "HTTPS / Webhooks")
+Rel(saas, sendgrid, "Sends emails", "HTTPS / SMTP")
+Rel(saas, vault, "Retrieves secrets", "HTTPS / AppRole")
+Rel(ghidrago, ghidra, "Extends", "Java API / Python")
+Rel(saas, prometheus, "Exports metrics", "HTTP /metrics")
+Rel(catalytic, prometheus, "Exports metrics", "HTTP /metrics")
+Rel(prometheus, grafana, "Data source", "HTTP")
+
+@enduml
