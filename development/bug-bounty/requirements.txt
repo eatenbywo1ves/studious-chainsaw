@@ -1,0 +1,15 @@
+# Bug Bounty Workflow dependencies
+# Install with: pip install -r requirements.txt
+
+# Core HTTP
+requests>=2.31.0
+
+# Binary exploitation (optional — for phase3_binary PoC)
+# pwntools>=4.12.0
+
+# Security testing helpers
+# Install separately as needed:
+#   pip install pwntools        # ROP chain building
+#   pip install jwt             # JWT manipulation
+#   pip install python-jose     # JWT with JWK support
+#   pip install cryptography    # Key manipulation
