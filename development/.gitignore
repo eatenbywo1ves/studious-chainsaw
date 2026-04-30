@@ -303,6 +303,12 @@ dmypy.json
 *VALIDATION*.md
 *SYSTEM_*.md
 
+# Exempt structured docs trees and archives from the freeze ignores above.
+# Mirrors the path exemptions used by .github/hooks/pre-commit so projects
+# can keep MIGRATION_GUIDE.md, etc. inside their docs/ folder.
+!**/docs/**
+!archives/**
+
 # Windows special folders (permission issues)
 NetHood/
 PrintHood/
