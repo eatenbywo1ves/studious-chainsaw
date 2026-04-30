@@ -365,3 +365,64 @@ windows-amd64/
 # Claude Code transient working-dir markers
 tmpclaude-*-cwd
 tmpclaude-*-cwd/
+
+# ===========================================
+# Tool / Build Caches (Added 2026-04-30)
+# ===========================================
+.cagent/
+.m2/
+*.bak.*
+development/GhidraGo/testcontainers.properties
+
+# ===========================================
+# Sample / Scratch Data (Added 2026-04-30)
+# ===========================================
+development/czech_chinese_sample.txt
+development/polish_chinese_sample.txt
+development/russian_chinese_sample.txt
+development/serbian_chinese_sample.txt
+
+# ===========================================
+# Third-Party Demo / Tutorial Trees (Added 2026-04-30)
+# ===========================================
+testcontainers-cloud-java-example/
+welcome-to-docker/
+insights-mind-map/
+
+# ===========================================
+# Top-Level Workspace Scratch Dirs (Added 2026-04-30)
+# ===========================================
+# These live at $HOME and are experiment leftovers, not project content.
+/configs/
+/monitoring/
+/nginx/
+/src/
+/requirements.txt
+
+# ===========================================
+# Kali Setup Scripts (personal env, Added 2026-04-30)
+# ===========================================
+kali-deploy.sh
+kali-final-setup.sh
+kali-post-install.sh
+kali-shell-config.sh
+kali-winkex-setup.sh
+
+# ===========================================
+# Personal Notes / Shortcut References (Added 2026-04-30)
+# ===========================================
+COMPREHENSIVE_SHORTCUTS_AND_COMMANDS.txt
+MY_SHORTCUTS_AND_SCRIPTS.txt
+SHORTCUTS_INDEX.txt
+QUICK_REFERENCE_CARD.txt
+Tools/LowLevel.txt
+Tools/theteamhousepodcast.txt
+
+# ===========================================
+# Per-Project Claude Configs Beyond Existing Exceptions (Added 2026-04-30)
+# ===========================================
+# The existing rules already track development/.claude/ and projects/.claude/;
+# these deeper or sibling .claude/ trees are local-only.
+go-deployment-demo/.claude/
+projects/active/.claude/
+projects/active/**/.claude/
