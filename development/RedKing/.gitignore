@@ -1,0 +1,29 @@
+# Gradle
+.gradle/
+build/
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+*.swp
+
+# Kotlin / JVM
+*.class
+*.jar
+*.war
+*.ear
+# Keep the gradle wrapper JAR so ./gradlew works on fresh clones.
+# Negation must come after *.jar — gitignore evaluates rules in order.
+!gradle/wrapper/gradle-wrapper.jar
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Output files
+*.csv
+*.log
+distance_distribution.csv
