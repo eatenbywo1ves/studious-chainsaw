@@ -16,7 +16,6 @@ services:
     volumes:
       - ./vault/data:/vault/data
       - ./vault/logs:/vault/logs
-      - ./vault/config:/vault/config
     command: server -dev -dev-root-token-id="dev-root-token-catalytic-2024"
     healthcheck:
       test: ["CMD", "vault", "status"]
@@ -29,4 +28,4 @@ services:
 networks:
   catalytic-network:
     external: true
-    name: development_default
+    name: development_catalytic-network

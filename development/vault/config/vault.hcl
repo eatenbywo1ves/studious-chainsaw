@@ -15,8 +15,5 @@ cluster_addr = "https://127.0.0.1:8201"
 # Disable mlock for dev mode (enable in production)
 disable_mlock = true
 
-# Enable UI
-ui = true
-
 # Log level
 log_level = "info"
