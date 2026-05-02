@@ -1,6 +1,6 @@
 # This Dockerfile is a modified version of https://github.com/bskaggs/ghidra-docker/blob/master/Dockerfile
 
-FROM eclipse-temurin:11-jre
+FROM eclipse-temurin:21-jdk
 LABEL maintainer="anmarcel@cisco.com"
 LABEL description="Ghidraaas - Ghidra 11.4.2 as a Service"
 
@@ -36,7 +36,7 @@ RUN echo "${GHIDRA_SHA256} *ghidra.zip" | sha256sum -c && \
     chown -R ghidra: ghidra*
 
 COPY requirements.txt /opt/requirements.txt
-RUN pip3 install -r /opt/requirements.txt
+RUN pip3 install --break-system-packages -r /opt/requirements.txt
 
 # Create /opt/ghidraaas working folder
 RUN mkdir -p /opt/ghidraaas

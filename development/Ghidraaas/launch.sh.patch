@@ -1,14 +1,14 @@
---- support/launch.sh	2019-03-07 22:48:42.778493495 -0500
-+++ support/launch.sh.new	2019-03-07 22:42:21.316671049 -0500
-@@ -124,10 +124,7 @@
- 	VMARG_LIST+=" -Declipse.filelock.disable=true"
+--- support/launch.sh	2026-04-24 00:00:00.000000000 +0000
++++ support/launch.sh.new	2026-04-24 00:00:00.000000000 +0000
+@@ -179,10 +179,7 @@
+ 	VMARGS_FROM_LAUNCH_SH+=("-Xdock:name=${APPNAME}")
  fi
- 
+
 -# Set Max Heap Size if specified
 -if [ "${MAXMEM}" != "" ]; then
--	VMARG_LIST+=" -Xmx${MAXMEM}"
+-	VMARGS_FROM_LAUNCH_SH+=("-Xmx${MAXMEM}")
 -fi
-+VMARG_LIST+=" -XX:InitialRAMPercentage=20 -XX:MinRAMPercentage=20 -XX:MaxRAMPercentage=80"
- 
++VMARGS_FROM_LAUNCH_SH+=("-XX:InitialRAMPercentage=20" "-XX:MinRAMPercentage=20" "-XX:MaxRAMPercentage=80")
+
  BACKGROUND=false
- 
+
