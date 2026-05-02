@@ -500,6 +500,252 @@
             "refId": "A"
           }
         ]
+      },
+      {
+        "id": 18,
+        "title": "Monthly Cohort Retention Analysis",
+        "type": "heatmap",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 40},
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100
+          }
+        },
+        "targets": [
+          {
+            "expr": "avg by (signup_month, months_since_signup) (retention_rate_by_cohort)",
+            "format": "heatmap",
+            "refId": "A"
+          }
+        ],
+        "dataFormat": "timeseries",
+        "heatmap": {},
+        "cards": {
+          "cardPadding": 2,
+          "cardRound": 2
+        },
+        "color": {
+          "mode": "spectrum",
+          "cardColor": "#b4ff00",
+          "colorScale": "sqrt",
+          "exponent": 0.5,
+          "min": 0,
+          "max": 100
+        },
+        "yAxis": {
+          "format": "short",
+          "decimals": 0,
+          "label": "Months Since Signup"
+        },
+        "xAxis": {
+          "show": true,
+          "label": "Signup Month"
+        },
+        "tooltip": {
+          "show": true,
+          "showHistogram": true
+        },
+        "description": "Cohort retention heatmap showing user retention percentage by signup month. Darker colors indicate higher retention. Critical for understanding product stickiness and identifying successful cohorts."
+      },
+      {
+        "id": 19,
+        "title": "Feature Adoption by Plan Type",
+        "type": "bargauge",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 40},
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "min": 0
+          }
+        },
+        "options": {
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"],
+            "fields": ""
+          },
+          "orientation": "horizontal",
+          "displayMode": "gradient"
+        },
+        "targets": [
+          {
+            "expr": "topk(10, sum by (feature, plan_type) (feature_usage_count))",
+            "legendFormat": "{{feature}} ({{plan_type}})",
+            "refId": "A"
+          }
+        ],
+        "description": "Top 10 features by usage count, broken down by plan type. Helps identify which features drive value for different customer segments."
+      },
+      {
+        "id": 20,
+        "title": "90-Day MRR Forecast",
+        "type": "timeseries",
+        "gridPos": {"h": 6, "w": 8, "x": 0, "y": 48},
+        "fieldConfig": {
+          "defaults": {
+            "unit": "currencyUSD",
+            "min": 0,
+            "custom": {
+              "lineWidth": 2,
+              "fillOpacity": 10
+            }
+          }
+        },
+        "targets": [
+          {
+            "expr": "current_mrr",
+            "legendFormat": "Actual MRR",
+            "refId": "A"
+          },
+          {
+            "expr": "predict_linear(current_mrr[30d], 7776000)",
+            "legendFormat": "Predicted MRR (90d)",
+            "refId": "B"
+          }
+        ],
+        "description": "MRR forecast based on 30-day linear regression. Helps predict revenue trends and plan capacity."
+      },
+      {
+        "id": 21,
+        "title": "At-Risk Customer Score",
+        "type": "stat",
+        "gridPos": {"h": 6, "w": 4, "x": 8, "y": 48},
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 10},
+                {"color": "red", "value": 50}
+              ]
+            }
+          }
+        },
+        "options": {
+          "colorMode": "background",
+          "graphMode": "area",
+          "textMode": "value_and_name"
+        },
+        "targets": [
+          {
+            "expr": "sum(customer_health_score < 50)",
+            "refId": "A"
+          }
+        ],
+        "description": "Number of customers with health score below 50. These customers are at high risk of churn and require immediate attention."
+      },
+      {
+        "id": 22,
+        "title": "Usage-to-Limit Ratio (Upsell Opportunity)",
+        "type": "table",
+        "gridPos": {"h": 6, "w": 6, "x": 12, "y": 48},
+        "targets": [
+          {
+            "expr": "topk(10, (api_usage_current / api_usage_limit) * 100)",
+            "format": "table",
+            "instant": true,
+            "refId": "A"
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {"Time": true},
+              "renameByName": {
+                "customer_id": "Customer",
+                "plan_type": "Plan",
+                "Value": "Usage %"
+              }
+            }
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "displayMode": "color-background"
+            }
+          },
+          "overrides": [
+            {
+              "matcher": {"id": "byName", "options": "Usage %"},
+              "properties": [
+                {
+                  "id": "thresholds",
+                  "value": {
+                    "steps": [
+                      {"value": null, "color": "green"},
+                      {"value": 70, "color": "yellow"},
+                      {"value": 90, "color": "red"}
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "description": "Top 10 customers approaching their plan limits. High usage indicates potential for plan upgrades."
+      },
+      {
+        "id": 23,
+        "title": "Revenue Health SLO (95% MRR Target)",
+        "type": "gauge",
+        "gridPos": {"h": 6, "w": 6, "x": 18, "y": 48},
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 80,
+            "max": 100,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "red", "value": null},
+                {"color": "yellow", "value": 90},
+                {"color": "green", "value": 95}
+              ]
+            }
+          }
+        },
+        "options": {
+          "showThresholdLabels": true,
+          "showThresholdMarkers": true
+        },
+        "targets": [
+          {
+            "expr": "(current_mrr / mrr_target) * 100",
+            "refId": "A"
+          }
+        ],
+        "description": "SLO: Revenue health tracking. Target is 95% of MRR goal. Below 90% triggers strategic review."
+      }
+    ],
+    "links": [
+      {
+        "title": "Circuit Breaker Dashboard",
+        "type": "link",
+        "url": "/d/catalytic-staging-circuit-breaker",
+        "targetBlank": false
+      },
+      {
+        "title": "SEC-011 Security Dashboard",
+        "type": "link",
+        "url": "/d/sec-011/sec-011-request-size-monitoring",
+        "targetBlank": false
+      },
+      {
+        "title": "System Metrics Dashboard",
+        "type": "link",
+        "url": "/d/system-metrics/system-metrics-dashboard",
+        "targetBlank": false
+      },
+      {
+        "title": "Developer Workflow Dashboard",
+        "type": "link",
+        "url": "/d/developer-workflow/developer-workflow-dashboard",
+        "targetBlank": false
       }
     ],
     "time": {

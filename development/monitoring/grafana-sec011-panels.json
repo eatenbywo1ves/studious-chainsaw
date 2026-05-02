@@ -491,6 +491,261 @@
         },
         "nullPointMode": "null",
         "description": "Comparison of rejections on regular endpoints (10MB limit) vs upload endpoints (100MB limit). Helps identify if limits need adjustment."
+      },
+      {
+        "id": 9,
+        "title": "⚠️ DoS Attack Pattern Detection",
+        "type": "stat",
+        "gridPos": {
+          "x": 0,
+          "y": 22,
+          "w": 6,
+          "h": 4
+        },
+        "targets": [
+          {
+            "expr": "sum(rate(request_size_limit_exceeded_total[1m])) * 60",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "decimals": 0,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": null,
+                  "color": "green"
+                },
+                {
+                  "value": 50,
+                  "color": "yellow"
+                },
+                {
+                  "value": 100,
+                  "color": "red"
+                }
+              ]
+            }
+          }
+        },
+        "options": {
+          "colorMode": "background",
+          "graphMode": "area",
+          "justifyMode": "center",
+          "textMode": "value_and_name"
+        },
+        "description": "CRITICAL: Monitors for potential DoS attack patterns. Alert triggers at 100+ rejections/minute. Sustained high rejection rates may indicate volumetric attack."
+      },
+      {
+        "id": 10,
+        "title": "Top 10 Offending Client IPs",
+        "type": "table",
+        "gridPos": {
+          "x": 6,
+          "y": 22,
+          "w": 9,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "topk(10, sum by (client_ip, path) (request_size_limit_exceeded_total))",
+            "format": "table",
+            "instant": true,
+            "refId": "A"
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {
+                "Time": true,
+                "__name__": true
+              },
+              "indexByName": {
+                "client_ip": 0,
+                "path": 1,
+                "Value": 2
+              },
+              "renameByName": {
+                "client_ip": "Client IP",
+                "path": "Target Endpoint",
+                "Value": "Total Rejections"
+              }
+            }
+          }
+        ],
+        "options": {
+          "showHeader": true,
+          "sortBy": [
+            {
+              "displayName": "Total Rejections",
+              "desc": true
+            }
+          ]
+        },
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "align": "left",
+              "displayMode": "auto"
+            }
+          },
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Total Rejections"
+              },
+              "properties": [
+                {
+                  "id": "custom.displayMode",
+                  "value": "color-background"
+                },
+                {
+                  "id": "thresholds",
+                  "value": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": null,
+                        "color": "green"
+                      },
+                      {
+                        "value": 100,
+                        "color": "yellow"
+                      },
+                      {
+                        "value": 1000,
+                        "color": "red"
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "description": "Top client IPs generating request size rejections. High rejection counts from single IPs may indicate malicious activity or misconfigured clients requiring investigation."
+      },
+      {
+        "id": 11,
+        "title": "SLO: Request Acceptance Rate",
+        "type": "gauge",
+        "gridPos": {
+          "x": 15,
+          "y": 22,
+          "w": 4,
+          "h": 4
+        },
+        "targets": [
+          {
+            "expr": "((sum(rate(http_requests_total[5m])) - sum(rate(request_size_limit_exceeded_total[5m]))) / sum(rate(http_requests_total[5m]))) * 100",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 95,
+            "max": 100,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": null,
+                  "color": "red"
+                },
+                {
+                  "value": 98,
+                  "color": "yellow"
+                },
+                {
+                  "value": 99.5,
+                  "color": "green"
+                }
+              ]
+            }
+          }
+        },
+        "options": {
+          "showThresholdLabels": true,
+          "showThresholdMarkers": true
+        },
+        "description": "SLO target: 99.5% of requests should be accepted (not rejected for size). Tracks effectiveness of request size limits vs legitimate traffic impact."
+      },
+      {
+        "id": 12,
+        "title": "Time-Based Attack Pattern",
+        "type": "heatmap",
+        "gridPos": {
+          "x": 19,
+          "y": 22,
+          "w": 5,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "sum by (hour) (rate(request_size_limit_exceeded_total[1h]))",
+            "format": "heatmap",
+            "refId": "A"
+          }
+        ],
+        "dataFormat": "timeseries",
+        "heatmap": {},
+        "cards": {
+          "cardPadding": 2,
+          "cardRound": 2
+        },
+        "color": {
+          "mode": "spectrum",
+          "cardColor": "#FF0000",
+          "colorScale": "sqrt",
+          "exponent": 0.5,
+          "min": 0,
+          "max": null
+        },
+        "yAxis": {
+          "format": "short",
+          "decimals": 0
+        },
+        "xAxis": {
+          "show": true
+        },
+        "tooltip": {
+          "show": true,
+          "showHistogram": true
+        },
+        "description": "Hourly heatmap of rejection patterns. Helps identify time-based attack patterns or peak usage periods causing rejections."
+      }
+    ],
+    "links": [
+      {
+        "title": "Circuit Breaker Dashboard",
+        "type": "link",
+        "url": "/d/catalytic-staging-circuit-breaker",
+        "targetBlank": false
+      },
+      {
+        "title": "System Metrics Dashboard",
+        "type": "link",
+        "url": "/d/system-metrics/system-metrics-dashboard",
+        "targetBlank": false
+      },
+      {
+        "title": "Business Metrics Dashboard",
+        "type": "link",
+        "url": "/d/business-metrics/business-metrics-dashboard",
+        "targetBlank": false
+      },
+      {
+        "title": "Developer Workflow Dashboard",
+        "type": "link",
+        "url": "/d/developer-workflow/developer-workflow-dashboard",
+        "targetBlank": false
       }
     ],
     "time": {

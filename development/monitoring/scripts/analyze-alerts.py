@@ -16,7 +16,7 @@ def parse_log_line(line):
         timestamp_str, severity, message = match.groups()
         try:
             timestamp = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
-        except:
+        except ValueError:
             timestamp = None
         return timestamp, severity, message
     return None, None, None

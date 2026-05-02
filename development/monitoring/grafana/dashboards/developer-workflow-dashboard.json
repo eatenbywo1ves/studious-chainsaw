@@ -40,7 +40,29 @@
       "includeVars": true,
       "keepTime": true,
       "tags": [],
-      "targetBlank": true,
+      "targetBlank": false,
+      "title": "Circuit Breaker Dashboard",
+      "type": "link",
+      "url": "/d/catalytic-staging-circuit-breaker"
+    },
+    {
+      "asDropdown": false,
+      "icon": "external link",
+      "includeVars": true,
+      "keepTime": true,
+      "tags": [],
+      "targetBlank": false,
+      "title": "SEC-011 Security Dashboard",
+      "type": "link",
+      "url": "/d/sec-011/sec-011-request-size-monitoring"
+    },
+    {
+      "asDropdown": false,
+      "icon": "external link",
+      "includeVars": true,
+      "keepTime": true,
+      "tags": [],
+      "targetBlank": false,
       "title": "System Metrics Dashboard",
       "tooltip": "View detailed system metrics",
       "type": "link",
@@ -52,11 +74,10 @@
       "includeVars": true,
       "keepTime": true,
       "tags": [],
-      "targetBlank": true,
-      "title": "Security Dashboard",
-      "tooltip": "View security metrics and alerts",
+      "targetBlank": false,
+      "title": "Business Metrics Dashboard",
       "type": "link",
-      "url": "/d/security/security-dashboard"
+      "url": "/d/business-metrics/business-metrics-dashboard"
     }
   ],
   "liveNow": false,

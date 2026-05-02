@@ -26,7 +26,7 @@ import argparse
 import requests
 import time
 import sys
-from typing import Dict, List, Tuple
+from typing import Dict, Tuple
 
 # ANSI colors
 GREEN = '\033[0;32m'
@@ -183,7 +183,7 @@ class SEC011MetricsTester:
 
             if body_bytes_lines:
                 self.pass_test(f"request_body_bytes has {len(body_bytes_lines)} bucket data points")
-                print(f"   Sample buckets:")
+                print("   Sample buckets:")
                 for line in body_bytes_lines[:3]:
                     print(f"   {line}")
             else:
@@ -195,7 +195,7 @@ class SEC011MetricsTester:
 
             if rejection_lines:
                 self.pass_test(f"request_size_limit_exceeded_total has {len(rejection_lines)} data points")
-                print(f"   Sample rejections:")
+                print("   Sample rejections:")
                 for line in rejection_lines[:3]:
                     print(f"   {line}")
             else:
@@ -283,10 +283,10 @@ class SEC011MetricsTester:
             elapsed = int(time.time() - start_time)
             print(f"   Progress: {elapsed}s / {duration}s - Requests: {request_count}, Rejections: {rejection_count}")
 
-        self.info(f"Load test complete!")
+        self.info("Load test complete!")
         self.info(f"Total requests: {request_count}")
         self.info(f"Total rejections: {rejection_count}")
-        self.info(f"Check Grafana dashboard: http://grafana:3000/d/sec-011")
+        self.info("Check Grafana dashboard: http://grafana:3000/d/sec-011")
 
     def print_summary(self):
         """Print test summary"""
