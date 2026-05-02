@@ -18,7 +18,6 @@ import sys
 import time
 import argparse
 from pathlib import Path
-from typing import Dict, Any, List, Tuple
 
 # Add saas directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "saas"))
@@ -75,16 +74,16 @@ class VaultIntegrationTester:
     def print_test(self, name: str, status: str, message: str = "") -> None:
         """Print test result"""
         if status == "PASS":
-            icon = f"{Colors.GREEN}✓{Colors.RESET}"
+            icon = f"{Colors.GREEN}[OK]{Colors.RESET}"
             self.tests_passed += 1
         elif status == "FAIL":
-            icon = f"{Colors.RED}✗{Colors.RESET}"
+            icon = f"{Colors.RED}[FAIL]{Colors.RESET}"
             self.tests_failed += 1
         elif status == "SKIP":
-            icon = f"{Colors.YELLOW}⊗{Colors.RESET}"
+            icon = f"{Colors.YELLOW}[SKIP]{Colors.RESET}"
             self.tests_skipped += 1
         else:
-            icon = "?"
+            icon = "[?]"
 
         print(f"{icon} {name:<60} [{status}]")
         if message and (self.verbose or status == "FAIL"):
@@ -112,7 +111,11 @@ class VaultIntegrationTester:
 
         # Test 1.2: hvac library
         if HVAC_AVAILABLE:
-            self.print_test("hvac library installed", "PASS", f"hvac version: {hvac.__version__}")
+            try:
+                version = getattr(hvac, '__version__', 'unknown')
+            except Exception:
+                version = 'installed'
+            self.print_test("hvac library installed", "PASS", f"hvac version: {version}")
         else:
             self.print_test("hvac library installed", "FAIL", "Run: pip install hvac==2.1.0")
             return False
@@ -185,8 +188,6 @@ class VaultIntegrationTester:
     def test_secret_retrieval(self) -> bool:
         """Test 3: Secret retrieval"""
         self.print_header("Test 3: Secret Retrieval")
-
-        client = get_vault_client()
 
         # Test 3.1: Database config
         try:
@@ -428,10 +429,10 @@ class VaultIntegrationTester:
         print(f"\nPass rate:      {pass_rate:.1f}%")
 
         if self.tests_failed == 0:
-            print(f"\n{Colors.GREEN}{Colors.BOLD}✓ ALL TESTS PASSED{Colors.RESET}")
+            print(f"\n{Colors.GREEN}{Colors.BOLD}[SUCCESS] ALL TESTS PASSED{Colors.RESET}")
             return 0
         else:
-            print(f"\n{Colors.RED}{Colors.BOLD}✗ {self.tests_failed} TEST(S) FAILED{Colors.RESET}")
+            print(f"\n{Colors.RED}{Colors.BOLD}[FAILED] {self.tests_failed} TEST(S) FAILED{Colors.RESET}")
             return 1
 
     def run_all_tests(self) -> int:

@@ -145,7 +145,7 @@ def main():
         print(f"JWT_PRIVATE_KEY_PATH={rsa_keys['private_key_path']}")
         print(f"JWT_PUBLIC_KEY_PATH={rsa_keys['public_key_path']}")
         print()
-        print(f"RSA keys generated successfully:")
+        print("RSA keys generated successfully:")
         print(f"  Private key: {rsa_keys['private_key_path']}")
         print(f"  Public key: {rsa_keys['public_key_path']}")
     else:

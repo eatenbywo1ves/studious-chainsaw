@@ -5,8 +5,8 @@ Validates fault tolerance and graceful degradation behavior
 
 import pytest
 import time
-from unittest.mock import Mock, patch
-from redis.exceptions import ConnectionError, TimeoutError
+from unittest.mock import Mock
+from redis.exceptions import ConnectionError
 
 import sys
 import os

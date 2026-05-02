@@ -27,7 +27,7 @@ from .settings import (
     Settings,
     get_settings,
     get_config,
-    
+
     # Domain configurations
     AppConfig,
     DatabaseConfig,
@@ -37,7 +37,7 @@ from .settings import (
     CORSConfig,
     EmailConfig,
     StripeConfig,
-    
+
     # Enumerations
     Environment,
     SecurityLevel,
@@ -49,7 +49,7 @@ __all__ = [
     "Settings",
     "get_settings",
     "get_config",
-    
+
     # Domain configurations
     "AppConfig",
     "DatabaseConfig",
@@ -59,7 +59,7 @@ __all__ = [
     "CORSConfig",
     "EmailConfig",
     "StripeConfig",
-    
+
     # Enumerations
     "Environment",
     "SecurityLevel",

@@ -34,7 +34,6 @@ Usage:
 
 import random
 import string
-import time
 from locust import HttpUser, task, between, events
 from typing import Dict, Optional
 

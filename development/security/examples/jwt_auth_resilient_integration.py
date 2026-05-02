@@ -39,7 +39,7 @@ redis_pool = ResilientRedisPool(
     fallback_mode="warn",  # Log warnings on fallback
 )
 
-logger.info(f"✅ Resilient Redis pool initialized (circuit breaker: enabled)")
+logger.info("✅ Resilient Redis pool initialized (circuit breaker: enabled)")
 
 
 # ============================================================================
@@ -381,14 +381,14 @@ def example_usage():
 
     # 1. Check Redis health
     health = get_redis_health()
-    print(f"\n📊 Redis Health:")
+    print("\n📊 Redis Health:")
     print(f"   Available: {health['available']}")
     print(f"   Circuit State: {health['circuit_breaker']['state']}")
     print(f"   Pool Utilization: {health['pool']['utilization_percent']}%")
     print(f"   Uptime: {health['circuit_breaker']['uptime_percent']}%")
 
     # 2. Create access token
-    print(f"\n🔐 Creating access token...")
+    print("\n🔐 Creating access token...")
     token = create_access_token(
         user_id="user123",
         tenant_id="tenant456",
@@ -398,28 +398,28 @@ def example_usage():
     print(f"   Token: {token[:50]}...")
 
     # 3. Verify token
-    print(f"\n✅ Verifying token...")
+    print("\n✅ Verifying token...")
     token_data = verify_token(token)
     if token_data:
         print(f"   Valid! User: {token_data.sub}, Role: {token_data.role}")
     else:
-        print(f"   Invalid or blacklisted")
+        print("   Invalid or blacklisted")
 
     # 4. Revoke token
-    print(f"\n🚫 Revoking token...")
+    print("\n🚫 Revoking token...")
     revoke_token(token)
 
     # 5. Verify revoked token
-    print(f"\n❌ Verifying revoked token...")
+    print("\n❌ Verifying revoked token...")
     token_data = verify_token(token)
     if token_data:
-        print(f"   WARNING: Revoked token still valid (Redis unavailable?)")
+        print("   WARNING: Revoked token still valid (Redis unavailable?)")
     else:
-        print(f"   Correctly rejected (blacklisted or expired)")
+        print("   Correctly rejected (blacklisted or expired)")
 
     # 6. Final health check
     health = get_redis_health()
-    print(f"\n📊 Final Redis Health:")
+    print("\n📊 Final Redis Health:")
     print(f"   Fallback Count: {health['fallback_count']}")
     print(f"   Circuit Opens: {health['circuit_open_count']}")
     print(f"   Rejected Calls: {health['circuit_breaker']['rejected_calls']}")

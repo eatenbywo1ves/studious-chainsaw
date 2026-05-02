@@ -17,7 +17,7 @@ from pathlib import Path
 
 # ✅ MIGRATED: Import centralized configuration system
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-from shared.config import get_settings, Environment
+from shared.config import get_settings, Environment  # noqa: E402
 
 # Load configuration (validated and type-safe)
 _config = get_settings()
@@ -281,7 +281,6 @@ async def lifespan(app: FastAPI):
 # ============================================================================
 # Limit request body size to prevent memory exhaustion attacks
 # 10MB for API requests, 100MB for file uploads (configured separately)
-from fastapi.middleware.trustedhost import TrustedHostMiddleware  # noqa: E402
 
 app = FastAPI(
     title="Catalytic Computing SaaS API",
@@ -828,10 +827,12 @@ async def health_check(db: Session = Depends(get_db)):
     Phase 6B: Now includes Vault health status for secrets management monitoring
     """
     from fastapi.responses import JSONResponse
+    from sqlalchemy import text
 
     try:
         # Quick database connectivity check (1-2ms)
-        db.execute("SELECT 1")
+        # SQLAlchemy 2.0+ requires explicit text() wrapper for raw SQL
+        db.execute(text("SELECT 1"))
         db_status = "healthy"
     except Exception:
         db_status = "unhealthy"
@@ -995,8 +996,7 @@ async def transform_lattice(
 
         if should_use_gpu:
             try:
-                # Import GPU module
-                from apps.catalytic.catalytic_lattice_gpu import CatalyticLatticeGPU
+                # Use GPU module (imported at module level)
                 import numpy as np
 
                 # Create GPU lattice instance

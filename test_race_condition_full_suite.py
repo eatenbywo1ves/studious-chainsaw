@@ -10,9 +10,8 @@ Usage:
 import pytest
 import threading
 import time
-import asyncio
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import List, Tuple
+from concurrent.futures import ThreadPoolExecutor
+from typing import Tuple
 from redis import Redis
 import statistics
 
@@ -107,7 +106,7 @@ class FixedAccountLockoutManager(MockAccountLockoutManager):
         # Pre-load script for efficiency
         try:
             self._script_sha = self.redis_client.script_load(self.ATOMIC_LOCKOUT_SCRIPT)
-        except:
+        except Exception:
             self._script_sha = None
 
     def record_failed_attempt(self, identifier: str) -> None:
@@ -118,7 +117,7 @@ class FixedAccountLockoutManager(MockAccountLockoutManager):
 
         try:
             if self._script_sha:
-                result = self.redis_client.evalsha(
+                self.redis_client.evalsha(
                     self._script_sha,
                     2,
                     attempts_key,
@@ -129,7 +128,7 @@ class FixedAccountLockoutManager(MockAccountLockoutManager):
                     self.lockout_duration,
                 )
             else:
-                result = self.redis_client.eval(
+                self.redis_client.eval(
                     self.ATOMIC_LOCKOUT_SCRIPT,
                     2,
                     attempts_key,
@@ -152,7 +151,15 @@ class FixedAccountLockoutManager(MockAccountLockoutManager):
 @pytest.fixture
 def redis_client():
     """Provide Redis client for testing"""
-    client = Redis(host="localhost", port=6379, decode_responses=True, db=15)  # Use test DB
+    import os
+    password = os.getenv("REDIS_PASSWORD")
+    client = Redis(
+        host="localhost",
+        port=6379,
+        password=password,
+        decode_responses=True,
+        db=15  # Use test DB
+    )
 
     # Clear test database
     client.flushdb()
@@ -288,7 +295,7 @@ class TestRaceCondition:
         actual_attempts = redis_client.zcard(attempts_key)
         is_locked, _ = vulnerable_manager.is_locked_out(identifier)
 
-        print(f"\n--- Vulnerable Implementation Results ---")
+        print("\n--- Vulnerable Implementation Results ---")
         print(f"Total attempts in Redis: {actual_attempts}")
         print(f"Threshold: {vulnerable_manager.max_attempts}")
         print(f"Is locked: {is_locked}")
@@ -325,7 +332,7 @@ class TestRaceCondition:
         actual_attempts = redis_client.zcard(attempts_key)
         is_locked, _ = fixed_manager.is_locked_out(identifier)
 
-        print(f"\n--- Fixed Implementation Results ---")
+        print("\n--- Fixed Implementation Results ---")
         print(f"Total attempts in Redis: {actual_attempts}")
         print(f"Threshold: {fixed_manager.max_attempts}")
         print(f"Is locked: {is_locked}")
@@ -465,7 +472,7 @@ class TestPerformance:
             fixed_manager.record_failed_attempt(f"perf_fixed_{i}@example.com")
         fixed_time = time.time() - start
 
-        print(f"\n--- Performance Comparison ---")
+        print("\n--- Performance Comparison ---")
         print(f"Vulnerable: {vuln_time:.3f}s ({iterations/vuln_time:.1f} ops/s)")
         print(f"Fixed:      {fixed_time:.3f}s ({iterations/fixed_time:.1f} ops/s)")
         print(f"Overhead:   {(fixed_time/vuln_time - 1)*100:.1f}%")
@@ -489,7 +496,7 @@ class TestPerformance:
         p95 = statistics.quantiles(latencies, n=20)[18]  # 95th percentile
         p99 = statistics.quantiles(latencies, n=100)[98]  # 99th percentile
 
-        print(f"\n--- Latency Distribution ---")
+        print("\n--- Latency Distribution ---")
         print(f"P50: {p50:.2f}ms")
         print(f"P95: {p95:.2f}ms")
         print(f"P99: {p99:.2f}ms")
@@ -617,7 +624,7 @@ class TestStress:
         actual_duration = time.time() - start_time
         actual_rps = request_count / actual_duration
 
-        print(f"\n--- Sustained Load Test ---")
+        print("\n--- Sustained Load Test ---")
         print(f"Duration: {actual_duration:.1f}s")
         print(f"Requests: {request_count}")
         print(f"Actual RPS: {actual_rps:.1f}")

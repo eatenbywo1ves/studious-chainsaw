@@ -18,7 +18,7 @@ print("="*70 + "\n")
 print("[Step 1] Importing circuit breaker...")
 try:
     from application.redis_circuit_breaker import (
-        CircuitBreaker, CircuitBreakerConfig, CircuitState, CircuitBreakerOpenError
+        CircuitBreaker, CircuitBreakerConfig, CircuitBreakerOpenError
     )
     print("[OK] Circuit breaker imports successful")
 except Exception as e:
@@ -89,7 +89,6 @@ print(f"[OK] Rejected calls: {metrics['rejected_calls']}")
 # Step 8: Import resilient pool
 print("\n[Step 8] Importing resilient pool...")
 try:
-    from application.redis_resilient_pool import ResilientRedisPool, DeploymentEnvironment
     print("[OK] Resilient pool imports successful")
 except Exception as e:
     print(f"[ERROR] Import failed: {e}")

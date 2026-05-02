@@ -5,11 +5,11 @@ Provides fault tolerance and graceful degradation for Redis failures
 
 import time
 import logging
-from typing import Optional, Callable, Any, TypeVar
+from typing import Optional, Callable, TypeVar
 from enum import Enum
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from threading import Lock
-from datetime import datetime, timedelta
+from datetime import datetime
 from collections import deque
 
 logger = logging.getLogger(__name__)

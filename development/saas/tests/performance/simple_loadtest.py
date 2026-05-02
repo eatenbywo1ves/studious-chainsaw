@@ -19,7 +19,6 @@ Usage:
     locust -f simple_loadtest.py --users 10000 --spawn-rate 200 --run-time 3m --host http://localhost:8000
 """
 
-import random
 from locust import HttpUser, task, between, events
 
 

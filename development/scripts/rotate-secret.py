@@ -30,7 +30,6 @@ import argparse
 import secrets
 import string
 import logging
-import hashlib
 from typing import Dict, Any, Optional
 from datetime import datetime, timedelta
 
@@ -207,15 +206,15 @@ class SecretRotator:
                 # Detect if hex format is expected
                 if len(old_value) == 64 and all(c in string.hexdigits for c in old_value):
                     new_value = self.generate_hex_key(64)
-                    logger.info(f"Generated new hex key (64 chars)")
+                    logger.info("Generated new hex key (64 chars)")
                 else:
                     new_value = self.generate_password(length, strategy)
                     logger.info(f"Generated new password ({length} chars, {strategy} strategy)")
             else:
                 new_value = self.generate_password(length, strategy)
-                logger.info(f"Generated new secret value")
+                logger.info("Generated new secret value")
         else:
-            logger.info(f"Using provided secret value")
+            logger.info("Using provided secret value")
 
         # Read all secrets for the category
         try:
@@ -370,7 +369,7 @@ class SecretRotator:
                 mount_point='secret'
             )
 
-            logger.debug(f"Logged rotation in audit trail")
+            logger.debug("Logged rotation in audit trail")
 
         except Exception as e:
             logger.warning(f"Failed to log rotation: {e}")

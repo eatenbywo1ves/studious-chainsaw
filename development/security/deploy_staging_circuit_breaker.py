@@ -30,9 +30,8 @@ print("="*70 + "\n")
 
 # Import circuit breaker components
 from application.redis_circuit_breaker import (
-    CircuitBreaker, CircuitBreakerConfig, CircuitState, CircuitBreakerOpenError
+    CircuitBreaker, CircuitBreakerConfig, CircuitBreakerOpenError
 )
-from application.redis_resilient_pool import ResilientRedisPool, DeploymentEnvironment
 
 # Day 2: Deployment and Initial Testing
 print_phase_header(2, "Staging Deployment & Initial Testing")
@@ -130,7 +129,7 @@ print("      Status: VALIDATED")
 print_step(9, 10, "Integration validation")
 jwt_auth_path = saas_path / "auth" / "jwt_auth_with_circuit_breaker.py"
 if jwt_auth_path.exists():
-    print(f"      JWT auth integration: READY")
+    print("      JWT auth integration: READY")
     print(f"      File size: {jwt_auth_path.stat().st_size} bytes")
     print("      Status: VALIDATED")
 else:

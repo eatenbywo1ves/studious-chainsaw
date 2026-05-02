@@ -24,7 +24,7 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from security.application.redis_circuit_breaker import (
-    CircuitBreaker, CircuitBreakerConfig, CircuitState
+    CircuitBreaker, CircuitBreakerConfig
 )
 
 
@@ -234,22 +234,22 @@ class CanaryDeployment:
         self.deployment_start = datetime.now()
         end_time = self.deployment_start + timedelta(hours=duration_hours)
 
-        print(f"\n[INFO] Canary Configuration:")
+        print("\n[INFO] Canary Configuration:")
         print(f"  Traffic Allocation: {self.canary_percentage}% of production")
         print(f"  Duration: {duration_hours} hours")
         print(f"  Start Time: {self.deployment_start.strftime('%Y-%m-%d %H:%M:%S')}")
         print(f"  End Time: {end_time.strftime('%Y-%m-%d %H:%M:%S')}")
         print(f"  Health Check Interval: {self.health_check_interval}s")
 
-        print(f"\n[INFO] Circuit Breaker Production Config:")
+        print("\n[INFO] Circuit Breaker Production Config:")
         print(f"  Failure Threshold: {self.production_config.failure_threshold} failures")
         print(f"  Failure Window: {self.production_config.failure_timeout}s (2 minutes)")
         print(f"  Reset Timeout: {self.production_config.reset_timeout}s (2 minutes)")
         print(f"  Success Threshold: {self.production_config.success_threshold} successes")
 
-        print(f"\n[INFO] Automated Rollback Thresholds:")
-        print(f"  Success Rate: Must be >=99.0% (target: >=99.5%)")
-        print(f"  Error Rate: Must be <=1.0% (target: <=0.5%)")
+        print("\n[INFO] Automated Rollback Thresholds:")
+        print("  Success Rate: Must be >=99.0% (target: >=99.5%)")
+        print("  Error Rate: Must be <=1.0% (target: <=0.5%)")
 
         print("\n[DEPLOYMENT] Starting canary deployment...")
         print("[OK] Feature flag: REDIS_CIRCUIT_BREAKER_ENABLED=true (10% traffic)")
@@ -349,31 +349,31 @@ def main():
     print("CANARY DEPLOYMENT SUMMARY")
     print("="*80)
 
-    print(f"\n[DEPLOYMENT INFO]")
+    print("\n[DEPLOYMENT INFO]")
     print(f"  Start Time: {summary['deployment_start'].strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"  End Time: {summary['deployment_end'].strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"  Duration: {(summary['deployment_end'] - summary['deployment_start']).total_seconds() / 3600:.1f} hours")
     print(f"  Canary Traffic: {summary['canary_percentage']}%")
 
-    print(f"\n[METRICS]")
+    print("\n[METRICS]")
     print(f"  Total Health Checks: {summary['total_health_checks']}")
     print(f"  Total Requests Processed: {summary['total_requests']:,}")
     print(f"  Successful Requests: {summary['total_successful']:,}")
     print(f"  Failed Requests: {summary['total_failed']:,}")
 
-    print(f"\n[PERFORMANCE]")
+    print("\n[PERFORMANCE]")
     print(f"  Overall Success Rate: {summary['overall_success_rate']:.2f}% (target: >=99.5%)")
     print(f"  Overall Error Rate: {summary['overall_error_rate']:.3f}% (target: <=0.5%)")
     print(f"  Average Latency: {summary['avg_latency_ms']:.3f}ms")
     print(f"  Average P99 Latency: {summary['avg_p99_latency_ms']:.3f}ms (target: <=100ms)")
 
-    print(f"\n[HEALTH STATUS]")
+    print("\n[HEALTH STATUS]")
     health_status = "PASSED" if summary['all_health_checks_passed'] else "FAILED"
     health_symbol = "[OK]" if summary['all_health_checks_passed'] else "[FAIL]"
     print(f"  {health_symbol} All Health Checks: {health_status}")
 
     # Gate 3 criteria validation
-    print(f"\n[GATE 3 CRITERIA VALIDATION]")
+    print("\n[GATE 3 CRITERIA VALIDATION]")
 
     criteria = [
         ("Success Rate >=99.5%", summary['overall_success_rate'] >= 99.5, f"{summary['overall_success_rate']:.2f}%"),

@@ -145,7 +145,7 @@ class TestAtomicLockoutRaceCondition:
         def concurrent_attempt():
             try:
                 manager.record_failed_attempt(identifier)
-            except:
+            except Exception:
                 pass  # Ignore exceptions for demonstration
 
         for _ in range(10):
@@ -365,7 +365,7 @@ class TestAtomicLockoutRaceCondition:
         overhead_median = ((atomic_median - legacy_median) / legacy_median) * 100
         overhead_p95 = ((atomic_p95 - legacy_p95) / legacy_p95) * 100
 
-        print(f"\nPerformance Benchmark Results:")
+        print("\nPerformance Benchmark Results:")
         print(f"  Atomic median: {atomic_median:.2f}ms")
         print(f"  Legacy median: {legacy_median:.2f}ms")
         print(f"  Overhead (median): {overhead_median:.1f}%")

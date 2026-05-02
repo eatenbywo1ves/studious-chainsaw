@@ -17,7 +17,7 @@ import platform
 import subprocess
 import sys
 import time
-from typing import Dict, List, Tuple
+from typing import List
 from urllib.parse import urlparse
 
 try:

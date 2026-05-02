@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Complete Development Deployment Validation"""
-import sys, time
+import sys
+import time
 from pathlib import Path
 
 security_path = Path(__file__).parent
@@ -13,9 +14,8 @@ print("  Redis Circuit Breaker - Phase 1: Development Deployment")
 print("="*70 + "\n")
 
 from application.redis_circuit_breaker import (
-    CircuitBreaker, CircuitBreakerConfig, CircuitState, CircuitBreakerOpenError
+    CircuitBreaker, CircuitBreakerConfig, CircuitBreakerOpenError
 )
-from application.redis_resilient_pool import ResilientRedisPool, DeploymentEnvironment
 
 # Test 1: Basic initialization
 print("[1/8] Circuit breaker initialization...")
@@ -87,7 +87,7 @@ print(f"      Overhead: {overhead_per_call:.4f}ms per call")
 if overhead_per_call < 0.2:
     print("      Result: PASS - Under 0.2ms target")
 else:
-    print(f"      Result: WARN - Above 0.2ms target")
+    print("      Result: WARN - Above 0.2ms target")
 
 # Summary
 print("\n" + "="*70)

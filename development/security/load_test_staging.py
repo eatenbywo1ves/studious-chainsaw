@@ -45,21 +45,21 @@ def run_load_test(concurrent_users, duration_seconds=30, fail_rate=0.001):
     print(f"\n[LOAD TEST] {concurrent_users:,} Concurrent Users")
     print(f"Duration: {duration_seconds}s | Failure rate: {fail_rate*100}%")
     print("-" * 70)
-    
+
     breaker = CircuitBreaker(config)
     total_requests = 0
     successful = 0
     failed = 0
     rejected = 0
-    
+
     start_time = time.time()
     end_time = start_time + duration_seconds
-    
+
     # Simulate concurrent requests
     with ThreadPoolExecutor(max_workers=min(concurrent_users, 100)) as executor:
         futures = []
         request_id = 0
-        
+
         while time.time() < end_time:
             # Submit requests up to concurrent_users limit
             if len(futures) < concurrent_users:
@@ -67,7 +67,7 @@ def run_load_test(concurrent_users, duration_seconds=30, fail_rate=0.001):
                 futures.append(future)
                 request_id += 1
                 total_requests += 1
-            
+
             # Check completed requests
             done_futures = [f for f in futures if f.done()]
             for future in done_futures:
@@ -80,9 +80,9 @@ def run_load_test(concurrent_users, duration_seconds=30, fail_rate=0.001):
                 except Exception:
                     rejected += 1
                 futures.remove(future)
-            
+
             time.sleep(0.001)  # Small delay to prevent CPU spinning
-        
+
         # Wait for remaining futures
         for future in as_completed(futures):
             try:
@@ -93,15 +93,15 @@ def run_load_test(concurrent_users, duration_seconds=30, fail_rate=0.001):
                     failed += 1
             except Exception:
                 rejected += 1
-    
+
     elapsed = time.time() - start_time
     metrics = breaker.get_metrics()
-    
+
     # Calculate results
     success_rate = (successful / total_requests * 100) if total_requests > 0 else 0
     throughput = total_requests / elapsed
-    
-    print(f"\nResults:")
+
+    print("\nResults:")
     print(f"  Total requests: {total_requests:,}")
     print(f"  Successful: {successful:,} ({success_rate:.2f}%)")
     print(f"  Failed: {failed:,}")
@@ -110,7 +110,7 @@ def run_load_test(concurrent_users, duration_seconds=30, fail_rate=0.001):
     print(f"  Throughput: {throughput:.0f} req/s")
     print(f"  Circuit state: {metrics['state']}")
     print(f"  State changes: {metrics['state_changes']}")
-    
+
     # Determine pass/fail
     if success_rate >= 99.5:
         print(f"  Status: PASS (target: 99.5%, actual: {success_rate:.2f}%)")
@@ -128,7 +128,7 @@ test1_pass = run_load_test(5000, duration_seconds=15, fail_rate=0.0005)
 # Brief pause between tests
 time.sleep(2)
 
-# Test 2: 10K Concurrent Users  
+# Test 2: 10K Concurrent Users
 print("\n" + "="*70)
 print("  TEST 2: 10,000 Concurrent Users")
 print("="*70)

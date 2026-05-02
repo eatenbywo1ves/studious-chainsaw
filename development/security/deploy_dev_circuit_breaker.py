@@ -4,7 +4,6 @@ Development Deployment Script for Redis Circuit Breaker
 Validates circuit breaker functionality in development environment
 """
 
-import os
 import sys
 from pathlib import Path
 from datetime import datetime
@@ -42,7 +41,7 @@ def main():
 
     print_header("Redis Circuit Breaker - Development Deployment")
     print(f"Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    print(f"Environment: DEVELOPMENT")
+    print("Environment: DEVELOPMENT")
 
     # Step 1: Verify files exist
     print_header("Step 1: Verify Implementation Files")
@@ -72,7 +71,6 @@ def main():
         from application.redis_circuit_breaker import (
             CircuitBreaker,
             CircuitBreakerConfig,
-            CircuitState,
             CircuitBreakerOpenError
         )
         print_success("Circuit breaker imports successful")
@@ -104,7 +102,6 @@ def main():
     print_header("Step 3: Import and Validate Resilient Pool")
 
     try:
-        from application.redis_resilient_pool import ResilientRedisPool, DeploymentEnvironment
         print_success("Resilient pool imports successful")
 
         # Note: We won't actually connect to Redis in this validation
@@ -189,10 +186,10 @@ def main():
     print_header("Step 6: Environment Configuration")
 
     print_info("Development configuration:")
-    print(f"  - Failure threshold: 3 (triggers after 3 failures)")
-    print(f"  - Failure timeout: 30s (sliding window)")
-    print(f"  - Reset timeout: 30s (quick recovery for testing)")
-    print(f"  - Success threshold: 2 (requires 2 successes to close)")
+    print("  - Failure threshold: 3 (triggers after 3 failures)")
+    print("  - Failure timeout: 30s (sliding window)")
+    print("  - Reset timeout: 30s (quick recovery for testing)")
+    print("  - Success threshold: 2 (requires 2 successes to close)")
     print_success("Development configuration validated")
 
     # Step 7: Deployment summary

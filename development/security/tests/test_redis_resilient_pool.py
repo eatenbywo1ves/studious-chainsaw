@@ -4,7 +4,7 @@ Validates graceful degradation and fault tolerance
 """
 
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import patch, MagicMock
 from redis.exceptions import ConnectionError, TimeoutError
 
 import sys

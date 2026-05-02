@@ -9,7 +9,6 @@ Version: 2.0 (Atomic)
 import os
 import time
 import logging
-import secrets
 from typing import Optional, Tuple
 from redis import Redis
 import redis.exceptions
@@ -374,7 +373,7 @@ class AccountLockoutManager:
             lua_script_executions.labels(execution_method='eval').inc()
             return result
 
-        except redis.exceptions.NoScriptError as e:
+        except redis.exceptions.NoScriptError:
             # Should never happen after reload, but handle gracefully
             lua_script_errors.labels(error_type='no_script').inc()
             raise

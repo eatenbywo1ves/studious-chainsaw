@@ -3,7 +3,6 @@ Production Email Service with Automatic Failover
 Supports SendGrid, AWS SES, and SMTP fallback
 """
 
-import os
 import sys
 import logging
 from typing import List, Optional

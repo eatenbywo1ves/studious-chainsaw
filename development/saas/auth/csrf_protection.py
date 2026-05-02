@@ -13,7 +13,6 @@ from typing import Optional, List
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response, JSONResponse
-from starlette.datastructures import Headers
 import logging
 
 logger = logging.getLogger(__name__)

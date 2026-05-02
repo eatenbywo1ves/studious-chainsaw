@@ -34,7 +34,7 @@ import sys
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import List, Tuple, Dict, Any
+from typing import List
 import json
 
 # Add parent directory to path for imports
@@ -375,7 +375,7 @@ class StagingTestRunner:
         try:
             from saas.database import connection
 
-            print(f"[OK] Database URL configured")
+            print("[OK] Database URL configured")
             print(f"[OK] Pool size: {connection.DATABASE_POOL_SIZE}")
             print(f"[OK] Max overflow: {connection.DATABASE_MAX_OVERFLOW}")
 

@@ -4,6 +4,7 @@ Production API Server for Catalytic Lattice Computing System
 Provides REST API endpoints for lattice operations with Prometheus metrics
 """
 
+from apps.catalytic.catalytic_lattice_graph import CatalyticLatticeGraph
 import os
 import time
 import numpy as np
@@ -22,7 +23,6 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from apps.catalytic.catalytic_lattice_graph import CatalyticLatticeGraph
 
 # Prometheus metrics
 lattice_operations_total = Counter(
@@ -202,7 +202,7 @@ async def readiness_check():
 @app.get("/metrics")
 async def metrics():
     """Prometheus metrics endpoint"""
-    memory_usage_bytes.set(sum(l.aux_memory_size for l in lattice_store.values()))
+    memory_usage_bytes.set(sum(lattice.aux_memory_size for lattice in lattice_store.values()))
     active_lattices.set(len(lattice_store))
 
     return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)

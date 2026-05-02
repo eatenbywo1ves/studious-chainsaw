@@ -11,7 +11,7 @@ from functools import wraps
 import redis
 from redis.exceptions import RedisError, ConnectionError, TimeoutError
 
-from .redis_pool_protocol import DeploymentEnvironment, PoolConfiguration, RedisPoolProtocol
+from .redis_pool_protocol import DeploymentEnvironment, PoolConfiguration
 from .redis_pool_implementation import OptimizedRedisPool, RedisConnectionConfig
 from .redis_circuit_breaker import CircuitBreaker, CircuitBreakerConfig, CircuitBreakerOpenError, CircuitState
 

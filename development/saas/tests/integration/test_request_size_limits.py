@@ -12,10 +12,8 @@ SECURITY: These tests validate the SEC-011 fix is complete (100%)
 """
 
 import pytest
-import asyncio
-from unittest.mock import Mock, AsyncMock, patch
-from starlette.requests import Request
-from starlette.responses import Response, JSONResponse
+from unittest.mock import Mock, patch
+from starlette.responses import JSONResponse
 from starlette.exceptions import HTTPException
 from starlette.testclient import TestClient
 from starlette.applications import Starlette

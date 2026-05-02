@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Fix locustfile.py context manager issues"""
 
-import re
 
 # Read the original file
 with open('locustfile.py', 'r', encoding='utf-8') as f:

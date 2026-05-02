@@ -451,7 +451,7 @@ class MLSecTest:
             output_dir: Output directory for reports (default: ./reports)
         """
         print(BANNER)
-        print(f"\n📦 BATCH SCANNING MODE")
+        print("\n📦 BATCH SCANNING MODE")
         print("=" * 75)
 
         # Parse targets

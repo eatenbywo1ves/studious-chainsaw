@@ -7,7 +7,6 @@ Executes comprehensive test suite for pre-deployment validation
 import subprocess
 import sys
 import os
-import json
 from pathlib import Path
 from datetime import datetime
 

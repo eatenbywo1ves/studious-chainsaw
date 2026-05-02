@@ -3,6 +3,9 @@ Production-Ready API Server for Catalytic Lattice Computing
 Includes monitoring, error handling, rate limiting, and async processing
 """
 
+import structlog
+from quantum_catalytic_lattice import QuantumCatalyticLattice
+from catalytic_lattice_computing import CatalyticLatticeComputer
 from fastapi import FastAPI, HTTPException, BackgroundTasks, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -26,11 +29,8 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from catalytic_lattice_computing import CatalyticLatticeComputer
-from quantum_catalytic_lattice import QuantumCatalyticLattice
 
 # Configure structured logging
-import structlog
 logger = structlog.get_logger()
 
 # Metrics
@@ -43,6 +43,7 @@ error_count = Counter('errors_total', 'Total errors', ['type'])
 # Job storage (use Redis in production)
 job_store: Dict[str, Dict] = {}
 redis_client = None
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -94,10 +95,13 @@ app.add_middleware(
 )
 
 # Request/Response Models
+
+
 class LatticeConfig(BaseModel):
     dimensions: int = Field(..., ge=2, le=100, description="Number of dimensions")
     lattice_size: int = Field(..., ge=2, le=1000, description="Size of lattice in each dimension")
-    collapse_dims: Optional[int] = Field(3, ge=1, le=10, description="Target dimensions for collapse")
+    collapse_dims: Optional[int] = Field(
+        3, ge=1, le=10, description="Target dimensions for collapse")
 
     @validator('collapse_dims')
     def validate_collapse_dims(cls, v, values):
@@ -105,17 +109,20 @@ class LatticeConfig(BaseModel):
             raise ValueError('collapse_dims must be <= dimensions')
         return v
 
+
 class ProcessRequest(BaseModel):
     config: LatticeConfig
     points: List[List[float]] = Field(..., min_items=1, max_items=10000)
     operation: str = Field(..., regex="^(collapse|transform|eigenspace|superposition)$")
     options: Optional[Dict[str, Any]] = {}
 
+
 class JobResponse(BaseModel):
     job_id: str
     status: str
     created_at: datetime
     estimated_completion_seconds: Optional[float] = None
+
 
 class JobResult(BaseModel):
     job_id: str
@@ -126,12 +133,16 @@ class JobResult(BaseModel):
     memory_used_mb: Optional[float] = None
 
 # Dependency injection for rate limiting
+
+
 async def rate_limit(client_id: str = "default"):
     """Simple rate limiting - use Redis in production"""
     # Implement token bucket algorithm
     pass
 
 # Health check endpoint
+
+
 @app.get("/health")
 async def health_check():
     """Health check endpoint for container orchestration"""
@@ -162,6 +173,8 @@ async def health_check():
         )
 
 # Metrics endpoint
+
+
 @app.get("/metrics")
 async def metrics():
     """Prometheus metrics endpoint"""
@@ -169,6 +182,8 @@ async def metrics():
     return Response(content=generate_latest(), media_type="text/plain")
 
 # Main processing endpoint
+
+
 @app.post("/process", response_model=JobResponse)
 @request_duration.time()
 async def process_lattice(
@@ -219,6 +234,8 @@ async def process_lattice(
     )
 
 # Job status endpoint
+
+
 @app.get("/jobs/{job_id}", response_model=JobResult)
 async def get_job_status(job_id: str):
     """Get job processing status and results"""
@@ -245,6 +262,8 @@ async def get_job_status(job_id: str):
     )
 
 # Background job processor
+
+
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
 async def process_job(job_id: str, request: ProcessRequest):
     """Process lattice operation in background"""
@@ -307,8 +326,8 @@ async def process_job(job_id: str, request: ProcessRequest):
         )
 
         logger.info(f"Job {job_id} completed",
-                   processing_time_ms=processing_time_ms,
-                   memory_used_mb=memory_used_mb)
+                    processing_time_ms=processing_time_ms,
+                    memory_used_mb=memory_used_mb)
 
     except Exception as e:
         error_count.labels(type="processing").inc()
@@ -320,6 +339,7 @@ async def process_job(job_id: str, request: ProcessRequest):
         # Cleanup
         if 'processor' in locals():
             del processor
+
 
 def update_job_status(job_id: str, status: str, **kwargs):
     """Update job status in storage"""
@@ -335,6 +355,7 @@ def update_job_status(job_id: str, status: str, **kwargs):
             job_store[job_id]["status"] = status
             job_store[job_id].update(kwargs)
 
+
 def estimate_processing_time(request: ProcessRequest) -> float:
     """Estimate processing time based on request parameters"""
     n_points = len(request.points)
@@ -345,6 +366,7 @@ def estimate_processing_time(request: ProcessRequest) -> float:
     time_per_point = 0.0001 * dims  # Linear with dimensions
 
     return base_time + (time_per_point * n_points)
+
 
 def _prewarm_jit():
     """Pre-compile JIT functions for better cold start performance"""
@@ -363,6 +385,7 @@ def _prewarm_jit():
     except Exception as e:
         logger.warning(f"JIT pre-warming failed: {e}")
 
+
 async def monitor_resources():
     """Background task to monitor system resources"""
     while True:
@@ -374,6 +397,8 @@ async def monitor_resources():
             await asyncio.sleep(60)
 
 # Error handlers
+
+
 @app.exception_handler(ValueError)
 async def value_error_handler(request, exc):
     error_count.labels(type="value_error").inc()
@@ -381,6 +406,7 @@ async def value_error_handler(request, exc):
         status_code=status.HTTP_400_BAD_REQUEST,
         content={"error": str(exc)}
     )
+
 
 @app.exception_handler(Exception)
 async def general_exception_handler(request, exc):

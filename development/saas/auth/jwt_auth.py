@@ -64,10 +64,10 @@ if not JWT_SECRET_KEY:
 # Validate secret key length (minimum 32 bytes for security)
 if len(JWT_SECRET_KEY) < 32:
     raise RuntimeError(
-        f"\n"
-        f"=" * 80 + "\n"
-        f"CRITICAL SECURITY ERROR: JWT_SECRET_KEY is too short!\n"
-        f"=" * 80 + "\n"
+        "\n"
+        "=" * 80 + "\n"
+        "CRITICAL SECURITY ERROR: JWT_SECRET_KEY is too short!\n"
+        "=" * 80 + "\n"
         f"Current length: {len(JWT_SECRET_KEY)} bytes\n"
         f"Minimum required: 32 bytes\n"
         f"\n"

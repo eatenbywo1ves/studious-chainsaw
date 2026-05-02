@@ -15,7 +15,6 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field, validator
 from typing import List, Optional
 from functools import lru_cache
-import os
 
 
 class Settings(BaseSettings):

@@ -25,7 +25,7 @@ except ImportError:
     # python-dotenv not installed, skip
     pass
 
-from auth.account_lockout import AccountLockoutManager, ATOMIC_LOCKOUT_SCRIPT
+from auth.account_lockout import AccountLockoutManager
 
 
 # ============================================================================
@@ -240,12 +240,6 @@ def concurrent_executor():
 @pytest.fixture
 def reset_prometheus_metrics():
     """Reset Prometheus metrics before each test"""
-    from auth.account_lockout import (
-        lockout_triggered_total,
-        lockout_operation_duration,
-        lua_script_executions,
-        lua_script_errors
-    )
 
     # Clear metrics (Note: This is simplified - in production use collector.clear())
     # For testing, we'll just ensure metrics are initialized

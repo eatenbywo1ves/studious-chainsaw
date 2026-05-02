@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Phase 2 Day 4: Failure Scenario Testing"""
 
-import sys, time, random
+import sys
+import time
+import random
 from pathlib import Path
 from datetime import datetime
 
@@ -38,7 +40,7 @@ def scenario_1_redis_timeout():
             pass
 
     is_open = breaker.is_open
-    print(f"  Failures: 5")
+    print("  Failures: 5")
     print(f"  Circuit state: {breaker.state.value}")
     print(f"  Circuit opened: {is_open}")
     return is_open
@@ -104,8 +106,8 @@ def scenario_4_memory_pressure():
         except ConnectionError:
             pass
 
-    print(f"  Slow requests: 10 (circuit still closed)")
-    print(f"  Failed requests: 5")
+    print("  Slow requests: 10 (circuit still closed)")
+    print("  Failed requests: 5")
     print(f"  Circuit state: {breaker.state.value}")
     return breaker.is_open
 
@@ -156,7 +158,7 @@ def scenario_6_multiple_failures():
 
     print(f"  Different error types: {len(errors)}")
     print(f"  Circuit state: {breaker.state.value}")
-    print(f"  Circuit treats all ConnectionErrors equally")
+    print("  Circuit treats all ConnectionErrors equally")
     return breaker.is_open
 
 def scenario_7_recovery_testing():
@@ -233,7 +235,7 @@ print("  - Recovery cycle works as designed (OPEN -> HALF_OPEN -> CLOSED)")
 print("  - Handles multiple error types uniformly")
 print("  - Reset timeout prevents circuit thrashing")
 
-print(f"\nGate 2 Readiness:")
+print("\nGate 2 Readiness:")
 print(f"  [{'OK' if passed >= 7 else 'WARN'}] Failure scenarios tested ({passed}/{total} passed)")
 print("  [PENDING] Operations training (Day 5)")
 print()
