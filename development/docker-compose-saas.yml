@@ -37,7 +37,10 @@ services:
   redis:
     image: redis:7-alpine
     container_name: catalytic-redis
-    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    # HIGH-002 Fix: Add password authentication for Redis
+    command: redis-server --requirepass ${REDIS_PASSWORD:-change_me_redis_password} --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-change_me_redis_password}
     volumes:
       - redis_data:/data
     ports:
@@ -45,7 +48,8 @@ services:
     networks:
       - catalytic-network
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      # Updated health check to authenticate with Redis password
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-change_me_redis_password}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -64,9 +68,10 @@ services:
       # Database
       DATABASE_URL: postgresql://catalytic:${DB_PASSWORD:-secure_password_change_me}@postgres:5432/catalytic_saas
 
-      # Redis
+      # Redis (HIGH-002 Fix: Added password authentication)
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-change_me_redis_password}
 
       # JWT Configuration
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change_me_to_secure_random_key}

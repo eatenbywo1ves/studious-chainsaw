@@ -27,12 +27,22 @@ COPY libs /app/libs
 # Create necessary directories
 RUN mkdir -p /app/logs /app/keys /app/cache
 
-# Generate RSA keys for JWT if not present
-RUN python -c "from saas.auth.jwt_auth import RSAKeyManager; RSAKeyManager()"
+# Create non-root user for security (CRIT-001 Fix)
+# Using UID 1000 for compatibility with most systems
+RUN useradd -m -u 1000 -s /bin/bash catalytic && \
+    chown -R catalytic:catalytic /app /app/logs /app/keys /app/cache
+
+# Copy entrypoint script (HIGH-001 Fix - runtime key generation)
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh && \
+    chown catalytic:catalytic /docker-entrypoint.sh
 
 # Environment variables
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH=/app
+
+# Switch to non-root user (CRIT-001 Fix)
+USER catalytic
 
 # Expose port
 EXPOSE 8000
@@ -40,6 +50,9 @@ EXPOSE 8000
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
+
+# Use entrypoint for runtime initialization
+ENTRYPOINT ["/docker-entrypoint.sh"]
 
 # Run the SaaS server
 CMD ["uvicorn", "saas.api.saas_server:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
