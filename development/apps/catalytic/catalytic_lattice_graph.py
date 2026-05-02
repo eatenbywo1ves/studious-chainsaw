@@ -5,7 +5,10 @@ High-performance graph operations for lattice computing with 10-40x speedup
 
 import numpy as np
 import igraph as ig
-from typing import List, Tuple, Dict, Optional, Set
+from typing import List, Tuple, Dict, Optional, Set, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    pass  # For future type-only imports
 import numba
 import time
 from functools import lru_cache
@@ -35,13 +38,13 @@ class CatalyticLatticeGraph:
         self.lattice_size = lattice_size
         self.n_points = lattice_size**dimensions
 
-        # Create igraph lattice
-        self.graph = None
-        self._coord_to_idx = {}
-        self._idx_to_coord = {}
+        # Create igraph lattice (initialized in _build_lattice)
+        self.graph: ig.Graph  # type: ignore[assignment]
+        self._coord_to_idx: Dict[Tuple[int, ...], int] = {}
+        self._idx_to_coord: Dict[int, Tuple[int, ...]] = {}
 
         # Performance tracking
-        self.operation_times = {}
+        self.operation_times: Dict[str, float] = {}
 
         self._build_lattice()
 
@@ -392,7 +395,7 @@ class GraphAcceleratedCatalyticComputer:
                 for i, vertex in enumerate(path):
                     vertex_bytes = vertex.to_bytes(4, "little")
                     start_idx = 8 + i * 4
-                    self.aux_memory[start_idx : start_idx + 4] ^= np.frombuffer(
+                    self.aux_memory[start_idx: start_idx + 4] ^= np.frombuffer(
                         vertex_bytes, dtype=np.uint8
                     )
 
@@ -411,7 +414,7 @@ class GraphAcceleratedCatalyticComputer:
         n_colors = max(coloring.values()) + 1
 
         # Group vertices by color for parallel processing
-        color_groups = [[] for _ in range(n_colors)]
+        color_groups: List[List[int]] = [[] for _ in range(n_colors)]
         for vertex, color in coloring.items():
             color_groups[color].append(vertex)
 

@@ -35,6 +35,7 @@ class PyTorchCatalyticAccelerator:
         else:
             print("PyTorch GPU Accelerator initialized on: CPU")
 
+    @staticmethod
     @torch.jit.script
     def _catalytic_xor_transform(data: torch.Tensor, key: torch.Tensor) -> torch.Tensor:
         """
@@ -51,6 +52,7 @@ class PyTorchCatalyticAccelerator:
         key_expanded = key[torch.arange(data.size(0), device=data.device) % key.size(0)]
         return data ^ key_expanded
 
+    @staticmethod
     @torch.jit.script
     def _lattice_distance_euclidean(coords1: torch.Tensor, coords2: torch.Tensor) -> torch.Tensor:
         """
@@ -68,6 +70,7 @@ class PyTorchCatalyticAccelerator:
         sum_squared = torch.sum(squared_diff, dim=1)
         return torch.sqrt(sum_squared)
 
+    @staticmethod
     @torch.jit.script
     def _matrix_multiply_optimized(A: torch.Tensor, B: torch.Tensor) -> torch.Tensor:
         """

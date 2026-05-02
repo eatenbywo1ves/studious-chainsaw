@@ -8,7 +8,7 @@ import numpy as np
 import cupy as cp
 import time
 from numba import cuda
-from typing import Tuple, List, Optional
+from typing import Tuple, List, Optional, Any
 import torch
 
 
@@ -34,7 +34,7 @@ class CatalyticLatticeGPU:
             raise RuntimeError("CUDA is not available. GPU acceleration requires NVIDIA GPU.")
 
         # Initialize CuPy arrays on GPU
-        self.adjacency_gpu = None
+        self.adjacency_gpu: Optional[Tuple[Any, Any, Any]] = None
         self.auxiliary_memory = cp.zeros(1000, dtype=cp.float32)
 
         # Device properties

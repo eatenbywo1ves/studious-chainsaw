@@ -59,8 +59,8 @@ class BaseLatticeGPU(ABC):
         self._capabilities: Optional[GPUCapabilities] = None
 
         # Lattice data structures
-        self.adjacency_data = None
-        self.auxiliary_memory = None
+        self.adjacency_data: Any = None
+        self.auxiliary_memory: Any = None
 
     def _validate_parameters(self):
         """Validate initialization parameters"""
@@ -290,7 +290,7 @@ class BaseLatticeGPU(ABC):
         Returns:
             Dictionary with benchmark results
         """
-        results = {}
+        results: Dict[str, Any] = {}
 
         # Test matrix multiplication
         try:

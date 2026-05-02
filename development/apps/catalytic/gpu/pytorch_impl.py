@@ -4,7 +4,7 @@ PyTorch implementation of GPU-accelerated lattice operations
 
 import time
 import logging
-from typing import Tuple, List, Optional
+from typing import Tuple, List, Optional, Any, TYPE_CHECKING
 import numpy as np
 
 try:
@@ -13,7 +13,10 @@ try:
     PYTORCH_AVAILABLE = True
 except ImportError:
     PYTORCH_AVAILABLE = False
-    torch = None
+    torch = None  # type: ignore[assignment]
+
+if TYPE_CHECKING:
+    import torch  # For type hints only
 
 from .base import BaseLatticeGPU, GPUCapabilities
 from libs.utils.exceptions import GPUNotAvailableError, GPUMemoryError
@@ -30,7 +33,7 @@ class PyTorchLatticeGPU(BaseLatticeGPU):
             raise GPUNotAvailableError("PyTorch is not installed")
 
         super().__init__(dimensions, size, device_id)
-        self.device = None
+        self.device: Any = None
 
     def initialize_device(self) -> bool:
         """Initialize PyTorch device"""
@@ -75,8 +78,8 @@ class PyTorchLatticeGPU(BaseLatticeGPU):
             total_memory_mb=props.total_memory / (1024**2),
             available_memory_mb=mem_info[0] / (1024**2),
             compute_capability=(props.major, props.minor),
-            max_threads_per_block=props.max_threads_per_block,
-            max_blocks=props.max_threads_per_multiprocessor,
+            max_threads_per_block=getattr(props, 'max_threads_per_block', 1024),
+            max_blocks=getattr(props, 'max_threads_per_multi_processor', 65535),
             warp_size=props.warp_size,
             supports_double_precision=True,
             supports_tensor_cores=props.major >= 7,

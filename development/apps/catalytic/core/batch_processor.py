@@ -104,8 +104,8 @@ class LatticeBatch:
 
             # Process in batches
             for i in range(0, len(operations), batch_size):
-                batch_ops = operations[i : i + batch_size]
-                batch_lattices = self.lattices[i : i + batch_size]
+                batch_ops = operations[i: i + batch_size]
+                batch_lattices = self.lattices[i: i + batch_size]
 
                 # Execute batch
                 batch_results = self._execute_batch(batch_ops, batch_lattices)
@@ -171,11 +171,10 @@ class LatticeBatch:
         except BatchOperationError as e:
             logger.warning(f"GPU batch failed, falling back to sequential: {e}")
             # Fallback to sequential
+            keys = key_list if key_list else [None] * len(data_list)  # type: ignore[list-item]
             return [
-                lattice.xor_transform(data, key if key_list else None)
-                for lattice, data, key in zip(
-                    self.lattices, data_list, key_list or [None] * len(data_list)
-                )
+                lattice.xor_transform(data, key)
+                for lattice, data, key in zip(self.lattices, data_list, keys)
             ]
 
     def batch_matrix_operations(

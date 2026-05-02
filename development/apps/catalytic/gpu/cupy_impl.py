@@ -4,7 +4,7 @@ CuPy implementation of GPU-accelerated lattice operations
 
 import time
 import logging
-from typing import Tuple, List, Optional
+from typing import Tuple, List, Optional, Any, TYPE_CHECKING
 import numpy as np
 
 try:
@@ -13,7 +13,10 @@ try:
     CUPY_AVAILABLE = True
 except ImportError:
     CUPY_AVAILABLE = False
-    cp = None
+    cp = None  # type: ignore[assignment]
+
+if TYPE_CHECKING:
+    import cupy as cp  # For type hints only
 
 from .base import BaseLatticeGPU, GPUCapabilities
 from libs.utils.exceptions import GPUNotAvailableError, GPUMemoryError
@@ -30,8 +33,8 @@ class CuPyLatticeGPU(BaseLatticeGPU):
             raise GPUNotAvailableError("CuPy is not installed")
 
         super().__init__(dimensions, size, device_id)
-        self.device = None
-        self.stream = None
+        self.device: Any = None
+        self.stream: Any = None
 
     def initialize_device(self) -> bool:
         """Initialize CuPy device"""

@@ -37,10 +37,10 @@ try:
     GPU_AVAILABLE = torch.cuda.is_available() and cp.cuda.is_available()
 except ImportError:
     GPU_AVAILABLE = False
-    cp = None
-    torch = None
-    cuda = None
-    jit = None
+    cp = None  # type: ignore[assignment]
+    torch = None  # type: ignore[assignment]
+    cuda = None  # type: ignore[assignment]
+    jit = None  # type: ignore[assignment]
 
 # Setup logging
 logger = get_logger(__name__)
@@ -254,13 +254,13 @@ class CatalyticLatticeGPU:
         total = size + extra
 
         # Create raw array
-        raw = np.zeros(total, dtype=dtype)
+        raw: np.ndarray = np.zeros(total, dtype=dtype)
 
         # Calculate alignment offset
         offset = (alignment - (raw.ctypes.data % alignment)) % alignment
 
         # Return aligned view
-        return raw[offset : offset + size]
+        return raw[offset: offset + size]
 
     def build_lattice_gpu(self) -> Union[np.ndarray, cp.ndarray]:
         """
@@ -373,7 +373,7 @@ class CatalyticLatticeGPU:
         try:
             if self._use_cpu_fallback:
                 result = self._xor_transform_cpu(data, key)
-                gpu_time = 0
+                gpu_time: float = 0.0
             else:
                 result = self._xor_transform_gpu_impl(data, key)
                 gpu_time = (time.perf_counter() - start_gpu) * 1000
@@ -473,6 +473,8 @@ class CatalyticLatticeGPU:
 
     def _bfs_gpu(self, start: int, end: int) -> List[int]:
         """GPU-accelerated BFS"""
+        if self.adjacency_gpu is None:
+            return []
         row, col, _ = self.adjacency_gpu
 
         # Initialize distances and parents on GPU
@@ -514,10 +516,12 @@ class CatalyticLatticeGPU:
         """CPU fallback for BFS"""
         from collections import deque
 
+        if self.adjacency_gpu is None:
+            return []
         row, col, _ = self.adjacency_gpu
 
         # Build adjacency list
-        adj_list = [[] for _ in range(self.n_points)]
+        adj_list: List[List[int]] = [[] for _ in range(self.n_points)]
         for i, j in zip(row, col):
             adj_list[i].append(j)
             adj_list[j].append(i)
@@ -536,18 +540,18 @@ class CatalyticLatticeGPU:
             for neighbor in adj_list[current]:
                 if neighbor not in visited:
                     visited.add(neighbor)
-                    parents[neighbor] = current
+                    parents[neighbor] = current  # type: ignore[assignment]
                     queue.append(neighbor)
 
         # Reconstruct path
         if end not in parents:
             return []
 
-        path = []
-        current = end
-        while current is not None:
-            path.append(current)
-            current = parents.get(current)
+        path: List[int] = []
+        current_node: Optional[int] = end
+        while current_node is not None:
+            path.append(current_node)
+            current_node = parents.get(current_node)
 
         return list(reversed(path))
 
@@ -694,7 +698,7 @@ def benchmark_gpu_acceleration() -> Dict[str, Any]:
     """
     logger.info("Starting GPU acceleration benchmark")
 
-    results = {
+    results: Dict[str, Any] = {
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
         "gpu_available": GPU_AVAILABLE,
         "tests": [],
