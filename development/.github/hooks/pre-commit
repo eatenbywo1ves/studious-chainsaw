@@ -13,7 +13,7 @@ FREEZE_END_DATE="2025-10-28"
 # Path globs exempt from the freeze (regex form, evaluated with bash =~).
 # Files matching ANY of these are skipped from violation checks AND warnings.
 # Maintained as regexes so they can be ORed together inline below.
-EXEMPT_PATH_REGEX_ARCHIVES='^archives/'
+EXEMPT_PATH_REGEX_ARCHIVES='(^|/)archives/'
 EXEMPT_PATH_REGEX_DOCS='(^|/)docs/'
 
 # ANSI color codes
