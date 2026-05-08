@@ -1,0 +1,38 @@
+[submodule "development/services/mcp/PRIMS"]
+	path = development/services/mcp/PRIMS
+	url = https://github.com/hileamlakB/PRIMS.git
+
+[submodule "development/services/mcp/RepoMapper"]
+	path = development/services/mcp/RepoMapper
+	url = https://github.com/pdavis68/RepoMapper.git
+
+[submodule "development/services/mcp/desktop-notify"]
+	path = development/services/mcp/desktop-notify
+	url = https://github.com/Cactusinhand/mcp_server_notify.git
+
+[submodule "development/services/mcp/yepcode"]
+	path = development/services/mcp/yepcode
+	url = https://github.com/yepcode/mcp-server-js.git
+
+[submodule "projects/active/ghidra"]
+	path = projects/active/ghidra
+	url = https://github.com/NationalSecurityAgency/ghidra.git
+
+[submodule "projects/active/marker"]
+	path = projects/active/marker
+	url = https://github.com/datalab-to/marker.git
+
+[submodule "projects/financial-apps/tldraw-demo"]
+	path = projects/financial-apps/tldraw-demo
+	url = https://github.com/synergycodes/tldraw-demo.git
+
+[submodule "wireshark-plugins/patoolkit"]
+	path = wireshark-plugins/patoolkit
+	url = https://github.com/pentesteracademy/patoolkit.git
+
+# Note: projects/financial-apps/financial-simulator is also tracked as a
+# gitlink (see git ls-tree HEAD) but has no remote configured locally,
+# so it has no working .gitmodules entry. Either push it to a remote
+# and add an entry here, or convert it to a regular tracked subdirectory
+# with: git rm --cached projects/financial-apps/financial-simulator
+# followed by removing the inner .git/ and re-adding the contents.
