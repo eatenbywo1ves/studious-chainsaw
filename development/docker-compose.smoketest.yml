@@ -1,0 +1,35 @@
+# Override file for smoke-testing docker-compose-saas.yml without
+# colliding with already-running local postgres on host 5432 / redis
+# on host 6380. Smoke-test postgres -> host 15432, redis -> host 16380.
+# saas-api still talks to them internally via the compose network.
+# !reset on ports/container_name forces replacement instead of append.
+
+services:
+  postgres:
+    container_name: smoketest-postgres
+    ports: !override
+      - "15432:5432"
+  redis:
+    container_name: smoketest-redis
+    ports: !override
+      - "16380:6379"
+  saas-api:
+    container_name: smoketest-saas-api
+    ports: !override
+      - "18000:8000"
+    # The base compose-saas.yml omits CSRF_SECRET_KEY and JWT_KEY_PASSWORD
+    # from the environment block, so even though .env.smoketest defines
+    # them they never reach the container. Pass them through here.
+    environment:
+      CSRF_SECRET_KEY: ${CSRF_SECRET_KEY}
+      JWT_KEY_PASSWORD: ${JWT_KEY_PASSWORD}
+      ENVIRONMENT: development
+    # Replace the bind mount on /app/keys with a fresh tmpfs so each
+    # smoke run regenerates encrypted keys instead of failing on stale
+    # unencrypted keys persisted to ./keys/ from earlier dev runs.
+    volumes: !override
+      - ./saas:/app/saas:ro
+      - ./apps:/app/apps:ro
+      - ./logs/saas:/app/logs
+    tmpfs:
+      - /app/keys:uid=1000,gid=1000,mode=0700

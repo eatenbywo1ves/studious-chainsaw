@@ -66,9 +66,15 @@ CREATE TABLE tenant_subscriptions (
     cancel_at_period_end BOOLEAN DEFAULT false,
     cancelled_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT one_active_subscription UNIQUE (tenant_id, status) WHERE status = 'active'
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Partial unique index: at most one 'active' subscription per tenant.
+-- Postgres does not support inline partial UNIQUE constraints inside a
+-- CREATE TABLE; the equivalent is a UNIQUE INDEX with a WHERE clause.
+CREATE UNIQUE INDEX one_active_subscription_per_tenant
+    ON tenant_subscriptions (tenant_id)
+    WHERE status = 'active';
 
 -- ============================================================================
 -- AUTHENTICATION & AUTHORIZATION
