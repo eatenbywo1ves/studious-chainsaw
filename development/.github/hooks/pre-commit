@@ -1,14 +1,17 @@
 #!/bin/bash
 #
-# Pre-commit hook to enforce documentation freeze
-# Installed: 2025-10-14
-# Active until: 2025-10-28
+# Pre-commit hook to enforce documentation freeze.
 #
-# This hook blocks commits that add new documentation files
-# See CORE_PROJECTS.md for the freeze policy
+# Installed: 2025-10-14 (originally a 2-week window ending 2025-10-28).
+# Re-enabled indefinitely on 2026-04-26 (commit 1c4f807b) after the
+# original end date had passed; intent is now an open-ended policy
+# rather than a time-boxed one. Flip FREEZE_ACTIVE=false to disable.
+#
+# This hook blocks commits that add new documentation files matching
+# the FORBIDDEN_PATTERNS list, with archives/** and **/docs/** exempt.
+# See CORE_PROJECTS.md for the freeze policy.
 
 FREEZE_ACTIVE=true
-FREEZE_END_DATE="2025-10-28"
 
 # Path globs exempt from the freeze (regex form, evaluated with bash =~).
 # Files matching ANY of these are skipped from violation checks AND warnings.
@@ -48,7 +51,7 @@ FORBIDDEN_PATTERNS=(
 
 # Check if freeze is active
 if [ "$FREEZE_ACTIVE" = true ]; then
-    echo -e "${YELLOW}📜 Documentation Freeze Active (until $FREEZE_END_DATE)${NC}"
+    echo -e "${YELLOW}📜 Documentation Freeze Active${NC}"
 
     VIOLATIONS=()
 
