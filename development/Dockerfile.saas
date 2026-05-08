@@ -23,6 +23,8 @@ RUN pip install --no-cache-dir -r requirements-saas.txt
 COPY saas /app/saas
 COPY apps /app/apps
 COPY libs /app/libs
+COPY shared /app/shared
+COPY security /app/security
 
 # Create necessary directories
 RUN mkdir -p /app/logs /app/keys /app/cache
