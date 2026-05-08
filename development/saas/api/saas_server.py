@@ -50,6 +50,7 @@ logger.info("Environment variable validation passed")
 from fastapi import FastAPI, Depends, HTTPException, status  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 from sqlalchemy.orm import Session  # noqa: E402
+from sqlalchemy.exc import IntegrityError  # noqa: E402
 
 # Add parent directories to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -215,53 +216,60 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"Database initialization error: {e}", exc_info=True)
 
-    # Ensure default plans exist
+    # Ensure default plans exist. Idempotent and race-safe so multiple
+    # uvicorn workers can run lifespan startup concurrently without
+    # tripping UNIQUE(code).
+    default_plans = [
+        {
+            "name": "Free Tier",
+            "code": "free",
+            "price_monthly": 0.00,
+            "price_yearly": 0.00,
+            "features": {
+                "lattices": 5,
+                "api_calls": 1000,
+                "path_finding": True,
+                "basic_transforms": True,
+            },
+            "limits": {
+                "max_lattices": 5,
+                "max_dimensions": 3,
+                "max_lattice_size": 10,
+                "api_calls_per_month": 1000,
+            },
+        },
+        {
+            "name": "Professional",
+            "code": "professional",
+            "price_monthly": 99.99,
+            "price_yearly": 999.99,
+            "features": {
+                "lattices": 500,
+                "api_calls": 100000,
+                "all_features": True,
+                "priority_support": True,
+                "gpu_acceleration": True,
+            },
+            "limits": {
+                "max_lattices": 500,
+                "max_dimensions": 10,
+                "max_lattice_size": 100,
+                "api_calls_per_month": 100000,
+            },
+        },
+    ]
     db = SessionLocal()
     try:
-        if db.query(SubscriptionPlan).count() == 0:
-            # Create default plans
-            plans = [
-                SubscriptionPlan(
-                    name="Free Tier",
-                    code="free",
-                    price_monthly=0.00,
-                    price_yearly=0.00,
-                    features={
-                        "lattices": 5,
-                        "api_calls": 1000,
-                        "path_finding": True,
-                        "basic_transforms": True,
-                    },
-                    limits={
-                        "max_lattices": 5,
-                        "max_dimensions": 3,
-                        "max_lattice_size": 10,
-                        "api_calls_per_month": 1000,
-                    },
-                ),
-                SubscriptionPlan(
-                    name="Professional",
-                    code="professional",
-                    price_monthly=99.99,
-                    price_yearly=999.99,
-                    features={
-                        "lattices": 500,
-                        "api_calls": 100000,
-                        "all_features": True,
-                        "priority_support": True,
-                        "gpu_acceleration": True,
-                    },
-                    limits={
-                        "max_lattices": 500,
-                        "max_dimensions": 10,
-                        "max_lattice_size": 100,
-                        "api_calls_per_month": 100000,
-                    },
-                ),
-            ]
-            db.add_all(plans)
-            db.commit()
-            print("Default subscription plans created")
+        for plan_def in default_plans:
+            if db.query(SubscriptionPlan).filter_by(code=plan_def["code"]).first():
+                continue
+            try:
+                db.add(SubscriptionPlan(**plan_def))
+                db.commit()
+                print(f"Default subscription plan created: {plan_def['code']}")
+            except IntegrityError:
+                # Another worker won the race; that's fine.
+                db.rollback()
     finally:
         db.close()
 
