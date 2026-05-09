@@ -17,13 +17,6 @@ services:
     container_name: smoketest-saas-api
     ports: !override
       - "18000:8000"
-    # The base compose-saas.yml omits CSRF_SECRET_KEY and JWT_KEY_PASSWORD
-    # from the environment block, so even though .env.smoketest defines
-    # them they never reach the container. Pass them through here.
-    environment:
-      CSRF_SECRET_KEY: ${CSRF_SECRET_KEY}
-      JWT_KEY_PASSWORD: ${JWT_KEY_PASSWORD}
-      ENVIRONMENT: development
     # Replace the bind mount on /app/keys with a fresh tmpfs so each
     # smoke run regenerates encrypted keys instead of failing on stale
     # unencrypted keys persisted to ./keys/ from earlier dev runs.
