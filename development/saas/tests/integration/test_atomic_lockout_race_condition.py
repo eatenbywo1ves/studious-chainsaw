@@ -28,12 +28,16 @@ from auth.account_lockout import AccountLockoutManager
 @pytest.fixture
 def redis_client():
     """Real Redis connection for integration testing"""
-    # Get Redis password from environment
+    # Honor REDIS_HOST/REDIS_PORT/REDIS_PASSWORD so the test runs both
+    # locally (defaults to localhost:6379) and inside a container on a
+    # compose network (e.g. REDIS_HOST=redis).
+    redis_host = os.getenv('REDIS_HOST', 'localhost')
+    redis_port = int(os.getenv('REDIS_PORT', '6379'))
     redis_password = os.getenv('REDIS_PASSWORD', '')
 
     client = redis.Redis(
-        host='localhost',
-        port=6379,
+        host=redis_host,
+        port=redis_port,
         password=redis_password if redis_password else None,
         db=15,  # Separate DB for testing
         decode_responses=True
