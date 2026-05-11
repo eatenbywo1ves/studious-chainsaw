@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 # ✅ MIGRATED: Import centralized configuration system
-from shared.config import get_settings
+from shared.config import get_settings  # noqa: E402
 
 # Load configuration (validated and type-safe)
 _config = get_settings()

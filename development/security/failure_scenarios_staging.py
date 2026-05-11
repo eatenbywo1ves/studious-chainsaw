@@ -10,7 +10,7 @@ from datetime import datetime
 security_path = Path(__file__).parent
 sys.path.insert(0, str(security_path))
 
-from application.redis_circuit_breaker import (
+from application.redis_circuit_breaker import (  # noqa: E402
     CircuitBreaker, CircuitBreakerConfig, CircuitState, CircuitBreakerOpenError
 )
 

@@ -22,7 +22,7 @@ load_dotenv()
 
 # ✅ MIGRATED: Import centralized configuration system
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from shared.config import get_settings
+from shared.config import get_settings  # noqa: E402
 
 # Load configuration (validated and type-safe)
 _config = get_settings()

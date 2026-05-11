@@ -14,7 +14,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 security_path = Path(__file__).parent
 sys.path.insert(0, str(security_path))
 
-from application.redis_circuit_breaker import CircuitBreaker, CircuitBreakerConfig
+from application.redis_circuit_breaker import CircuitBreaker, CircuitBreakerConfig  # noqa: E402
 
 print("\n" + "="*70)
 print("  PHASE 2 - DAY 3: Load Testing")

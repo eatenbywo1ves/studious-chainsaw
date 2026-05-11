@@ -29,7 +29,7 @@ print(f"  Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 print("="*70 + "\n")
 
 # Import circuit breaker components
-from application.redis_circuit_breaker import (
+from application.redis_circuit_breaker import (  # noqa: E402
     CircuitBreaker, CircuitBreakerConfig, CircuitBreakerOpenError
 )
 

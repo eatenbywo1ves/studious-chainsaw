@@ -13,7 +13,7 @@ print("\n" + "="*70)
 print("  Redis Circuit Breaker - Phase 1: Development Deployment")
 print("="*70 + "\n")
 
-from application.redis_circuit_breaker import (
+from application.redis_circuit_breaker import (  # noqa: E402
     CircuitBreaker, CircuitBreakerConfig, CircuitBreakerOpenError
 )
 
