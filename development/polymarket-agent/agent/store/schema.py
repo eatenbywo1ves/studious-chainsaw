@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 
 from sqlalchemy import (
+    JSON,
     Boolean,
     DateTime,
     Float,
@@ -44,6 +45,7 @@ class Market(Base):
     volume_24hr: Mapped[float | None] = mapped_column(Float, nullable=True)
     liquidity: Mapped[float | None] = mapped_column(Float, nullable=True)
     end_date_iso: Mapped[str | None] = mapped_column(String, nullable=True)
+    clob_token_ids: Mapped[list[str]] = mapped_column(JSON, default=list)
     ingested_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_utcnow
     )

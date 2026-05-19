@@ -28,3 +28,16 @@ def test_snapshot_unique_constraint(session):
         session.rollback()
 
     assert raised is True
+
+
+def test_market_clob_token_ids_round_trips_through_db(session_factory):
+    """JSON column survives a real DB round-trip (not just the identity map)."""
+    with session_factory() as write_session:
+        write_session.add(
+            Market(id="m-json", question="Q", clob_token_ids=["a", "b"])
+        )
+        write_session.commit()
+
+    with session_factory() as read_session:
+        loaded = read_session.get(Market, "m-json")
+        assert loaded.clob_token_ids == ["a", "b"]
