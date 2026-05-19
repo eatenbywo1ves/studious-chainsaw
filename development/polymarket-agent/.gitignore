@@ -9,3 +9,5 @@ __pycache__/
 # Un-ignore agent source subdirectories that parent .gitignore blocks
 !agent/data/
 !agent/data/**
+!tests/data/
+!tests/data/**
