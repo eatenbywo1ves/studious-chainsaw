@@ -46,3 +46,21 @@ def test_market_from_gamma_tolerates_missing_fields():
     assert dto.question == ""
     assert dto.clob_token_ids == []
     assert dto.order_min_size is None
+
+
+def test_market_from_gamma_preserves_zero_liquidity():
+    """Regression: liquidityNum=0.0 must not silently fall back to liquidity."""
+    raw = {"id": "1", "liquidityNum": 0.0, "liquidity": "50.0"}
+
+    dto = MarketDTO.from_gamma(raw)
+
+    assert dto.liquidity == 0.0
+
+
+def test_market_from_gamma_falls_back_to_liquidity_when_liquidity_num_missing():
+    """When liquidityNum is absent, liquidity field is used."""
+    raw = {"id": "1", "liquidity": "50.0"}
+
+    dto = MarketDTO.from_gamma(raw)
+
+    assert dto.liquidity == 50.0
