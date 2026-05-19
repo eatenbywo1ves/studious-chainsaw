@@ -954,6 +954,7 @@ def upsert_market(session: Session, dto: MarketDTO) -> Market:
     market.volume_24hr = dto.volume_24hr
     market.liquidity = dto.liquidity
     market.end_date_iso = dto.end_date_iso
+    market.clob_token_ids = list(dto.clob_token_ids)
     return market
 
 
