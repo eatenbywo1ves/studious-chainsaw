@@ -3,7 +3,13 @@ from dataclasses import dataclass
 
 from sqlalchemy.orm import Session
 
-from agent.store.schema import PriceSnapshot
+from agent.store.schema import Market, PriceSnapshot
+from agent.validation.metrics import brier_score, kupiec_test, reliability_curve
+from agent.validation.types import (
+    BacktestResult,
+    Prediction,
+    ResolvedOutcome,
+)
 
 
 @dataclass(frozen=True)
@@ -37,15 +43,6 @@ class ReplayEngine:
             yield ReplayEvent(
                 ts=row.ts, token_id=row.token_id, price=row.price
             )
-
-
-from agent.store.schema import Market  # noqa: E402
-from agent.validation.metrics import brier_score, kupiec_test, reliability_curve  # noqa: E402
-from agent.validation.types import (  # noqa: E402
-    BacktestResult,
-    Prediction,
-    ResolvedOutcome,
-)
 
 
 def walk_forward_backtest(
@@ -82,6 +79,10 @@ def walk_forward_backtest(
         for event in engine.replay(market_id, yes_token_id):
             predictions.append(model(market_id, event))
 
+    # Sort globally by ts so the Kupiec trailing window is time-ordered, not
+    # iteration-order (which is market-grouped).
+    predictions.sort(key=lambda p: p.ts)
+
     pred_outcome_pairs: list[tuple[float, int]] = [
         (pred.p_hat, resolutions[pred.market_id].outcome)
         for pred in predictions
@@ -102,6 +103,7 @@ def walk_forward_backtest(
         curve = reliability_curve(pred_outcome_pairs)
         if n_resolved >= kupiec_window:
             window_pairs = pred_outcome_pairs[-kupiec_window:]
+            # exception = argmax(model) disagrees with outcome; p_hat=0.5 ties break to YES.
             exceptions = sum(
                 1
                 for p_hat, outcome in window_pairs

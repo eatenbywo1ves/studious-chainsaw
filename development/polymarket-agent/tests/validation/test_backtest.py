@@ -1,14 +1,18 @@
+import math
+
 import httpx
 import respx
 
 from agent.config import Settings
 from agent.data.ingest import IngestService
+from agent.data.models import MarketDTO, PriceHistory, PricePoint
 from agent.data.polymarket_client import PolymarketClient
 from agent.data.rate_limiter import TokenBucket
-from agent.store.repository import save_price_history
-from agent.data.models import PriceHistory, PricePoint
+from agent.research.baselines import constant_half, last_traded_price
+from agent.store.repository import save_price_history, upsert_market
 from agent.store.schema import Market
-from agent.validation.backtest import ReplayEngine, ReplayEvent
+from agent.validation.backtest import ReplayEngine, ReplayEvent, walk_forward_backtest
+from agent.validation.types import BacktestResult, ResolvedOutcome
 
 
 def test_replay_yields_events_in_timestamp_order(session):
@@ -85,15 +89,6 @@ async def test_phase0_gate_replay_reproduces_ingested_prices(
     assert [(e.ts, e.price) for e in replayed] == [
         (row["t"], row["p"]) for row in source
     ]
-
-
-import math
-
-from agent.research.baselines import constant_half, last_traded_price
-from agent.store.repository import save_price_history, upsert_market
-from agent.validation.backtest import walk_forward_backtest
-from agent.validation.types import BacktestResult, ResolvedOutcome
-from agent.data.models import MarketDTO, PriceHistory, PricePoint
 
 
 def _setup_three_markets(session) -> None:
