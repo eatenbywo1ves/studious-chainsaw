@@ -43,6 +43,7 @@ class MarketDTO(BaseModel):
     volume_24hr: float | None = None
     liquidity: float | None = None
     end_date_iso: str | None = None
+    outcome_prices: list[float] = Field(default_factory=list)
 
     @classmethod
     def from_gamma(cls, raw: dict) -> "MarketDTO":
@@ -53,6 +54,16 @@ class MarketDTO(BaseModel):
                 token_ids = json.loads(token_ids)
             except json.JSONDecodeError:
                 token_ids = []
+        outcome_prices_raw = raw.get("outcomePrices")
+        if isinstance(outcome_prices_raw, str):
+            try:
+                outcome_prices_raw = json.loads(outcome_prices_raw)
+            except json.JSONDecodeError:
+                outcome_prices_raw = []
+        outcome_prices = [
+            float(x) for x in (outcome_prices_raw or [])
+            if x is not None and x != ""
+        ]
         return cls(
             id=str(raw["id"]),
             question=raw.get("question", "") or "",
@@ -75,4 +86,5 @@ class MarketDTO(BaseModel):
                 if raw.get("endDateIso") is not None
                 else raw.get("endDate")
             ),
+            outcome_prices=outcome_prices,
         )

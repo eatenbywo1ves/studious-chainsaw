@@ -77,3 +77,14 @@ class PolymarketClient:
             for pt in payload.get("history", [])
         ]
         return PriceHistory(token_id=token_id, history=points)
+
+    async def get_market(self, market_id: str) -> MarketDTO | None:
+        """Fetch a single market by id from Gamma.  Returns None on 404."""
+        await self._bucket.acquire()
+        resp = await self._http.get(
+            f"{self._settings.gamma_base_url}/markets/{market_id}"
+        )
+        if resp.status_code == 404:
+            return None
+        resp.raise_for_status()
+        return MarketDTO.from_gamma(resp.json())
