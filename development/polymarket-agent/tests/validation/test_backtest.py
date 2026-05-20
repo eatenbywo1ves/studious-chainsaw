@@ -194,3 +194,56 @@ def test_walk_forward_backtest_empty_store(session):
     assert result.n_resolved == 0
     assert result.brier_score == 0.0
     assert result.kupiec is None
+
+
+def test_walk_forward_backtest_kupiec_branch_fires_when_window_met(session):
+    """Kupiec branch (lines 104-116 of backtest.py) is exercised when
+    n_resolved >= kupiec_window.
+
+    Uses kupiec_window=5 so the 15 resolved predictions from the 3-market
+    fixture exceed the threshold.  Both baselines produce zero exceptions
+    (last_traded_price predictions align with outcomes; constant_half at 0.5
+    is never classified as wrong because p_hat=0.5 ties break to YES and all
+    trailing-window ticks belong to m3 which resolves YES).
+    """
+    _setup_three_markets(session)
+    resolutions = _three_market_resolutions()
+
+    result_ltp = walk_forward_backtest(
+        session,
+        last_traded_price,
+        resolutions,
+        model_name="last_traded_price",
+        kupiec_window=5,
+    )
+
+    assert result_ltp.kupiec is not None, "Kupiec branch should fire with kupiec_window=5"
+    assert result_ltp.kupiec.trials == 5
+    assert result_ltp.kupiec.exceptions == 0
+    assert result_ltp.kupiec.zone == "GREEN"
+    # expected_rate is mean(min(p_hat, 1-p_hat)) over the trailing window;
+    # exact value depends on which 5 predictions land in the window (ts-sort
+    # order within a tie is DB-iteration-order), so only structural bounds checked.
+    assert 0.0 < result_ltp.kupiec.expected_rate < 1.0
+    assert 0.0 <= result_ltp.kupiec.lr_statistic
+    assert 0.0 <= result_ltp.kupiec.p_value <= 1.0
+
+    result_ch = walk_forward_backtest(
+        session,
+        constant_half,
+        resolutions,
+        model_name="constant_half",
+        kupiec_window=5,
+    )
+
+    assert result_ch.kupiec is not None
+    assert result_ch.kupiec.trials == 5
+    # exceptions = count where (p_hat>=0.5 AND outcome==0) OR (p_hat<0.5 AND outcome==1).
+    # constant_half always predicts 0.5, which ties to YES, so any NO-resolving market
+    # in the trailing window contributes an exception.  Exact count is window-order-
+    # dependent; we only guarantee it's in [0, trials] and zone is GREEN (<=4).
+    assert 0 <= result_ch.kupiec.exceptions <= result_ch.kupiec.trials
+    assert result_ch.kupiec.zone == "GREEN"
+    # constant_half always predicts 0.5, so min(0.5, 0.5)=0.5 for every tick;
+    # expected_rate must be exactly 0.5 regardless of which ticks are in the window.
+    assert math.isclose(result_ch.kupiec.expected_rate, 0.5, abs_tol=1e-10)
