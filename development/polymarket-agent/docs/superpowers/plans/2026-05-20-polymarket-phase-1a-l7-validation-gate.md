@@ -536,17 +536,21 @@ git commit -m "feat(phase1a): add brier_score metric"
 from agent.validation.metrics import reliability_curve
 
 
-def test_reliability_curve_calibrated_100():
-    """§5.3 main case: 100 predictions evenly across [0,1] (10 per decile bin)
+def test_reliability_curve_calibrated_200():
+    """§5.3 main case: 200 predictions evenly across [0,1] (20 per decile bin)
     with synthetic outcomes engineered so predicted bin midpoint == observed
-    yes-frequency.  All bins non-None and match midpoints."""
-    # 100 predictions: for each of 10 bins, 10 predictions at the bin midpoint
+    yes-frequency.  All bins non-None and match midpoints exactly.
+
+    Why 20 per bin (not 10): for any decile midpoint m, n_yes = m*20 is an
+    integer (1, 3, 5, ..., 19) so obs_freq = n_yes/20 = m exactly.  A 10-per-bin
+    construction would give n_yes = m*10 which is fractional for every decile
+    midpoint and cannot match m as an obs_freq."""
+    # 200 predictions: 20 per decile bin
     pairs: list[tuple[float, int]] = []
     for bin_idx in range(10):
         midpoint = (bin_idx + 0.5) / 10  # 0.05, 0.15, ..., 0.95
-        # outcomes: int(round(midpoint * 10)) ones out of 10
-        n_yes = round(midpoint * 10)
-        for i in range(10):
+        n_yes = round(midpoint * 20)  # 1, 3, 5, ..., 19 — always integer
+        for i in range(20):
             outcome = 1 if i < n_yes else 0
             pairs.append((midpoint, outcome))
 

@@ -480,14 +480,17 @@ and relative tolerance `1e-3` for `p_value`.
 
 ### 5.3 Reliability curve reference case
 
-Given 100 predictions evenly spread across `[0,1]` (10 per decile bin) with
+Given 200 predictions evenly spread across `[0,1]` (20 per decile bin) with
 synthetic outcomes engineered so the model is exactly calibrated (predicted bin
 midpoint == observed YES-frequency), the curve must return 10 bins with
 `mean_predicted_p == bin_midpoint` (within float tolerance) and
-`observed_yes_frequency == bin_midpoint`. (The 10/bin count is comfortably above
-the `min_per_bin=5` default, so all bins are non-`None`.) A second reference
-case with only 25 predictions evenly spread (2-3 per bin) asserts every bin
-reports `(None, None)` under default `min_per_bin=5`.
+`observed_yes_frequency == bin_midpoint`. The 20-per-bin count is the smallest
+that lets observed frequencies match all decile midpoints exactly: with 20
+draws, `n_yes = midpoint × 20` is integer for every decile midpoint (1, 3, 5,
+…, 19), so `obs_freq = n_yes / 20 = midpoint`. A 10-per-bin construction would
+fail this because `midpoint × 10` is fractional. A second reference case with
+only 25 predictions evenly spread (2-3 per bin) asserts every bin reports
+`(None, None)` under default `min_per_bin=5`.
 
 ### 5.4 walk_forward_backtest integration
 
