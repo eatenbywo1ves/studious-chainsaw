@@ -362,6 +362,12 @@ windows-amd64/
 .copilot/
 .redis-for-vscode/
 
+# Added 2026-05-20 - extra tool-state dirs surfaced by workspace audit
+.claude-server-commander/
+.okteto/
+.semgrep/
+.vscode-shared/
+
 # Claude Code transient working-dir markers
 tmpclaude-*-cwd
 tmpclaude-*-cwd/
