@@ -1,0 +1,105 @@
+# ========================================
+# Namespace Configuration
+# Creates isolated environments for staging and production
+# ========================================
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: catalytic-staging
+  labels:
+    name: catalytic-staging
+    environment: staging
+    managed-by: kubernetes
+  annotations:
+    description: "Staging environment for Catalytic Computing Platform"
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: catalytic-production
+  labels:
+    name: catalytic-production
+    environment: production
+    managed-by: kubernetes
+  annotations:
+    description: "Production environment for Catalytic Computing Platform"
+
+---
+# Resource Quotas for Staging
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: staging-quota
+  namespace: catalytic-staging
+spec:
+  hard:
+    requests.cpu: "20"
+    requests.memory: 32Gi
+    limits.cpu: "40"
+    limits.memory: 64Gi
+    persistentvolumeclaims: "10"
+    services.loadbalancers: "2"
+
+---
+# Resource Quotas for Production
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: production-quota
+  namespace: catalytic-production
+spec:
+  hard:
+    requests.cpu: "50"
+    requests.memory: 100Gi
+    limits.cpu: "100"
+    limits.memory: 200Gi
+    persistentvolumeclaims: "20"
+    services.loadbalancers: "5"
+
+---
+# Limit Ranges for Staging
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: staging-limits
+  namespace: catalytic-staging
+spec:
+  limits:
+  - max:
+      cpu: "4"
+      memory: 8Gi
+    min:
+      cpu: 50m
+      memory: 64Mi
+    default:
+      cpu: 500m
+      memory: 512Mi
+    defaultRequest:
+      cpu: 100m
+      memory: 256Mi
+    type: Container
+
+---
+# Limit Ranges for Production
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: production-limits
+  namespace: catalytic-production
+spec:
+  limits:
+  - max:
+      cpu: "8"
+      memory: 16Gi
+    min:
+      cpu: 100m
+      memory: 128Mi
+    default:
+      cpu: 1000m
+      memory: 1Gi
+    defaultRequest:
+      cpu: 200m
+      memory: 512Mi
+    type: Container

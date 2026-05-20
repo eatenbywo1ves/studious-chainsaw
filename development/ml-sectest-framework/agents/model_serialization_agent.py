@@ -9,7 +9,7 @@ References:
 - MITRE AML.T0010: ML Model Serialization
 """
 
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Tuple
 import requests
 import base64
 import pickle
@@ -27,7 +27,7 @@ from core.base_agent import (
 class ModelSerializationAgent(BaseSecurityAgent):
     """
     Agent specialized in model serialization attacks.
-    
+
     Techniques:
     1. Pickle deserialization exploitation
     2. Malicious model upload
@@ -35,7 +35,7 @@ class ModelSerializationAgent(BaseSecurityAgent):
     4. Supply chain poisoning
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             agent_id="model_serialization_001",
             name="Model Serialization Specialist",
@@ -49,7 +49,7 @@ class ModelSerializationAgent(BaseSecurityAgent):
     def analyze(self, context: AgentContext) -> TestResult:
         """
         Analyze system for serialization vulnerabilities.
-        
+
         Checks:
         1. Model upload capability
         2. File format acceptance
@@ -113,7 +113,7 @@ class ModelSerializationAgent(BaseSecurityAgent):
     def exploit(self, context: AgentContext, test_result: TestResult) -> TestResult:
         """
         Attempt serialization exploitation.
-        
+
         Strategies:
         1. Pickle payload injection
         2. Malicious model upload
@@ -185,7 +185,7 @@ class ModelSerializationAgent(BaseSecurityAgent):
 
                     if response.status_code not in [404, 405]:
                         return True
-                except:
+                except Exception:
                     continue
 
             # Test main endpoint with file upload
@@ -224,7 +224,7 @@ class ModelSerializationAgent(BaseSecurityAgent):
                     if 'UNSAFE' in format_name or 'potentially unsafe' in format_name:
                         unsafe_formats.append(ext)
 
-            except:
+            except Exception:
                 continue
 
         return unsafe_formats
@@ -234,7 +234,7 @@ class ModelSerializationAgent(BaseSecurityAgent):
         try:
             # Create a test pickle payload (benign marker)
             class TestMarker:
-                def __reduce__(self):
+                def __reduce__(self) -> Tuple[type, Tuple[str, ...]]:
                     # This would normally be malicious, but we keep it safe for testing
                     return (str, ("DESERIALIZATION_TEST_MARKER",))
 
@@ -292,7 +292,7 @@ class ModelSerializationAgent(BaseSecurityAgent):
                 elif "error" in response.text.lower() or "invalid" in response.text.lower():
                     validation_checks_passed += 1
 
-            except:
+            except Exception:
                 validation_checks_passed += 1  # Assume rejection if error
 
         return validation_checks_passed / total_checks
@@ -300,7 +300,7 @@ class ModelSerializationAgent(BaseSecurityAgent):
     def _pickle_exploitation(self, target_url: str) -> Dict[str, Any]:
         """
         Attempt pickle exploitation (DEFENSIVE TESTING ONLY).
-        
+
         Note: This creates a SAFE test payload that doesn't execute harmful code.
         """
         result = {"success": False, "details": ""}
@@ -308,7 +308,7 @@ class ModelSerializationAgent(BaseSecurityAgent):
         try:
             # Create a safe test payload that proves exploitation without harm
             class SafeExploitProof:
-                def __reduce__(self):
+                def __reduce__(self) -> Tuple[type, Tuple[str, ...]]:
                     # Instead of os.system, use a safe marker
                     return (str, ("PICKLE_EXPLOIT_SUCCESSFUL_FLAG_HERE",))
 

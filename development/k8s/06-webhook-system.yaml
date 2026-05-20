@@ -1,0 +1,406 @@
+# ========================================
+# Webhook System Deployment
+# Event-driven webhook processing
+# ========================================
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webhook-system
+  namespace: catalytic-staging
+  labels:
+    app: webhook-system
+    component: events
+    environment: staging
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: webhook-system
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: webhook-system
+        component: events
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: webhook-system
+      securityContext:
+        fsGroup: 1000
+
+      initContainers:
+      - name: init-data-dir
+        image: busybox:latest
+        command: ['sh', '-c', 'mkdir -p /app/data && chown -R 1000:1000 /app/data && chmod -R 775 /app/data']
+        volumeMounts:
+        - name: webhook-data
+          mountPath: /app/data
+        securityContext:
+          runAsUser: 0
+          runAsNonRoot: false
+
+      containers:
+      - name: webhook-system
+        image: webhook-system:staging  # Local Docker Desktop image
+        imagePullPolicy: IfNotPresent  # Use local images for Docker Desktop
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+        ports:
+        - name: http
+          containerPort: 8000
+          protocol: TCP
+        - name: metrics
+          containerPort: 9090
+          protocol: TCP
+
+        env:
+        - name: WEBHOOK_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: webhook-config
+              key: WEBHOOK_PORT
+        - name: WEBHOOK_METRICS_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: webhook-config
+              key: WEBHOOK_METRICS_PORT
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: webhook-config
+              key: LOG_LEVEL
+        - name: MAX_RETRIES
+          valueFrom:
+            configMapKeyRef:
+              name: webhook-config
+              key: MAX_RETRIES
+        - name: RETRY_DELAY
+          valueFrom:
+            configMapKeyRef:
+              name: webhook-config
+              key: RETRY_DELAY
+        - name: RETRY_BACKOFF
+          valueFrom:
+            configMapKeyRef:
+              name: webhook-config
+              key: RETRY_BACKOFF
+        - name: REDIS_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: webhook-config
+              key: REDIS_HOST
+        - name: REDIS_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: webhook-config
+              key: REDIS_PORT
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: redis-credentials
+              key: password
+        - name: WEBHOOK_SIGNING_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: api-keys
+              key: webhook-signing-secret
+        - name: WEBHOOK_DB_PATH
+          value: /app/data/webhooks.db
+
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "50m"  # Reduced for Docker Desktop
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+
+        volumeMounts:
+        - name: webhook-data
+          mountPath: /app/data
+        - name: logs
+          mountPath: /app/logs
+
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 2
+
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 0
+          periodSeconds: 5
+          failureThreshold: 30
+
+      volumes:
+      - name: webhook-data
+        emptyDir: {}
+      - name: logs
+        emptyDir: {}
+
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - webhook-system
+              topologyKey: kubernetes.io/hostname
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: webhook-system
+  namespace: catalytic-staging
+  labels:
+    app: webhook-system
+    component: events
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8000
+    protocol: TCP
+  - name: metrics
+    port: 9090
+    targetPort: 9090
+    protocol: TCP
+  selector:
+    app: webhook-system
+  sessionAffinity: None
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: webhook-system
+  namespace: catalytic-staging
+  labels:
+    app: webhook-system
+
+---
+# PRODUCTION Deployment
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webhook-system
+  namespace: catalytic-production
+  labels:
+    app: webhook-system
+    component: events
+    environment: production
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: webhook-system
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: webhook-system
+        component: events
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: webhook-system
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+
+      containers:
+      - name: webhook-system
+        image: webhook-system:latest  # REPLACE with your registry
+        imagePullPolicy: Always
+        ports:
+        - name: http
+          containerPort: 8000
+          protocol: TCP
+        - name: metrics
+          containerPort: 9090
+          protocol: TCP
+
+        env:
+        - name: WEBHOOK_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: webhook-config
+              key: WEBHOOK_PORT
+        - name: WEBHOOK_METRICS_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: webhook-config
+              key: WEBHOOK_METRICS_PORT
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: webhook-config
+              key: LOG_LEVEL
+        - name: MAX_RETRIES
+          valueFrom:
+            configMapKeyRef:
+              name: webhook-config
+              key: MAX_RETRIES
+        - name: RETRY_DELAY
+          valueFrom:
+            configMapKeyRef:
+              name: webhook-config
+              key: RETRY_DELAY
+        - name: RETRY_BACKOFF
+          valueFrom:
+            configMapKeyRef:
+              name: webhook-config
+              key: RETRY_BACKOFF
+        - name: REDIS_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: webhook-config
+              key: REDIS_HOST
+        - name: REDIS_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: webhook-config
+              key: REDIS_PORT
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: redis-credentials
+              key: password
+        - name: WEBHOOK_SIGNING_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: api-keys
+              key: webhook-signing-secret
+        - name: WEBHOOK_DB_PATH
+          value: /app/data/webhooks.db
+
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+
+        volumeMounts:
+        - name: webhook-data
+          mountPath: /app/data
+        - name: logs
+          mountPath: /app/logs
+
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 2
+
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 0
+          periodSeconds: 5
+          failureThreshold: 30
+
+      volumes:
+      - name: webhook-data
+        emptyDir: {}
+      - name: logs
+        emptyDir: {}
+
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - webhook-system
+              topologyKey: kubernetes.io/hostname
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: webhook-system
+  namespace: catalytic-production
+  labels:
+    app: webhook-system
+    component: events
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8000
+    protocol: TCP
+  - name: metrics
+    port: 9090
+    targetPort: 9090
+    protocol: TCP
+  selector:
+    app: webhook-system
+  sessionAffinity: None
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: webhook-system
+  namespace: catalytic-production
+  labels:
+    app: webhook-system

@@ -1,0 +1,207 @@
+# Istio Destination Rule - Defines subsets for stable and canary versions
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: auth-service
+  namespace: production
+spec:
+  host: auth-service.production.svc.cluster.local
+  trafficPolicy:
+    # Connection pool settings for stability
+    connectionPool:
+      tcp:
+        maxConnections: 100
+      http:
+        http1MaxPendingRequests: 50
+        http2MaxRequests: 100
+        maxRequestsPerConnection: 2
+    # Outlier detection - circuit breaking at infrastructure level
+    outlierDetection:
+      consecutive5xxErrors: 5
+      interval: 30s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50
+      minHealthPercent: 40
+
+  # Define subsets for canary routing
+  subsets:
+  - name: stable
+    labels:
+      version: stable
+    trafficPolicy:
+      # Stable version gets standard load balancing
+      loadBalancer:
+        simple: LEAST_REQUEST
+
+  - name: canary
+    labels:
+      version: canary
+    trafficPolicy:
+      # Canary version gets conservative load balancing
+      loadBalancer:
+        simple: ROUND_ROBIN
+      # More aggressive outlier detection for canary
+      outlierDetection:
+        consecutive5xxErrors: 3  # More sensitive than stable
+        interval: 20s
+        baseEjectionTime: 60s
+
+---
+# Istio Virtual Service - Controls traffic routing percentages
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: auth-service
+  namespace: production
+  annotations:
+    description: "Gradual canary rollout for Redis Circuit Breaker"
+spec:
+  hosts:
+  - auth-service.production.svc.cluster.local
+  - auth-service  # Short name within namespace
+
+  http:
+  - name: "canary-routing"
+    match:
+    - uri:
+        prefix: "/"
+
+    # ========================================
+    # TRAFFIC SPLIT CONFIGURATION
+    # ========================================
+    # Update these percentages for each phase:
+    # - Phase 4.1 (Day 7): canary=25,  stable=75
+    # - Phase 4.2 (Day 8): canary=50,  stable=50
+    # - Phase 4.3 (Day 9): canary=75,  stable=25
+    # - Phase 4.4 (Day 10): canary=100, stable=0
+
+    route:
+    - destination:
+        host: auth-service.production.svc.cluster.local
+        subset: canary
+      weight: 25  # ← UPDATE THIS for each phase (25, 50, 75, 100)
+      headers:
+        response:
+          add:
+            x-served-by: "canary"
+            x-circuit-breaker-enabled: "true"
+
+    - destination:
+        host: auth-service.production.svc.cluster.local
+        subset: stable
+      weight: 75  # ← UPDATE THIS for each phase (75, 50, 25, 0)
+      headers:
+        response:
+          add:
+            x-served-by: "stable"
+            x-circuit-breaker-enabled: "false"
+
+    # ========================================
+    # REQUEST TIMEOUT AND RETRIES
+    # ========================================
+    timeout: 10s  # Overall request timeout
+    retries:
+      attempts: 2
+      perTryTimeout: 3s
+      retryOn: "5xx,reset,connect-failure,refused-stream"
+
+    # ========================================
+    # FAULT INJECTION (for testing)
+    # ========================================
+    # Uncomment to test circuit breaker behavior
+    # fault:
+    #   delay:
+    #     percentage:
+    #       value: 1.0  # 1% of requests
+    #     fixedDelay: 2s
+    #   abort:
+    #     percentage:
+    #       value: 0.5  # 0.5% of requests
+    #     httpStatus: 503
+
+---
+# Gateway for external access (if needed)
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: auth-service-gateway
+  namespace: production
+spec:
+  selector:
+    istio: ingressgateway  # Use Istio default gateway
+  servers:
+  - port:
+      number: 443
+      name: https
+      protocol: HTTPS
+    tls:
+      mode: SIMPLE
+      credentialName: auth-service-tls  # TLS certificate secret
+    hosts:
+    - "auth.yourdomain.com"
+
+---
+# Virtual Service for external gateway routing
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: auth-service-external
+  namespace: production
+spec:
+  hosts:
+  - "auth.yourdomain.com"
+  gateways:
+  - auth-service-gateway
+  http:
+  - match:
+    - uri:
+        prefix: "/api/auth"
+    route:
+    - destination:
+        host: auth-service.production.svc.cluster.local
+        port:
+          number: 80
+
+---
+# PeerAuthentication - Enforce mTLS for service-to-service communication
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: auth-service
+  namespace: production
+spec:
+  selector:
+    matchLabels:
+      app: auth-service
+  mtls:
+    mode: STRICT  # Enforce mutual TLS
+
+---
+# AuthorizationPolicy - Define access controls
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: auth-service
+  namespace: production
+spec:
+  selector:
+    matchLabels:
+      app: auth-service
+  action: ALLOW
+  rules:
+  # Allow traffic from ingress gateway
+  - from:
+    - source:
+        principals: ["cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account"]
+  # Allow traffic from other services in production namespace
+  - from:
+    - source:
+        namespaces: ["production"]
+  # Allow traffic from monitoring namespace (Prometheus)
+  - from:
+    - source:
+        namespaces: ["monitoring"]
+    to:
+    - operation:
+        paths: ["/metrics"]
+        methods: ["GET"]

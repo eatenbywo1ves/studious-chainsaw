@@ -463,16 +463,16 @@ class GPUBatchOperations:
     def get_stats(self) -> Dict[str, Any]:
         """Get batch operation statistics"""
         if self._total_batch_ops == 0:
-            avg_batch_size = 0
-            avg_time_ms = 0
-            avg_per_item_ms = 0
+            avg_batch_size: float = 0.0
+            avg_time_ms: float = 0.0
+            avg_per_item_ms: float = 0.0
         else:
             avg_batch_size = self._total_items_processed / self._total_batch_ops
             avg_time_ms = self._total_time_ms / self._total_batch_ops
             avg_per_item_ms = (
                 self._total_time_ms / self._total_items_processed
                 if self._total_items_processed > 0
-                else 0
+                else 0.0
             )
 
         return {

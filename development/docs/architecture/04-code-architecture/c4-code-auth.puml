@@ -1,0 +1,100 @@
+@startuml C4_Code_Auth
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+title Code Diagram - Authentication Module
+
+package "auth" {
+    class AuthController {
+        +login(credentials: LoginRequest): TokenResponse
+        +register(data: RegisterRequest): UserResponse
+        +refresh(token: str): TokenResponse
+        +logout(token: str): void
+        +forgot_password(email: str): void
+        +reset_password(token: str, password: str): void
+    }
+
+    class AuthService {
+        -user_repo: UserRepository
+        -cache: CacheService
+        -jwt_manager: JWTManager
+        +authenticate(email: str, password: str): TokenPair
+        +refresh_token(refresh_token: str): TokenPair
+        +invalidate_token(token: str): void
+        +verify_password(plain: str, hashed: str): bool
+        +hash_password(password: str): str
+    }
+
+    class JWTManager {
+        -private_key: RSAPrivateKey
+        -public_key: RSAPublicKey
+        -access_ttl: int = 1800
+        -refresh_ttl: int = 604800
+        +create_access_token(user_id: UUID, claims: dict): str
+        +create_refresh_token(user_id: UUID): str
+        +verify_token(token: str): TokenPayload
+        +decode_token(token: str): dict
+    }
+
+    class PasswordPolicy {
+        +MIN_LENGTH: int = 12
+        +REQUIRE_UPPER: bool = True
+        +REQUIRE_LOWER: bool = True
+        +REQUIRE_DIGIT: bool = True
+        +REQUIRE_SPECIAL: bool = True
+        +validate(password: str): ValidationResult
+        +check_common_passwords(password: str): bool
+    }
+
+    class TokenBlacklist {
+        -cache: Redis
+        +add(token: str, expiry: datetime): void
+        +is_blacklisted(token: str): bool
+        +cleanup_expired(): int
+    }
+
+    class JWTMiddleware {
+        -auth_service: AuthService
+        +__call__(request: Request): Response
+        -extract_token(request: Request): Optional[str]
+        -validate_token(token: str): TokenPayload
+    }
+}
+
+package "models" {
+    class User {
+        +id: UUID
+        +email: str
+        +password_hash: str
+        +tenant_id: UUID
+        +created_at: datetime
+        +updated_at: datetime
+        +is_active: bool
+        +email_verified: bool
+    }
+
+    class TokenPair {
+        +access_token: str
+        +refresh_token: str
+        +token_type: str = "Bearer"
+        +expires_in: int
+    }
+
+    class TokenPayload {
+        +sub: UUID
+        +tenant_id: UUID
+        +exp: int
+        +iat: int
+        +type: str
+    }
+}
+
+AuthController --> AuthService : uses
+AuthService --> JWTManager : uses
+AuthService --> PasswordPolicy : validates with
+AuthService --> TokenBlacklist : manages
+JWTMiddleware --> AuthService : validates via
+AuthService ..> User : manages
+JWTManager ..> TokenPair : creates
+JWTManager ..> TokenPayload : creates
+
+@enduml

@@ -1,0 +1,79 @@
+{
+  "folders": [
+    {
+      "name": "🐍 Development (Python/Infrastructure)",
+      "path": "development"
+    },
+    {
+      "name": "🌐 Projects (Node.js/TypeScript)",
+      "path": "projects"
+    }
+  ],
+  "settings": {
+    "files.exclude": {
+      "**/node_modules": true,
+      "**/__pycache__": true,
+      "**/.pytest_cache": true,
+      "**/.ruff_cache": true,
+      "**/venv": true,
+      "**/gpu_env": true
+    },
+    "search.exclude": {
+      "**/node_modules": true,
+      "**/dist": true,
+      "**/build": true,
+      "**/.git": true,
+      "**/logs": true
+    },
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": "explicit"
+    },
+    "[python]": {
+      "editor.defaultFormatter": "ms-python.black-formatter",
+      "editor.formatOnSave": true,
+      "editor.codeActionsOnSave": {
+        "source.organizeImports": "explicit"
+      }
+    },
+    "[typescript]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[javascript]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode"
+    }
+  },
+  "extensions": {
+    "recommendations": [
+      "ms-python.python",
+      "ms-python.black-formatter",
+      "charliermarsh.ruff",
+      "dbaeumer.vscode-eslint",
+      "esbenp.prettier-vscode",
+      "ms-azuretools.vscode-docker",
+      "redhat.vscode-yaml",
+      "github.copilot"
+    ]
+  },
+  "launch": {
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "Python: Development API",
+        "type": "python",
+        "request": "launch",
+        "program": "${workspaceFolder:🐍 Development (Python/Infrastructure)}/saas/main.py",
+        "console": "integratedTerminal",
+        "cwd": "${workspaceFolder:🐍 Development (Python/Infrastructure)}"
+      },
+      {
+        "name": "Node: Projects App",
+        "type": "node",
+        "request": "launch",
+        "cwd": "${workspaceFolder:🌐 Projects (Node.js/TypeScript)}",
+        "runtimeExecutable": "npm",
+        "runtimeArgs": ["run", "dev"]
+      }
+    ]
+  }
+}

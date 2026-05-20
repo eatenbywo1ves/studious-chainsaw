@@ -1,0 +1,229 @@
+{
+  "dashboard": {
+    "title": "ML-SecTest Framework Monitoring",
+    "uid": "ml-sectest-main",
+    "timezone": "browser",
+    "schemaVersion": 27,
+    "version": 1,
+    "refresh": "30s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Active Scans",
+        "type": "stat",
+        "gridPos": {"h": 8, "w": 6, "x": 0, "y": 0},
+        "targets": [
+          {
+            "expr": "ml_sectest_active_scans",
+            "legendFormat": "Active Scans"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 5, "color": "yellow"},
+                {"value": 10, "color": "red"}
+              ]
+            },
+            "unit": "none"
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "Total Scans (24h)",
+        "type": "stat",
+        "gridPos": {"h": 8, "w": 6, "x": 6, "y": 0},
+        "targets": [
+          {
+            "expr": "sum(increase(ml_sectest_scan_requests_total[24h]))",
+            "legendFormat": "Total Scans"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "none"
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "Scan Success Rate",
+        "type": "gauge",
+        "gridPos": {"h": 8, "w": 6, "x": 12, "y": 0},
+        "targets": [
+          {
+            "expr": "sum(rate(ml_sectest_scan_requests_total{status=\"success\"}[5m])) / sum(rate(ml_sectest_scan_requests_total[5m])) * 100",
+            "legendFormat": "Success Rate"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 80, "color": "yellow"},
+                {"value": 95, "color": "green"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 4,
+        "title": "Vulnerabilities by Severity",
+        "type": "piechart",
+        "gridPos": {"h": 8, "w": 6, "x": 18, "y": 0},
+        "targets": [
+          {
+            "expr": "sum by (severity) (ml_sectest_vulnerabilities_by_severity)",
+            "legendFormat": "{{severity}}"
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Scan Duration (95th percentile)",
+        "type": "graph",
+        "gridPos": {"h": 9, "w": 12, "x": 0, "y": 8},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(ml_sectest_scan_duration_seconds_bucket[5m])) by (le, challenge_type))",
+            "legendFormat": "{{challenge_type}}"
+          }
+        ],
+        "yaxes": [
+          {"format": "s", "label": "Duration"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Agent Execution Rate",
+        "type": "graph",
+        "gridPos": {"h": 9, "w": 12, "x": 12, "y": 8},
+        "targets": [
+          {
+            "expr": "sum(rate(ml_sectest_agent_executions_total[5m])) by (agent_name)",
+            "legendFormat": "{{agent_name}}"
+          }
+        ],
+        "yaxes": [
+          {"format": "ops", "label": "Executions/sec"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Vulnerabilities Found (24h)",
+        "type": "table",
+        "gridPos": {"h": 9, "w": 12, "x": 0, "y": 17},
+        "targets": [
+          {
+            "expr": "sum by (vulnerability_type, severity, agent_name) (increase(ml_sectest_vulnerabilities_found_total[24h]))",
+            "legendFormat": "",
+            "instant": true
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "API Request Rate",
+        "type": "graph",
+        "gridPos": {"h": 9, "w": 12, "x": 12, "y": 17},
+        "targets": [
+          {
+            "expr": "sum(rate(ml_sectest_api_requests_total[5m])) by (endpoint)",
+            "legendFormat": "{{endpoint}}"
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "title": "Agent Failure Rate",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 26},
+        "targets": [
+          {
+            "expr": "sum(rate(ml_sectest_agent_executions_total{status=\"error\"}[5m])) / sum(rate(ml_sectest_agent_executions_total[5m])) * 100",
+            "legendFormat": "Failure Rate"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 5, "color": "yellow"},
+                {"value": 10, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 10,
+        "title": "Available Agents",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 26},
+        "targets": [
+          {
+            "expr": "ml_sectest_agents_available",
+            "legendFormat": "Agents"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 1, "color": "yellow"},
+                {"value": 6, "color": "green"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 11,
+        "title": "API Response Time (p99)",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 26},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.99, sum(rate(ml_sectest_api_request_duration_seconds_bucket[5m])) by (le, endpoint))",
+            "legendFormat": "{{endpoint}}"
+          }
+        ],
+        "yaxes": [
+          {"format": "s", "label": "Latency"},
+          {"format": "short"}
+        ]
+      }
+    ],
+    "templating": {
+      "list": []
+    },
+    "annotations": {
+      "list": []
+    },
+    "time": {
+      "from": "now-6h",
+      "to": "now"
+    },
+    "timepicker": {}
+  }
+}

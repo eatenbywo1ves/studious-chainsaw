@@ -14,10 +14,9 @@
 .claude.json
 .mcp.json
 .config/
-.claude.json.backup
+.claude.json.backup*
 .claude.json.corrupted.*
-.mcp.json.backup
-.mcp.json.backup-
+.mcp.json.backup*
 
 # ===========================================
 # Windows System Files
@@ -90,6 +89,8 @@ ENV/
 env.bak/
 venv.bak/
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
 .coverage
 .hypothesis/
 
@@ -115,6 +116,17 @@ lerna-debug.log*
 *.cache
 orchestrator_state.json
 refactoring_data.json
+
+# ===========================================
+# Security and Secrets
+# ===========================================
+.redis_password*
+*.key
+*.pem
+*.cert
+*.crt
+secrets/
+private/
 
 # ===========================================
 # Database Files
@@ -172,8 +184,14 @@ temp/
 # ===========================================
 # Claude Code Specific
 # ===========================================
-.claude/
+# Allow project-specific .claude directories but block personal config
+.claude.json
+.mcp.json
+/.claude/
 claude
+# Keep project-specific Claude configs
+!development/.claude/
+!projects/.claude/
 
 # ===========================================
 # Development Tools
@@ -270,3 +288,151 @@ development/.env.*.example
 # Planning and Implementation Documents (Keep in repo but track explicitly)
 # ===========================================
 # COMMANDS_AND_SHORTCUTS_IMPLEMENTATION_PLAN.md tracked explicitly
+Tools/plugins/ghidra/GhidraEmu/
+
+# ===========================================
+# .NET SDK and Runtime Caches (Added 2025-10-16)
+# ===========================================
+.dotnet/
+
+# Ghidra third-party plugins (managed separately)
+Tools/plugins/ghidra/GhidraEmu/
+Tools/plugins/ghidra/Ghidra-Cpp-Class-Analyzer/
+Tools/plugins/ghidra/Ghidrathon/
+Tools/plugins/ghidra/LazyGhidra/
+Tools/plugins/ghidra/kaiju/
+Tools/plugins/ghidra/ret-sync/
+
+# Temporary test artifacts
+screenshot_*.png
+take_screenshot.ps1
+
+# Workspace planning documents (use GitHub Issues per doc freeze policy)
+Tools/workspace-launcher/BMAD_WORKSPACE_LAUNCHER_PLAN.md
+Tools/workspace-launcher/*_PLAN.md
+Tools/workspace-launcher/*_ROADMAP.md
+
+# Documentation Freeze - Root Level Blocks
+DEPLOYMENT_CHECKLIST.md
+DEPLOYMENT_RUNBOOK.md
+SYSTEMATIC_*.md
+SYSTEM_*.md
+*_ANALYSIS_*.md
+deployment_verify.ps1
+
+# ===========================================
+# External Tools and Repositories (Added 2025-10-20)
+# ===========================================
+wayback-url-finder/
+docucode-pipeline/
+backups/
+vndes-file-manager/
+windows-amd64/
+
+# ===========================================
+# Package Manager Directories (Added 2025-10-29)
+# ===========================================
+.chocolatey/
+.playwright-mcp/
+
+# ===========================================
+# Personal Insights and Review Documents (Added 2025-10-29)
+# ===========================================
+# Keep these in Insights/ directory if needed, not at root
+/fixes_verification.md
+/improvements.md
+/performance_review.md
+/security_review.md
+
+# ===========================================
+# Workspace Configuration (Added 2025-10-29)
+# ===========================================
+# Allow the workspace file to be tracked
+!corbin-workspace.code-workspace
+!WORKSPACE_SETUP_GUIDE.md
+
+# ===========================================
+# Shell / editor / tool state (Added 2026-04-29)
+# ===========================================
+.bash_history
+.minttyrc
+.esd_auth
+.agents/
+.claude-worktrees/
+.copilot/
+.redis-for-vscode/
+
+# Added 2026-05-20 - extra tool-state dirs surfaced by workspace audit
+.claude-server-commander/
+.okteto/
+.semgrep/
+.vscode-shared/
+
+# Claude Code transient working-dir markers
+tmpclaude-*-cwd
+tmpclaude-*-cwd/
+
+# ===========================================
+# Tool / Build Caches (Added 2026-04-30)
+# ===========================================
+.cagent/
+.m2/
+*.bak.*
+development/GhidraGo/testcontainers.properties
+
+# ===========================================
+# Sample / Scratch Data (Added 2026-04-30)
+# ===========================================
+development/czech_chinese_sample.txt
+development/polish_chinese_sample.txt
+development/russian_chinese_sample.txt
+development/serbian_chinese_sample.txt
+
+# ===========================================
+# Third-Party Demo / Tutorial Trees (Added 2026-04-30)
+# ===========================================
+testcontainers-cloud-java-example/
+welcome-to-docker/
+insights-mind-map/
+
+# ===========================================
+# Top-Level Workspace Scratch Dirs (Added 2026-04-30)
+# ===========================================
+# These live at $HOME and are experiment leftovers, not project content.
+/configs/
+/monitoring/
+/nginx/
+/src/
+/requirements.txt
+
+# ===========================================
+# Kali Setup Scripts (personal env, Added 2026-04-30)
+# ===========================================
+kali-deploy.sh
+kali-final-setup.sh
+kali-post-install.sh
+kali-shell-config.sh
+kali-winkex-setup.sh
+
+# ===========================================
+# Personal Notes / Shortcut References (Added 2026-04-30)
+# ===========================================
+COMPREHENSIVE_SHORTCUTS_AND_COMMANDS.txt
+MY_SHORTCUTS_AND_SCRIPTS.txt
+SHORTCUTS_INDEX.txt
+QUICK_REFERENCE_CARD.txt
+Tools/LowLevel.txt
+Tools/theteamhousepodcast.txt
+
+# Added 2026-05-20 - root-anchored personal/generated reference files
+/skills-lock.json
+/slash-commands-cheatsheet.txt
+
+# ===========================================
+# Per-Project Claude Configs Beyond Existing Exceptions (Added 2026-04-30)
+# ===========================================
+# The existing rules already track development/.claude/ and projects/.claude/;
+# these deeper or sibling .claude/ trees are local-only.
+go-deployment-demo/.claude/
+projects/active/.claude/
+projects/active/**/.claude/

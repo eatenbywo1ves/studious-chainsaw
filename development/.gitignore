@@ -70,14 +70,34 @@ ipython_config.py
 
 # Environments
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
+!.env*.template
+!.env*.example
 .venv
 env/
 venv/
 ENV/
 env.bak/
 venv.bak/
+
+# SECURITY: Explicitly block all environment variants to prevent credential exposure
+# See SECURITY_INCIDENT_REMEDIATION.md for details
+.env.production
+.env.staging
+.env.development
+.env.test
+
+# SECURITY (SEC-001 Fix): Block local environment files containing secrets
+# Deployment scripts now load Redis password from .env.production.local (gitignored)
+*.env.local
+.env.production.local
+.env.staging.local
+.env.development.local
+
+# SECURITY: Redis password rotation temporary files (GitGuardian-001 remediation)
+# Prevents accidental commit of temporary password files created by rotation scripts
+.redis_password*
 
 # Database
 *.db
@@ -251,3 +271,65 @@ proof_library.json
 /ka_lattice_state/
 /ka_knowledge/
 /test_knowledge/
+
+# Type checking & linting
+.mypy_cache/
+.ruff_cache/
+.pyright/
+.dmypy.json
+dmypy.json
+
+# ===== DOCUMENTATION FREEZE (2025-10-14 to 2025-10-28) =====
+# Block new planning/status/analysis documents
+# See ../CORE_PROJECTS.md for rationale
+
+# Forbidden root-level documentation patterns
+*PLAN*.md
+*STATUS*.md
+*ANALYSIS*.md
+*ROADMAP*.md
+*CLEANUP*.md
+*CONSOLIDATION*.md
+*ORGANIZATION*.md
+*DEPLOYMENT_*.md
+*IMPLEMENTATION*.md
+*REPORT*.md
+*GUIDE*.md
+*INDEX*.md
+*REVIEW*.md
+*INVESTIGATION*.md
+*CHECKLIST*.md
+*RUNBOOK*.md
+*VALIDATION*.md
+*SYSTEM_*.md
+
+# Exempt structured docs trees and archives from the freeze ignores above.
+# Mirrors the path exemptions used by .github/hooks/pre-commit so projects
+# can keep MIGRATION_GUIDE.md, etc. inside their docs/ folder.
+!**/docs/**
+!archives/**
+
+# Windows special folders (permission issues)
+NetHood/
+PrintHood/
+Templates/
+
+# ===== TECHNICAL DEBT PREVENTION (Added 2025-10-23) =====
+# Backup files (prevent future clutter)
+*_backup_*.py
+*_backup_*.js
+*_backup_*.ts
+*.py.backup
+*.js.backup
+*backup*.py
+*backup*.js
+
+# Test artifacts (prevent accumulation)
+batch_summary_*.json
+test_batch.json
+scan_request.json
+
+# Completion markers (archive instead of committing)
+*_COMPLETE.md
+*_COMPLETE.txt
+*MIGRATION_COMPLETE*

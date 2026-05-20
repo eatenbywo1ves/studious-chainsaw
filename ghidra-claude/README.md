@@ -28,7 +28,7 @@ Ghidra script for exporting analysis data from the Ghidra GUI.
 **Installation:**
 ```bash
 # Copy to Ghidra scripts directory
-cp ExportForClaude.py "C:\Users\Corbin\Downloads\ghidra-master\build\ghidra_12.0_DEV\Ghidra\Features\Base\ghidra_scripts"
+cp ExportForClaude.py "C:\Users\Corbin\development\ghidra_11.4.2_PUBLIC\Ghidra\Features\Base\ghidra_scripts"
 ```
 
 **Usage in Ghidra:**
@@ -62,8 +62,8 @@ Pre-built analysis workflows for common tasks.
 
 1. **Ghidra Installation**
    - Download from: https://ghidra-sre.org/
-   - Ensure Java 17+ is installed
-   - Your current path: `C:\Users\Corbin\Downloads\ghidra-master\build\ghidra_12.0_DEV`
+   - Ensure Java 11+ is installed
+   - Your current path: `C:\Users\Corbin\development\ghidra_11.4.2_PUBLIC`
 
 2. **Python Dependencies**
 ```bash
@@ -85,7 +85,7 @@ cd C:\Users\Corbin\ghidra-claude
 
 2. **Install the Ghidra script:**
 ```bash
-copy ExportForClaude.py "C:\Users\Corbin\Downloads\ghidra-master\build\ghidra_12.0_DEV\Ghidra\Features\Base\ghidra_scripts"
+copy ExportForClaude.py "C:\Users\Corbin\development\ghidra_11.4.2_PUBLIC\Ghidra\Features\Base\ghidra_scripts"
 ```
 
 3. **Verify Ghidra path in scripts:**
@@ -131,7 +131,7 @@ python ghidra_claude_cli.py --export sample_claude_export.json
 from ghidra_claude_bridge import GhidraClaudeBridge, AnalysisType
 
 # Initialize bridge
-bridge = GhidraClaudeBridge(r"C:\Users\Corbin\Downloads\ghidra-master\build\ghidra_12.0_DEV")
+bridge = GhidraClaudeBridge(r"C:\Users\Corbin\development\ghidra_11.4.2_PUBLIC")
 
 # Analyze binary
 result = bridge.analyze_binary("malware.exe", AnalysisType.MALWARE_INDICATORS)
@@ -282,7 +282,7 @@ prompt = create_claude_prompt(result)
 
 # Send to Claude
 response = client.messages.create(
-    model="claude-3-opus-20240229",
+    model="claude-opus-4-6",
     messages=[{"role": "user", "content": prompt}]
 )
 
@@ -298,7 +298,7 @@ print(response.content)
    - Ensure Ghidra is properly installed
 
 2. **Java errors:**
-   - Verify Java 17+ is installed
+   - Verify Java 11+ is installed
    - Check JAVA_HOME environment variable
 
 3. **Script not appearing in Ghidra:**

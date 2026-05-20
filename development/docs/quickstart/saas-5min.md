@@ -87,7 +87,7 @@ curl http://localhost:8000/health/redis
 
 1. **Explore the API:** Visit http://localhost:8000/docs for interactive documentation
 2. **Understand the architecture:** Read [SaaS Architecture](../architecture/saas-architecture.md)
-3. **Configure for production:** See [Production Deployment Guide](../PRODUCTION_DEPLOYMENT_GUIDE.md)
+3. **Configure for production:** See [Production Deployment Guide](../saas/PRODUCTION_DEPLOYMENT.md)
 4. **Monitor performance:** See [Monitoring Guide](../monitoring/README.md)
 
 ---

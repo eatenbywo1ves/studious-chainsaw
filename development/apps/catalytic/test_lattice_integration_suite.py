@@ -367,7 +367,7 @@ class TestLatticeIntegration(unittest.TestCase):
         print("-" * 50)
 
         try:
-            import plotly.graph_objects as go
+            import plotly.graph_objects as go  # noqa: F401
             from sklearn.decomposition import PCA
         except ImportError:
             print("  [SKIP] Visualization libraries not available")
@@ -556,8 +556,8 @@ class TestReportGenerator:
 
             if "workflow" in test_results["performance"]:
                 report.append("\n### Workflow Performance:")
-                for step, time in test_results["performance"]["workflow"]:
-                    report.append(f"  {step}: {time * 1000:.2f}ms")
+                for step, elapsed in test_results["performance"]["workflow"]:
+                    report.append(f"  {step}: {elapsed * 1000:.2f}ms")
 
         # Memory Analysis
         if test_results.get("memory"):

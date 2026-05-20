@@ -1,0 +1,208 @@
+# Workspace Launcher Configuration
+# YAML-based service and profile definitions
+
+version: "1.0"
+metadata:
+  created: "2025-10-18"
+  description: "Workspace launcher configuration for development environment"
+  author: "Workspace Manager"
+
+# Base path templates
+# Use {variable_name} syntax in service definitions below
+base_paths:
+  home: "{HOME}"
+  development: "{HOME}/development"
+  projects: "{HOME}/projects"
+  tools: "{HOME}/Tools"
+
+# Service Definitions
+# Each service can specify:
+# - name: Display name
+# - command: Command to execute
+# - directory: Working directory
+# - depends_on: List of service dependencies (start order)
+# - port: TCP port (optional)
+# - url: Service URL (optional)
+# - environment: Environment variables
+# - health_check: Health check configuration
+# - startup_timeout: Max seconds to wait for startup
+# - auto_restart: Restart on crash
+# - auto_open_browser: Open URL in browser when ready
+
+services:
+  mcp-orchestrator:
+    name: "MCP Orchestrator"
+    command: "python {tools}/mcp-orchestrator/mcp_orchestrator.py monitor"
+    directory: "{home}"
+    depends_on: []
+    port: null
+    environment:
+      PYTHONPATH: "{home}/shared"
+    health_check:
+      type: "none"
+      timeout: 30
+    startup_timeout: 60
+    auto_restart: false
+    auto_open_browser: false
+
+  mcp-dashboard:
+    name: "MCP Dashboard"
+    command: "python {tools}/mcp-orchestrator/dashboard.py"
+    directory: "{home}"
+    depends_on: ["mcp-orchestrator"]  # Wait for orchestrator first
+    port: 5000
+    url: "http://localhost:5000"
+    environment: {}
+    health_check:
+      type: "tcp"
+      port: 5000
+      timeout: 30
+    startup_timeout: 45
+    auto_restart: true
+    auto_open_browser: true
+    wait_for_port: true
+
+  ghidra-bridge:
+    name: "Ghidra-Claude Bridge"
+    command: "python ghidra-claude/ghidra_claude_bridge.py"
+    directory: "{home}"
+    depends_on: []
+    port: null
+    environment: {}
+    health_check:
+      type: "none"
+      timeout: 60
+    startup_timeout: 90  # Ghidra takes time to start
+    auto_restart: false
+    auto_open_browser: false
+
+  financial-simulator:
+    name: "Financial Simulator"
+    command: "npm run dev"
+    directory: "{projects}/financial-apps/financial-simulator"
+    depends_on: []
+    port: 5173
+    url: "http://localhost:5173"
+    environment:
+      NODE_ENV: "development"
+    health_check:
+      type: "tcp"
+      port: 5173
+      timeout: 30
+    startup_timeout: 60
+    auto_restart: false
+    auto_open_browser: false
+    wait_for_port: true
+
+  api-gateway:
+    name: "API Gateway"
+    command: "python api_gateway.py"
+    directory: "{home}"
+    depends_on: []
+    port: null
+    environment:
+      PYTHONPATH: "{development}/shared"
+    health_check:
+      type: "none"
+      timeout: 30
+    startup_timeout: 60
+    auto_restart: false
+    auto_open_browser: false
+
+  jupyter:
+    name: "Jupyter Lab"
+    command: "jupyter lab --no-browser"
+    directory: "{projects}"
+    depends_on: []
+    port: 8888
+    url: "http://localhost:8888"
+    environment: {}
+    health_check:
+      type: "tcp"
+      port: 8888
+      timeout: 30
+    startup_timeout: 60
+    auto_restart: false
+    auto_open_browser: false
+    wait_for_port: true
+
+  code-server:
+    name: "VS Code Server"
+    command: "code . --new-window"
+    directory: "{projects}/active"
+    depends_on: []
+    port: null
+    environment: {}
+    health_check:
+      type: "none"
+      timeout: 10
+    startup_timeout: 30
+    auto_restart: false
+    auto_open_browser: false
+
+# Profile Definitions
+# Each profile defines a collection of services to start together
+profiles:
+  full:
+    name: "Full Development"
+    description: "All services and tools"
+    services:
+      - mcp-orchestrator
+      - mcp-dashboard
+      - ghidra-bridge
+      - api-gateway
+    projects:
+      - financial-simulator
+    environment:
+      NODE_ENV: "development"
+      PYTHONPATH: "{home}/shared"
+
+  mcp:
+    name: "MCP Services Only"
+    description: "MCP orchestrator and dashboard"
+    services:
+      - mcp-orchestrator
+      - mcp-dashboard
+    projects: []
+    environment: {}
+
+  financial:
+    name: "Financial Development"
+    description: "Financial apps and MCP services"
+    services:
+      - mcp-orchestrator
+      - mcp-dashboard
+    projects:
+      - financial-simulator
+    environment:
+      NODE_ENV: "development"
+
+  reverse-engineering:
+    name: "Reverse Engineering"
+    description: "Ghidra integration tools"
+    services:
+      - ghidra-bridge
+    projects: []
+    environment:
+      GHIDRA_HOME: "{HOME}/Downloads/ghidra-master/build/ghidra_12.0_DEV"
+
+  minimal:
+    name: "Minimal"
+    description: "Basic workspace with code editor"
+    services:
+      - code-server
+    projects: []
+    environment: {}
+
+# Visual Studio Integration (optional)
+visual_studio:
+  enabled: true
+  auto_detect_solutions: true
+  recent_projects_limit: 10
+  search_paths:
+    - "{projects}/active"
+    - "{development}"
+  file_patterns:
+    - "**/*.sln"
+    - "**/*.csproj"
+    - "**/*.vcxproj"

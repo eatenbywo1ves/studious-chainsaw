@@ -1,0 +1,58 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ml-sectest-ingress
+  namespace: ml-sectest
+  labels:
+    app: ml-sectest-framework
+  annotations:
+    # NGINX Ingress Controller annotations
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    
+    # Rate limiting (adjust as needed)
+    nginx.ingress.kubernetes.io/limit-rps: "100"
+    
+    # CORS (if needed beyond app-level CORS)
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-credentials: "true"
+    
+    # Cert-manager for automatic TLS (uncomment if using cert-manager)
+    # cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    
+    # Cloud-specific annotations (uncomment for your cloud provider)
+    
+    # GKE/GCP
+    # kubernetes.io/ingress.class: "gce"
+    # kubernetes.io/ingress.global-static-ip-name: "ml-sectest-ip"
+    
+    # EKS/AWS ALB
+    # kubernetes.io/ingress.class: "alb"
+    # alb.ingress.kubernetes.io/scheme: "internet-facing"
+    # alb.ingress.kubernetes.io/target-type: "ip"
+    
+    # AKS/Azure
+    # kubernetes.io/ingress.class: "azure/application-gateway"
+spec:
+  ingressClassName: nginx
+  
+  # TLS configuration
+  tls:
+  - hosts:
+    - ml-sectest.example.com  # Replace with your domain
+    secretName: ml-sectest-tls  # TLS certificate secret
+  
+  rules:
+  - host: ml-sectest.example.com  # Replace with your domain
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: ml-sectest-api
+            port:
+              number: 80

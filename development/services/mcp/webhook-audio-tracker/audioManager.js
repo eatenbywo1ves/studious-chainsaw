@@ -1,4 +1,3 @@
-const player = require('play-sound')();
 const fs = require('fs');
 const path = require('path');
 const { exec } = require('child_process');
@@ -7,102 +6,84 @@ class AudioManager {
   constructor() {
     this.muted = false;
     this.volume = 0.7;
-    this.audioProfiles = new Map();
     this.soundQueue = [];
     this.isPlaying = false;
 
-    this.initializeDefaultProfiles();
-    this.ensureAudioDirectory();
+    // Windows Media folder path
+    this.windowsMediaPath = 'C:\\Windows\\Media';
+
+    this.initializeSoundMappings();
   }
 
-  initializeDefaultProfiles() {
-    // Default profile - subtle notification sounds
-    this.audioProfiles.set('default', {
-      webhook_received: { frequency: 440, duration: 100, type: 'sine' },
-      webhook_success: { frequency: 523, duration: 150, type: 'sine' },
-      webhook_error: { frequency: 220, duration: 300, type: 'sawtooth' },
-      test: { frequency: 440, duration: 200, type: 'sine' }
-    });
+  initializeSoundMappings() {
+    // Map sound types to Windows .wav files
+    this.soundMappings = {
+      // Default sounds
+      'webhook_received': 'Windows Notify.wav',
+      'webhook_success': 'chimes.wav',
+      'webhook_error': 'Windows Critical Stop.wav',
+      'test': 'ding.wav',
 
-    // Workflow profile - more melodic sounds
-    this.audioProfiles.set('workflow', {
-      workflow_start: { frequencies: [523, 659, 784], duration: 500, type: 'sine' },
-      step_complete: { frequencies: [440, 554, 659], duration: 200, type: 'sine' },
-      step_failed: { frequencies: [330, 294, 220], duration: 400, type: 'sawtooth' },
-      step_progress: { frequency: 494, duration: 100, type: 'sine' },
-      workflow_complete: { frequencies: [523, 659, 784, 1047], duration: 800, type: 'sine' }
-    });
+      // Workflow sounds
+      'workflow_start': 'Windows Logon.wav',
+      'workflow_complete': 'tada.wav',
+      'step_complete': 'Windows Notify System Generic.wav',
+      'step_failed': 'Windows Error.wav',
+      'step_progress': 'Windows Navigation Start.wav',
 
-    // Alert profile - attention-grabbing sounds
-    this.audioProfiles.set('alert', {
-      critical: { frequencies: [880, 440, 880], duration: 1000, type: 'square' },
-      warning: { frequencies: [660, 550], duration: 600, type: 'triangle' },
-      info: { frequency: 440, duration: 300, type: 'sine' }
-    });
+      // Development sounds
+      'build_start': 'Windows Navigation Start.wav',
+      'build_success': 'tada.wav',
+      'build_failed': 'Windows Critical Stop.wav',
+      'test_pass': 'chimes.wav',
+      'test_fail': 'Windows Exclamation.wav',
+      'deploy_start': 'Windows Foreground.wav',
+      'deploy_complete': 'Windows Logon.wav',
+      'git_push': 'Windows Notify.wav',
+      'git_merge': 'chimes.wav',
+      'pr_opened': 'Windows Notify Email.wav',
+      'pr_merged': 'tada.wav',
 
-    // Development profile - distinctive sounds for different events
-    this.audioProfiles.set('development', {
-      build_start: { frequency: 261, duration: 200, type: 'sine' },
-      build_success: { frequencies: [261, 329, 392, 523], duration: 600, type: 'sine' },
-      build_failed: { frequencies: [440, 220], duration: 800, type: 'square' },
-      test_pass: { frequencies: [523, 659], duration: 300, type: 'sine' },
-      test_fail: { frequencies: [330, 220], duration: 500, type: 'sawtooth' },
-      deploy_start: { frequencies: [392, 494, 587], duration: 400, type: 'sine' },
-      deploy_complete: { frequencies: [392, 494, 587, 784], duration: 1000, type: 'sine' },
-      git_push: { frequency: 440, duration: 150, type: 'sine' },
-      git_merge: { frequencies: [440, 554], duration: 300, type: 'sine' },
-      pr_opened: { frequencies: [659, 784], duration: 400, type: 'sine' },
-      pr_merged: { frequencies: [523, 659, 784, 1047], duration: 800, type: 'sine' },
       // Claude Code events
-      claude_task_start: { frequencies: [523, 659], duration: 300, type: 'sine' },
-      claude_task_complete: { frequencies: [523, 659, 784], duration: 400, type: 'sine' },
-      claude_error: { frequencies: [330, 220], duration: 500, type: 'sawtooth' },
-      claude_tool_use: { frequency: 440, duration: 100, type: 'sine' }
-    });
+      'claude_task_start': 'Windows Foreground.wav',
+      'claude_task_complete': 'chimes.wav',
+      'claude_error': 'Windows Error.wav',
+      'claude_tool_use': 'ding.wav',
 
-    // Monitoring profile - status-based sounds
-    this.audioProfiles.set('monitoring', {
-      health_check: { frequency: 440, duration: 50, type: 'sine' },
-      metric_threshold: { frequencies: [550, 660], duration: 400, type: 'triangle' },
-      error_spike: { frequencies: [880, 440, 880], duration: 600, type: 'square' },
-      latency_warning: { frequency: 330, duration: 500, type: 'sawtooth' },
-      traffic_surge: { frequencies: [440, 550, 660], duration: 300, type: 'sine' }
-    });
+      // Alert sounds
+      'critical': 'Windows Critical Stop.wav',
+      'warning': 'Windows Exclamation.wav',
+      'info': 'Windows Balloon.wav',
 
-    // Communication profile - for chat/messaging events
-    this.audioProfiles.set('communication', {
-      message_received: { frequency: 659, duration: 100, type: 'sine' },
-      mention: { frequencies: [659, 784], duration: 200, type: 'sine' },
-      dm_received: { frequencies: [523, 659], duration: 250, type: 'sine' },
-      user_joined: { frequencies: [392, 523], duration: 300, type: 'sine' },
-      user_left: { frequencies: [523, 392], duration: 300, type: 'sine' }
-    });
-  }
+      // Monitoring sounds
+      'health_check': 'ding.wav',
+      'metric_threshold': 'Windows Exclamation.wav',
+      'error_spike': 'Alarm01.wav',
+      'latency_warning': 'Windows Battery Low.wav',
+      'traffic_surge': 'Windows Notify System Generic.wav',
 
-  ensureAudioDirectory() {
-    const audioDir = path.join(__dirname, 'audio_cache');
-    if (!fs.existsSync(audioDir)) {
-      fs.mkdirSync(audioDir, { recursive: true });
-    }
+      // Communication sounds
+      'message_received': 'Windows Notify Messaging.wav',
+      'mention': 'Windows Notify.wav',
+      'dm_received': 'notify.wav',
+      'user_joined': 'Windows Hardware Insert.wav',
+      'user_left': 'Windows Hardware Remove.wav'
+    };
   }
 
   async playWebhookSound(event, profileName = 'default') {
     if (this.muted) return;
 
-    // Determine sound based on event characteristics
     let soundType = 'webhook_received';
 
-    // Check for specific patterns in the event
     if (event.body) {
       if (event.body.status === 'success' || event.body.success === true) {
         soundType = 'webhook_success';
       } else if (event.body.status === 'error' || event.body.error) {
         soundType = 'webhook_error';
       } else if (event.body.type) {
-        // Try to map event type to a sound
         const eventType = event.body.type.toLowerCase();
-        const profile = this.audioProfiles.get(profileName);
-        if (profile && profile[eventType]) {
+        if (this.soundMappings[eventType]) {
           soundType = eventType;
         }
       }
@@ -114,26 +95,15 @@ class AudioManager {
   async playSound(soundType, profileName = 'default') {
     if (this.muted) return;
 
-    const profile = this.audioProfiles.get(profileName) || this.audioProfiles.get('default');
-    const soundConfig = profile ? profile[soundType] || profile['test'] : null;
+    const wavFile = this.soundMappings[soundType] || this.soundMappings['test'];
 
-    // Validate soundConfig before adding to queue
-    if (!soundConfig) {
-      console.warn(`Sound type "${soundType}" not found in profile "${profileName}", using default test sound`);
-      const defaultProfile = this.audioProfiles.get('default');
-      const fallbackConfig = defaultProfile ? defaultProfile['test'] : null;
-      if (fallbackConfig) {
-        this.soundQueue.push({ soundConfig: fallbackConfig, soundType: 'test', profileName: 'default' });
-      } else {
-        console.error('No fallback sound available');
-        return;
-      }
-    } else {
-      // Add to queue
-      this.soundQueue.push({ soundConfig, soundType, profileName });
+    if (!wavFile) {
+      console.warn(`No sound mapping for "${soundType}", using default`);
+      return;
     }
 
-    // Process queue if not already playing
+    this.soundQueue.push({ wavFile, soundType });
+
     if (!this.isPlaying) {
       this.processQueue();
     }
@@ -146,131 +116,96 @@ class AudioManager {
     }
 
     this.isPlaying = true;
-    const { soundConfig, soundType, profileName } = this.soundQueue.shift();
-
-    // Additional safety check
-    if (!soundConfig) {
-      console.error('Invalid soundConfig in queue');
-      setTimeout(() => this.processQueue(), 50);
-      return;
-    }
+    const { wavFile, soundType } = this.soundQueue.shift();
 
     try {
-      if (soundConfig.frequencies) {
-        // Play a sequence of tones
-        for (const freq of soundConfig.frequencies) {
-          await this.generateAndPlayTone(freq, soundConfig.duration / soundConfig.frequencies.length, soundConfig.type);
-        }
-      } else if (soundConfig.frequency) {
-        // Play a single tone
-        await this.generateAndPlayTone(soundConfig.frequency, soundConfig.duration, soundConfig.type);
-      } else {
-        console.error('Sound config missing frequency data:', soundConfig);
-      }
+      await this.playWavFile(wavFile);
+      console.log(`Played sound: ${soundType} (${wavFile})`);
     } catch (error) {
-      console.error('Error playing sound:', error);
+      console.error(`Error playing sound ${soundType}:`, error.message);
     }
 
-    // Process next sound in queue
-    setTimeout(() => this.processQueue(), 50);
+    // Small delay between sounds
+    setTimeout(() => this.processQueue(), 100);
   }
 
-  generateAndPlayTone(frequency, duration, waveType = 'sine') {
-    return new Promise((resolve) => {
-      // For Windows, use PowerShell to generate beeps
-      if (process.platform === 'win32') {
-        const command = `powershell -c "[console]::beep(${Math.round(frequency)}, ${Math.round(duration)})"`;
-        exec(command, (error) => {
-          if (error) {
-            console.error('Error playing beep:', error);
-            // Fallback to simple console beep
-            process.stdout.write('\x07');
-          }
-          resolve();
-        });
-      } else {
-        // For Unix-like systems, try to use sox or ffplay
-        const durationInSeconds = duration / 1000;
-        const command = `play -n synth ${durationInSeconds} ${waveType} ${frequency} vol ${this.volume} 2>/dev/null || ffplay -f lavfi -i "sine=frequency=${frequency}:duration=${durationInSeconds}" -autoexit -nodisp -loglevel quiet 2>/dev/null || echo -e "\a"`;
+  playWavFile(filename) {
+    return new Promise((resolve, reject) => {
+      const fullPath = path.join(this.windowsMediaPath, filename);
 
-        exec(command, (error) => {
-          if (error) {
-            // Fallback to console beep
-            process.stdout.write('\x07');
-          }
-          resolve();
-        });
+      // Check if file exists
+      if (!fs.existsSync(fullPath)) {
+        console.warn(`Sound file not found: ${fullPath}, trying fallback`);
+        const fallbackPath = path.join(this.windowsMediaPath, 'ding.wav');
+        if (fs.existsSync(fallbackPath)) {
+          this.playWavFileInternal(fallbackPath, resolve, reject);
+        } else {
+          reject(new Error(`Sound file not found: ${filename}`));
+        }
+        return;
       }
+
+      this.playWavFileInternal(fullPath, resolve, reject);
+    });
+  }
+
+  playWavFileInternal(fullPath, resolve, reject) {
+    if (process.platform === 'win32') {
+      // Use PowerShell Media.SoundPlayer for Windows
+      const escapedPath = fullPath.replace(/'/g, "''");
+      const command = `powershell -NoProfile -c "(New-Object Media.SoundPlayer '${escapedPath}').PlaySync()"`;
+
+      exec(command, { timeout: 10000 }, (error) => {
+        if (error) {
+          console.error('PowerShell playback error:', error.message);
+          reject(error);
+        } else {
+          resolve();
+        }
+      });
+    } else {
+      // For Unix-like systems, try aplay, paplay, or ffplay
+      const command = `aplay "${fullPath}" 2>/dev/null || paplay "${fullPath}" 2>/dev/null || ffplay -nodisp -autoexit "${fullPath}" 2>/dev/null`;
+
+      exec(command, { timeout: 10000 }, (error) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve();
+        }
+      });
+    }
+  }
+
+  // Play a custom .wav file from any path
+  async playCustomSound(filePath) {
+    if (this.muted) return;
+
+    return new Promise((resolve, reject) => {
+      this.playWavFileInternal(filePath, resolve, reject);
     });
   }
 
   configureProfile(profileName, sounds) {
-    if (!this.audioProfiles.has(profileName)) {
-      this.audioProfiles.set(profileName, {});
-    }
-
-    const profile = this.audioProfiles.get(profileName);
-    Object.assign(profile, sounds);
+    // Add custom sound mappings
+    Object.assign(this.soundMappings, sounds);
   }
 
   setMuted(muted) {
     this.muted = muted;
     if (muted) {
-      this.soundQueue = []; // Clear queue when muting
+      this.soundQueue = [];
     }
   }
 
   setVolume(volume) {
     this.volume = Math.max(0, Math.min(1, volume));
+    // Note: Volume control would require more complex audio handling
   }
 
-  // Generate audio patterns for different event types
-  generateAudioPattern(eventType, data = {}) {
-    const patterns = {
-      'rapid_success': [
-        { frequency: 523, duration: 50 },
-        { frequency: 659, duration: 50 },
-        { frequency: 784, duration: 100 }
-      ],
-      'cascade_failure': [
-        { frequency: 440, duration: 100 },
-        { frequency: 330, duration: 100 },
-        { frequency: 220, duration: 200 }
-      ],
-      'progress_indicator': [
-        { frequency: 440, duration: 100 },
-        { frequency: 494, duration: 100 },
-        { frequency: 554, duration: 100 }
-      ],
-      'completion_fanfare': [
-        { frequency: 523, duration: 200 },
-        { frequency: 659, duration: 200 },
-        { frequency: 784, duration: 200 },
-        { frequency: 1047, duration: 400 }
-      ],
-      'alert_escalation': [
-        { frequency: 440, duration: 200 },
-        { frequency: 440, duration: 200 },
-        { frequency: 880, duration: 400 }
-      ]
-    };
-
-    return patterns[eventType] || patterns['progress_indicator'];
-  }
-
-  // Play custom pattern
-  async playPattern(pattern) {
-    if (this.muted) return;
-
-    for (const note of pattern) {
-      await this.generateAndPlayTone(
-        note.frequency,
-        note.duration,
-        note.type || 'sine'
-      );
-      // Small gap between notes
-      await new Promise(resolve => setTimeout(resolve, 10));
-    }
+  // Get list of available sounds
+  getAvailableSounds() {
+    return Object.keys(this.soundMappings);
   }
 }
 

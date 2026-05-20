@@ -100,9 +100,43 @@ class DatabaseMigrator:
         self.log("✓ Target schema created")
 
     def get_table_row_count(self, engine, table_name: str) -> int:
-        """Get row count for a table"""
+        """
+        Get row count for a table
+
+        SECURITY (SEC-004 Fix): SQL injection prevention using parameterized queries
+        """
+        # Whitelist allowed table names to prevent SQL injection
+        # Map table names to their SQLAlchemy models
+        from database.models import (
+            Tenant,
+            User,
+            Subscription,
+            ApiKey,
+            TenantLattice,
+            Session as SessionModel
+        )
+
+        table_model_map = {
+            'tenants': Tenant,
+            'users': User,
+            'subscriptions': Subscription,
+            'api_keys': ApiKey,
+            'tenant_lattices': TenantLattice,
+            'sessions': SessionModel,
+        }
+
+        if table_name not in table_model_map:
+            raise ValueError(
+                f"SECURITY: Invalid table name '{table_name}'. "
+                f"Allowed tables: {', '.join(table_model_map.keys())}"
+            )
+
+        # Use SQLAlchemy ORM to safely query count (prevents SQL injection)
+        from sqlalchemy import func, select
+        model = table_model_map[table_name]
+
         with engine.connect() as conn:
-            result = conn.execute(text(f"SELECT COUNT(*) FROM {table_name}"))
+            result = conn.execute(select(func.count()).select_from(model))
             return result.scalar()
 
     def migrate_table_data(self, model_class):

@@ -8,7 +8,7 @@ References:
 - Goal: Extract private training data from ML models
 """
 
-from typing import Dict, Any
+from typing import Dict, Any, List, cast
 import requests
 
 import sys
@@ -23,7 +23,7 @@ from core.base_agent import (
 class ModelInversionAgent(BaseSecurityAgent):
     """
     Agent specialized in model inversion attacks.
-    
+
     Techniques:
     1. Gradient-based reconstruction
     2. Membership inference
@@ -31,7 +31,7 @@ class ModelInversionAgent(BaseSecurityAgent):
     4. Training data extraction
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             agent_id="model_inversion_001",
             name="Model Inversion Specialist",
@@ -48,7 +48,7 @@ class ModelInversionAgent(BaseSecurityAgent):
     def analyze(self, context: AgentContext) -> TestResult:
         """
         Analyze model for inversion vulnerability.
-        
+
         Tests:
         1. Check if model exposes confidence scores
         2. Test if model is deterministic
@@ -109,7 +109,7 @@ class ModelInversionAgent(BaseSecurityAgent):
     def exploit(self, context: AgentContext, test_result: TestResult) -> TestResult:
         """
         Attempt model inversion to extract training data or sensitive information.
-        
+
         Approach:
         1. Query model with systematic inputs
         2. Analyze prediction patterns
@@ -210,7 +210,7 @@ class ModelInversionAgent(BaseSecurityAgent):
     def _test_output_granularity(self, target_url: str) -> float:
         """
         Test output granularity level.
-        
+
         Returns:
             Float between 0 and 1 indicating granularity (higher = more detailed)
         """
@@ -259,7 +259,7 @@ class ModelInversionAgent(BaseSecurityAgent):
     def _membership_inference_attack(self, target_url: str) -> Dict[str, Any]:
         """
         Perform membership inference attack.
-        
+
         Determines if specific data points were in training set.
         """
         result = {"success": False, "details": "", "inferred_data": []}
@@ -290,7 +290,7 @@ class ModelInversionAgent(BaseSecurityAgent):
                     # Check for high-confidence indicators
                     if any(indicator in response_text for indicator in ['high', 'certain', '0.9', '90%']):
                         confidence_scores.append((test_value, category, "high"))
-                        result["inferred_data"].append(f"Likely training member: {test_value}")
+                        cast(List[str], result["inferred_data"]).append(f"Likely training member: {test_value}")
 
             if confidence_scores:
                 result["success"] = True
@@ -304,7 +304,7 @@ class ModelInversionAgent(BaseSecurityAgent):
     def _attribute_inference_attack(self, target_url: str) -> Dict[str, Any]:
         """
         Perform attribute inference attack.
-        
+
         Infers sensitive attributes from model predictions.
         """
         result = {"success": False, "details": "", "attributes": []}
@@ -332,14 +332,14 @@ class ModelInversionAgent(BaseSecurityAgent):
                     # Check for sensitive data patterns
                     sensitive_patterns = ['password', 'secret', 'flag{', 'admin', 'private']
                     if any(pattern in response_text.lower() for pattern in sensitive_patterns):
-                        result["attributes"].append({
+                        cast(List[Dict[str, Any]], result["attributes"]).append({
                             "probe": probe,
                             "response_excerpt": response_text[:200]
                         })
                         result["success"] = True
 
             if result["success"]:
-                result["details"] = f"Inferred {len(result['attributes'])} sensitive attributes"
+                result["details"] = f"Inferred {len(cast(List[Dict[str, Any]], result['attributes']))} sensitive attributes"
 
         except Exception as error:
             self.logger.debug(f"Attribute inference failed: {str(error)}")
@@ -349,7 +349,7 @@ class ModelInversionAgent(BaseSecurityAgent):
     def _direct_data_extraction(self, target_url: str) -> Dict[str, Any]:
         """
         Attempt direct extraction of training data.
-        
+
         Uses targeted queries to reconstruct training samples.
         """
         result = {"success": False, "details": "", "data": []}
@@ -376,14 +376,14 @@ class ModelInversionAgent(BaseSecurityAgent):
 
                     # Check for data extraction indicators
                     if len(response_text) > 100:  # Significant response
-                        result["data"].append({
+                        cast(List[Dict[str, Any]], result["data"]).append({
                             "query": str(query),
                             "extracted": response_text[:500]
                         })
                         result["success"] = True
 
             if result["success"]:
-                result["details"] = f"Extracted {len(result['data'])} data samples"
+                result["details"] = f"Extracted {len(cast(List[Dict[str, Any]], result['data']))} data samples"
 
         except Exception as error:
             self.logger.debug(f"Direct extraction failed: {str(error)}")

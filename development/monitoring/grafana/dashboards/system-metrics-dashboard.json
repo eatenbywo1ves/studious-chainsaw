@@ -100,8 +100,19 @@
             "expr": "nvidia_gpu_temperature_celsius",
             "legendFormat": "GPU {{instance}} Temperature (°C)",
             "refId": "C"
+          },
+          {
+            "expr": "nvidia_gpu_power_draw_watts",
+            "legendFormat": "GPU {{instance}} Power Draw (W)",
+            "refId": "D"
+          },
+          {
+            "expr": "nvidia_gpu_throttle_reasons > 0",
+            "legendFormat": "GPU {{instance}} Throttling Active",
+            "refId": "E"
           }
-        ]
+        ],
+        "description": "GPU utilization, memory, temperature, power consumption, and throttling status. Throttling may indicate thermal limits or power constraints affecting performance."
       },
       {
         "id": 4,
@@ -367,6 +378,164 @@
             "refId": "D"
           }
         ]
+      },
+      {
+        "id": 13,
+        "title": "⚠️ Predicted Memory Exhaustion",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 34},
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 0.5},
+                {"color": "red", "value": 1}
+              ]
+            },
+            "mappings": [
+              {
+                "type": "value",
+                "options": {
+                  "0": {"text": "No Risk", "color": "green"},
+                  "1": {"text": "WARNING: <1h to limit", "color": "red"}
+                }
+              }
+            ]
+          }
+        },
+        "options": {
+          "colorMode": "background",
+          "graphMode": "area",
+          "textMode": "value_and_name"
+        },
+        "targets": [
+          {
+            "expr": "predict_linear(container_memory_usage_bytes[1h], 3600) > container_memory_limit_bytes",
+            "refId": "A"
+          }
+        ],
+        "description": "Predicts if memory will exceed container limits in the next hour based on current growth trend. Critical for preventing OOM kills."
+      },
+      {
+        "id": 14,
+        "title": "Estimated GPU Compute Cost",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 34},
+        "fieldConfig": {
+          "defaults": {
+            "unit": "currencyUSD",
+            "decimals": 2,
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 10},
+                {"color": "red", "value": 20}
+              ]
+            }
+          }
+        },
+        "options": {
+          "colorMode": "value",
+          "graphMode": "area",
+          "textMode": "value_and_name"
+        },
+        "targets": [
+          {
+            "expr": "(avg(nvidia_gpu_utilization_gpu) / 100) * 0.30",
+            "refId": "A"
+          }
+        ],
+        "description": "Estimated hourly GPU compute cost at $0.30/GPU-hour based on current utilization. Helps track infrastructure spending."
+      },
+      {
+        "id": 15,
+        "title": "System Availability SLO (99.9%)",
+        "type": "gauge",
+        "gridPos": {"h": 4, "w": 6, "x": 12, "y": 34},
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 99,
+            "max": 100,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "red", "value": null},
+                {"color": "yellow", "value": 99.5},
+                {"color": "green", "value": 99.9}
+              ]
+            }
+          }
+        },
+        "options": {
+          "showThresholdLabels": true,
+          "showThresholdMarkers": true
+        },
+        "targets": [
+          {
+            "expr": "(1 - (sum(rate(up{job=~\"catalytic.*\"}[5m]) == 0) / count(up{job=~\"catalytic.*\"}))) * 100",
+            "refId": "A"
+          }
+        ],
+        "description": "System availability SLO: 99.9% uptime target. Tracks service health across all components."
+      },
+      {
+        "id": 16,
+        "title": "GPU Throttling Events",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 18, "y": 34},
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 1},
+                {"color": "red", "value": 10}
+              ]
+            }
+          }
+        },
+        "options": {
+          "colorMode": "background",
+          "graphMode": "area",
+          "textMode": "value_and_name"
+        },
+        "targets": [
+          {
+            "expr": "sum(nvidia_gpu_throttle_reasons > 0)",
+            "refId": "A"
+          }
+        ],
+        "description": "Current count of GPUs experiencing throttling. Indicates thermal, power, or clock limits reducing performance."
+      }
+    ],
+    "links": [
+      {
+        "title": "Circuit Breaker Dashboard",
+        "type": "link",
+        "url": "/d/catalytic-staging-circuit-breaker",
+        "targetBlank": false
+      },
+      {
+        "title": "SEC-011 Security Dashboard",
+        "type": "link",
+        "url": "/d/sec-011/sec-011-request-size-monitoring",
+        "targetBlank": false
+      },
+      {
+        "title": "Business Metrics Dashboard",
+        "type": "link",
+        "url": "/d/business-metrics/business-metrics-dashboard",
+        "targetBlank": false
+      },
+      {
+        "title": "Developer Workflow Dashboard",
+        "type": "link",
+        "url": "/d/developer-workflow/developer-workflow-dashboard",
+        "targetBlank": false
       }
     ],
     "time": {

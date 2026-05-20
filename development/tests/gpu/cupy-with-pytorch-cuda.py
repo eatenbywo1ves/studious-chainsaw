@@ -32,7 +32,7 @@ if hasattr(os, "add_dll_directory"):
         os.add_dll_directory(torch_lib)
         os.add_dll_directory(torch_bin)
         print("\n[CONFIGURED] Added DLL directories")
-    except:
+    except OSError:
         pass
 
 print("\n[TESTING] Importing CuPy...")

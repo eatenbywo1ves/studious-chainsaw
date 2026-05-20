@@ -4,12 +4,20 @@ Email Service Setup and Testing Script
 Tests SendGrid, AWS SES, and SMTP email delivery
 """
 
-import os
+import sys
+from pathlib import Path
 from datetime import datetime
 from dotenv import load_dotenv
 
 # Load environment
 load_dotenv()
+
+# ✅ MIGRATED: Import centralized configuration system
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from shared.config import get_settings  # noqa: E402
+
+# Load configuration (validated and type-safe)
+_config = get_settings()
 
 
 def test_sendgrid():
@@ -18,7 +26,8 @@ def test_sendgrid():
     print("TESTING SENDGRID")
     print("=" * 70 + "\n")
 
-    api_key = os.getenv("SENDGRID_API_KEY")
+    # ✅ MIGRATED: Use centralized SendGrid configuration
+    api_key = _config.email.sendgrid_api_key.get_secret_value() if _config.email.sendgrid_api_key else None
 
     if not api_key or api_key == "SG.YOUR_API_KEY_HERE":
         print("[SKIP] SendGrid API key not configured")
@@ -35,8 +44,9 @@ def test_sendgrid():
         from sendgrid import SendGridAPIClient
         from sendgrid.helpers.mail import Mail
 
-        email_from = os.getenv("EMAIL_FROM", "noreply@catalyticcomputing.com")
-        email_from_name = os.getenv("EMAIL_FROM_NAME", "Catalytic Computing")
+        # ✅ MIGRATED: Use centralized email configuration
+        email_from = _config.email.email_from
+        email_from_name = _config.email.email_from_name
 
         # Get test recipient
         test_email = input("Enter test email address (or press Enter to skip): ").strip()
@@ -63,7 +73,7 @@ def test_sendgrid():
                             <li><strong>Provider:</strong> SendGrid</li>
                             <li><strong>Timestamp:</strong> {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}</li>
                             <li><strong>From:</strong> {email_from}</li>
-                            <li><strong>Environment:</strong> {os.getenv("APP_ENV", "development")}</li>
+                            <li><strong>Environment:</strong> {_config.app.env.value}</li>
                         </ul>
                     </div>
 
@@ -106,9 +116,10 @@ def test_aws_ses():
     print("TESTING AWS SES")
     print("=" * 70 + "\n")
 
-    access_key = os.getenv("AWS_ACCESS_KEY_ID")
-    secret_key = os.getenv("AWS_SECRET_ACCESS_KEY")
-    region = os.getenv("AWS_REGION", "us-east-1")
+    # ✅ MIGRATED: Use centralized AWS configuration
+    access_key = _config.email.aws_access_key_id.get_secret_value() if _config.email.aws_access_key_id else None
+    secret_key = _config.email.aws_secret_access_key.get_secret_value() if _config.email.aws_secret_access_key else None
+    region = _config.email.aws_region
 
     if not access_key or not secret_key:
         print("[SKIP] AWS credentials not configured")
@@ -128,7 +139,8 @@ def test_aws_ses():
         import boto3
         from botocore.exceptions import ClientError
 
-        email_from = os.getenv("EMAIL_FROM", "noreply@catalyticcomputing.com")
+        # ✅ MIGRATED: Use centralized email configuration
+        email_from = _config.email.email_from
 
         # Get test recipient
         test_email = input("Enter test email address (or press Enter to skip): ").strip()
@@ -205,10 +217,11 @@ def test_smtp():
     print("TESTING SMTP")
     print("=" * 70 + "\n")
 
-    smtp_host = os.getenv("SMTP_HOST")
-    smtp_port = os.getenv("SMTP_PORT", "587")
-    smtp_username = os.getenv("SMTP_USERNAME")
-    smtp_password = os.getenv("SMTP_PASSWORD")
+    # ✅ MIGRATED: Use centralized SMTP configuration
+    smtp_host = _config.email.smtp_host
+    smtp_port = _config.email.smtp_port
+    smtp_username = _config.email.smtp_username
+    smtp_password = _config.email.smtp_password.get_secret_value() if _config.email.smtp_password else None
 
     if not smtp_host or not smtp_username or not smtp_password:
         print("[SKIP] SMTP credentials not configured")
@@ -228,7 +241,8 @@ def test_smtp():
         from email.mime.text import MIMEText
         from email.mime.multipart import MIMEMultipart
 
-        email_from = os.getenv("EMAIL_FROM", smtp_username)
+        # ✅ MIGRATED: Use centralized email configuration (fallback to SMTP username if EMAIL_FROM not set)
+        email_from = _config.email.email_from if _config.email.email_from != "noreply@catalyticcomputing.com" else smtp_username
 
         # Get test recipient
         test_email = input("Enter test email address (or press Enter to skip): ").strip()
@@ -290,22 +304,23 @@ def show_email_config():
     print("CURRENT EMAIL CONFIGURATION")
     print("=" * 70 + "\n")
 
+    # ✅ MIGRATED: Use centralized email configuration
     configs = {
         "SendGrid": {
-            "API Key": os.getenv("SENDGRID_API_KEY", "NOT SET"),
-            "From Email": os.getenv("EMAIL_FROM", "NOT SET"),
-            "From Name": os.getenv("EMAIL_FROM_NAME", "NOT SET"),
+            "API Key": _config.email.sendgrid_api_key.get_secret_value()[:20] + "..." if _config.email.sendgrid_api_key else "NOT SET",
+            "From Email": _config.email.email_from if _config.email.email_from else "NOT SET",
+            "From Name": _config.email.email_from_name if _config.email.email_from_name else "NOT SET",
         },
         "AWS SES": {
-            "Access Key ID": os.getenv("AWS_ACCESS_KEY_ID", "NOT SET"),
-            "Secret Key": "***" if os.getenv("AWS_SECRET_ACCESS_KEY") else "NOT SET",
-            "Region": os.getenv("AWS_REGION", "NOT SET"),
+            "Access Key ID": _config.email.aws_access_key_id.get_secret_value() if _config.email.aws_access_key_id else "NOT SET",
+            "Secret Key": "***" if _config.email.aws_secret_access_key else "NOT SET",
+            "Region": _config.email.aws_region if _config.email.aws_region else "NOT SET",
         },
         "SMTP": {
-            "Host": os.getenv("SMTP_HOST", "NOT SET"),
-            "Port": os.getenv("SMTP_PORT", "NOT SET"),
-            "Username": os.getenv("SMTP_USERNAME", "NOT SET"),
-            "Password": "***" if os.getenv("SMTP_PASSWORD") else "NOT SET",
+            "Host": _config.email.smtp_host if _config.email.smtp_host else "NOT SET",
+            "Port": str(_config.email.smtp_port) if _config.email.smtp_port else "NOT SET",
+            "Username": _config.email.smtp_username if _config.email.smtp_username else "NOT SET",
+            "Password": "***" if _config.email.smtp_password else "NOT SET",
         },
     }
 

@@ -276,25 +276,163 @@ print(f"Analysis exported to {output_path}")
 
         functions = ghidra_data.get("functions", [])
 
+        # Expanded pattern keyword lists for comprehensive detection
+        vulnerability_patterns = [
+            # Dangerous/unsafe functions
+            "strcpy", "strcat", "sprintf", "vsprintf", "gets", "scanf", "sscanf",
+            "vscanf", "vsscanf", "strtok", "realpath",
+            # Bounded versions (still review-worthy)
+            "strncpy", "strncat", "snprintf", "vsnprintf", "fgets", "strtok_r",
+            # Wide string operations
+            "wcscpy", "wcscat", "wcslen", "wcscmp", "wcsncpy", "wcsncat",
+            "wprintf", "wsprintf", "swprintf", "vswprintf",
+            # Windows string functions
+            "lstrcpy", "lstrcat", "wsprintfa", "wsprintfw",
+            # Format string related
+            "printf", "fprintf", "dprintf", "vprintf", "vfprintf", "syslog",
+            # Memory operations
+            "memcpy", "memmove", "memset", "alloc", "malloc", "realloc", "free"
+        ]
+
+        crypto_patterns = [
+            # Symmetric ciphers
+            "crypt", "aes", "des", "3des", "blowfish", "twofish", "serpent",
+            "camellia", "rc4", "rc5", "rc6", "chacha", "salsa", "aria",
+            # Asymmetric/PKI
+            "rsa", "dsa", "ecdsa", "ecdh", "diffie", "hellman", "curve25519",
+            "ed25519", "x25519", "secp256", "pubkey", "privkey", "keypair",
+            # Hashing
+            "sha", "sha1", "sha256", "sha384", "sha512", "sha3", "md4", "md5",
+            "hash", "digest", "hmac", "pbkdf", "scrypt", "argon2", "bcrypt",
+            "blake2", "blake3", "ripemd", "crc32", "checksum",
+            # General crypto
+            "cipher", "encrypt", "decrypt", "crypto", "ssl", "tls", "x509",
+            "certificate", "sign", "verify", "pkcs", "pem", "der", "base64",
+            "encode", "decode", "iv", "nonce", "salt", "key", "secret",
+            "random", "rand", "entropy", "openssl", "botan", "sodium",
+            "gcm", "cbc", "ecb", "ctr", "padding"
+        ]
+
+        malware_patterns = [
+            # Code injection
+            "hook", "inject", "injection", "detour", "trampoline", "patch",
+            "shellcode", "payload", "stub", "cave",
+            # Process manipulation
+            "createremotethread", "ntcreatethreadex", "rtlcreateuserthread",
+            "queueuserapc", "setthreadcontext", "writeprocessmemory",
+            "readprocessmemory", "hollowing", "runpe", "reflective",
+            # Hiding/evasion
+            "hide", "hidden", "stealth", "rootkit", "bootkit", "dkom",
+            # Persistence
+            "persist", "autorun", "startup", "runonce", "scheduled_task",
+            # Keylogging
+            "keylog", "getasynckeystate", "getkeystate", "setwindowshook",
+            # Network malware
+            "backdoor", "reverse_shell", "bind_shell", "c2", "beacon",
+            "exfil", "dropper", "downloader", "stager", "implant", "rat",
+            # Anti-analysis
+            "antidebug", "isdebuggerpresent", "checkremotedebuggerpresent",
+            "antivm", "vmware", "virtualbox", "sandbox",
+            # Credential theft
+            "mimikatz", "lsass", "sam", "credential", "hash_dump", "dcsync"
+        ]
+
+        network_patterns = [
+            # Socket operations
+            "socket", "send", "recv", "connect", "bind", "listen", "accept",
+            "closesocket", "select", "poll", "getsockopt", "setsockopt",
+            # Addressing
+            "inet", "getaddrinfo", "gethostbyname", "dns", "resolve",
+            # Protocols
+            "http", "https", "ftp", "ssh", "telnet", "smtp", "tcp", "udp",
+            "ldap", "kerberos", "websocket",
+            # Windows networking
+            "winsock", "wsastartup", "wininet", "winhttp", "internetopen",
+            "urldownload"
+        ]
+
+        anti_debug_patterns = [
+            # Windows anti-debug APIs
+            "isdebuggerpresent", "checkremotedebuggerpresent", "ntqueryinformationprocess",
+            "ntsetinformationthread", "debugactiveprocess", "outputdebugstring",
+            # Timing-based
+            "rdtsc", "queryperformancecounter", "gettickcount", "timegettime",
+            # Exception-based
+            "setunhandledexceptionfilter", "addvectoredexceptionhandler",
+            # Hardware breakpoint detection
+            "getthreadcontext", "dr0", "dr1", "dr2", "dr3", "dr6", "dr7",
+            # INT instructions
+            "int3", "int2d", "trap_flag",
+            # Anti-VM
+            "cpuid", "sidt", "sgdt", "vmware", "virtualbox", "vbox", "qemu",
+            "hyperv", "sandbox", "cuckoo",
+            # Process enumeration
+            "createtoolhelp32snapshot", "process32first", "process32next"
+        ]
+
+        privilege_escalation_patterns = [
+            # Token manipulation
+            "openprocesstoken", "duplicatetoken", "impersonateloggedonuser",
+            "adjusttokenprivileges", "setthreadtoken", "reverttoself",
+            # Privileges
+            "se_debug_privilege", "se_impersonate_privilege", "se_tcb_privilege",
+            # UAC bypass
+            "autoelevate", "fodhelper", "eventvwr", "sdclt",
+            # Service manipulation
+            "openscmanager", "createservice", "startservice"
+        ]
+
+        registry_patterns = [
+            "regopen", "regclose", "regcreate", "regdelete", "regquery", "regset",
+            "regenumkey", "regenumvalue", "regopenkeyex", "regcreatekeyex",
+            "regqueryvalueex", "regsetvalueex", "ntopenkey", "ntcreatekey",
+            "hkey_local_machine", "hkey_current_user", "currentversion\\run"
+        ]
+
+        process_thread_patterns = [
+            "createprocess", "createthread", "createremotethread", "openprocess",
+            "terminateprocess", "suspendthread", "resumethread", "ntcreateprocess",
+            "ntcreatethreadex", "queueuserapc", "waitforsingleobject"
+        ]
+
         if analysis_type == AnalysisType.VULNERABILITY_SCAN:
-            # Focus on functions with dangerous patterns
-            dangerous_funcs = ["strcpy", "sprintf", "gets", "scanf", "strcat"]
             for func in functions:
-                if any(df in func.get("name", "").lower() for df in dangerous_funcs):
+                if any(df in func.get("name", "").lower() for df in vulnerability_patterns):
                     context["relevant_functions"].append(func)
 
         elif analysis_type == AnalysisType.CRYPTO_IDENTIFICATION:
-            # Look for crypto-related patterns
-            crypto_indicators = ["aes", "rsa", "sha", "md5", "crypt", "cipher", "key"]
             for func in functions:
-                if any(ci in func.get("name", "").lower() for ci in crypto_indicators):
+                if any(ci in func.get("name", "").lower() for ci in crypto_patterns):
                     context["relevant_functions"].append(func)
 
         elif analysis_type == AnalysisType.MALWARE_INDICATORS:
-            # Focus on suspicious behavior patterns
-            suspicious = ["inject", "hook", "hide", "rootkit", "backdoor", "payload"]
-            for func in functions[:20]:  # Analyze first 20 functions
-                context["relevant_functions"].append(func)
+            for func in functions:
+                func_name = func.get("name", "").lower()
+                if any(mp in func_name for mp in malware_patterns):
+                    context["relevant_functions"].append(func)
+                elif any(ap in func_name for ap in anti_debug_patterns):
+                    context["relevant_functions"].append(func)
+                elif any(pp in func_name for pp in privilege_escalation_patterns):
+                    context["relevant_functions"].append(func)
+            # Also include first 20 functions for broader analysis
+            for func in functions[:20]:
+                if func not in context["relevant_functions"]:
+                    context["relevant_functions"].append(func)
+
+        elif analysis_type == AnalysisType.PROTOCOL_ANALYSIS:
+            for func in functions:
+                if any(np in func.get("name", "").lower() for np in network_patterns):
+                    context["relevant_functions"].append(func)
+
+        elif analysis_type == AnalysisType.CONTROL_FLOW:
+            for func in functions:
+                func_name = func.get("name", "").lower()
+                if any(pt in func_name for pt in process_thread_patterns):
+                    context["relevant_functions"].append(func)
+            # Include first 15 non-trivial functions
+            for func in functions[:15]:
+                if func not in context["relevant_functions"] and func.get("size", 0) > 10:
+                    context["relevant_functions"].append(func)
 
         else:
             # Default: include first 10 non-trivial functions

@@ -4,10 +4,11 @@ Implements secure token generation, validation, and tenant isolation
 """
 
 import os
-import secrets
+import sys
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any, Tuple
+from pathlib import Path
 
 import jwt
 from jwt.exceptions import PyJWTError, ExpiredSignatureError
@@ -20,12 +21,64 @@ from passlib.context import CryptContext
 
 logger = logging.getLogger(__name__)
 
-# Configuration
-JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", secrets.token_urlsafe(32))
-JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "RS256")
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "15"))
-REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "30"))
-API_KEY_PREFIX = "clc_"  # Catalytic Lattice Computing
+# Add path for shared config
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+
+# ✅ MIGRATED: Import centralized configuration system
+from shared.config import get_settings  # noqa: E402
+
+# Load configuration (validated and type-safe)
+_config = get_settings()
+
+# Configuration - Now loaded from Pydantic settings with validation
+JWT_SECRET_KEY = _config.auth.secret_key.get_secret_value() if _config.auth.secret_key else None
+JWT_ALGORITHM = _config.auth.algorithm
+ACCESS_TOKEN_EXPIRE_MINUTES = _config.auth.access_token_expire_minutes
+REFRESH_TOKEN_EXPIRE_DAYS = _config.auth.refresh_token_expire_days
+API_KEY_PREFIX = _config.auth.api_key_prefix
+
+# ============================================================================
+# SECURITY: Validate JWT Secret at Module Load (SEC-002 Fix)
+# ============================================================================
+# CRITICAL: Application MUST NOT start without valid JWT secret
+# This prevents authentication bypass vulnerabilities from misconfigurations
+
+if not JWT_SECRET_KEY:
+    raise RuntimeError(
+        "\n"
+        "=" * 80 + "\n"
+        "CRITICAL SECURITY ERROR: JWT_SECRET_KEY is not configured!\n"
+        "=" * 80 + "\n"
+        "The application cannot start without a valid JWT secret key.\n"
+        "This prevents token forgery and authentication bypass vulnerabilities.\n"
+        "\n"
+        "To fix this:\n"
+        "1. Set AUTH_SECRET_KEY in your environment or configuration file\n"
+        "2. Generate a secure secret:\n"
+        "   python -c 'import secrets; print(secrets.token_urlsafe(32))'\n"
+        "\n"
+        "For production: Use environment variables or secure key management (AWS Secrets Manager, etc.)\n"
+        "=" * 80
+    )
+
+# Validate secret key length (minimum 32 bytes for security)
+if len(JWT_SECRET_KEY) < 32:
+    raise RuntimeError(
+        "\n"
+        "=" * 80 + "\n"
+        "CRITICAL SECURITY ERROR: JWT_SECRET_KEY is too short!\n"
+        "=" * 80 + "\n"
+        f"Current length: {len(JWT_SECRET_KEY)} bytes\n"
+        f"Minimum required: 32 bytes\n"
+        f"\n"
+        f"Your JWT secret is not secure enough. Short secrets can be brute-forced.\n"
+        f"\n"
+        f"Generate a secure 32-byte secret:\n"
+        f"  python -c 'import secrets; print(secrets.token_urlsafe(32))'\n"
+        f"=" * 80
+    )
+
+logger.info(f"✓ JWT secret key validated (length: {len(JWT_SECRET_KEY)} bytes, algorithm: {JWT_ALGORITHM})")
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -66,15 +119,19 @@ except ImportError as e:
     redis_client = None
     redis_manager = None
     try:
+        # ✅ MIGRATED: Use centralized Redis configuration
         redis_client = redis.Redis(
-            host=os.getenv("REDIS_HOST", "localhost"),
-            port=int(os.getenv("REDIS_PORT", "6379")),
-            db=0,
-            decode_responses=True,
-            password=os.getenv("REDIS_PASSWORD"),
+            host=_config.redis.host,
+            port=_config.redis.port,
+            db=_config.redis.db,
+            decode_responses=_config.redis.decode_responses,
+            password=_config.redis.password.get_secret_value() if _config.redis.password else None,
+            socket_timeout=_config.redis.socket_timeout,
+            socket_connect_timeout=_config.redis.socket_connect_timeout,
         )
         redis_client.ping()
-        print("[OK] Redis connected (basic mode - upgrade to RedisConnectionManager recommended)")
+        print(f"[OK] Redis connected to {_config.redis.host}:{_config.redis.port} (basic mode)")
+        print("[INFO] Upgrade to RedisConnectionManager recommended for production")
     except Exception as fallback_error:
         print(f"[ERROR] Redis not available: {fallback_error}")
         print("[WARNING] Using in-memory storage (NOT recommended for production)")
@@ -91,36 +148,78 @@ class RSAKeyManager:
         self._load_or_generate_keys()
 
     def _load_or_generate_keys(self):
-        """Load existing RSA keys or generate new ones"""
-        private_key_path = os.getenv("JWT_PRIVATE_KEY_PATH", "keys/jwt_private.pem")
-        public_key_path = os.getenv("JWT_PUBLIC_KEY_PATH", "keys/jwt_public.pem")
+        """
+        Load existing RSA keys or generate new ones
+
+        SECURITY (SEC-005 Fix): Private keys are now encrypted with password protection
+        """
+        # ✅ MIGRATED: Use centralized configuration for key paths
+        private_key_path = str(_config.auth.private_key_path) if _config.auth.private_key_path else "keys/jwt_private.pem"
+        public_key_path = str(_config.auth.public_key_path) if _config.auth.public_key_path else "keys/jwt_public.pem"
+
+        # ============================================================================
+        # SECURITY (SEC-005 Fix): Get encryption password for private key
+        # ============================================================================
+        # Private keys MUST be encrypted to prevent key theft via filesystem access
+        key_password = os.getenv("JWT_KEY_PASSWORD")
+        if not key_password:
+            raise RuntimeError(
+                "\n"
+                "=" * 80 + "\n"
+                "CRITICAL SECURITY ERROR: JWT_KEY_PASSWORD not configured!\n"
+                "=" * 80 + "\n"
+                "Private RSA keys must be encrypted with a password.\n"
+                "This prevents key theft if an attacker gains filesystem access.\n"
+                "\n"
+                "To fix this:\n"
+                "1. Set JWT_KEY_PASSWORD in your environment or .env.production.local\n"
+                "2. Generate a secure password:\n"
+                "   python -c 'import secrets; print(secrets.token_urlsafe(32))'\n"
+                "\n"
+                "For production: Use environment variables or key management service\n"
+                "=" * 80
+            )
+
+        key_password_bytes = key_password.encode()
 
         if os.path.exists(private_key_path) and os.path.exists(public_key_path):
-            # Load existing keys
-            with open(private_key_path, "rb") as f:
-                self.private_key = serialization.load_pem_private_key(
-                    f.read(), password=None, backend=default_backend()
-                )
-            with open(public_key_path, "rb") as f:
-                self.public_key = serialization.load_pem_public_key(
-                    f.read(), backend=default_backend()
+            # Load existing encrypted keys
+            try:
+                with open(private_key_path, "rb") as f:
+                    self.private_key = serialization.load_pem_private_key(
+                        f.read(),
+                        password=key_password_bytes,  # ← Password required to decrypt
+                        backend=default_backend()
+                    )
+                with open(public_key_path, "rb") as f:
+                    self.public_key = serialization.load_pem_public_key(
+                        f.read(), backend=default_backend()
+                    )
+                logger.info("✓ RSA keys loaded successfully (encrypted private key)")
+            except ValueError as e:
+                raise RuntimeError(
+                    f"Failed to load RSA keys. Wrong JWT_KEY_PASSWORD? Error: {e}"
                 )
         else:
             # Generate new RSA key pair
+            logger.info("Generating new RSA key pair (2048-bit)...")
             self.private_key = rsa.generate_private_key(
                 public_exponent=65537, key_size=2048, backend=default_backend()
             )
             self.public_key = self.private_key.public_key()
 
-            # Save keys
+            # Save keys with encryption
             os.makedirs(os.path.dirname(private_key_path), exist_ok=True)
+
+            # Use BestAvailableEncryption to protect private key
+            from cryptography.hazmat.primitives.serialization import BestAvailableEncryption
 
             with open(private_key_path, "wb") as f:
                 f.write(
                     self.private_key.private_bytes(
                         encoding=serialization.Encoding.PEM,
                         format=serialization.PrivateFormat.PKCS8,
-                        encryption_algorithm=serialization.NoEncryption(),
+                        encryption_algorithm=BestAvailableEncryption(key_password_bytes),  # ← ENCRYPTED
                     )
                 )
 
@@ -510,7 +609,7 @@ def revoke_all_user_tokens(user_id: str, tenant_id: str):
 # ============================================================================
 
 
-def generate_api_key(tenant_id: str, name: str, permissions: list = None) -> Tuple[str, str]:
+def generate_api_key(tenant_id: str, name: str, permissions: Optional[list[str]] = None) -> Tuple[str, str]:
     """Generate API key for programmatic access"""
 
     # Generate secure random key
@@ -581,7 +680,7 @@ class TenantContext:
     def __init__(self, tenant_id: str, user_id: Optional[str] = None):
         self.tenant_id = tenant_id
         self.user_id = user_id
-        self._original_settings = {}
+        self._original_settings: dict[str, Any] = {}
 
     def __enter__(self):
         """Set tenant context for database queries"""

@@ -223,7 +223,7 @@ class BaseLatticeComputer(ABC):
     def validate_coords(self, coords: Union[np.ndarray, List[int]]) -> bool:
         """Validate coordinates are within bounds"""
         coords_array = np.asarray(coords)
-        return (
+        return bool(
             len(coords_array) == self.dimensions
             and np.all(coords_array >= 0)
             and np.all(coords_array < self.size)

@@ -111,7 +111,8 @@ class GPUBenchmark:
 
             except RuntimeError:
                 print(f"  Matrix {size}x{size}: Out of memory")
-                results[f"matmul_{size}"] = {"time_ms": None, "tflops": None}
+                # Skip adding failed results to avoid type issues
+                pass
 
         return results
 
@@ -229,7 +230,8 @@ class GPUBenchmark:
                 print(f"  {size}: {status}")
 
         print("\n[COMPUTE] Peak performance:")
-        max_tflops = max(r["tflops"] for r in compute_results.values() if r["tflops"] is not None)
+        tflops_values = [r["tflops"] for r in compute_results.values() if r["tflops"] is not None]
+        max_tflops: float = max(tflops_values) if tflops_values else 0.0
         print(f"  Peak TFLOPS: {max_tflops:.2f}")
 
         print("\n[KERNELS] Throughput:")

@@ -1,0 +1,55 @@
+# Kubernetes .gitignore
+# Prevent sensitive Kubernetes configurations from being tracked
+
+# Kubeconfig files with credentials
+*.kubeconfig
+kubeconfig
+kubeconfig.*
+*-kubeconfig.yaml
+*-kubeconfig.yml
+
+# Secrets and credentials
+*-secret.yaml
+*-secret.yml
+secrets/
+credentials/
+
+# Certificate files
+*.crt
+*.key
+*.pem
+*.p12
+*.pfx
+ca-*.pem
+
+# Helm charts with sensitive values
+values.local.yaml
+values.local.yml
+values-*.local.yaml
+secrets.yaml
+
+# Terraform state (if managing k8s with Terraform)
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+.terraform/
+
+# Local development overrides
+*.local.yaml
+*.local.yml
+local/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# IDE files
+.idea/
+.vscode/
+
+# Logs
+*.log
+logs/
+.secrets*

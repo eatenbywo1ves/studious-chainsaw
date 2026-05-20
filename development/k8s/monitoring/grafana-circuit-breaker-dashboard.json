@@ -1,0 +1,396 @@
+{
+  "dashboard": {
+    "title": "Redis Circuit Breaker - Phase 4 Canary Deployment",
+    "tags": ["circuit-breaker", "canary", "redis", "authentication"],
+    "timezone": "utc",
+    "editable": true,
+    "graphTooltip": 1,
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "refresh": "10s",
+    "annotations": {
+      "list": [
+        {
+          "name": "Deployments",
+          "datasource": "Prometheus",
+          "enable": true,
+          "expr": "changes(kube_deployment_status_observed_generation{deployment=~\"auth-service.*\"}[5m]) > 0",
+          "iconColor": "green",
+          "tagKeys": "deployment,namespace"
+        },
+        {
+          "name": "Alerts",
+          "datasource": "Prometheus",
+          "enable": true,
+          "expr": "ALERTS{alertname=~\".*Canary.*|.*CircuitBreaker.*\"}",
+          "iconColor": "red",
+          "tagKeys": "alertname,severity"
+        }
+      ]
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "🎯 Deployment Status",
+        "type": "stat",
+        "gridPos": {"x": 0, "y": 0, "w": 24, "h": 3},
+        "targets": [
+          {
+            "expr": "sum(rate(auth_requests_total{version=\"canary\"}[5m])) / sum(rate(auth_requests_total[5m])) * 100",
+            "legendFormat": "Canary Traffic %",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "orientation": "horizontal",
+          "textMode": "value_and_name",
+          "colorMode": "background",
+          "graphMode": "area",
+          "justifyMode": "center"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "decimals": 1,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "blue"},
+                {"value": 25, "color": "green"},
+                {"value": 50, "color": "yellow"},
+                {"value": 75, "color": "orange"},
+                {"value": 100, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "✅ Success Rate - Stable vs Canary",
+        "type": "timeseries",
+        "gridPos": {"x": 0, "y": 3, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "auth:success_rate:5m{version=\"stable\"} * 100",
+            "legendFormat": "Stable",
+            "refId": "A"
+          },
+          {
+            "expr": "auth:success_rate:5m{version=\"canary\"} * 100",
+            "legendFormat": "Canary",
+            "refId": "B"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 98,
+            "max": 100,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 99.0, "color": "yellow"},
+                {"value": 99.5, "color": "green"}
+              ]
+            }
+          }
+        },
+        "options": {
+          "legend": {"displayMode": "table", "calcs": ["mean", "lastNotNull", "min"]},
+          "tooltip": {"mode": "multi"}
+        }
+      },
+      {
+        "id": 3,
+        "title": "❌ Error Rate - Stable vs Canary",
+        "type": "timeseries",
+        "gridPos": {"x": 12, "y": 3, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "auth:error_rate:5m{version=\"stable\"} * 100",
+            "legendFormat": "Stable",
+            "refId": "A"
+          },
+          {
+            "expr": "auth:error_rate:5m{version=\"canary\"} * 100",
+            "legendFormat": "Canary",
+            "refId": "B"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 2,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 0.5, "color": "yellow"},
+                {"value": 1.0, "color": "red"}
+              ]
+            }
+          }
+        },
+        "options": {
+          "legend": {"displayMode": "table", "calcs": ["mean", "lastNotNull", "max"]},
+          "tooltip": {"mode": "multi"}
+        }
+      },
+      {
+        "id": 4,
+        "title": "⚡ Request Rate - Stable vs Canary",
+        "type": "timeseries",
+        "gridPos": {"x": 0, "y": 11, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "auth:requests_per_second:5m{version=\"stable\"}",
+            "legendFormat": "Stable (req/s)",
+            "refId": "A"
+          },
+          {
+            "expr": "auth:requests_per_second:5m{version=\"canary\"}",
+            "legendFormat": "Canary (req/s)",
+            "refId": "B"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps",
+            "min": 0
+          }
+        },
+        "options": {
+          "legend": {"displayMode": "table", "calcs": ["mean", "lastNotNull"]},
+          "tooltip": {"mode": "multi"}
+        }
+      },
+      {
+        "id": 5,
+        "title": "⏱️ P99 Latency - Stable vs Canary",
+        "type": "timeseries",
+        "gridPos": {"x": 12, "y": 11, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "auth:latency_p99:5m{version=\"stable\"} * 1000",
+            "legendFormat": "Stable (P99)",
+            "refId": "A"
+          },
+          {
+            "expr": "auth:latency_p99:5m{version=\"canary\"} * 1000",
+            "legendFormat": "Canary (P99)",
+            "refId": "B"
+          },
+          {
+            "expr": "auth:latency_p95:5m{version=\"stable\"} * 1000",
+            "legendFormat": "Stable (P95)",
+            "refId": "C"
+          },
+          {
+            "expr": "auth:latency_p95:5m{version=\"canary\"} * 1000",
+            "legendFormat": "Canary (P95)",
+            "refId": "D"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ms",
+            "min": 0,
+            "max": 100,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 50, "color": "yellow"},
+                {"value": 100, "color": "red"}
+              ]
+            }
+          }
+        },
+        "options": {
+          "legend": {"displayMode": "table", "calcs": ["mean", "lastNotNull", "max"]},
+          "tooltip": {"mode": "multi"}
+        }
+      },
+      {
+        "id": 6,
+        "title": "🔄 Circuit Breaker State Distribution",
+        "type": "piechart",
+        "gridPos": {"x": 0, "y": 19, "w": 8, "h": 8},
+        "targets": [
+          {
+            "expr": "sum(circuit_breaker:state_distribution{version=\"canary\"}) by (state)",
+            "legendFormat": "{{state}}",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "legend": {"displayMode": "table", "placement": "right", "calcs": ["lastNotNull"]},
+          "pieType": "donut",
+          "displayLabels": ["name", "percent"]
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            }
+          },
+          "overrides": [
+            {
+              "matcher": {"id": "byName", "options": "CLOSED"},
+              "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "green"}}]
+            },
+            {
+              "matcher": {"id": "byName", "options": "HALF_OPEN"},
+              "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "yellow"}}]
+            },
+            {
+              "matcher": {"id": "byName", "options": "OPEN"},
+              "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "red"}}]
+            }
+          ]
+        }
+      },
+      {
+        "id": 7,
+        "title": "📊 Circuit Breaker Metrics - Canary",
+        "type": "stat",
+        "gridPos": {"x": 8, "y": 19, "w": 16, "h": 8},
+        "targets": [
+          {
+            "expr": "sum(circuit_breaker_state{version=\"canary\",state=\"CLOSED\"})",
+            "legendFormat": "Closed",
+            "refId": "A"
+          },
+          {
+            "expr": "sum(circuit_breaker_state{version=\"canary\",state=\"OPEN\"})",
+            "legendFormat": "Open",
+            "refId": "B"
+          },
+          {
+            "expr": "sum(circuit_breaker_state{version=\"canary\",state=\"HALF_OPEN\"})",
+            "legendFormat": "Half-Open",
+            "refId": "C"
+          },
+          {
+            "expr": "sum(rate(circuit_breaker_failures_total{version=\"canary\"}[5m]))",
+            "legendFormat": "Failures/sec",
+            "refId": "D"
+          },
+          {
+            "expr": "sum(rate(circuit_breaker_successes_total{version=\"canary\"}[5m]))",
+            "legendFormat": "Successes/sec",
+            "refId": "E"
+          },
+          {
+            "expr": "sum(circuit_breaker_state_changes_total{version=\"canary\"})",
+            "legendFormat": "State Changes (total)",
+            "refId": "F"
+          }
+        ],
+        "options": {
+          "orientation": "horizontal",
+          "textMode": "value_and_name",
+          "colorMode": "value",
+          "graphMode": "none",
+          "justifyMode": "auto"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "decimals": 2
+          }
+        }
+      },
+      {
+        "id": 8,
+        "title": "🚨 Active Alerts",
+        "type": "table",
+        "gridPos": {"x": 0, "y": 27, "w": 24, "h": 6},
+        "targets": [
+          {
+            "expr": "ALERTS{alertname=~\".*Canary.*|.*CircuitBreaker.*\"}",
+            "format": "table",
+            "instant": true,
+            "refId": "A"
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {"Time": true, "__name__": true, "job": true},
+              "indexByName": {"alertname": 0, "severity": 1, "alertstate": 2},
+              "renameByName": {
+                "alertname": "Alert",
+                "severity": "Severity",
+                "alertstate": "State"
+              }
+            }
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {},
+          "overrides": [
+            {
+              "matcher": {"id": "byName", "options": "Severity"},
+              "properties": [
+                {
+                  "id": "custom.cellOptions",
+                  "value": {
+                    "type": "color-background",
+                    "mode": "basic"
+                  }
+                },
+                {
+                  "id": "mappings",
+                  "value": [
+                    {"type": "value", "value": "critical", "color": "red"},
+                    {"type": "value", "value": "warning", "color": "yellow"},
+                    {"type": "value", "value": "info", "color": "blue"}
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "id": 9,
+        "title": "📈 Traffic Split Over Time",
+        "type": "timeseries",
+        "gridPos": {"x": 0, "y": 33, "w": 24, "h": 8},
+        "targets": [
+          {
+            "expr": "sum(rate(auth_requests_total{version=\"stable\"}[5m]))",
+            "legendFormat": "Stable Traffic",
+            "refId": "A"
+          },
+          {
+            "expr": "sum(rate(auth_requests_total{version=\"canary\"}[5m]))",
+            "legendFormat": "Canary Traffic",
+            "refId": "B"
+          }
+        ],
+        "options": {
+          "legend": {"displayMode": "table", "placement": "bottom", "calcs": ["mean", "lastNotNull"]},
+          "tooltip": {"mode": "multi"}
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "reqps",
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "smooth",
+              "fillOpacity": 20,
+              "stacking": {"mode": "normal"}
+            }
+          }
+        }
+      }
+    ]
+  }
+}

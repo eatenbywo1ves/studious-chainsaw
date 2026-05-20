@@ -73,12 +73,12 @@ pip install -r requirements.txt
 
 * Download and unzip the latest Ghidra release
 ```
-wget -O ghidra.zip https://ghidra-sre.org/ghidra_9.1.2_PUBLIC_20200212.zip
+wget -O ghidra.zip https://ghidra-sre.org/ghidra_11.4.2_PUBLIC_20250826.zip
 unzip ghidra.zip
 rm ghidra.zip
 ```
 
-* Set the `ghidra_9.1.2_PUBLIC` folder path in `GHIDRA_PATH` of [config.json](config/config.json)
+* Set the `ghidra_11.4.2_PUBLIC_20250826` folder path in `GHIDRA_PATH` of [config.json](config/config.json)
 
 * Launch the server
 ```

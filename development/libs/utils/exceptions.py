@@ -126,7 +126,7 @@ class LatticeException(CatalyticException):
 class LatticeCreationError(LatticeException):
     """Raised when lattice creation fails"""
 
-    def __init__(self, message: str, dimensions: int = None, size: int = None, **kwargs):
+    def __init__(self, message: str, dimensions: Optional[int] = None, size: Optional[int] = None, **kwargs):
         details = kwargs.get("details", {})
         if dimensions:
             details["dimensions"] = dimensions
@@ -274,7 +274,7 @@ class AuthenticationError(APIException):
 class RateLimitExceededError(APIException):
     """Raised when rate limit is exceeded"""
 
-    def __init__(self, limit: int, window: str = "minute", retry_after: int = None, **kwargs):
+    def __init__(self, limit: int, window: str = "minute", retry_after: Optional[int] = None, **kwargs):
         message = f"Rate limit exceeded: {limit} requests per {window}"
         details = kwargs.get("details", {})
         details["limit"] = limit
@@ -309,7 +309,7 @@ class WebhookRegistrationError(WebhookException):
 class WebhookDeliveryError(WebhookException):
     """Raised when webhook delivery fails"""
 
-    def __init__(self, url: str, status_code: int = None, **kwargs):
+    def __init__(self, url: str, status_code: Optional[int] = None, **kwargs):
         message = f"Failed to deliver webhook to {url}"
         if status_code:
             message += f" (status: {status_code})"
@@ -341,7 +341,7 @@ class DatabaseException(CatalyticException):
 class DatabaseConnectionError(DatabaseException):
     """Raised when database connection fails"""
 
-    def __init__(self, database_url: str = None, **kwargs):
+    def __init__(self, database_url: Optional[str] = None, **kwargs):
         message = "Failed to connect to database"
         if database_url:
             message += f": {database_url}"
@@ -355,7 +355,7 @@ class DatabaseConnectionError(DatabaseException):
 class DatabaseQueryError(DatabaseException):
     """Raised when database query fails"""
 
-    def __init__(self, query: str = None, **kwargs):
+    def __init__(self, query: Optional[str] = None, **kwargs):
         message = "Database query failed"
         details = kwargs.get("details", {})
         if query:

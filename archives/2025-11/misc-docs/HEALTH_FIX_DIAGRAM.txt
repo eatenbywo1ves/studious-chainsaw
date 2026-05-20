@@ -1,0 +1,172 @@
+================================================================================
+HEALTH ENDPOINT DEBUG - VISUAL FLOW DIAGRAM
+================================================================================
+
+CURRENT STATE (BROKEN)
+======================
+
+Load Balancer  ---> [GET /health] ---> saas-api Pod (7 days old)
+                                            |
+                                            | db.execute("SELECT 1")
+                                            | FAILS: SQLAlchemy Error!
+                                            |
+                                            v
+                                       PostgreSQL
+                                       (Working Fine)
+
+Response: {"database":"unhealthy"} <--- WRONG
+
+
+FIXED STATE (CORRECT)
+====================
+
+Load Balancer  ---> [GET /health] ---> saas-api Pod (Rebuilt)
+                                            |
+                                            | db.execute(text("SELECT 1"))
+                                            | SUCCESS!
+                                            |
+                                            v
+                                       PostgreSQL
+                                       (Working Fine)
+
+Response: {"database":"healthy","vault":"unavailable"} <--- CORRECT
+
+
+CODE COMPARISON
+===============
+
+BEFORE (Container):                    AFTER (Fixed):
+----------------------                 ----------------------
+@app.get("/health")                    @app.get("/health")
+async def health_check(...):           async def health_check(...):
+    from JSONResponse import ...           from JSONResponse import ...
+                                           from sqlalchemy import text  <-- ADDED
+
+    try:                                   try:
+        db.execute("SELECT 1")                 db.execute(text("SELECT 1"))  <-- FIXED
+        db_status = "healthy"                  db_status = "healthy"
+    except:                                except:
+        db_status = "unhealthy"                db_status = "unhealthy"
+
+    # No Vault check                     # Phase 6B: Vault check  <-- ADDED
+                                           vault_status = ...
+
+    return {                               return {
+        "status": "healthy",                   "status": "healthy",
+        "database": db_status,                 "database": db_status,
+                                               "vault": vault_status,  <-- ADDED
+        "gpu_available": ...,                  "gpu_available": ...,
+        "timestamp": ...                       "timestamp": ...
+    }                                      }
+
+
+DEPLOYMENT FLOW
+===============
+
+1. BUILD IMAGE
+   docker build -f saas/Dockerfile -t catalytic-saas:staging .
+   |
+   v
+2. LOAD TO CLUSTER
+   kind load docker-image catalytic-saas:staging
+   |
+   v
+3. UPDATE DEPLOYMENT
+   kubectl set image deployment/saas-api saas-api=catalytic-saas:staging
+   |
+   v
+4. VERIFY
+   curl /health --> {"database":"healthy","vault":"unavailable"}
+
+
+QUICK COMMANDS
+==============
+
+Build:
+  docker build -f saas/Dockerfile -t catalytic-saas:staging .
+
+Deploy (PowerShell):
+  .\deploy-health-fix.ps1
+
+Deploy (Bash):
+  ./deploy-health-fix.sh
+
+Verify:
+  kubectl exec -n catalytic-staging deployment/saas-api -- \
+    curl -s http://localhost:8000/health
+
+Test Database:
+  kubectl exec -n catalytic-staging deployment/saas-api -- python3 -c \
+    "from sqlalchemy import text; from database.connection import get_db; \
+     db = next(get_db()); print(db.execute(text('SELECT 1')).fetchone())"
+
+
+ROOT CAUSE SUMMARY
+==================
+
+WHY DID THIS HAPPEN?
+- SQLAlchemy upgraded to 2.0.17 (stricter type safety)
+- Health endpoint not updated for new API
+- Silent exception handling hid the error
+- No integration tests for health endpoint
+- Container image not rebuilt after Phase 6B
+
+WHY DIDN'T IT FAIL EARLIER?
+- Database initialization uses ORM (not raw SQL)
+- Exception caught and converted to "unhealthy" status
+- Application still starts successfully
+- PostgreSQL connection pool works fine
+- Only health check uses raw SQL
+
+HOW TO PREVENT?
+- Add logging to exception handlers
+- Create integration tests for health endpoint
+- Add pre-deployment health check validation
+- CI/CD pipeline health verification
+- Rebuild images after major commits
+
+
+STATUS CHECKLIST
+================
+
+[DONE] Root cause identified
+[DONE] Code fix implemented
+[DONE] Fix verified locally
+[DONE] Deployment scripts created
+[DONE] Documentation complete
+[TODO] Docker image rebuild (pending network)
+[TODO] Deployment to staging (pending build)
+[TODO] Health endpoint verification (pending deployment)
+[TODO] Integration tests (future work)
+
+
+FILES CREATED/MODIFIED
+======================
+
+Modified:
+  C:\Users\Corbin\development\saas\api\saas_server.py (lines 815-867)
+  - Added: from sqlalchemy import text
+  - Fixed: db.execute(text("SELECT 1"))
+  - Added: Vault health check
+
+Created:
+  C:\Users\Corbin\HEALTH_ENDPOINT_FIX_SUMMARY.md        (Full report)
+  C:\Users\Corbin\HEALTH_FIX_QUICK_REFERENCE.md         (Quick guide)
+  C:\Users\Corbin\COMMANDS_TO_FIX_HEALTH.txt            (Command reference)
+  C:\Users\Corbin\HEALTH_FIX_DIAGRAM.txt                (This file)
+  C:\Users\Corbin\development\saas\deploy-health-fix.sh  (Bash deploy)
+  C:\Users\Corbin\development\saas\deploy-health-fix.ps1 (PowerShell deploy)
+
+
+ENVIRONMENT DETAILS
+===================
+
+Namespace:         catalytic-staging
+Deployment:        saas-api
+Current Pod:       saas-api-9659c55f8-s59v7
+Current Image:     catalytic-saas:staging (7 days old)
+SQLAlchemy:        2.0.17
+Database:          PostgreSQL (catalytic_saas)
+
+
+================================================================================

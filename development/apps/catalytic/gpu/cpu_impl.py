@@ -5,7 +5,7 @@ Provides compatibility when no GPU is available
 
 import time
 import logging
-from typing import Tuple, List, Optional
+from typing import Tuple, List, Optional, Any
 import numpy as np
 from scipy.sparse import csr_matrix
 from scipy.sparse.csgraph import shortest_path
@@ -23,7 +23,9 @@ class CPULattice(BaseLatticeGPU):
         """Initialize CPU lattice"""
         super().__init__(dimensions, size, device_id)
         self.n_cores = mp.cpu_count()
-        self.adjacency_matrix = None
+        self.adjacency_matrix: Any = None
+        self.total_memory_mb: float = 0.0
+        self.available_memory_mb: float = 0.0
 
     def initialize_device(self) -> bool:
         """Initialize CPU 'device'"""
@@ -57,6 +59,8 @@ class CPULattice(BaseLatticeGPU):
 
     def get_device_capabilities(self) -> GPUCapabilities:
         """Get CPU capabilities"""
+        if self._capabilities is None:
+            raise RuntimeError("Device not initialized - call initialize_device() first")
         return self._capabilities
 
     def allocate_memory(self, size_mb: float) -> bool:

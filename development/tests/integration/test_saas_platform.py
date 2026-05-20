@@ -214,7 +214,7 @@ class TestEndToEndWorkflow:
                     response = await client.get("http://localhost:8000/health")
                     if response.status_code != 200:
                         pytest.skip("SaaS API not available for end-to-end test")
-                except:
+                except (httpx.RequestError, httpx.TimeoutException):
                     pytest.skip("SaaS API not available for end-to-end test")
 
                 # Additional workflow steps would go here

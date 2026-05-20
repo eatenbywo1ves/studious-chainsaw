@@ -40,12 +40,12 @@ project.ext.name = "GhidraGo"
 version = "2.2.0"
 description = "Golang binary analyzer with auto-analyzer, function recovery, type extraction, and performance caching"
 
-// Disable help validation (path resolution issues - tracked in Phase 4 Track 2)
-// Help files are included but build/validation is disabled
+// Help system enabled for production deployment
+// Help files validated and indexed for Ghidra integration
 tasks.named('buildHelp') {
-    enabled = false
+    enabled = true
 }
 
 tasks.named('indexHelp') {
-    enabled = false
+    enabled = true
 }

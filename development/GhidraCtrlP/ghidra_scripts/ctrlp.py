@@ -143,22 +143,30 @@ class SymbolLoader(SwingWorker):
     def doInBackground(self):
         try:
             return self.get_everything()
-        except Exception:  # noqa: E722
+        except Exception as e:  # noqa: E722
             # uncomment this for debug info:
             # import traceback
             # state.getTool().getService(ConsoleService).println(
             #     traceback.format_exc()
             # )
 
-            # BUG TODO FIXME
             # When Ghidra window is closed and then reopened,
             # the references in the window stop making sense.
-            # and this thread/wtf is in a broken state.
-            # We should probably watch when ghidra window exits
-            # and then cleanup, but...
-            # Just kill ourselves and let user try again.
-            self.parent.dispose()
-            return []  # Just so we don't raise an exception in a second
+            # Try to recover by refreshing state, otherwise dispose.
+            error_msg = str(e).lower()
+            if 'program' in error_msg or 'closed' in error_msg or 'state' in error_msg or 'null' in error_msg:
+                try:
+                    # Attempt state refresh
+                    self.parent.refresh_state()
+                    return self.get_everything()
+                except Exception:
+                    # Recovery failed, dispose window
+                    self.parent.dispose()
+                    return []
+            else:
+                # Different error, dispose window
+                self.parent.dispose()
+                return []
 
     def done(self):
         def refresh_data():
@@ -222,6 +230,22 @@ class SymbolFilterWindow(JFrame):
         self.recent_symbols = {}
         # keep track of recently used symbols. We want to show recent symbols
         # at the top of the search list, so it's easy to repeat the search.
+
+        self.current_program = getCurrentProgram()
+
+    def refresh_state(self):
+        """Refresh all Ghidra state references after program close/reopen"""
+        self.current_program = getCurrentProgram()
+        if self.current_program is None:
+            raise Exception("No program loaded")
+
+        codeViewerService = makeState().getTool().getService(CodeViewerService)
+        if codeViewerService:
+            self.initial_address = codeViewerService.getCurrentLocation().getAddress()
+
+        # Clear cached symbols - they'll be reloaded
+        self.symbols = []
+        self.special_symbols = []
 
     def initUI(self):
         self.setSize(1200, 600)

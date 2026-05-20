@@ -236,19 +236,19 @@ try:
     import torch
 
     has_gpu_torch = torch.cuda.is_available()
-except:
+except ImportError:
     pass
 
 try:
     has_cupy = True
-except:
+except ImportError:
     pass
 
 try:
     from numba import cuda
 
     has_cuda = cuda.is_available()
-except:
+except ImportError:
     pass
 
 if not has_gpu_torch:

@@ -1,0 +1,80 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+eggs/
+.eggs/
+*.egg
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+*.cover
+.hypothesis/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Development files
+.env
+.env.local
+*.log
+
+# Test files
+tests/
+test_*.py
+*_test.py
+
+# Data and reports
+data/
+reports/
+*.db
+*.sqlite
+*.sqlite3
+
+# Kubernetes
+k8s/
+*.yaml
+*.yml
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+Jenkinsfile
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+batch_summary_*.json
+scan_request.json
+test_batch.*
+
+# Template files
+TEMPLATE_*.md
+MIGRATION_*.md

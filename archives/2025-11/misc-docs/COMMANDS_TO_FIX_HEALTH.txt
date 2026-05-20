@@ -1,0 +1,229 @@
+================================================================================
+HEALTH ENDPOINT FIX - COMMAND REFERENCE
+================================================================================
+
+PROBLEM:
+--------
+Health endpoint returns "database": "unhealthy" even though database works
+Missing "vault" key in health response
+
+ROOT CAUSE:
+-----------
+SQLAlchemy 2.0+ requires text() wrapper for raw SQL
+Container image is 7 days old, missing Phase 6B Vault integration
+
+FIX STATUS:
+-----------
+✅ Source code fixed: C:\Users\Corbin\development\saas\api\saas_server.py
+⏳ Docker image needs rebuild
+⏳ Kubernetes deployment needs update
+
+================================================================================
+OPTION 1: AUTOMATED DEPLOYMENT (RECOMMENDED)
+================================================================================
+
+PowerShell (Windows):
+---------------------
+cd C:\Users\Corbin\development\saas
+.\deploy-health-fix.ps1
+
+Bash (Git Bash/WSL):
+--------------------
+cd /c/Users/Corbin/development/saas
+chmod +x deploy-health-fix.sh
+./deploy-health-fix.sh
+
+================================================================================
+OPTION 2: MANUAL DEPLOYMENT
+================================================================================
+
+Step 1: Build Docker Image
+---------------------------
+cd /c/Users/Corbin/development
+docker build -f saas/Dockerfile -t catalytic-saas:staging .
+
+# If build fails due to network timeout, try:
+docker build --network=host -f saas/Dockerfile -t catalytic-saas:staging .
+
+# Or use legacy builder:
+DOCKER_BUILDKIT=0 docker build -f saas/Dockerfile -t catalytic-saas:staging .
+
+Step 2: Load Image into Cluster (if using kind)
+-----------------------------------------------
+kind load docker-image catalytic-saas:staging --name catalytic-cluster
+
+Step 3: Update Deployment
+--------------------------
+kubectl set image deployment/saas-api saas-api=catalytic-saas:staging -n catalytic-staging
+
+Step 4: Wait for Rollout
+-------------------------
+kubectl rollout status deployment/saas-api -n catalytic-staging --timeout=5m
+
+Step 5: Verify Fix
+------------------
+# Get pod name
+kubectl get pods -n catalytic-staging -l app=saas-api
+
+# Test health endpoint
+kubectl exec -n catalytic-staging deployment/saas-api -- curl -s http://localhost:8000/health
+
+# Should return:
+# {"status":"healthy","database":"healthy","vault":"unavailable",...}
+
+================================================================================
+OPTION 3: QUICK VERIFICATION (NO DEPLOYMENT)
+================================================================================
+
+Test Database Connection:
+-------------------------
+kubectl exec -n catalytic-staging saas-api-9659c55f8-s59v7 -- python3 -c "
+from sqlalchemy import text
+from database.connection import get_db
+db = next(get_db())
+result = db.execute(text('SELECT 1')).fetchone()
+print('Database test result:', result)
+"
+
+Expected: Database test result: (1,)
+
+Check Current Health Endpoint:
+-------------------------------
+kubectl exec -n catalytic-staging saas-api-9659c55f8-s59v7 -- curl -s http://localhost:8000/health | python -m json.tool
+
+Current (buggy):
+{
+  "status": "healthy",
+  "database": "unhealthy",  ← Wrong
+  "gpu_available": false,
+  "timestamp": "..."
+}
+
+After fix:
+{
+  "status": "healthy",
+  "database": "healthy",    ← Correct
+  "vault": "unavailable",   ← Added
+  "gpu_available": false,
+  "timestamp": "..."
+}
+
+================================================================================
+TROUBLESHOOTING
+================================================================================
+
+Problem: Docker build times out
+Solution:
+1. Check network: curl -I https://registry-1.docker.io/v2/
+2. Increase timeout: export DOCKER_CLIENT_TIMEOUT=600
+3. Use cached layers: docker build --cache-from catalytic-saas:staging ...
+4. Try later when network improves
+
+Problem: kubectl can't find pod
+Solution:
+kubectl get pods -n catalytic-staging
+kubectl get deployments -n catalytic-staging
+
+Problem: Health endpoint still shows unhealthy
+Solution:
+1. Check if new image deployed:
+   kubectl describe pod -n catalytic-staging -l app=saas-api | grep Image:
+
+2. Check logs for errors:
+   kubectl logs -n catalytic-staging deployment/saas-api --tail=100
+
+3. Verify code in container:
+   kubectl exec -n catalytic-staging deployment/saas-api -- grep -A 3 "db.execute" /app/api/saas_server.py
+
+Problem: Permission denied when patching
+Solution: Cannot patch running container (read-only filesystem, non-root user)
+          Must rebuild and redeploy image
+
+================================================================================
+VALIDATION TESTS
+================================================================================
+
+1. Check SQLAlchemy Version:
+-----------------------------
+kubectl exec -n catalytic-staging deployment/saas-api -- python3 -c "import sqlalchemy; print(sqlalchemy.__version__)"
+
+Expected: 2.0.17
+
+2. Test text() Import:
+----------------------
+kubectl exec -n catalytic-staging deployment/saas-api -- python3 -c "from sqlalchemy import text; print('Import successful')"
+
+Expected: Import successful
+
+3. Test Database Query:
+-----------------------
+kubectl exec -n catalytic-staging deployment/saas-api -- python3 -c "
+from sqlalchemy import text, create_engine
+import os
+engine = create_engine(os.environ['DATABASE_URL'])
+with engine.connect() as conn:
+    result = conn.execute(text('SELECT version()'))
+    print(result.fetchone())
+"
+
+Expected: PostgreSQL version info
+
+4. Test Health Endpoint Response Structure:
+-------------------------------------------
+kubectl exec -n catalytic-staging deployment/saas-api -- curl -s http://localhost:8000/health | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+assert 'status' in data
+assert 'database' in data
+assert 'vault' in data  # Should exist after fix
+assert 'gpu_available' in data
+assert 'timestamp' in data
+assert data['database'] == 'healthy'
+print('All checks passed!')
+"
+
+Expected: All checks passed!
+
+================================================================================
+ROLLBACK INSTRUCTIONS
+================================================================================
+
+If Something Goes Wrong:
+------------------------
+kubectl rollout undo deployment/saas-api -n catalytic-staging
+kubectl rollout status deployment/saas-api -n catalytic-staging
+
+Check Rollout History:
+----------------------
+kubectl rollout history deployment/saas-api -n catalytic-staging
+
+Rollback to Specific Revision:
+-------------------------------
+kubectl rollout undo deployment/saas-api -n catalytic-staging --to-revision=2
+
+================================================================================
+FILES CREATED/MODIFIED
+================================================================================
+
+Modified:
+  C:\Users\Corbin\development\saas\api\saas_server.py (lines 815-867)
+
+Created:
+  C:\Users\Corbin\HEALTH_ENDPOINT_FIX_SUMMARY.md
+  C:\Users\Corbin\HEALTH_FIX_QUICK_REFERENCE.md
+  C:\Users\Corbin\development\saas\deploy-health-fix.sh
+  C:\Users\Corbin\development\saas\deploy-health-fix.ps1
+  C:\Users\Corbin\COMMANDS_TO_FIX_HEALTH.txt (this file)
+
+================================================================================
+NEXT STEPS
+================================================================================
+
+1. Build Docker image (when network is stable)
+2. Deploy to staging
+3. Verify health endpoint shows "database": "healthy"
+4. Verify "vault" key is present in response
+5. Monitor logs for any errors
+6. Add integration tests to prevent regression
+
+================================================================================

@@ -1,0 +1,49 @@
+@startuml C4_Components_GhidraGo
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+title Component Diagram - GhidraGo Toolkit
+
+Container_Boundary(ghidrago, "GhidraGo Toolkit v2.2.0") {
+    Component(analysis_controller, "Analysis Controller", "Java/REST", "Binary submission endpoints")
+    Component(script_controller, "Script Controller", "Java/REST", "Ghidra script execution")
+    Component(type_controller, "Type Controller", "Java/REST", "Type cache management")
+
+    Component(headless_analyzer, "Headless Analyzer", "Ghidra Core", "Non-GUI analysis engine")
+    Component(decompiler, "Decompiler", "Ghidra Decompiler", "C pseudocode generation")
+    Component(disassembler, "Disassembler", "Ghidra Core", "Assembly extraction")
+
+    Component(type_cache, "Type Cache", "Java Class", "Persists decompiled types")
+    Component(script_engine, "Script Engine", "Jython/Java", "Runs analysis scripts")
+    Component(batch_processor, "Batch Processor", "Java Class", "Parallel binary analysis")
+
+    Component(sleigh_processor, "SLEIGH Processor", "Ghidra SLEIGH", "Architecture definitions")
+    Component(pcode_analyzer, "P-Code Analyzer", "Ghidra Core", "Intermediate representation")
+
+    Component(result_exporter, "Result Exporter", "Java Class", "JSON/XML export")
+    Component(project_manager, "Project Manager", "Java Class", "Ghidra project files")
+}
+
+' Controller to core relationships
+Rel(analysis_controller, headless_analyzer, "Initiates analysis")
+Rel(script_controller, script_engine, "Executes scripts")
+Rel(type_controller, type_cache, "Manages types")
+
+' Analyzer relationships
+Rel(headless_analyzer, decompiler, "Requests decompilation")
+Rel(headless_analyzer, disassembler, "Requests disassembly")
+Rel(headless_analyzer, sleigh_processor, "Uses arch definitions")
+
+' Decompiler flow
+Rel(decompiler, pcode_analyzer, "Uses P-Code")
+Rel(decompiler, type_cache, "Stores/retrieves types")
+
+' Batch processing
+Rel(batch_processor, headless_analyzer, "Parallel jobs")
+Rel(batch_processor, project_manager, "Manages projects")
+
+' Output
+Rel(headless_analyzer, result_exporter, "Exports results")
+Rel(script_engine, result_exporter, "Script output")
+
+SHOW_LEGEND()
+@enduml

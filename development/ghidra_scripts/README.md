@@ -71,3 +71,38 @@ Rename saved stack variables. (MIPS only)
 # [Rizzo](readmes/rizzo.md)
 Create fuzzy function signatures that can be applied to other projects.
 
+# ROP Gadget Finder (Universal)
+
+Universal ROP gadget discovery tool supporting ARM, MIPS, x86, and x86-64 architectures.
+
+## Main Script: `rop_gadget_finder.py`
+
+Run from Ghidra Script Manager for comprehensive ROP analysis:
+
+- **Multi-architecture support:** ARM, AARCH64, MIPS, x86, x86-64
+- **Gadget classification:** Stack pivot, register control, memory write, syscall, arithmetic
+- **Utility scoring:** Gadgets ranked by exploit development usefulness
+- **Export options:** Markdown reports and JSON for automated tooling
+
+### Usage in Ghidra
+1. Load binary in Ghidra
+2. Run `rop_gadget_finder.py` from Script Manager
+3. View results in console or save to file
+
+## Standalone Scanner: `x86_rop_scanner.py`
+
+Fast x86/x64 ROP scanner that does NOT require Ghidra (uses capstone):
+
+```bash
+pip install capstone
+python x86_rop_scanner.py firmware.exe --arch x64 --output ./reports
+```
+
+## Headless Analysis: `rop_headless_runner.py`
+
+Run ROP analysis via Ghidra's headless analyzer:
+
+```bash
+python rop_headless_runner.py firmware.bin --output-dir ./reports
+```
+

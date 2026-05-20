@@ -9,16 +9,16 @@ from typing import Tuple, List, Optional, Dict, Any, Union, TYPE_CHECKING
 import numpy as np
 import numpy.typing as npt
 
-if TYPE_CHECKING:
-    import igraph as ig
-
 try:
     import igraph as ig
 
     IGRAPH_AVAILABLE = True
 except ImportError:
     IGRAPH_AVAILABLE = False
-    ig = None  # type: ignore
+    ig = None  # type: ignore[assignment]
+
+if TYPE_CHECKING:
+    import igraph as ig  # For type hints only
 
 from .interface import BaseLatticeComputer, LatticeMetrics, IPathFinder, ITransformer, IAnalyzer
 from ..gpu.factory import GPUFactory
@@ -262,7 +262,7 @@ class UnifiedCatalyticLattice(BaseLatticeComputer, IPathFinder, ITransformer, IA
     ) -> npt.NDArray[np.number]:
         """Apply named transformation"""
         if transformation == "xor":
-            return self.xor_transform(data, kwargs.get("key"))
+            return self.xor_transform(data.astype(np.uint8), kwargs.get("key"))
         elif transformation == "normalize":
             return (data - np.mean(data)) / (np.std(data) + 1e-8)
         elif transformation == "scale":
@@ -303,7 +303,7 @@ class UnifiedCatalyticLattice(BaseLatticeComputer, IPathFinder, ITransformer, IA
             raise ValueError(f"Unknown community detection method: {method}")
 
         # Convert to list of lists
-        community_list = [[] for _ in range(max(communities.membership) + 1)]
+        community_list: List[List[int]] = [[] for _ in range(max(communities.membership) + 1)]
         for vertex, comm_id in enumerate(communities.membership):
             community_list[comm_id].append(vertex)
 
@@ -434,7 +434,7 @@ class UnifiedCatalyticLattice(BaseLatticeComputer, IPathFinder, ITransformer, IA
         self._path_cache.clear()
         self._metrics_cache = None
         self.graph = None
-        self.auxiliary_memory = None
+        self.auxiliary_memory = np.zeros(0, dtype=np.float32)
 
         super().cleanup()
 
@@ -442,12 +442,9 @@ class UnifiedCatalyticLattice(BaseLatticeComputer, IPathFinder, ITransformer, IA
         """Context manager entry"""
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb) -> bool:
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         """Context manager exit with automatic cleanup"""
         try:
             self.cleanup()
         except Exception as e:
             logger.warning(f"Error during context cleanup: {e}")
-
-        # Don't suppress exceptions
-        return False

@@ -38,7 +38,7 @@ except ImportError:
             [sys.executable, "-m", "pip", "install", "weasyprint", "--break-system-packages"]
         )
         print("weasyprint installed successfully")
-    except:
+    except subprocess.CalledProcessError:
         print("weasyprint installation failed - using alternative method")
 
 print("\nTools check complete!")

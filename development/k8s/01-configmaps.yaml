@@ -1,0 +1,273 @@
+# ========================================
+# ConfigMaps for All Services
+# Non-sensitive configuration data
+# ========================================
+
+---
+# Catalytic API Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: catalytic-api-config
+  namespace: catalytic-staging
+  labels:
+    app: catalytic-api
+    environment: staging
+data:
+  # API Configuration
+  API_PORT: "8080"
+  METRICS_PORT: "8082"
+  LOG_LEVEL: "DEBUG"
+  ENVIRONMENT: "staging"
+
+  # Performance Tuning
+  LATTICE_MEMORY_OPTIMIZATION: "enabled"
+  PARALLEL_CORES: "12"
+  MAX_LATTICES: "100"
+  CACHE_SIZE: "1024"
+
+  # Redis Connection
+  REDIS_URL: "redis://redis:6379"
+  REDIS_HOST: "redis"
+  REDIS_PORT: "6379"
+  REDIS_MAX_MEMORY: "512mb"
+
+---
+# Webhook System Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: webhook-config
+  namespace: catalytic-staging
+  labels:
+    app: webhook-system
+    environment: staging
+data:
+  # Webhook Configuration
+  WEBHOOK_PORT: "8000"
+  WEBHOOK_METRICS_PORT: "9090"
+  LOG_LEVEL: "DEBUG"
+
+  # Retry Configuration
+  MAX_RETRIES: "5"
+  RETRY_DELAY: "5"
+  RETRY_BACKOFF: "exponential"
+
+  # Redis Connection
+  REDIS_HOST: "redis"
+  REDIS_PORT: "6379"
+
+---
+# SaaS API Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: saas-api-config
+  namespace: catalytic-staging
+  labels:
+    app: saas-api
+    environment: staging
+data:
+  # API Configuration
+  SAAS_PORT: "8000"
+  SAAS_METRICS_PORT: "8001"
+  LOG_LEVEL: "DEBUG"
+  ENVIRONMENT: "staging"
+
+  # JWT Configuration (HS256 for staging - simpler, no RSA keys needed)
+  JWT_ALGORITHM: "HS256"
+  ACCESS_TOKEN_EXPIRE_MINUTES: "30"
+  REFRESH_TOKEN_EXPIRE_DAYS: "7"
+
+  # Database Connection
+  POSTGRES_HOST: "postgres"
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB: "catalytic_saas"
+
+  # Redis Connection
+  REDIS_HOST: "redis"
+  REDIS_PORT: "6379"
+
+  # Circuit Breaker Configuration
+  REDIS_CIRCUIT_BREAKER_ENABLED: "true"
+  CIRCUIT_BREAKER_FAILURE_THRESHOLD: "5"
+  CIRCUIT_BREAKER_FAILURE_TIMEOUT: "60"
+  CIRCUIT_BREAKER_RESET_TIMEOUT: "120"
+  CIRCUIT_BREAKER_SUCCESS_THRESHOLD: "3"
+  CIRCUIT_BREAKER_FALLBACK_STRATEGY: "fail_open"
+
+---
+# PostgreSQL Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-config
+  namespace: catalytic-staging
+  labels:
+    app: postgres
+    environment: staging
+data:
+  POSTGRES_DB: "catalytic_saas"
+  POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=en_US.UTF-8"
+  # Performance tuning
+  shared_buffers: "256MB"
+  effective_cache_size: "1GB"
+  maintenance_work_mem: "64MB"
+  checkpoint_completion_target: "0.9"
+  wal_buffers: "16MB"
+  default_statistics_target: "100"
+  random_page_cost: "1.1"
+  effective_io_concurrency: "200"
+  work_mem: "4MB"
+  min_wal_size: "1GB"
+  max_wal_size: "4GB"
+
+---
+# Redis Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-config
+  namespace: catalytic-staging
+  labels:
+    app: redis
+    environment: staging
+data:
+  redis.conf: |
+    # Redis Configuration for Kubernetes
+
+    # Network
+    bind 0.0.0.0
+    protected-mode no
+    port 6379
+    tcp-backlog 511
+    timeout 0
+    tcp-keepalive 300
+
+    # General
+    daemonize no
+    supervised no
+    pidfile /var/run/redis_6379.pid
+    loglevel notice
+    databases 16
+
+    # Persistence
+    appendonly yes
+    appendfilename "appendonly.aof"
+    appendfsync everysec
+    no-appendfsync-on-rewrite no
+    auto-aof-rewrite-percentage 100
+    auto-aof-rewrite-min-size 64mb
+
+    # Memory Management
+    maxmemory 512mb
+    maxmemory-policy allkeys-lru
+
+    # Performance
+    save 900 1
+    save 300 10
+    save 60 10000
+    stop-writes-on-bgsave-error yes
+    rdbcompression yes
+    rdbchecksum yes
+
+    # Slow log
+    slowlog-log-slower-than 10000
+    slowlog-max-len 128
+
+---
+# Production ConfigMaps (with different settings)
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: catalytic-api-config
+  namespace: catalytic-production
+  labels:
+    app: catalytic-api
+    environment: production
+data:
+  API_PORT: "8080"
+  METRICS_PORT: "8082"
+  LOG_LEVEL: "INFO"
+  ENVIRONMENT: "production"
+  LATTICE_MEMORY_OPTIMIZATION: "enabled"
+  PARALLEL_CORES: "16"
+  MAX_LATTICES: "500"
+  CACHE_SIZE: "2048"
+  REDIS_URL: "redis://redis:6379"
+  REDIS_HOST: "redis"
+  REDIS_PORT: "6379"
+  REDIS_MAX_MEMORY: "2gb"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: webhook-config
+  namespace: catalytic-production
+  labels:
+    app: webhook-system
+    environment: production
+data:
+  WEBHOOK_PORT: "8000"
+  WEBHOOK_METRICS_PORT: "9090"
+  LOG_LEVEL: "INFO"
+  MAX_RETRIES: "5"
+  RETRY_DELAY: "5"
+  RETRY_BACKOFF: "exponential"
+  REDIS_HOST: "redis"
+  REDIS_PORT: "6379"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: saas-api-config
+  namespace: catalytic-production
+  labels:
+    app: saas-api
+    environment: production
+data:
+  SAAS_PORT: "8000"
+  SAAS_METRICS_PORT: "8001"
+  LOG_LEVEL: "INFO"
+  ENVIRONMENT: "production"
+  JWT_ALGORITHM: "RS256"
+  ACCESS_TOKEN_EXPIRE_MINUTES: "15"
+  REFRESH_TOKEN_EXPIRE_DAYS: "7"
+  POSTGRES_HOST: "postgres"
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB: "catalytic_saas"
+  REDIS_HOST: "redis"
+  REDIS_PORT: "6379"
+  REDIS_CIRCUIT_BREAKER_ENABLED: "true"
+  CIRCUIT_BREAKER_FAILURE_THRESHOLD: "5"
+  CIRCUIT_BREAKER_FAILURE_TIMEOUT: "120"
+  CIRCUIT_BREAKER_RESET_TIMEOUT: "180"
+  CIRCUIT_BREAKER_SUCCESS_THRESHOLD: "3"
+  CIRCUIT_BREAKER_FALLBACK_STRATEGY: "fail_closed"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-config
+  namespace: catalytic-production
+  labels:
+    app: postgres
+    environment: production
+data:
+  POSTGRES_DB: "catalytic_saas"
+  POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=en_US.UTF-8"
+  shared_buffers: "512MB"
+  effective_cache_size: "2GB"
+  maintenance_work_mem: "128MB"
+  checkpoint_completion_target: "0.9"
+  wal_buffers: "16MB"
+  default_statistics_target: "100"
+  random_page_cost: "1.1"
+  effective_io_concurrency: "200"
+  work_mem: "8MB"
+  min_wal_size: "2GB"
+  max_wal_size: "8GB"

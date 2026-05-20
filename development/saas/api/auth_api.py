@@ -94,12 +94,25 @@ async def verify_jwt_token(request: TokenVerifyRequest):
     except HTTPException:
         raise
     except Exception as e:
+        # ============================================================================
+        # SECURITY (SEC-003 Fix): Sanitize error messages
+        # ============================================================================
+        # Log detailed error information server-side for debugging
         logger.error(
-            "Error verifying token", extra={"token_type": request.token_type, "error": str(e)}, exc_info=True
+            "Token verification failed",
+            extra={
+                "token_type": request.token_type,
+                "error": str(e),
+                "error_type": type(e).__name__,
+            },
+            exc_info=True  # Full stack trace in logs only
         )
+
+        # Return generic error message to client (no internal details exposed)
+        # This prevents information disclosure that could aid attackers
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error verifying token: {str(e)}",
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token"  # Generic message - no internal details
         )
 
 

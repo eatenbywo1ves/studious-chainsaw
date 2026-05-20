@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { stripe } from '../config/route';
+import { stripe } from '@/lib/stripe';
 import { verifyRequestAuth, unauthorizedResponse } from '@/lib/auth';
 
 // POST /api/stripe/checkout - Create checkout session

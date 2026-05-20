@@ -105,8 +105,8 @@ class GPUManager:
                     total_memory_mb=total_mem,
                     available_memory_mb=free_mem,
                     compute_capability=(props.major, props.minor),
-                    max_threads_per_block=props.max_threads_per_block,
-                    max_blocks=props.max_threads_per_multiprocessor,
+                    max_threads_per_block=getattr(props, 'max_threads_per_block', 1024),
+                    max_blocks=getattr(props, 'max_threads_per_multi_processor', 65535),
                     warp_size=props.warp_size,
                     backend_name="cuda",
                 )

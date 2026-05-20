@@ -220,7 +220,7 @@ class MemoryOptimizedBackendSelector:
 
         # Find backend with best memory availability
         best_backend = None
-        max_memory = 0
+        max_memory: float = 0.0
 
         for backend in available_backends:
             if backend == GPUBackend.CPU:
@@ -231,7 +231,7 @@ class MemoryOptimizedBackendSelector:
                 total_memory = sum(d.available_memory_mb for d in devices.values())
 
                 if total_memory > max_memory:
-                    max_memory = total_memory
+                    max_memory = float(total_memory)
                     best_backend = backend
 
         if best_backend:

@@ -1,0 +1,18 @@
+{
+  "name": "@mcp-servers/multidimensional-stochastic",
+  "version": "1.0.0",
+  "description": "MCP server for multidimensional stochastic processes and correlation modeling",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "keywords": ["mcp", "multidimensional", "correlation", "cholesky", "copula"],
+  "author": "Corbin",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "mathjs": "^13.2.2"
+  }
+}

@@ -51,6 +51,7 @@ class CatalyticLatticeGPU:
 
     def compute_laplacian(self, field: torch.Tensor) -> torch.Tensor:
         """Compute Laplacian using convolution (arrr, smooth sailing!)"""
+        laplacian: torch.Tensor
         if self.dimensions == 2:
             # 2D Laplacian kernel
             kernel = (
@@ -77,6 +78,8 @@ class CatalyticLatticeGPU:
             field_5d = field.unsqueeze(0).unsqueeze(0)
             laplacian = torch.nn.functional.conv3d(field_5d, kernel, padding=1)
             return laplacian.squeeze()
+        else:
+            raise ValueError(f"Unsupported dimensions: {self.dimensions}")
 
     def evolve_step(self) -> None:
         """Single evolution step of the catalytic reaction-diffusion system"""
@@ -126,7 +129,7 @@ class CatalyticLatticeGPU:
         elapsed = time.perf_counter() - start_time
         throughput = steps / elapsed
 
-        return elapsed, throughput
+        return (elapsed, throughput)
 
     def get_state_snapshot(self) -> np.ndarray:
         """Get current state as numpy array"""

@@ -1,10 +1,12 @@
 # This Dockerfile is a modified version of https://github.com/bskaggs/ghidra-docker/blob/master/Dockerfile
 
-FROM openjdk:11-slim
-MAINTAINER anmarcel "anmarcel@cisco.com"
+FROM eclipse-temurin:21-jdk
+LABEL maintainer="anmarcel@cisco.com"
+LABEL description="Ghidraaas - Ghidra 11.4.2 as a Service"
 
-ARG GHIDRA_VERSION=9.1.2_PUBLIC_20200212
-ARG GHIDRA_SHA256=ebe3fa4e1afd7d97650990b27777bb78bd0427e8e70c1d0ee042aeb52decac61
+ARG GHIDRA_VERSION=11.4.2_PUBLIC_20250826
+ARG GHIDRA_BUILD=Ghidra_11.4.2_build
+ARG GHIDRA_SHA256=795a02076af16257bd6f3f4736c4fc152ce9ff1f95df35cd47e2adc086e037a6
 
 RUN useradd -m ghidra && \
     mkdir -p /srv/repositories && \
@@ -16,13 +18,13 @@ RUN apt-get update \
   && apt-get install unzip \
   && cd /usr/local/bin \
   && ln -s /usr/bin/python3 python \
-  && pip3 install --upgrade pip
+  && pip3 install --break-system-packages --ignore-installed --upgrade pip
 
-RUN apt-get install -y libgtk2.0 libidn11 libglu1-mesa
+RUN apt-get install -y libgtk2.0 libidn12 libglu1-mesa
 
 WORKDIR /opt
 RUN apt-get update && apt-get install -y wget gettext-base patch && \
-    wget -q -O ghidra.zip https://ghidra-sre.org/ghidra_${GHIDRA_VERSION}.zip 
+    wget -q -O ghidra.zip https://github.com/NationalSecurityAgency/ghidra/releases/download/${GHIDRA_BUILD}/ghidra_${GHIDRA_VERSION}.zip
 RUN echo "${GHIDRA_SHA256} *ghidra.zip" | sha256sum -c && \
     unzip ghidra.zip && \
     rm ghidra.zip && \
@@ -34,7 +36,7 @@ RUN echo "${GHIDRA_SHA256} *ghidra.zip" | sha256sum -c && \
     chown -R ghidra: ghidra*
 
 COPY requirements.txt /opt/requirements.txt
-RUN pip3 install -r /opt/requirements.txt
+RUN pip3 install --break-system-packages -r /opt/requirements.txt
 
 # Create /opt/ghidraaas working folder
 RUN mkdir -p /opt/ghidraaas

@@ -91,6 +91,27 @@ class WebhookAudioServer {
       });
     });
 
+    // Direct audio cue endpoint (for MCP server)
+    this.app.post('/webhook/test', async (req, res) => {
+      const { type, profile = 'default' } = req.body;
+
+      logger.info('Playing direct audio cue', { type, profile });
+
+      try {
+        await this.audioManager.playSound(type, profile);
+        this.broadcastUpdate({
+          type: 'audio_cue',
+          eventType: type,
+          profile,
+          timestamp: new Date()
+        });
+        res.json({ success: true, type, profile });
+      } catch (error) {
+        logger.error('Failed to play audio cue', { error: error.message });
+        res.status(500).json({ error: error.message });
+      }
+    });
+
     // Dynamic webhook endpoint handler
     this.app.all('/webhook/:endpointId', async (req, res) => {
       const { endpointId } = req.params;

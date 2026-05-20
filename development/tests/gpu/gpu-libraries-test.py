@@ -130,7 +130,7 @@ try:
         results.append(("PyTorch", "WORKING", "2.5.1+cu121"))
     else:
         results.append(("PyTorch", "FAILED", "GPU not detected"))
-except:
+except ImportError:
     results.append(("PyTorch", "NOT INSTALLED", ""))
 
 try:
@@ -140,7 +140,7 @@ try:
         results.append(("CuPy", "WORKING", "13.6.0 (CUDA 12.x)"))
     else:
         results.append(("CuPy", "FAILED", "GPU not detected"))
-except:
+except ImportError:
     results.append(("CuPy", "NOT INSTALLED", ""))
 
 try:
@@ -150,7 +150,7 @@ try:
         results.append(("Numba", "WORKING", "0.62.0"))
     else:
         results.append(("Numba", "NOT WORKING", "CUDA 13.0 incompatible"))
-except:
+except ImportError:
     results.append(("Numba", "NOT INSTALLED", ""))
 
 # Print results table

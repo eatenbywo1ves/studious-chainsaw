@@ -9,7 +9,14 @@ Write-Host ""
 # Set environment variables
 Write-Host "[1/4] Setting environment variables..." -ForegroundColor Yellow
 $env:DEPLOYMENT_ENV = "production"
-$env:REDIS_PASSWORD = "RLr5E73KjlPcAghcLXjBEdWJzqFVeV3EQ1GyQzqoOxo="
+# NOTE: REDIS_PASSWORD should be set in environment before running this script
+# Example: $env:REDIS_PASSWORD = "your-password-here"
+if (-not $env:REDIS_PASSWORD) {
+    Write-Host "  [ERROR] REDIS_PASSWORD not set in environment!" -ForegroundColor Red
+    Write-Host "  Set it first: `$env:REDIS_PASSWORD = 'your-password'" -ForegroundColor Yellow
+    pause
+    exit 1
+}
 $env:REDIS_HOST = "localhost"
 $env:REDIS_PORT = "6379"
 Write-Host "  Environment: $env:DEPLOYMENT_ENV" -ForegroundColor Green

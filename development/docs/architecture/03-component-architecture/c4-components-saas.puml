@@ -1,0 +1,53 @@
+@startuml C4_Components_SaaS
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+title Component Diagram - SaaS Platform API
+
+Container_Boundary(saas, "SaaS Platform API") {
+    Component(auth_controller, "Auth Controller", "FastAPI Router", "Handles login, registration, password reset")
+    Component(user_controller, "User Controller", "FastAPI Router", "User profile CRUD operations")
+    Component(subscription_controller, "Subscription Controller", "FastAPI Router", "Stripe subscription management")
+    Component(analysis_controller, "Analysis Controller", "FastAPI Router", "Binary analysis job submission")
+    Component(webhook_controller, "Webhook Controller", "FastAPI Router", "Stripe/SendGrid webhooks")
+
+    Component(auth_service, "Auth Service", "Python Class", "JWT generation, validation, password hashing")
+    Component(user_service, "User Service", "Python Class", "User business logic, RLS enforcement")
+    Component(billing_service, "Billing Service", "Python Class", "Stripe API integration")
+    Component(analysis_service, "Analysis Service", "Python Class", "Job queue management")
+    Component(email_service, "Email Service", "Python Class", "SendGrid transactional emails")
+    Component(cache_service, "Cache Service", "Python Class", "Redis caching layer")
+
+    Component(user_repo, "User Repository", "SQLAlchemy", "User data access")
+    Component(subscription_repo, "Subscription Repository", "SQLAlchemy", "Subscription data access")
+    Component(job_repo, "Job Repository", "SQLAlchemy", "Analysis job data access")
+
+    Component(jwt_middleware, "JWT Middleware", "Starlette Middleware", "Token validation on requests")
+    Component(rls_middleware, "RLS Middleware", "Starlette Middleware", "Tenant context injection")
+    Component(rate_limiter, "Rate Limiter", "Starlette Middleware", "Redis-backed throttling")
+}
+
+' Controller to Service relationships
+Rel(auth_controller, auth_service, "Uses")
+Rel(user_controller, user_service, "Uses")
+Rel(subscription_controller, billing_service, "Uses")
+Rel(analysis_controller, analysis_service, "Uses")
+Rel(webhook_controller, billing_service, "Uses")
+Rel(webhook_controller, email_service, "Uses")
+
+' Service to Repository relationships
+Rel(auth_service, user_repo, "Reads/Writes")
+Rel(user_service, user_repo, "Reads/Writes")
+Rel(billing_service, subscription_repo, "Reads/Writes")
+Rel(analysis_service, job_repo, "Reads/Writes")
+
+' Service to Cache relationships
+Rel(auth_service, cache_service, "Caches tokens")
+Rel(user_service, cache_service, "Caches profiles")
+
+' Middleware relationships
+Rel(jwt_middleware, auth_service, "Validates tokens")
+Rel(rls_middleware, user_service, "Gets tenant context")
+Rel(rate_limiter, cache_service, "Checks limits")
+
+SHOW_LEGEND()
+@enduml

@@ -1,0 +1,248 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-service-canary
+  namespace: production
+  labels:
+    app: auth-service
+    version: canary
+    component: authentication
+    feature: redis-circuit-breaker
+spec:
+  # Canary replicas scale with traffic percentage
+  # 25% traffic ≈ 1 replica, 50% ≈ 2 replicas, 75% ≈ 2-3 replicas, 100% ≈ 3 replicas
+  replicas: 1  # Start with 1, scale up as traffic increases
+  selector:
+    matchLabels:
+      app: auth-service
+      version: canary
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0  # Zero-downtime deployment
+  template:
+    metadata:
+      labels:
+        app: auth-service
+        version: canary
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+        # Canary deployment metadata
+        deployment.phase: "phase-4"
+        circuit-breaker.version: "v1.0.0"
+    spec:
+      serviceAccountName: auth-service
+      containers:
+      - name: auth-service
+        image: your-registry/auth-service:canary  # New version WITH circuit breaker
+        imagePullPolicy: Always
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        - name: metrics
+          containerPort: 9090
+          protocol: TCP
+
+        env:
+        # Redis configuration
+        - name: REDIS_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: auth-config
+              key: redis.host
+        - name: REDIS_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: auth-config
+              key: redis.port
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: redis-credentials
+              key: password
+
+        # ========================================
+        # CIRCUIT BREAKER CONFIGURATION (NEW)
+        # ========================================
+
+        # Feature flag - Circuit breaker ENABLED for canary
+        - name: REDIS_CIRCUIT_BREAKER_ENABLED
+          value: "true"
+
+        # Production circuit breaker thresholds
+        - name: CIRCUIT_BREAKER_FAILURE_THRESHOLD
+          value: "5"  # Open after 5 failures
+        - name: CIRCUIT_BREAKER_FAILURE_TIMEOUT
+          value: "120"  # 2-minute sliding window
+        - name: CIRCUIT_BREAKER_RESET_TIMEOUT
+          value: "120"  # 2-minute recovery delay
+        - name: CIRCUIT_BREAKER_SUCCESS_THRESHOLD
+          value: "3"  # Require 3 successes to close
+
+        # Graceful degradation configuration
+        - name: CIRCUIT_BREAKER_FALLBACK_STRATEGY
+          value: "fail_open"  # Allow requests when circuit open
+        - name: CIRCUIT_BREAKER_DEFAULT_TTL
+          value: "900"  # 15 minutes default token TTL when degraded
+
+        # ========================================
+        # APPLICATION CONFIGURATION
+        # ========================================
+
+        - name: JWT_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: auth-secrets
+              key: jwt-secret
+        - name: ENV
+          value: "production"
+        - name: LOG_LEVEL
+          value: "INFO"
+
+        # Canary-specific labels for metrics
+        - name: DEPLOYMENT_VERSION
+          value: "canary"
+        - name: FEATURE_VERSION
+          value: "redis-circuit-breaker-v1.0.0"
+
+        # Resource limits (same as stable)
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+
+        # ========================================
+        # HEALTH CHECKS
+        # ========================================
+
+        # Liveness probe - checks if container is alive
+        livenessProbe:
+          httpGet:
+            path: /health/liveness
+            port: 8080
+            httpHeaders:
+            - name: X-Health-Check
+              value: "liveness"
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+
+        # Readiness probe - checks if container can serve traffic
+        # IMPORTANT: This should validate circuit breaker health
+        readinessProbe:
+          httpGet:
+            path: /health/readiness
+            port: 8080
+            httpHeaders:
+            - name: X-Health-Check
+              value: "readiness"
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 2
+          successThreshold: 1
+
+        # Startup probe - for slow-starting containers
+        startupProbe:
+          httpGet:
+            path: /health/startup
+            port: 8080
+          initialDelaySeconds: 0
+          periodSeconds: 5
+          failureThreshold: 30
+
+        # ========================================
+        # CUSTOM HEALTH ENDPOINT FOR CIRCUIT BREAKER
+        # ========================================
+        # Additional exec probe to check circuit breaker state
+        # This can trigger pod restart if circuit is stuck OPEN
+        # (Commented out - use only if needed)
+        #
+        # livenessProbe:
+        #   exec:
+        #     command:
+        #     - /bin/sh
+        #     - -c
+        #     - |
+        #       # Check if circuit breaker is stuck OPEN for > 10 minutes
+        #       python -c "
+        #       from application.redis_circuit_breaker import get_global_breaker
+        #       import time
+        #       breaker = get_global_breaker()
+        #       if breaker.state == 'OPEN':
+        #         if time.time() - breaker.opened_at > 600:
+        #           exit(1)  # Restart pod
+        #       "
+
+      # Security context (same as stable)
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+
+      # Node affinity for high-availability
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - auth-service
+              topologyKey: kubernetes.io/hostname
+
+---
+# HorizontalPodAutoscaler for canary (scales based on CPU/memory)
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: auth-service-canary-hpa
+  namespace: production
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: auth-service-canary
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300  # Wait 5 min before scaling down
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 0  # Scale up immediately
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 30
+      - type: Pods
+        value: 2
+        periodSeconds: 30
+      selectPolicy: Max

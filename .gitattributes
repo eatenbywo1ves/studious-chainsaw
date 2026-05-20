@@ -1,0 +1,15 @@
+# Force LF line endings for files that must be LF at runtime,
+# even when checked out on Windows. Without this, autocrlf=true on
+# Windows clients silently CRLF-ifies these files and shell scripts
+# fail in Linux containers with "no such file or directory" on the
+# shebang line.
+
+*.sh         text eol=lf
+*.bash       text eol=lf
+Dockerfile*  text eol=lf
+*.dockerfile text eol=lf
+*.patch      text eol=lf
+*.diff       text eol=lf
+
+# Conventional defaults so other text remains normalized.
+* text=auto

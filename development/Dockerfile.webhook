@@ -23,8 +23,13 @@ RUN pip install --no-cache-dir \
 # Copy webhook system files (use standalone version)
 COPY services/webhooks/webhook_server_standalone.py /app/webhook_server.py
 
-# Create data directory
-RUN mkdir -p /app/data /app/logs
+# Create non-root user matching Kubernetes securityContext
+RUN groupadd -r appuser && \
+    useradd -r -g appuser -u 1000 -m -s /bin/bash appuser
+
+# Create data directory with proper ownership
+RUN mkdir -p /app/data /app/logs && \
+    chown -R appuser:appuser /app
 
 # Environment variables
 ENV PYTHONUNBUFFERED=1
@@ -39,6 +44,9 @@ EXPOSE 8000 9090
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
+
+# Switch to non-root user
+USER appuser
 
 # Run the standalone webhook server
 CMD ["python", "webhook_server.py"]

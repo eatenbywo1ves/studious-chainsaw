@@ -1,0 +1,32 @@
+# Build context is the user's home/repo root, which contains many GB
+# of unrelated files. Use a deny-everything + selective allow strategy
+# so docker build only sends what the image actually needs and
+# credentials cannot accidentally leak into the image.
+
+# Ignore everything by default.
+*
+
+# Allow exactly what the root Dockerfile copies.
+!src/
+!configs/
+!requirements.txt
+!setup.py
+!README.md
+!Dockerfile
+!.dockerignore
+
+# Re-exclude common transient/secret files even inside allowed paths.
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/.git/
+**/.gitignore
+**/node_modules/
+**/.venv/
+**/venv/
+**/.env
+**/.env.*
+**/*.egg-info/
+**/.pytest_cache/
+**/.mypy_cache/
+**/*.log

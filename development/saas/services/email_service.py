@@ -3,11 +3,19 @@ Production Email Service with Automatic Failover
 Supports SendGrid, AWS SES, and SMTP fallback
 """
 
-import os
+import sys
 import logging
 from typing import List, Optional
+from pathlib import Path
+
+# ✅ MIGRATED: Import centralized configuration system
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+from shared.config import get_settings
 
 logger = logging.getLogger(__name__)
+
+# Load configuration (validated and type-safe)
+_config = get_settings()
 
 
 class EmailService:
@@ -17,36 +25,35 @@ class EmailService:
     """
 
     def __init__(self):
-        self.from_email = os.getenv("EMAIL_FROM", "noreply@catalyticcomputing.com")
-        self.from_name = os.getenv("EMAIL_FROM_NAME", "Catalytic Computing")
+        # ✅ MIGRATED: Use centralized configuration
+        self.from_email = _config.email.email_from
+        self.from_name = _config.email.email_from_name
 
         # Track provider availability
         self.sendgrid_available = self._check_sendgrid()
         self.aws_ses_available = self._check_aws_ses()
         self.smtp_available = self._check_smtp()
 
+        # Log detected provider (from config auto-detection)
         logger.info(
-            f"Email service initialized: SendGrid={self.sendgrid_available}, "
-            f"AWS SES={self.aws_ses_available}, SMTP={self.smtp_available}"
+            f"Email service initialized: Provider={_config.email.provider}, "
+            f"SendGrid={self.sendgrid_available}, AWS SES={self.aws_ses_available}, SMTP={self.smtp_available}"
         )
 
     def _check_sendgrid(self) -> bool:
         """Check if SendGrid is configured"""
-        api_key = os.getenv("SENDGRID_API_KEY")
-        return bool(api_key and api_key != "SG.YOUR_API_KEY_HERE")
+        # ✅ MIGRATED: Use centralized configuration
+        return bool(_config.email.sendgrid_api_key)
 
     def _check_aws_ses(self) -> bool:
         """Check if AWS SES is configured"""
-        access_key = os.getenv("AWS_ACCESS_KEY_ID")
-        secret_key = os.getenv("AWS_SECRET_ACCESS_KEY")
-        return bool(access_key and secret_key)
+        # ✅ MIGRATED: Use centralized configuration
+        return bool(_config.email.aws_access_key_id and _config.email.aws_secret_access_key)
 
     def _check_smtp(self) -> bool:
         """Check if SMTP is configured"""
-        host = os.getenv("SMTP_HOST")
-        username = os.getenv("SMTP_USERNAME")
-        password = os.getenv("SMTP_PASSWORD")
-        return bool(host and username and password)
+        # ✅ MIGRATED: Use centralized configuration
+        return bool(_config.email.smtp_host and _config.email.smtp_username and _config.email.smtp_password)
 
     def send_email(
         self,
@@ -105,7 +112,8 @@ class EmailService:
             from sendgrid import SendGridAPIClient
             from sendgrid.helpers.mail import Mail
 
-            api_key = os.getenv("SENDGRID_API_KEY")
+            # ✅ MIGRATED: Use centralized configuration with SecretStr protection
+            api_key = _config.email.sendgrid_api_key.get_secret_value() if _config.email.sendgrid_api_key else None
 
             message = Mail(
                 from_email=(self.from_email, self.from_name),
@@ -135,9 +143,10 @@ class EmailService:
             import boto3
             from botocore.exceptions import ClientError
 
-            access_key = os.getenv("AWS_ACCESS_KEY_ID")
-            secret_key = os.getenv("AWS_SECRET_ACCESS_KEY")
-            region = os.getenv("AWS_REGION", "us-east-1")
+            # ✅ MIGRATED: Use centralized configuration with SecretStr protection
+            access_key = _config.email.aws_access_key_id.get_secret_value() if _config.email.aws_access_key_id else None
+            secret_key = _config.email.aws_secret_access_key.get_secret_value() if _config.email.aws_secret_access_key else None
+            region = _config.email.aws_region
 
             ses_client = boto3.client(
                 "ses",
@@ -175,10 +184,11 @@ class EmailService:
         from email.mime.text import MIMEText
         from email.mime.multipart import MIMEMultipart
 
-        smtp_host = os.getenv("SMTP_HOST")
-        smtp_port = int(os.getenv("SMTP_PORT", "587"))
-        smtp_username = os.getenv("SMTP_USERNAME")
-        smtp_password = os.getenv("SMTP_PASSWORD")
+        # ✅ MIGRATED: Use centralized configuration with type-safe port and SecretStr password
+        smtp_host = _config.email.smtp_host
+        smtp_port = _config.email.smtp_port  # Already validated as int (1-65535)
+        smtp_username = _config.email.smtp_username
+        smtp_password = _config.email.smtp_password.get_secret_value() if _config.email.smtp_password else None
 
         msg = MIMEMultipart("alternative")
         msg["Subject"] = subject
