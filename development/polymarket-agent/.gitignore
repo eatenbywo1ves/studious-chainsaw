@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+*.db
+.env
+
+# Un-ignore agent source subdirectories that parent .gitignore blocks
+!agent/data/
+!agent/data/**
+!tests/data/
+!tests/data/**
