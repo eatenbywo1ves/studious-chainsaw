@@ -7,6 +7,7 @@ elsewhere, prefer scipy.stats.chi2.
 """
 
 import math
+from collections.abc import Iterable
 from typing import Literal
 
 from agent.validation.types import KupiecResult
@@ -77,3 +78,15 @@ def kupiec_test(
         p_value=p_value,
         zone=zone,
     )
+
+
+def brier_score(pairs: Iterable[tuple[float, int]]) -> float:
+    """Mean squared error: sum((p_hat - outcome)^2) / n.
+
+    Outcomes must be 0 or 1.  Raises ValueError on empty input.
+    """
+    pairs_list = list(pairs)
+    if not pairs_list:
+        raise ValueError("brier_score requires at least one (p_hat, outcome) pair")
+    sse = sum((p - o) ** 2 for p, o in pairs_list)
+    return sse / len(pairs_list)

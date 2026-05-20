@@ -2,7 +2,7 @@ import math
 
 import pytest
 
-from agent.validation.metrics import kupiec_test
+from agent.validation.metrics import brier_score, kupiec_test
 from agent.validation.types import KupiecResult
 
 
@@ -57,3 +57,32 @@ def test_kupiec_invalid_inputs():
         kupiec_test(exceptions=-1, trials=100, expected_rate=0.05)
     with pytest.raises(ValueError):
         kupiec_test(exceptions=101, trials=100, expected_rate=0.05)
+
+
+def test_brier_perfect_miss():
+    """§5.2 Case 1: pred=[0.0], outcome=[1] → Brier = 1.0 (worst case)."""
+    assert brier_score([(0.0, 1)]) == 1.0
+
+
+def test_brier_constant_half():
+    """§5.2 Case 2: pred=[0.5]*3, outcome=[0,0,1] → Brier = 0.25."""
+    assert math.isclose(
+        brier_score([(0.5, 0), (0.5, 0), (0.5, 1)]),
+        0.25,
+        abs_tol=1e-10,
+    )
+
+
+def test_brier_mixed_calibration():
+    """§5.2 Case 3: pred=[0.1,0.9,0.6], outcome=[0,1,1] → Brier = 0.06."""
+    assert math.isclose(
+        brier_score([(0.1, 0), (0.9, 1), (0.6, 1)]),
+        0.06,
+        abs_tol=1e-10,
+    )
+
+
+def test_brier_empty_raises():
+    """§5.2 Case 4: empty input raises ValueError."""
+    with pytest.raises(ValueError):
+        brier_score([])
