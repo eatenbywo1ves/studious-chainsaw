@@ -226,7 +226,7 @@ class PaperFill:
     ts: int
     side: Literal["YES", "NO"]
     price: float                       # signal.target_price + slippage (0 in Phase 1A)
-    size: float                        # position size in dollars (configurable)
+    size: float                        # position size in SHARES (max payoff = size * $1)
 ```
 
 ### 3.3 Outputs (what flows OUT of the validation layer)
@@ -363,7 +363,7 @@ class PaperTradeEngine:
     def __init__(
         self,
         model_name: str,
-        position_size_usd: float = 1.0,
+        position_size_shares: float = 1.0,
         slippage_model: Callable[..., float] = lambda **_: 0.0,
     ):
         self._fills: list[PaperFill] = []
@@ -381,10 +381,11 @@ class PaperTradeEngine:
         """Compute backtest_metrics over self._predictions, sum P&L over self._fills."""
 ```
 
-Position size defaults to **$1 per trade** in Phase 1A — that is the 1% Kelly
-fraction equivalent against $100 of intended live capital, survivable even if
-every trade loses. Slippage callable defaults to zero; a real spread/impact
-model is Phase 1B.
+Position size defaults to **1 share per trade** in Phase 1A. On Polymarket, 1
+share costs the token's entry price (≤ $1) and pays $1 if that token resolves
+to the winning side, so max loss per trade is bounded above by $1 — comfortable
+against $100 of intended live capital. Slippage callable defaults to zero; a
+real spread/impact model is Phase 1B.
 
 ### 4.4 `agent/validation/resolution_poller.py`
 
@@ -457,13 +458,16 @@ Phase 1A is complete when every test below passes.
 
 | Inputs | Expected output |
 |---|---|
-| `exceptions=0, trials=100, expected_rate=0.05` | `LR = 2*100*ln(1/0.95) ≈ 10.258`, `p_value ≈ 0.00136`, `zone=GREEN` |
-| `exceptions=7, trials=100, expected_rate=0.05` | `LR ≈ 0.5675`, `p_value ≈ 0.451`, `zone=ORANGE` |
-| `exceptions=15, trials=100, expected_rate=0.05` | `LR ≈ 12.36`, `p_value ≈ 0.00044`, `zone=RED` |
+| `exceptions=0, trials=100, expected_rate=0.05` | `LR ≈ 10.2587`, `p_value ≈ 0.00136`, `zone=GREEN` |
+| `exceptions=7, trials=100, expected_rate=0.05`  | `LR ≈ 0.7530`,  `p_value ≈ 0.3855`,  `zone=ORANGE` |
+| `exceptions=15, trials=100, expected_rate=0.05` | `LR ≈ 14.0500`, `p_value ≈ 0.000178`, `zone=RED` |
 
-All three values verified against the closed-form
-`LR_uc = -2*[x*ln(p) + (n-x)*ln(1-p) - x*ln(x/n) - (n-x)*ln((n-x)/n)]` and
-`scipy.stats.chi2.sf(LR, 1)`.
+All three values verified by hand-computation against the closed-form
+`LR_uc = -2*[x*ln(p) + (n-x)*ln(1-p) - x*ln(x/n) - (n-x)*ln((n-x)/n)]` (with
+`0*ln(0) = 0` convention for the x=0 and x=n edge cases) and the chi²(1)
+survival function `chi2.sf(LR, 1) = erfc(sqrt(LR/2))`. Implementation tests
+should match these reference values to within absolute tolerance `1e-4` for LR
+and relative tolerance `1e-3` for `p_value`.
 
 ### 5.2 Brier score reference cases
 
@@ -476,12 +480,14 @@ All three values verified against the closed-form
 
 ### 5.3 Reliability curve reference case
 
-Given 25 predictions evenly spread across `[0,1]` with synthetic outcomes
-engineered so the model is exactly calibrated (predicted bin midpoint ==
-observed YES-frequency), the curve must return 10 bins with
+Given 100 predictions evenly spread across `[0,1]` (10 per decile bin) with
+synthetic outcomes engineered so the model is exactly calibrated (predicted bin
+midpoint == observed YES-frequency), the curve must return 10 bins with
 `mean_predicted_p == bin_midpoint` (within float tolerance) and
-`observed_yes_frequency == bin_midpoint`. Bins with fewer than 5 observations
-report `(None, None)`.
+`observed_yes_frequency == bin_midpoint`. (The 10/bin count is comfortably above
+the `min_per_bin=5` default, so all bins are non-`None`.) A second reference
+case with only 25 predictions evenly spread (2-3 per bin) asserts every bin
+reports `(None, None)` under default `min_per_bin=5`.
 
 ### 5.4 walk_forward_backtest integration
 
@@ -495,10 +501,13 @@ In-memory SQLite (StaticPool, same fixture as Phase 0):
 ### 5.5 PaperTradeEngine deterministic test
 
 Direct unit test, no httpx:
-- Construct an engine, feed it 3 synthetic `TradeSignal`s (2× YES at $0.40, 1× NO
-  at $0.60) and 3 `ResolvedOutcome`s (markets 1 & 2 resolve YES, market 3 resolves
-  YES → meaning the NO position loses).
-- Expect: `n_fills=3`, `paper_pnl = 2*(1.00 - 0.40) - 1*0.60 = 0.60`,
+- Construct an engine with default `position_size_shares=1.0` (one share per
+  trade), feed it 3 synthetic `TradeSignal`s (2× YES at $0.40, 1× NO at $0.60)
+  and 3 `ResolvedOutcome`s (markets 1 & 2 resolve YES, market 3 resolves YES →
+  meaning the NO position loses).
+- Per share: YES@$0.40 winning pays $1.00 → profit $0.60; NO@$0.60 losing pays
+  $0.00 → loss $0.60.
+- Expect: `n_fills=3`, `paper_pnl = 2*(1.00 - 0.40) - 1*0.60 = $0.60`,
   `backtest_metrics.kupiec=None` (n_resolved < window).
 
 ### 5.6 ResolutionPoller respx-mocked integration
