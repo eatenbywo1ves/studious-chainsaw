@@ -147,3 +147,11 @@ def test_reliability_curve_invalid_n_bins():
     """n_bins must be >= 1."""
     with pytest.raises(ValueError):
         reliability_curve([(0.5, 1)], n_bins=0)
+
+
+def test_reliability_curve_invalid_min_per_bin():
+    """min_per_bin must be >= 1 — 0 or negative raises ValueError."""
+    with pytest.raises(ValueError):
+        reliability_curve([(0.5, 1)], min_per_bin=0)
+    with pytest.raises(ValueError):
+        reliability_curve([(0.5, 1)], min_per_bin=-1)

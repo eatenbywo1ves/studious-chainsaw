@@ -105,6 +105,8 @@ def reliability_curve(
     """
     if n_bins < 1:
         raise ValueError(f"n_bins must be >= 1, got {n_bins}")
+    if min_per_bin < 1:
+        raise ValueError(f"min_per_bin must be >= 1, got {min_per_bin}")
 
     bin_predictions: list[list[float]] = [[] for _ in range(n_bins)]
     bin_outcomes: list[list[int]] = [[] for _ in range(n_bins)]
