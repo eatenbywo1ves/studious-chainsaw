@@ -90,3 +90,39 @@ def brier_score(pairs: Iterable[tuple[float, int]]) -> float:
         raise ValueError("brier_score requires at least one (p_hat, outcome) pair")
     sse = sum((p - o) ** 2 for p, o in pairs_list)
     return sse / len(pairs_list)
+
+
+def reliability_curve(
+    pairs: Iterable[tuple[float, int]],
+    *,
+    n_bins: int = 10,
+    min_per_bin: int = 5,
+) -> list[tuple[float, float] | tuple[None, None]]:
+    """Bin predictions into n_bins evenly-spaced intervals over [0, 1].
+
+    Per bin: (mean_predicted_p, observed_yes_frequency).
+    Bins with fewer than min_per_bin observations report (None, None).
+    """
+    if n_bins < 1:
+        raise ValueError(f"n_bins must be >= 1, got {n_bins}")
+
+    bin_predictions: list[list[float]] = [[] for _ in range(n_bins)]
+    bin_outcomes: list[list[int]] = [[] for _ in range(n_bins)]
+
+    for p_hat, outcome in pairs:
+        if not (0.0 <= p_hat <= 1.0):
+            raise ValueError(f"p_hat must be in [0, 1], got {p_hat}")
+        # Bin index: floor(p_hat * n_bins), clamped so p_hat=1.0 lands in last bin
+        idx = min(int(p_hat * n_bins), n_bins - 1)
+        bin_predictions[idx].append(p_hat)
+        bin_outcomes[idx].append(outcome)
+
+    result: list[tuple[float, float] | tuple[None, None]] = []
+    for preds, outs in zip(bin_predictions, bin_outcomes):
+        if len(preds) < min_per_bin:
+            result.append((None, None))
+        else:
+            mean_p = sum(preds) / len(preds)
+            obs_freq = sum(outs) / len(outs)
+            result.append((mean_p, obs_freq))
+    return result
