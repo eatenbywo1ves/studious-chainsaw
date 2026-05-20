@@ -26,5 +26,8 @@ dev = [
 asyncio_mode = "auto"
 testpaths = ["tests"]
 
+[project.scripts]
+polymarket-agent = "agent.cli:main"
+
 [tool.setuptools.packages.find]
 include = ["agent*"]
