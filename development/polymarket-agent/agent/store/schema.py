@@ -8,6 +8,7 @@ from sqlalchemy import (
     ForeignKey,
     Integer,
     String,
+    Text,
     UniqueConstraint,
 )
 from sqlalchemy.orm import (
@@ -96,3 +97,59 @@ class CryptoBar(Base):
     low: Mapped[float] = mapped_column(Float)
     close: Mapped[float] = mapped_column(Float)
     volume: Mapped[float] = mapped_column(Float)
+
+
+class ModePerformance(Base):
+    """One Brier observation per (mode, closed-trade). Append-only.
+    Queried by PerformanceTracker for trailing-window averages.
+    """
+
+    __tablename__ = "mode_performance"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    mode_name: Mapped[str] = mapped_column(String(32), index=True)
+    market_id: Mapped[str] = mapped_column(String, index=True)
+    p_mode: Mapped[float] = mapped_column(Float)
+    p_market_at_prediction: Mapped[float] = mapped_column(Float)
+    outcome: Mapped[int] = mapped_column(Integer)
+    brier_score: Mapped[float] = mapped_column(Float)
+    closed_at: Mapped[int] = mapped_column(Integer)
+
+
+class TradeRecord(Base):
+    """Append-only diagnostic record of every position taken by crypto_model."""
+
+    __tablename__ = "trade_records"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    market_id: Mapped[str] = mapped_column(String, index=True)
+    ts: Mapped[int] = mapped_column(Integer, index=True)
+    p_market: Mapped[float] = mapped_column(Float)
+    p_bridge: Mapped[float] = mapped_column(Float)
+    p_mode1: Mapped[float] = mapped_column(Float)
+    p_mode2: Mapped[float] = mapped_column(Float)
+    p_mode3: Mapped[float] = mapped_column(Float)
+    p_mode4: Mapped[float] = mapped_column(Float)
+    p_blend: Mapped[float] = mapped_column(Float)
+    p_final: Mapped[float] = mapped_column(Float)
+    agreement_vetoed: Mapped[bool] = mapped_column(Boolean)
+    kelly_fraction: Mapped[float] = mapped_column(Float)
+    position_size: Mapped[float] = mapped_column(Float)
+    shock_active: Mapped[bool] = mapped_column(Boolean)
+    shock_severity: Mapped[float | None] = mapped_column(Float, nullable=True)
+    mode_weights_json: Mapped[str] = mapped_column(Text)
+
+
+class ModeFloorState(Base):
+    """Per-mode state for the Brier floor and disable streak.  One row per
+    mode (binary/exp/magnitude/confidence).  Mutable — updated on every
+    closed-trade outcome.
+    """
+
+    __tablename__ = "mode_floor_state"
+
+    mode_name: Mapped[str] = mapped_column(String(32), primary_key=True)
+    brier_floor: Mapped[float] = mapped_column(Float, default=0.10)
+    disable_streak: Mapped[int] = mapped_column(Integer, default=0)
+    is_disabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    updated_at: Mapped[int] = mapped_column(Integer)

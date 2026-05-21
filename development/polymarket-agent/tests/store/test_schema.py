@@ -107,3 +107,90 @@ def test_crypto_bar_allows_different_granularities_same_ts(session):
     session.commit()  # must not raise
 
     assert session.query(CryptoBar).count() == 2
+
+
+def test_mode_performance_round_trips_through_db(session_factory):
+    """Write a ModePerformance row in session A, read it back in session B."""
+    from agent.store.schema import ModePerformance
+
+    with session_factory() as session_a:
+        row = ModePerformance(
+            mode_name="binary",
+            market_id="0xABC001",
+            p_mode=0.31,
+            p_market_at_prediction=0.10,
+            outcome=1,
+            brier_score=(0.31 - 1.0) ** 2,
+            closed_at=1747800000,
+        )
+        session_a.add(row)
+        session_a.commit()
+
+    with session_factory() as session_b:
+        result = session_b.query(ModePerformance).one()
+        assert result.mode_name == "binary"
+        assert result.market_id == "0xABC001"
+        assert result.p_mode == 0.31
+        assert result.p_market_at_prediction == 0.10
+        assert result.outcome == 1
+        assert abs(result.brier_score - 0.4761) < 1e-9
+        assert result.closed_at == 1747800000
+
+
+def test_trade_record_round_trips_through_db(session_factory):
+    """Two-session round-trip; full pipeline diagnostics preserved."""
+    from agent.store.schema import TradeRecord
+    import json
+
+    with session_factory() as session_a:
+        row = TradeRecord(
+            market_id="0xABC001",
+            ts=1747800000,
+            p_market=0.10,
+            p_bridge=0.31,
+            p_mode1=0.31,
+            p_mode2=0.30,
+            p_mode3=0.29,
+            p_mode4=0.32,
+            p_blend=0.305,
+            p_final=0.355,
+            agreement_vetoed=False,
+            kelly_fraction=0.049,
+            position_size=4.9,
+            shock_active=True,
+            shock_severity=0.8,
+            mode_weights_json=json.dumps({"binary": 0.25, "exp": 0.25, "magnitude": 0.25, "confidence": 0.25}),
+        )
+        session_a.add(row)
+        session_a.commit()
+
+    with session_factory() as session_b:
+        result = session_b.query(TradeRecord).one()
+        assert result.market_id == "0xABC001"
+        assert result.p_final == 0.355
+        assert result.agreement_vetoed is False
+        assert result.shock_severity == 0.8
+        weights = json.loads(result.mode_weights_json)
+        assert sum(weights.values()) == 1.0
+
+
+def test_mode_floor_state_round_trips_through_db(session_factory):
+    """One row per mode, mutable, tracks per-mode Brier floor evolution."""
+    from agent.store.schema import ModeFloorState
+
+    with session_factory() as session_a:
+        row = ModeFloorState(
+            mode_name="confidence",
+            brier_floor=0.10,
+            disable_streak=0,
+            is_disabled=False,
+            updated_at=1747800000,
+        )
+        session_a.add(row)
+        session_a.commit()
+
+    with session_factory() as session_b:
+        result = session_b.query(ModeFloorState).one()
+        assert result.mode_name == "confidence"
+        assert result.brier_floor == 0.10
+        assert result.is_disabled is False
