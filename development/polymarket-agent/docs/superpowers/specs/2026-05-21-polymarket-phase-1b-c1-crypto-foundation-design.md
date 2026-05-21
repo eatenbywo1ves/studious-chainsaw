@@ -471,7 +471,7 @@ C1 is complete when every test below passes. Same discipline as Phase 1A §5.
 | 1 | Already touching | `spot=100, barrier=100, T=1.0, vol=0.3` | `1.0` |
 | 2 | Zero time, up-barrier above spot | `spot=100, barrier=110, T=0.0, vol=0.3` | `0.0` |
 | 3 | Zero time, down-barrier below spot | `spot=100, barrier=90, T=0.0, vol=0.3` | `0.0` |
-| 4 | Recurrence (very long horizon, zero drift) | `spot=100, barrier=110, T=1000.0, vol=0.3, drift=0.0` | within `1e-3` of `1.0` |
+| 4 | Long horizon, μ=0 (NEGATIVE log-drift via ν = μ − σ²/2 = −0.045) | `spot=100, barrier=110, T=1000.0, vol=0.3, drift=0.0` | within `1e-3` of `S₀/B = 100/110 ≈ 0.9091` (Doob's martingale identity); catches missing exp prefactor (without prefactor → ≈ 0) |
 | 5 | Log-drift-zero up-barrier (drift = σ²/2): formula reduces to `2·N(-b/v)` | `spot=100, barrier=110, T=1.0, vol=0.3, drift=0.045` | exact value of `2 * N(-ln(1.1)/0.3)` (≈ 0.7507) |
 
 Plus **monotonicity sanity tests** (no specific values):

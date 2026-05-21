@@ -965,21 +965,37 @@ def test_prob_barrier_hit_zero_time_down_barrier():
     assert p == 0.0
 
 
-def test_prob_barrier_hit_recurrence_zero_drift_long_horizon():
-    """§5.1 Case 4: T=1000, zero drift → P → 1.0 (BM with zero drift is recurrent).
+def test_prob_barrier_hit_long_horizon_negative_log_drift():
+    """§5.1 Case 4: T=1000, μ=0, σ=0.3 → ν = μ − σ²/2 = −0.045 < 0 → P → S₀/B.
 
-    THIS TEST CATCHES THE MOST COMMON BUG: forgetting the exp(2νb/σ²)
-    prefactor.  Without it, the formula collapses to a single N(·) term
-    that asymptotes to 0.5 (not 1.0) for an up-barrier with zero drift.
+    With annualized_drift=0 (physical μ=0), the LOG-drift is ν = μ − σ²/2 = −σ²/2,
+    which is NEGATIVE.  The log-process drifts AWAY from an up-barrier.
+    By Doob's optional-stopping on the exponential martingale exp(-2νX_t/σ²),
+    the asymptotic up-barrier hit probability is:
+
+        P(τ < ∞) = S₀ / B   (when ν < 0 and b > 0)
+
+    For S₀=100, B=110: P → 100/110 ≈ 0.9091.
+
+    THIS TEST CATCHES THE MISSING exp(2νb/σ²) PREFACTOR BUG.  Without that
+    prefactor, the formula at T=1000 collapses to ≈ 0 (a single N(·) term
+    deep in the left tail with argument ≈ -4.755).  WITH the prefactor, the
+    formula gives ≈ 0.9091.  So "result ≈ 0 vs ≈ 0.909" is the discriminator.
+
+    (Note: pure recurrence — P → 1 in the limit — requires ν = 0, which means
+    drift = σ²/2.  That scenario is covered by Test 5.)
     """
     p = prob_barrier_hit(
         spot=100.0, barrier=110.0,
         time_remaining_years=1000.0, annualized_vol=0.3,
         annualized_drift=0.0,
     )
-    assert math.isclose(p, 1.0, abs_tol=1e-3), (
-        f"Recurrence test failed: P={p} should be ≈1.0.  "
-        "Did you forget the exp(2νb/σ²) prefactor?"
+    # Martingale identity: P → S₀/B in the negative-log-drift limit.
+    expected = 100.0 / 110.0
+    assert math.isclose(p, expected, abs_tol=1e-3), (
+        f"Negative-log-drift limit test failed: P={p} should be ≈{expected:.4f} "
+        f"(= S₀/B).  Did you forget the exp(2νb/σ²) prefactor?  "
+        f"Without it, this would give ≈ 0."
     )
 
 
@@ -1637,7 +1653,7 @@ Expected: all the following test names appear and pass:
 - `test_prob_barrier_hit_already_touching` (Case 1)
 - `test_prob_barrier_hit_zero_time_up_barrier` (Case 2)
 - `test_prob_barrier_hit_zero_time_down_barrier` (Case 3)
-- `test_prob_barrier_hit_recurrence_zero_drift_long_horizon` (Case 4 — catches missing exp prefactor)
+- `test_prob_barrier_hit_long_horizon_negative_log_drift` (Case 4 — catches missing exp prefactor via S₀/B asymptote)
 - `test_prob_barrier_hit_log_drift_zero_up_barrier` (Case 5)
 - `test_prob_barrier_hit_increases_with_time` (monotonicity)
 - `test_prob_barrier_hit_increases_with_vol` (monotonicity)
