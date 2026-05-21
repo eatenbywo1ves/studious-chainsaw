@@ -1,6 +1,6 @@
-from agent.data.models import MarketDTO, PriceHistory, PricePoint
-from agent.store.repository import save_price_history, upsert_market
-from agent.store.schema import Market, PriceSnapshot
+from agent.data.models import CryptoBarDTO, MarketDTO, PriceHistory, PricePoint
+from agent.store.repository import save_crypto_bars, save_price_history, upsert_market
+from agent.store.schema import CryptoBar, Market, PriceSnapshot
 
 
 def _dto(market_id: str, question: str) -> MarketDTO:
@@ -48,3 +48,54 @@ def test_upsert_market_persists_clob_token_ids(session):
 
     loaded = session.get(Market, "m-tokens")
     assert loaded.clob_token_ids == ["tok-a", "tok-b"]
+
+
+def _bar(symbol: str, granularity: str, ts: int, close: float = 100.0) -> CryptoBarDTO:
+    return CryptoBarDTO(
+        symbol=symbol, granularity=granularity, ts=ts,  # type: ignore[arg-type]
+        open=close, high=close, low=close, close=close, volume=1.0,
+    )
+
+
+def test_save_crypto_bars_inserts_new(session):
+    """First call inserts all bars, returns count."""
+    bars = [
+        _bar("BTCUSDT", "1h", 1700000000),
+        _bar("BTCUSDT", "1h", 1700003600),
+        _bar("BTCUSDT", "1h", 1700007200),
+    ]
+    added = save_crypto_bars(session, bars)
+    session.commit()
+
+    assert added == 3
+    assert session.query(CryptoBar).count() == 3
+
+
+def test_save_crypto_bars_is_idempotent(session):
+    """Re-saving same (symbol, granularity, ts) returns 0 added."""
+    bars = [_bar("BTCUSDT", "1h", 1700000000)]
+
+    first = save_crypto_bars(session, bars)
+    session.commit()
+    second = save_crypto_bars(session, bars)
+    session.commit()
+
+    assert first == 1
+    assert second == 0
+    assert session.query(CryptoBar).count() == 1
+
+
+def test_save_crypto_bars_partial_overlap(session):
+    """Mixed new-and-existing bars: only new ones counted."""
+    save_crypto_bars(session, [_bar("BTCUSDT", "1h", 1700000000)])
+    session.commit()
+
+    added = save_crypto_bars(session, [
+        _bar("BTCUSDT", "1h", 1700000000),  # already present
+        _bar("BTCUSDT", "1h", 1700003600),  # new
+        _bar("BTCUSDT", "1h", 1700007200),  # new
+    ])
+    session.commit()
+
+    assert added == 2
+    assert session.query(CryptoBar).count() == 3

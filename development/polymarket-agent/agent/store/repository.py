@@ -1,7 +1,9 @@
+from collections.abc import Iterable
+
 from sqlalchemy.orm import Session
 
-from agent.data.models import MarketDTO, PriceHistory
-from agent.store.schema import Market, PriceSnapshot
+from agent.data.models import CryptoBarDTO, MarketDTO, PriceHistory
+from agent.store.schema import CryptoBar, Market, PriceSnapshot
 
 
 def upsert_market(session: Session, dto: MarketDTO) -> Market:
@@ -53,5 +55,46 @@ def save_price_history(
                 price=point.p,
             )
         )
+        added += 1
+    return added
+
+
+def save_crypto_bars(
+    session: Session, bars: Iterable[CryptoBarDTO]
+) -> int:
+    """Persist new bars; skip (symbol, granularity, ts) tuples already stored.
+
+    Returns the count of newly-inserted bars.  Caller is responsible for
+    committing the session (same convention as save_price_history).
+    """
+    bars_list = list(bars)
+    if not bars_list:
+        return 0
+
+    # Query for any existing rows matching the requested symbols+granularities.
+    existing: set[tuple[str, str, int]] = {
+        (row.symbol, row.granularity, row.ts)
+        for row in session.query(CryptoBar)
+        .filter(
+            CryptoBar.symbol.in_({b.symbol for b in bars_list}),
+            CryptoBar.granularity.in_({b.granularity for b in bars_list}),
+        )
+        .all()
+    }
+
+    added = 0
+    for b in bars_list:
+        if (b.symbol, b.granularity, b.ts) in existing:
+            continue
+        session.add(CryptoBar(
+            symbol=b.symbol,
+            granularity=b.granularity,
+            ts=b.ts,
+            open=b.open,
+            high=b.high,
+            low=b.low,
+            close=b.close,
+            volume=b.volume,
+        ))
         added += 1
     return added
