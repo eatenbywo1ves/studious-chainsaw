@@ -6,6 +6,7 @@ from sqlalchemy import (
     DateTime,
     Float,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
@@ -105,6 +106,9 @@ class ModePerformance(Base):
     """
 
     __tablename__ = "mode_performance"
+    __table_args__ = (
+        Index("ix_mode_performance_mode_closed", "mode_name", "closed_at"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     mode_name: Mapped[str] = mapped_column(String(32), index=True)
