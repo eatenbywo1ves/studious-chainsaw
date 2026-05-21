@@ -128,3 +128,18 @@ class CryptoBarDTO(BaseModel):
             close=float(kline[4]),
             volume=float(kline[5]),
         )
+
+
+class NewsEventDTO(BaseModel):
+    """C2-A stub: full schema lands in C2-B.  Defined here so CryptoDataAccess
+    can import the name.  C2-B will expand fields and validation."""
+
+    source: str
+    external_id: str
+    language: str = "en"
+    ts: int
+    raw_text: str = ""
+    translated_text: str | None = None
+    severity_score: float | None = None
+    currencies: list[str] = Field(default_factory=list)
+    ingested_at: int = 0
