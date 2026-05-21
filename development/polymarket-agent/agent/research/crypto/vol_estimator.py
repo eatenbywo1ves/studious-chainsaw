@@ -114,3 +114,42 @@ def fit_garch11(
         long_run_variance=long_run_variance,
         current_conditional_vol=current_conditional_vol,
     )
+
+
+def forecast_garch_annualized_vol(
+    result: GARCHResult,
+    horizon_periods: int,
+) -> float:
+    """Iterative GARCH(1,1) variance forecast `h` periods ahead, then annualized.
+
+    σ²(t+h) = long_run_variance + persistence^h · (σ²(t+1) - long_run_variance)
+
+    Returns the annualized vol at horizon h.  At h=1, returns the
+    `current_conditional_vol` (already annualized).  As h → ∞, returns
+    sqrt(long_run_variance · periods_per_year).
+
+    Raises ValueError if horizon_periods <= 0.  Callers wanting h=0 should
+    use result.current_conditional_vol directly.
+    """
+    if horizon_periods <= 0:
+        raise ValueError(
+            f"horizon_periods must be >= 1, got {horizon_periods}"
+        )
+
+    # Convert current_conditional_vol (annualized) back to period variance
+    current_period_var = (
+        result.current_conditional_vol ** 2
+    ) / result.periods_per_year
+
+    # Closed-form GARCH(1,1) multi-step recursion (textbook form):
+    #   σ²(t+h|t) = σ²_∞ + ρ^(h-1) · (σ²(t+1|t) - σ²_∞)
+    # At h=1, ρ^0 = 1, so this returns σ²(t+1) (the existing one-step-ahead).
+    # As h → ∞, ρ^(h-1) → 0, so it converges to σ²_∞.
+    period_var_at_h = (
+        result.long_run_variance
+        + (result.persistence ** (horizon_periods - 1))
+        * (current_period_var - result.long_run_variance)
+    )
+
+    # Annualize and return as vol
+    return math.sqrt(period_var_at_h * result.periods_per_year)

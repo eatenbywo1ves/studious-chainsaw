@@ -6,6 +6,7 @@ import pytest
 from agent.research.crypto.vol_estimator import (
     GARCHResult,
     fit_garch11,
+    forecast_garch_annualized_vol,
 )
 
 
@@ -123,3 +124,69 @@ def test_garch_result_period_units_consistency():
         result.omega / (1.0 - result.persistence),
         abs_tol=1e-10,
     )
+
+
+def _result_for_forecast(current_vol_annualized: float = 0.30) -> GARCHResult:
+    """Build a GARCHResult with known fields for forecast-recursion tests."""
+    return GARCHResult(
+        omega=1e-5,
+        alpha=0.05,
+        beta=0.92,
+        persistence=0.97,
+        n_obs=5000,
+        periods_per_year=8760,
+        long_run_variance=1e-5 / (1.0 - 0.97),  # period-units
+        current_conditional_vol=current_vol_annualized,
+    )
+
+
+def test_forecast_garch_at_horizon_1_equals_current():
+    """h=1 → the existing one-step-ahead conditional vol."""
+    result = _result_for_forecast(current_vol_annualized=0.30)
+    forecast = forecast_garch_annualized_vol(result, horizon_periods=1)
+    assert math.isclose(forecast, 0.30, abs_tol=1e-10)
+
+
+def test_forecast_garch_converges_to_long_run_vol():
+    """h → ∞ → forecast converges to sqrt(long_run_variance · periods_per_year)."""
+    result = _result_for_forecast(current_vol_annualized=0.30)
+    long_run_annualized = math.sqrt(result.long_run_variance * result.periods_per_year)
+    forecast = forecast_garch_annualized_vol(result, horizon_periods=10000)
+    assert math.isclose(forecast, long_run_annualized, abs_tol=1e-4)
+
+
+def test_forecast_garch_recursion_intermediate():
+    """h=10 produces the closed-form recursion result.
+
+    Standard GARCH(1,1) multi-step forecast (Bollerslev textbook form):
+        σ²(t+h|t) = σ²_∞ + ρ^(h-1) · (σ²(t+1|t) - σ²_∞)
+
+    Exponent is h-1 (not h) so that at h=1 we get σ²(t+1) exactly.
+    """
+    result = _result_for_forecast(current_vol_annualized=0.30)
+    # Current period-variance from annualized vol
+    current_period_var = (0.30 ** 2) / result.periods_per_year
+    h = 10
+    rho = result.persistence
+    expected_period_var = (
+        result.long_run_variance
+        + (rho ** (h - 1)) * (current_period_var - result.long_run_variance)
+    )
+    expected_annualized_vol = math.sqrt(expected_period_var * result.periods_per_year)
+
+    forecast = forecast_garch_annualized_vol(result, horizon_periods=h)
+    assert math.isclose(forecast, expected_annualized_vol, abs_tol=1e-9)
+
+
+def test_forecast_garch_horizon_zero_raises():
+    """h=0 is invalid — callers should use current_conditional_vol directly."""
+    result = _result_for_forecast()
+    with pytest.raises(ValueError):
+        forecast_garch_annualized_vol(result, horizon_periods=0)
+
+
+def test_forecast_garch_negative_horizon_raises():
+    """Negative h is invalid."""
+    result = _result_for_forecast()
+    with pytest.raises(ValueError):
+        forecast_garch_annualized_vol(result, horizon_periods=-5)
