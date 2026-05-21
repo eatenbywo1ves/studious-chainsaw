@@ -61,3 +61,39 @@ async def test_get_price_history_raises_on_http_error():
             raised = True
 
     assert raised is True
+
+
+@respx.mock
+async def test_get_market_returns_dto():
+    """get_market(id) hits /markets/{id} on Gamma and returns a MarketDTO."""
+    respx.get("https://gamma-api.polymarket.com/markets/42").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "id": "42",
+                "question": "Will it rain?",
+                "clobTokenIds": '["a","b"]',
+                "outcomePrices": '["0.7","0.3"]',
+                "closed": False,
+                "active": True,
+            },
+        )
+    )
+    async with httpx.AsyncClient() as http:
+        market = await _client(http).get_market("42")
+
+    assert market is not None
+    assert market.id == "42"
+    assert market.outcome_prices == [0.7, 0.3]
+
+
+@respx.mock
+async def test_get_market_returns_none_on_404():
+    """A 404 returns None rather than raising."""
+    respx.get("https://gamma-api.polymarket.com/markets/missing").mock(
+        return_value=httpx.Response(404, json={"error": "not found"})
+    )
+    async with httpx.AsyncClient() as http:
+        market = await _client(http).get_market("missing")
+
+    assert market is None

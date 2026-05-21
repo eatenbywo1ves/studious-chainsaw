@@ -64,3 +64,27 @@ def test_market_from_gamma_falls_back_to_liquidity_when_liquidity_num_missing():
     dto = MarketDTO.from_gamma(raw)
 
     assert dto.liquidity == 50.0
+
+
+def test_market_from_gamma_parses_outcome_prices_string():
+    """outcomePrices comes as a stringified JSON array like '["0.55","0.45"]'."""
+    raw = {
+        "id": "1",
+        "outcomePrices": '["0.55", "0.45"]',
+    }
+    dto = MarketDTO.from_gamma(raw)
+    assert dto.outcome_prices == [0.55, 0.45]
+
+
+def test_market_from_gamma_parses_outcome_prices_list():
+    """outcomePrices may also come as an already-parsed list of floats or strings."""
+    dto = MarketDTO.from_gamma({"id": "1", "outcomePrices": [0.55, 0.45]})
+    assert dto.outcome_prices == [0.55, 0.45]
+    dto2 = MarketDTO.from_gamma({"id": "1", "outcomePrices": ["1", "0"]})
+    assert dto2.outcome_prices == [1.0, 0.0]
+
+
+def test_market_from_gamma_missing_outcome_prices_defaults_empty():
+    """When outcomePrices absent, dto.outcome_prices is []."""
+    dto = MarketDTO.from_gamma({"id": "1"})
+    assert dto.outcome_prices == []
