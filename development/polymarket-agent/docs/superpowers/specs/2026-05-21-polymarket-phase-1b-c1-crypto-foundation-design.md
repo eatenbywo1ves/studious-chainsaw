@@ -256,7 +256,11 @@ def forecast_garch_annualized_vol(
 ) -> float:
     """Iterative GARCH(1,1) variance forecast `h` periods ahead, then annualized.
 
-    σ²(t+h) = long_run_variance + persistence^h * (σ²(t+1) - long_run_variance)
+    Standard textbook recursion (Bollerslev form):
+        σ²(t+h|t) = long_run_variance + persistence^(h-1) * (σ²(t+1|t) - long_run_variance)
+
+    Exponent is h-1 (not h) so that at h=1 we get exactly σ²(t+1|t) (the
+    existing one-step-ahead conditional vol).
 
     For the constant-vol barrier-bridge approximation, callers typically use:
       - horizon_periods=1 (most shock-reactive — recommended for our thesis)
@@ -546,8 +550,9 @@ pattern via `session_factory`), assert all fields preserved.
 
 ### 5.7 `forecast_garch_annualized_vol` reference cases
 
-Closed-form recursion: `σ²(t+h) = σ²_∞ + ρ^h · (σ²(t+1) − σ²_∞)`. Hand-checkable
-for small h:
+Closed-form recursion (standard Bollerslev form):
+`σ²(t+h|t) = σ²_∞ + ρ^(h-1) · (σ²(t+1|t) − σ²_∞)`. Exponent is `h-1` so at
+`h=1` the formula returns σ²(t+1) exactly. Hand-checkable for small h:
 
 | Setup | `h` | Expected |
 |---|---|---|

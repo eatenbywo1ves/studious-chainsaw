@@ -1540,7 +1540,10 @@ def test_forecast_garch_converges_to_long_run_vol():
 def test_forecast_garch_recursion_intermediate():
     """h=10 produces the closed-form recursion result.
 
-    Recursion: σ²(t+h) = σ²_∞ + ρ^h · (σ²(t+1) - σ²_∞)
+    Standard GARCH(1,1) multi-step forecast (Bollerslev textbook form):
+        σ²(t+h|t) = σ²_∞ + ρ^(h-1) · (σ²(t+1|t) - σ²_∞)
+
+    Exponent is h-1 (not h) so that at h=1 we get σ²(t+1) exactly.
     """
     result = _result_for_forecast(current_vol_annualized=0.30)
     # Current period-variance from annualized vol
@@ -1549,7 +1552,7 @@ def test_forecast_garch_recursion_intermediate():
     rho = result.persistence
     expected_period_var = (
         result.long_run_variance
-        + (rho ** h) * (current_period_var - result.long_run_variance)
+        + (rho ** (h - 1)) * (current_period_var - result.long_run_variance)
     )
     expected_annualized_vol = math.sqrt(expected_period_var * result.periods_per_year)
 
@@ -1585,7 +1588,10 @@ def forecast_garch_annualized_vol(
 ) -> float:
     """Iterative GARCH(1,1) variance forecast `h` periods ahead, then annualized.
 
-    σ²(t+h) = long_run_variance + persistence^h · (σ²(t+1) - long_run_variance)
+    Standard textbook recursion (Bollerslev form):
+        σ²(t+h|t) = long_run_variance + persistence^(h-1) * (σ²(t+1|t) - long_run_variance)
+
+    Exponent is h-1 (not h) so that at h=1 the formula returns σ²(t+1) exactly.
 
     Returns the annualized vol at horizon h.  At h=1, returns the
     `current_conditional_vol` (already annualized).  As h → ∞, returns
@@ -1604,10 +1610,13 @@ def forecast_garch_annualized_vol(
         result.current_conditional_vol ** 2
     ) / result.periods_per_year
 
-    # Closed-form recursion
+    # Closed-form GARCH(1,1) multi-step recursion (textbook form):
+    #   σ²(t+h|t) = σ²_∞ + ρ^(h-1) · (σ²(t+1|t) - σ²_∞)
+    # At h=1, ρ^0 = 1, so this returns σ²(t+1) (the existing one-step-ahead).
+    # As h → ∞, ρ^(h-1) → 0, so it converges to σ²_∞.
     period_var_at_h = (
         result.long_run_variance
-        + (result.persistence ** horizon_periods)
+        + (result.persistence ** (horizon_periods - 1))
         * (current_period_var - result.long_run_variance)
     )
 
