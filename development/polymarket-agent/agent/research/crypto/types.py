@@ -5,7 +5,7 @@ STRUCTURAL DEFENSE: Many of these types clip their fields at construction
 trust the invariants without re-checking.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Literal
 
 
@@ -102,6 +102,7 @@ class KellyFraction:
     raw_kelly_pre_half: float
 
     def __post_init__(self):
+        # Frozen dataclass __post_init__ workaround via object.__setattr__
         object.__setattr__(self, "fraction", _clip(self.fraction, 0.0, KELLY_CAP_DEFAULT))
 
 

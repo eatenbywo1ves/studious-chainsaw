@@ -13,11 +13,12 @@ def test_shock_state_severity_clipped_at_construction():
 
 
 def test_shock_state_is_frozen():
-    """ShockState is immutable — direct field assignment raises."""
+    """ShockState is immutable — direct field assignment raises FrozenInstanceError."""
+    from dataclasses import FrozenInstanceError
     from agent.research.crypto.types import ShockState
 
     s = ShockState(active=False, severity=0.0, spot_signal=False, news_signal=False, time_since_shock_seconds=0)
-    with pytest.raises(Exception):
+    with pytest.raises(FrozenInstanceError):
         s.severity = 0.5  # type: ignore[misc]
 
 
@@ -47,6 +48,14 @@ def test_kelly_fraction_zero_passes_through():
     from agent.research.crypto.types import KellyFraction
 
     k = KellyFraction(fraction=0.0, direction="yes", raw_kelly_pre_half=0.0)
+    assert k.fraction == 0.0
+
+
+def test_kelly_fraction_negative_clipped_to_zero():
+    """KellyFraction clips negative raw fractions to 0.0 (under-range guard)."""
+    from agent.research.crypto.types import KellyFraction
+
+    k = KellyFraction(fraction=-0.5, direction="no", raw_kelly_pre_half=-1.0)
     assert k.fraction == 0.0
 
 
