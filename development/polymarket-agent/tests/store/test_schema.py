@@ -1,4 +1,6 @@
-from agent.store.schema import CryptoBar, Market, PriceSnapshot
+import json
+
+from agent.store.schema import CryptoBar, Market, ModeFloorState, ModePerformance, PriceSnapshot, TradeRecord
 
 
 def test_can_persist_market_and_snapshot(session):
@@ -111,8 +113,6 @@ def test_crypto_bar_allows_different_granularities_same_ts(session):
 
 def test_mode_performance_round_trips_through_db(session_factory):
     """Write a ModePerformance row in session A, read it back in session B."""
-    from agent.store.schema import ModePerformance
-
     with session_factory() as session_a:
         row = ModePerformance(
             mode_name="binary",
@@ -139,19 +139,16 @@ def test_mode_performance_round_trips_through_db(session_factory):
 
 def test_trade_record_round_trips_through_db(session_factory):
     """Two-session round-trip; full pipeline diagnostics preserved."""
-    from agent.store.schema import TradeRecord
-    import json
-
     with session_factory() as session_a:
         row = TradeRecord(
             market_id="0xABC001",
             ts=1747800000,
             p_market=0.10,
             p_bridge=0.31,
-            p_mode1=0.31,
-            p_mode2=0.30,
-            p_mode3=0.29,
-            p_mode4=0.32,
+            p_mode_binary=0.31,
+            p_mode_exp=0.30,
+            p_mode_magnitude=0.29,
+            p_mode_confidence=0.32,
             p_blend=0.305,
             p_final=0.355,
             agreement_vetoed=False,
@@ -167,17 +164,26 @@ def test_trade_record_round_trips_through_db(session_factory):
     with session_factory() as session_b:
         result = session_b.query(TradeRecord).one()
         assert result.market_id == "0xABC001"
+        assert result.ts == 1747800000
+        assert result.p_market == 0.10
+        assert result.p_bridge == 0.31
+        assert result.p_mode_binary == 0.31
+        assert result.p_mode_exp == 0.30
+        assert result.p_mode_magnitude == 0.29
+        assert result.p_mode_confidence == 0.32
+        assert result.p_blend == 0.305
         assert result.p_final == 0.355
         assert result.agreement_vetoed is False
+        assert result.kelly_fraction == 0.049
+        assert result.position_size == 4.9
+        assert result.shock_active is True
         assert result.shock_severity == 0.8
         weights = json.loads(result.mode_weights_json)
-        assert sum(weights.values()) == 1.0
+        assert abs(sum(weights.values()) - 1.0) < 1e-9
 
 
 def test_mode_floor_state_round_trips_through_db(session_factory):
     """One row per mode, mutable, tracks per-mode Brier floor evolution."""
-    from agent.store.schema import ModeFloorState
-
     with session_factory() as session_a:
         row = ModeFloorState(
             mode_name="confidence",
@@ -193,4 +199,19 @@ def test_mode_floor_state_round_trips_through_db(session_factory):
         result = session_b.query(ModeFloorState).one()
         assert result.mode_name == "confidence"
         assert result.brier_floor == 0.10
+        assert result.is_disabled is False
+
+
+def test_mode_floor_state_defaults_applied_when_omitted(session_factory):
+    """Default values for brier_floor, disable_streak, is_disabled apply
+    when caller omits them (only mode_name and updated_at are required)."""
+    with session_factory() as session_a:
+        row = ModeFloorState(mode_name="exp", updated_at=1747800000)
+        session_a.add(row)
+        session_a.commit()
+
+    with session_factory() as session_b:
+        result = session_b.query(ModeFloorState).one()
+        assert result.brier_floor == 0.10
+        assert result.disable_streak == 0
         assert result.is_disabled is False
