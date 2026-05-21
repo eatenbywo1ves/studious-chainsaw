@@ -1463,18 +1463,35 @@ Inputs: `(p_market, p_bridge, shock_active, severity, time_since_shock_seconds)`
 
 ### 8.2 `BayesianBlender` reference: 30-trade evolution sequence
 
-Re-implement the brainstorm walkthrough's 30-trade simulation as a deterministic
-unit test. Hand-computed weight values at trades 5, 10, 15, 20, 25, 30 (per the
-brainstorm table) must match within `1e-3`:
+The blender's 30-trade test runs the same Brier schedule the brainstorm
+walkthrough used (cold start trades 1-5; confidence-mode honeymoon trades
+6-15; regime-change collapse trades 16-30) but verifies the blender
+**non-circularly** rather than against fixed numbers:
 
-| After trade | Mode 1 weight | Mode 2 weight | Mode 3 weight | Mode 4 weight |
-|---:|---:|---:|---:|---:|
-| 5 | 0.250 | 0.250 | 0.250 | 0.250 |
-| 10 | 0.225 | 0.235 | 0.235 | 0.305 |
-| 15 | 0.205 | 0.198 | 0.198 | 0.399 |
-| 20 | 0.290 | 0.270 | 0.260 | 0.180 |
-| 25 | 0.327 | 0.311 | 0.298 | 0.064 |
-| 30 | 0.330 | 0.330 | 0.325 | 0.014 |
+1. **Independent reference cross-check.** The test re-derives expected
+   inverse-Brier weights from first principles in a separate
+   `_reference_weights_from_state` function (NOT imported from `blender.py`),
+   reading the `ModeState` the blender consumes, and asserts the blender
+   matches within `1e-9`. A scoring or normalization bug in `blender.py`
+   produces a mismatch.
+2. **Qualitative regime-change property.** Asserts the confidence mode's
+   weight at trade 30 is below its weight at trade 15 (collapse) AND below
+   every other mode's weight at trade 30 (it is the worst performer by the
+   end).
+3. **Normalization invariant.** Weights sum to 1.0 (±`1e-9`) at every
+   checkpoint.
+
+**Why no fixed reference table.** The brainstorm's illustrative table (a
+40%→1% confidence-weight trajectory) is **not algorithmically reproducible**
+with `brier_floor = 0.10`. By design, any mode performing better than 0.10
+Brier clamps to `effective_brier = floor`, so all "good" modes weight equally
+— the floor's real job is capping runaway weights from near-zero Brier, while
+fading of chronically-bad modes is handled by the disable-streak mechanism
+(not the floor). With the floor retained, the real trajectory is: confidence
+≈ equal weight through the honeymoon, then collapses to the lowest weight
+during the regime change (≈0.25 → ≈0.09 in this schedule). The qualitative
+collapse — the property the safety story actually depends on — is what the
+test pins.
 
 Plus a cold-start test: with fewer than 3 closed trades per mode, weights
 must be equal-25%. Plus a mode-disable test: 30 consecutive closed trades
