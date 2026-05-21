@@ -1,4 +1,5 @@
 import json
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -87,4 +88,43 @@ class MarketDTO(BaseModel):
                 else raw.get("endDate")
             ),
             outcome_prices=outcome_prices,
+        )
+
+
+class CryptoBarDTO(BaseModel):
+    """A crypto OHLCV bar, normalized from Binance's klines API."""
+
+    symbol: str
+    granularity: Literal["1h", "1d"]
+    ts: int  # unix seconds (UTC)
+    open: float
+    high: float
+    low: float
+    close: float
+    volume: float
+
+    @classmethod
+    def from_binance_kline(
+        cls, kline: list, symbol: str, granularity: str
+    ) -> "CryptoBarDTO":
+        """Parse one element of Binance's /api/v3/klines response.
+
+        Binance returns each bar as a 12-element array; we use indices 0-5:
+            [0] open time in milliseconds (we convert to seconds)
+            [1] open price (string -> float)
+            [2] high price
+            [3] low price
+            [4] close price
+            [5] base asset volume
+        Trade count, quote-volume, taker-buy fields (indices 6-11) are ignored.
+        """
+        return cls(
+            symbol=symbol,
+            granularity=granularity,  # type: ignore[arg-type]
+            ts=int(kline[0]) // 1000,
+            open=float(kline[1]),
+            high=float(kline[2]),
+            low=float(kline[3]),
+            close=float(kline[4]),
+            volume=float(kline[5]),
         )

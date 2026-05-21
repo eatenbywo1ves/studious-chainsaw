@@ -88,3 +88,44 @@ def test_market_from_gamma_missing_outcome_prices_defaults_empty():
     """When outcomePrices absent, dto.outcome_prices is []."""
     dto = MarketDTO.from_gamma({"id": "1"})
     assert dto.outcome_prices == []
+
+
+from agent.data.models import CryptoBarDTO
+
+
+def test_crypto_bar_from_binance_kline_canonical():
+    """Binance returns each kline as a 12-element array; we use indices 0-5."""
+    kline = [
+        1700000000000,        # open time ms
+        "60000.00",            # open
+        "60500.00",            # high
+        "59800.00",            # low
+        "60200.00",            # close
+        "1234.5678",           # volume
+        1700003599999,         # close time ms (ignored)
+        "74321000.50",         # quote volume (ignored)
+        1500,                  # trades count (ignored)
+        "615.1234",            # taker buy base (ignored)
+        "37050000.25",         # taker buy quote (ignored)
+        "0",                   # ignore field
+    ]
+    dto = CryptoBarDTO.from_binance_kline(kline, symbol="BTCUSDT", granularity="1h")
+
+    assert dto.symbol == "BTCUSDT"
+    assert dto.granularity == "1h"
+    assert dto.ts == 1700000000  # ms / 1000
+    assert dto.open == 60000.00
+    assert dto.high == 60500.00
+    assert dto.low == 59800.00
+    assert dto.close == 60200.00
+    assert dto.volume == 1234.5678
+
+
+def test_crypto_bar_handles_daily_granularity():
+    """Granularity is a Literal['1h', '1d']."""
+    kline = [
+        1700000000000, "60000", "61000", "59000", "60500", "100",
+        0, "0", 0, "0", "0", "0",
+    ]
+    dto = CryptoBarDTO.from_binance_kline(kline, symbol="ETHUSDT", granularity="1d")
+    assert dto.granularity == "1d"
