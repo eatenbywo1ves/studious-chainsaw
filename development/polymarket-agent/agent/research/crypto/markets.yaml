@@ -1,0 +1,7 @@
+# Hand-curated Polymarket -> crypto barrier mapping.
+# Operator expands this file in C2-E based on live Polymarket markets.
+# For C2-A, the smoke test uses just one or two entries.
+
+# Placeholder entry — operator MUST replace market_id with a real Polymarket
+# market ID before the C2-A gate run.  This file is empty by default to force
+# operator curation.
