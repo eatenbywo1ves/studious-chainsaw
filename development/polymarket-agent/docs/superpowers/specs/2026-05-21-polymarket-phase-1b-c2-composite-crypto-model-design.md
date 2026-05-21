@@ -430,10 +430,10 @@ class TradeRecordDTO(BaseModel):
     ts: int
     p_market: float
     p_bridge: float
-    p_mode1: float
-    p_mode2: float
-    p_mode3: float
-    p_mode4: float
+    p_mode_binary: float
+    p_mode_exp: float
+    p_mode_magnitude: float
+    p_mode_confidence: float
     p_blend: float
     p_final: float
     agreement_vetoed: bool
