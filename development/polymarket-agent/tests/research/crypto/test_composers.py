@@ -1,6 +1,12 @@
 import math
 import pytest
 
+from agent.research.crypto.composers import (
+    BinaryComposer,
+    ConfidenceWeightedComposer,
+    ExponentialComposer,
+    MagnitudeTiedComposer,
+)
 from agent.research.crypto.types import ShockState
 
 
@@ -17,12 +23,10 @@ def _ss(active=False, severity=0.0, t=0):
 
 class TestBinaryComposer:
     def test_no_shock_returns_p_market(self):
-        from agent.research.crypto.composers import BinaryComposer
         c = BinaryComposer()
         assert c.compose(p_market=0.10, p_bridge=0.30, shock_state=_ss(active=False)) == 0.10
 
     def test_within_window_returns_p_bridge(self):
-        from agent.research.crypto.composers import BinaryComposer
         c = BinaryComposer()
         assert c.compose(
             p_market=0.10, p_bridge=0.30,
@@ -30,7 +34,6 @@ class TestBinaryComposer:
         ) == 0.30
 
     def test_at_window_edge_just_before_end_returns_p_bridge(self):
-        from agent.research.crypto.composers import BinaryComposer
         c = BinaryComposer()
         assert c.compose(
             p_market=0.10, p_bridge=0.30,
@@ -38,7 +41,6 @@ class TestBinaryComposer:
         ) == 0.30
 
     def test_after_window_returns_p_market(self):
-        from agent.research.crypto.composers import BinaryComposer
         c = BinaryComposer()
         assert c.compose(
             p_market=0.10, p_bridge=0.30,
@@ -48,7 +50,6 @@ class TestBinaryComposer:
 
 class TestExponentialComposer:
     def test_t_zero_returns_p_bridge(self):
-        from agent.research.crypto.composers import ExponentialComposer
         c = ExponentialComposer()
         assert c.compose(
             p_market=0.10, p_bridge=0.30,
@@ -57,7 +58,6 @@ class TestExponentialComposer:
 
     def test_t_equals_tau_blends_at_exp_minus_one(self):
         """At t=tau, lambda = exp(-1) ~ 0.368, so P_mode = 0.368*0.30 + 0.632*0.10 = 0.1736."""
-        from agent.research.crypto.composers import ExponentialComposer
         c = ExponentialComposer()
         result = c.compose(
             p_market=0.10, p_bridge=0.30,
@@ -68,7 +68,6 @@ class TestExponentialComposer:
 
     def test_t_equals_three_tau_long_tail(self):
         """At t=3*tau, lambda = exp(-3) ~ 0.0498, decay tail."""
-        from agent.research.crypto.composers import ExponentialComposer
         c = ExponentialComposer()
         result = c.compose(
             p_market=0.10, p_bridge=0.30,
@@ -78,7 +77,6 @@ class TestExponentialComposer:
         assert abs(result - expected) < 1e-9
 
     def test_no_shock_returns_p_market(self):
-        from agent.research.crypto.composers import ExponentialComposer
         c = ExponentialComposer()
         assert c.compose(
             p_market=0.10, p_bridge=0.30,
@@ -88,7 +86,6 @@ class TestExponentialComposer:
 
 class TestMagnitudeTiedComposer:
     def test_severity_one_t_zero_returns_p_bridge(self):
-        from agent.research.crypto.composers import MagnitudeTiedComposer
         c = MagnitudeTiedComposer()
         assert c.compose(
             p_market=0.10, p_bridge=0.30,
@@ -97,7 +94,6 @@ class TestMagnitudeTiedComposer:
 
     def test_severity_half_t_zero_blends_50_50(self):
         """severity=0.5 means lambda_0=0.5, so P_mode = 0.5*0.30 + 0.5*0.10 = 0.20."""
-        from agent.research.crypto.composers import MagnitudeTiedComposer
         c = MagnitudeTiedComposer()
         assert c.compose(
             p_market=0.10, p_bridge=0.30,
@@ -106,7 +102,6 @@ class TestMagnitudeTiedComposer:
 
     def test_severity_above_one_clipped_via_shock_state(self):
         """ShockState clips severity to [0,1] at construction; composer sees 1.0."""
-        from agent.research.crypto.composers import MagnitudeTiedComposer
         c = MagnitudeTiedComposer()
         assert c.compose(
             p_market=0.10, p_bridge=0.30,
@@ -114,7 +109,6 @@ class TestMagnitudeTiedComposer:
         ) == 0.30  # ShockState already clipped to 1.0
 
     def test_severity_zero_returns_p_market(self):
-        from agent.research.crypto.composers import MagnitudeTiedComposer
         c = MagnitudeTiedComposer()
         assert c.compose(
             p_market=0.10, p_bridge=0.30,
@@ -125,28 +119,37 @@ class TestMagnitudeTiedComposer:
 class TestConfidenceWeightedComposer:
     def test_small_divergence_returns_near_p_market(self):
         """Divergence 0.01 (below threshold 0.10): sigmoid input is negative, lambda~0."""
-        from agent.research.crypto.composers import ConfidenceWeightedComposer
         c = ConfidenceWeightedComposer()
         # No shock needed - this composer ignores shock_state.
         result = c.compose(p_market=0.50, p_bridge=0.51, shock_state=_ss(active=False))
+        # Loose tolerance: sigmoid at divergence=0.01 has lambda~0.135, not exactly 0
         assert abs(result - 0.50) < 0.05
 
     def test_large_divergence_returns_near_p_bridge(self):
         """Divergence 0.30 (well above threshold): sigmoid saturates, lambda~1."""
-        from agent.research.crypto.composers import ConfidenceWeightedComposer
         c = ConfidenceWeightedComposer()
         result = c.compose(p_market=0.10, p_bridge=0.40, shock_state=_ss(active=False))
+        # Sigmoid saturates by divergence=0.30 but not exactly to 1.0
         assert abs(result - 0.40) < 0.01
 
     def test_divergence_at_threshold_blends_midpoint(self):
         """Divergence exactly at threshold (0.10) gives sigmoid(0) = 0.5."""
-        from agent.research.crypto.composers import ConfidenceWeightedComposer
         c = ConfidenceWeightedComposer()
         result = c.compose(p_market=0.50, p_bridge=0.40, shock_state=_ss(active=False))
         # lambda = 0.5; P_mode = 0.5*0.40 + 0.5*0.50 = 0.45
+        # Sigmoid(0) is exactly 0.5 by IEEE 754; assertion can be tight
         assert abs(result - 0.45) < 1e-6
 
     def test_zero_divergence_returns_p_market(self):
-        from agent.research.crypto.composers import ConfidenceWeightedComposer
         c = ConfidenceWeightedComposer()
         assert c.compose(p_market=0.50, p_bridge=0.50, shock_state=_ss(active=False)) == 0.50
+
+
+def test_all_composers_have_correct_name_attributes():
+    """Composer.name is used by BayesianBlender for keying weights; verify all
+    four match the spec's mode_name strings ('binary', 'exp', 'magnitude',
+    'confidence')."""
+    assert BinaryComposer().name == "binary"
+    assert ExponentialComposer().name == "exp"
+    assert MagnitudeTiedComposer().name == "magnitude"
+    assert ConfidenceWeightedComposer().name == "confidence"
