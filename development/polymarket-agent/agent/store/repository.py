@@ -6,13 +6,6 @@ from agent.data.models import CryptoBarDTO, MarketDTO, PriceHistory
 from agent.store.schema import CryptoBar, Market, PriceSnapshot
 
 
-class Repository:
-    """Placeholder repository abstraction.  PerformanceTracker accepts an
-    instance but currently operates directly on the SQLAlchemy session.
-    Reserved for future cross-cutting query helpers.
-    """
-
-
 def upsert_market(session: Session, dto: MarketDTO) -> Market:
     """Insert the market, or update it in place if it already exists.
 

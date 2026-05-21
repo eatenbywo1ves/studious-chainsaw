@@ -1,14 +1,10 @@
-import pytest
-
-from agent.store.repository import Repository
 from agent.store.schema import ModeFloorState
 from agent.research.crypto.performance_tracker import PerformanceTracker
 
 
 def test_no_history_returns_zero_trades_floor_initial(session_factory):
     """Empty DB: each mode has 0 trades, brier_floor=0.10, is_disabled=False."""
-    repo = Repository()
-    tracker = PerformanceTracker(repository=repo, trailing_window=15)
+    tracker = PerformanceTracker(trailing_window=15)
 
     with session_factory() as session:
         state = tracker.get_state(session)
@@ -20,8 +16,7 @@ def test_no_history_returns_zero_trades_floor_initial(session_factory):
 
 def test_record_outcome_appends_and_updates_floor(session_factory):
     """Recording a closed trade appends ModePerformance and updates ModeFloorState."""
-    repo = Repository()
-    tracker = PerformanceTracker(repository=repo, trailing_window=15)
+    tracker = PerformanceTracker(trailing_window=15)
 
     with session_factory() as session:
         tracker.record_outcome(
@@ -45,8 +40,7 @@ def test_record_outcome_appends_and_updates_floor(session_factory):
 
 def test_disable_after_30_consecutive_bad_trades(session_factory):
     """Use p_mode=0.55 so brier=(0.55)^2=0.3025>0.25, triggering disable streak."""
-    repo = Repository()
-    tracker = PerformanceTracker(repository=repo, trailing_window=15)
+    tracker = PerformanceTracker(trailing_window=15)
 
     with session_factory() as session:
         for i in range(30):
@@ -68,8 +62,7 @@ def test_disable_after_30_consecutive_bad_trades(session_factory):
 
 def test_brier_floor_decays_on_bad_trade(session_factory):
     """Each closed trade with brier > 0.25 multiplies floor by 0.97."""
-    repo = Repository()
-    tracker = PerformanceTracker(repository=repo, trailing_window=15)
+    tracker = PerformanceTracker(trailing_window=15)
 
     with session_factory() as session:
         for i in range(3):

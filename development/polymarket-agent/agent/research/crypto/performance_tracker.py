@@ -15,14 +15,12 @@ MODE_NAMES = ["binary", "exp", "magnitude", "confidence"]
 class PerformanceTracker:
     def __init__(
         self,
-        repository,
         trailing_window: int = 15,
         brier_floor_init: float = 0.10,
         floor_decay: float = 0.97,
         disable_brier_threshold: float = 0.25,
         disable_streak_required: int = 30,
     ):
-        self.repository = repository
         self.trailing_window = trailing_window
         self.brier_floor_init = brier_floor_init
         self.floor_decay = floor_decay

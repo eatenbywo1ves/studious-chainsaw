@@ -1356,11 +1356,9 @@ Create `tests/research/crypto/test_performance_tracker.py`:
 ```python
 def test_no_history_returns_zero_trades_floor_initial(session_factory):
     """Empty DB: each mode has 0 trades, brier_floor=0.10, is_disabled=False."""
-    from agent.store.repository import Repository
     from agent.research.crypto.performance_tracker import PerformanceTracker
 
-    repo = Repository()
-    tracker = PerformanceTracker(repository=repo, trailing_window=15)
+    tracker = PerformanceTracker(trailing_window=15)
 
     with session_factory() as session:
         state = tracker.get_state(session)
@@ -1372,11 +1370,9 @@ def test_no_history_returns_zero_trades_floor_initial(session_factory):
 
 def test_record_outcome_appends_and_updates_floor(session_factory):
     """Recording a closed trade appends ModePerformance and updates ModeFloorState."""
-    from agent.store.repository import Repository
     from agent.research.crypto.performance_tracker import PerformanceTracker
 
-    repo = Repository()
-    tracker = PerformanceTracker(repository=repo, trailing_window=15)
+    tracker = PerformanceTracker(trailing_window=15)
 
     with session_factory() as session:
         tracker.record_outcome(
@@ -1400,11 +1396,9 @@ def test_record_outcome_appends_and_updates_floor(session_factory):
 
 def test_disable_after_30_consecutive_bad_trades(session_factory):
     """After 30 consecutive trades with brier > 0.25, mode is_disabled becomes True."""
-    from agent.store.repository import Repository
     from agent.research.crypto.performance_tracker import PerformanceTracker
 
-    repo = Repository()
-    tracker = PerformanceTracker(repository=repo, trailing_window=15)
+    tracker = PerformanceTracker(trailing_window=15)
 
     with session_factory() as session:
         for i in range(30):
@@ -1431,11 +1425,9 @@ def test_disable_after_30_consecutive_bad_trades(session_factory):
 
 def test_disable_after_30_consecutive_bad_trades_corrected(session_factory):
     """Use p_mode=0.55 so brier=(0.55)^2=0.3025>0.25, triggering disable streak."""
-    from agent.store.repository import Repository
     from agent.research.crypto.performance_tracker import PerformanceTracker
 
-    repo = Repository()
-    tracker = PerformanceTracker(repository=repo, trailing_window=15)
+    tracker = PerformanceTracker(trailing_window=15)
 
     with session_factory() as session:
         for i in range(30):
@@ -1457,11 +1449,9 @@ def test_disable_after_30_consecutive_bad_trades_corrected(session_factory):
 
 def test_brier_floor_decays_on_bad_trade(session_factory):
     """Each closed trade with brier > 0.25 multiplies floor by 0.97."""
-    from agent.store.repository import Repository
     from agent.research.crypto.performance_tracker import PerformanceTracker
 
-    repo = Repository()
-    tracker = PerformanceTracker(repository=repo, trailing_window=15)
+    tracker = PerformanceTracker(trailing_window=15)
 
     with session_factory() as session:
         for i in range(3):
@@ -1632,12 +1622,10 @@ Create `tests/research/crypto/test_blender.py`:
 ```python
 def test_cold_start_returns_equal_weights(session_factory):
     """No closed trades anywhere -> all weights 0.25."""
-    from agent.store.repository import Repository
     from agent.research.crypto.performance_tracker import PerformanceTracker
     from agent.research.crypto.blender import BayesianBlender
 
-    repo = Repository()
-    tracker = PerformanceTracker(repository=repo, trailing_window=15)
+    tracker = PerformanceTracker(trailing_window=15)
     blender = BayesianBlender()
 
     p_modes = {"binary": 0.30, "exp": 0.30, "magnitude": 0.30, "confidence": 0.30}
@@ -1656,7 +1644,6 @@ Append:
 ```python
 def test_all_disabled_returns_zero_weights(session_factory):
     """If every mode is disabled, weights.is_all_disabled() is True."""
-    from agent.store.repository import Repository
     from agent.research.crypto.performance_tracker import PerformanceTracker
     from agent.research.crypto.blender import BayesianBlender
     from agent.store.schema import ModeFloorState
@@ -1672,8 +1659,7 @@ def test_all_disabled_returns_zero_weights(session_factory):
             ))
         session.commit()
 
-    repo = Repository()
-    tracker = PerformanceTracker(repository=repo, trailing_window=15)
+    tracker = PerformanceTracker(trailing_window=15)
     blender = BayesianBlender()
     p_modes = {"binary": 0.30, "exp": 0.30, "magnitude": 0.30, "confidence": 0.30}
 
@@ -1700,7 +1686,6 @@ def test_30_trade_evolution_matches_reference_weights(session_factory):
 
     Tolerance: 1e-2 (the reference values are themselves rounded to 3dp).
     """
-    from agent.store.repository import Repository
     from agent.research.crypto.performance_tracker import PerformanceTracker
     from agent.research.crypto.blender import BayesianBlender
 
@@ -1742,8 +1727,7 @@ def test_30_trade_evolution_matches_reference_weights(session_factory):
     ]
     assert len(schedule) == 30
 
-    repo = Repository()
-    tracker = PerformanceTracker(repository=repo, trailing_window=15)
+    tracker = PerformanceTracker(trailing_window=15)
     blender = BayesianBlender()
     checkpoints = {5: None, 10: None, 15: None, 20: None, 25: None, 30: None}
 
@@ -2178,7 +2162,6 @@ Create `tests/research/crypto/test_crypto_data.py`:
 ```python
 def test_get_current_spot_returns_most_recent_close(session_factory):
     from agent.store.schema import CryptoBar
-    from agent.store.repository import Repository
     from agent.research.crypto.crypto_data import CryptoDataAccess
 
     with session_factory() as session:
@@ -2192,13 +2175,12 @@ def test_get_current_spot_returns_most_recent_close(session_factory):
         ))
         session.commit()
 
-    cda = CryptoDataAccess(repository=Repository(), session_factory=session_factory)
+    cda = CryptoDataAccess(session_factory=session_factory)
     assert cda.get_current_spot("BTCUSDT", before_ts=1747900000) == 50800.0
 
 
 def test_get_recent_returns_uses_close_to_close(session_factory):
     from agent.store.schema import CryptoBar
-    from agent.store.repository import Repository
     from agent.research.crypto.crypto_data import CryptoDataAccess
 
     with session_factory() as session:
@@ -2209,7 +2191,7 @@ def test_get_recent_returns_uses_close_to_close(session_factory):
             ))
         session.commit()
 
-    cda = CryptoDataAccess(repository=Repository(), session_factory=session_factory)
+    cda = CryptoDataAccess(session_factory=session_factory)
     returns = cda.get_recent_returns("BTCUSDT", "1h", n_bars=3, before_ts=1747900000)
     # close-to-close: (101-100)/100 = 0.01, (99-101)/101 ~ -0.0198, (102-99)/99 ~ 0.0303
     assert len(returns) == 3
@@ -2220,10 +2202,9 @@ def test_get_recent_returns_uses_close_to_close(session_factory):
 
 def test_get_recent_news_for_currency_filters_by_currency_and_ts(session_factory):
     """C2-A only needs the interface; full population happens in C2-B/C/D."""
-    from agent.store.repository import Repository
     from agent.research.crypto.crypto_data import CryptoDataAccess
 
-    cda = CryptoDataAccess(repository=Repository(), session_factory=session_factory)
+    cda = CryptoDataAccess(session_factory=session_factory)
     # With no news_events in DB, returns empty list
     result = cda.get_recent_news_for_currency("BTC", since_ts=1747800000, until_ts=1747900000)
     assert result == []
@@ -2249,10 +2230,8 @@ from agent.store.schema import CryptoBar
 class CryptoDataAccess:
     def __init__(
         self,
-        repository,
         session_factory: Callable[[], Session],
     ):
-        self.repository = repository
         self.session_factory = session_factory
 
     def get_current_spot(self, symbol: str, before_ts: int) -> float:

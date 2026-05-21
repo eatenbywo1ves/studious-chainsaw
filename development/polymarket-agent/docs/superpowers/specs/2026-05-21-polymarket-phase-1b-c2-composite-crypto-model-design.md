@@ -1148,7 +1148,6 @@ class PerformanceTracker:
 
     def __init__(
         self,
-        repository: Repository,
         trailing_window: int = 15,
         disable_brier_threshold: float = 0.25,
         disable_streak_required: int = 30,
@@ -1296,14 +1295,14 @@ loop or by `walk_forward_backtest` during C3.
 
 ```python
 class CryptoDataAccess:
-    """Thin wrapper around Repository providing the specific queries
+    """Thin wrapper around the store providing the specific queries
     crypto_model needs without leaking ORM details into the model file.
 
     Each method takes a Session and returns plain values (floats, lists,
     DTOs) — model.py never touches ORM objects directly.
     """
 
-    def __init__(self, repository: Repository, session_factory: Callable[[], Session]): ...
+    def __init__(self, session_factory: Callable[[], Session]): ...
 
     def get_recent_returns(
         self, symbol: str, granularity: str, n_bars: int, before_ts: int
