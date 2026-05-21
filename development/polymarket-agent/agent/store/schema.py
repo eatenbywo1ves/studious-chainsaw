@@ -70,3 +70,29 @@ class PriceSnapshot(Base):
     price: Mapped[float] = mapped_column(Float)
 
     market: Mapped["Market"] = relationship(back_populates="snapshots")
+
+
+class CryptoBar(Base):
+    """One OHLCV bar for a crypto symbol at a given granularity.
+
+    `symbol` follows Binance convention ("BTCUSDT", "ETHUSDT").
+    `granularity` is one of "1h", "1d" in Phase 1B-C1 (extensible later).
+    `ts` is the bar's open time in Unix seconds (UTC).
+    """
+
+    __tablename__ = "crypto_bars"
+    __table_args__ = (
+        UniqueConstraint(
+            "symbol", "granularity", "ts", name="uq_crypto_bar"
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    symbol: Mapped[str] = mapped_column(String, index=True)
+    granularity: Mapped[str] = mapped_column(String)  # "1h" | "1d"
+    ts: Mapped[int] = mapped_column(Integer)
+    open: Mapped[float] = mapped_column(Float)
+    high: Mapped[float] = mapped_column(Float)
+    low: Mapped[float] = mapped_column(Float)
+    close: Mapped[float] = mapped_column(Float)
+    volume: Mapped[float] = mapped_column(Float)

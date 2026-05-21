@@ -1,4 +1,4 @@
-from agent.store.schema import Market, PriceSnapshot
+from agent.store.schema import CryptoBar, Market, PriceSnapshot
 
 
 def test_can_persist_market_and_snapshot(session):
@@ -41,3 +41,69 @@ def test_market_clob_token_ids_round_trips_through_db(session_factory):
     with session_factory() as read_session:
         loaded = read_session.get(Market, "m-json")
         assert loaded.clob_token_ids == ["a", "b"]
+
+
+def test_crypto_bar_round_trips_through_db(session_factory):
+    """CryptoBar persists and reads back across separate sessions."""
+    with session_factory() as write_session:
+        bar = CryptoBar(
+            symbol="BTCUSDT",
+            granularity="1h",
+            ts=1700000000,
+            open=60000.0,
+            high=60500.0,
+            low=59800.0,
+            close=60200.0,
+            volume=1234.5,
+        )
+        write_session.add(bar)
+        write_session.commit()
+
+    with session_factory() as read_session:
+        loaded = read_session.query(CryptoBar).filter_by(
+            symbol="BTCUSDT", granularity="1h", ts=1700000000
+        ).first()
+        assert loaded is not None
+        assert loaded.open == 60000.0
+        assert loaded.high == 60500.0
+        assert loaded.low == 59800.0
+        assert loaded.close == 60200.0
+        assert loaded.volume == 1234.5
+
+
+def test_crypto_bar_unique_constraint_on_symbol_granularity_ts(session):
+    """Duplicate (symbol, granularity, ts) raises IntegrityError."""
+    from sqlalchemy.exc import IntegrityError
+
+    session.add(CryptoBar(
+        symbol="BTCUSDT", granularity="1h", ts=1700000000,
+        open=1, high=1, low=1, close=1, volume=1,
+    ))
+    session.commit()
+
+    session.add(CryptoBar(
+        symbol="BTCUSDT", granularity="1h", ts=1700000000,
+        open=2, high=2, low=2, close=2, volume=2,
+    ))
+    raised = False
+    try:
+        session.commit()
+    except IntegrityError:
+        raised = True
+        session.rollback()
+    assert raised is True
+
+
+def test_crypto_bar_allows_different_granularities_same_ts(session):
+    """Same (symbol, ts) is allowed across different granularities."""
+    session.add(CryptoBar(
+        symbol="BTCUSDT", granularity="1h", ts=1700000000,
+        open=1, high=1, low=1, close=1, volume=1,
+    ))
+    session.add(CryptoBar(
+        symbol="BTCUSDT", granularity="1d", ts=1700000000,
+        open=1, high=1, low=1, close=1, volume=1,
+    ))
+    session.commit()  # must not raise
+
+    assert session.query(CryptoBar).count() == 2
