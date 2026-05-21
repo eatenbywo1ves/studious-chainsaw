@@ -122,7 +122,10 @@ def forecast_garch_annualized_vol(
 ) -> float:
     """Iterative GARCH(1,1) variance forecast `h` periods ahead, then annualized.
 
-    σ²(t+h) = long_run_variance + persistence^h · (σ²(t+1) - long_run_variance)
+    Standard textbook recursion (Bollerslev form):
+        σ²(t+h|t) = long_run_variance + persistence^(h-1) · (σ²(t+1|t) - long_run_variance)
+
+    Exponent is h-1 (not h) so at h=1 the formula returns σ²(t+1) exactly.
 
     Returns the annualized vol at horizon h.  At h=1, returns the
     `current_conditional_vol` (already annualized).  As h → ∞, returns
