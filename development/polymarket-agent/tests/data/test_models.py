@@ -1,4 +1,4 @@
-from agent.data.models import MarketDTO, PriceHistory, PricePoint
+from agent.data.models import CryptoBarDTO, MarketDTO, PriceHistory, PricePoint
 
 
 def test_price_point_and_history():
@@ -88,9 +88,6 @@ def test_market_from_gamma_missing_outcome_prices_defaults_empty():
     """When outcomePrices absent, dto.outcome_prices is []."""
     dto = MarketDTO.from_gamma({"id": "1"})
     assert dto.outcome_prices == []
-
-
-from agent.data.models import CryptoBarDTO
 
 
 def test_crypto_bar_from_binance_kline_canonical():
