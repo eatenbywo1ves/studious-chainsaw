@@ -1,8 +1,11 @@
 """Composer implementations: each turns (p_market, p_bridge, shock_state)
 into a single mode's P_mode.
 
-All 4 composers gate on `shock_state.active`.  When not active, P_mode = P_market
-unconditionally (the model has no opinion absent a shock).
+BinaryComposer, ExponentialComposer, and MagnitudeTiedComposer gate on
+`shock_state.active`; when not active, P_mode = P_market (the model has no
+opinion absent a shock).  ConfidenceWeightedComposer does NOT gate on shock —
+it is purely divergence-driven regardless of shock state (see its class
+docstring for the rationale and the known regime-change hazard).
 """
 
 import math
