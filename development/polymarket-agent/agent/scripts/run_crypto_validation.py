@@ -178,6 +178,33 @@ def _earliest_snapshot_ts(session_factory, market_id: str) -> int | None:
     return row.ts if row is not None else None
 
 
+def _open_spot_for_market(
+    session_factory, market_id: str, symbol: str
+) -> float | None:
+    """Underlying spot at this market's open: the close of the CryptoBar
+    at-or-just-before the market's earliest PriceSnapshot ts.  Falls back to
+    the earliest bar overall if none precedes the snapshot (rare; can happen
+    if OHLCV ingestion started after the market did)."""
+    start_ts = _earliest_snapshot_ts(session_factory, market_id)
+    if start_ts is None:
+        return None
+    with session_factory() as session:
+        row = (
+            session.query(CryptoBar)
+            .filter(CryptoBar.symbol == symbol, CryptoBar.ts <= start_ts)
+            .order_by(CryptoBar.ts.desc())
+            .first()
+        )
+        if row is None:
+            row = (
+                session.query(CryptoBar)
+                .filter(CryptoBar.symbol == symbol)
+                .order_by(CryptoBar.ts.asc())
+                .first()
+            )
+    return float(row.close) if row is not None else None
+
+
 async def run_pipeline(
     *,
     settings,
@@ -259,12 +286,18 @@ async def run_pipeline(
             if symbol is not None
             else None
         )
+        open_spot = (
+            _open_spot_for_market(session_factory, dto.id, symbol)
+            if symbol is not None
+            else None
+        )
         raw = raw_cache.extract(dto.id, dto.question, llm_extract)
         reparsed = validate_parse(
             dto.id,
             raw,
             underlying_price_range=price_range,
             confidence_threshold=0.85,
+            open_spot=open_spot,
         )
         if reparsed.status == "ok":
             surviving.append((dto, reparsed))

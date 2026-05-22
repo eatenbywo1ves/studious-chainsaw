@@ -204,3 +204,54 @@ async def test_c3a_cli_smoke_full_pipeline(session_factory, tmp_path):
     for cost_key in ("0.0", "0.01", "0.02", "0.03"):
         assert cost_key in loaded["by_cost"], f"missing cost scenario {cost_key}"
         assert "final_bankroll" in loaded["by_cost"][cost_key]
+
+
+@respx.mock
+async def test_pass2_open_spot_rejects_inconsistent_direction(
+    session_factory, tmp_path
+):
+    """Pass-2 must reject a market whose parsed direction contradicts the
+    underlying's spot at market open.  Here the LLM returns direction='down'
+    with barrier $80k, but seeded bars put open_spot ~ $50k — a down-barrier
+    above the open spot is logically impossible, so the market must be dropped
+    at pass 2 (coverage.passed_validation_pass2 == 0) without ever reaching
+    the orchestrator.
+    """
+    market_ids = ["mkt-x"]
+    respx.get(_GAMMA_URL).mock(
+        return_value=httpx.Response(
+            200, json=[_gamma_market(mid) for mid in market_ids]
+        )
+    )
+    respx.get(_HISTORY_URL).mock(
+        return_value=httpx.Response(200, json=_price_history_payload())
+    )
+
+    def _inconsistent_llm_extract(_question: str) -> dict:
+        return {
+            "symbol": _SYMBOL,
+            "barrier_usd": _BARRIER,           # $80k
+            "direction": "down",                # but seeded open_spot ~ $50k
+            "resolution_date_iso": _RESOLUTION_ISO,
+            "confidence": 0.95,
+            "is_crypto_barrier_market": True,
+        }
+
+    raw_cache = RawExtractCache(str(tmp_path / "parse_cache"))
+
+    async with httpx.AsyncClient() as http:
+        report = await run_pipeline(
+            settings=Settings(),
+            session_factory=session_factory,
+            polymarket_client=_client(http),
+            crypto_ingest=_FakeCryptoIngest(session_factory),
+            llm_extract=_inconsistent_llm_extract,
+            raw_cache=raw_cache,
+            window_start_iso=_WINDOW_START,
+            window_end_iso=_WINDOW_END,
+        )
+
+    assert report.coverage["enumerated"] == 1
+    assert report.coverage["parsed_ok_pass1"] == 1       # pass 1 has no range, admits
+    assert report.coverage["passed_validation_pass2"] == 0  # pass 2 catches it
+    assert report.coverage["actually_tested"] == 0
