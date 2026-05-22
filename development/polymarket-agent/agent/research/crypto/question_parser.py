@@ -52,6 +52,36 @@ class ParseCache:
         )
 
 
+class RawExtractCache:
+    """On-disk cache of the RAW llm_extract dict keyed by market_id.
+
+    Caching the raw extraction (rather than the validated ParsedMarket) lets a
+    consumer run the validation layer more than once for the same market — e.g.
+    pass 1 without an underlying price range, then pass 2 with it — while
+    calling the LLM at most ONCE per market.  This keeps the verdict
+    reproducible across runs: a non-deterministic LLM cannot flip a market's
+    inclusion between passes or between runs once its raw dict is on disk.
+    """
+
+    def __init__(self, cache_dir: str):
+        self.dir = Path(cache_dir)
+        self.dir.mkdir(parents=True, exist_ok=True)
+
+    def _path(self, market_id: str) -> Path:
+        safe = market_id.replace("/", "_")
+        return self.dir / f"{safe}.raw.json"
+
+    def extract(
+        self, market_id: str, question: str, llm_extract: Callable[[str], dict]
+    ) -> dict:
+        p = self._path(market_id)
+        if p.exists():
+            return json.loads(p.read_text(encoding="utf-8"))
+        raw = llm_extract(question)
+        p.write_text(json.dumps(raw), encoding="utf-8")
+        return raw
+
+
 def _parse_iso(iso_str: str) -> int | None:
     try:
         s = iso_str[:-1] + "+00:00" if iso_str.endswith("Z") else iso_str

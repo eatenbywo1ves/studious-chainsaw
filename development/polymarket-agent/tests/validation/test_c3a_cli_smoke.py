@@ -25,7 +25,7 @@ import respx
 from agent.config import Settings
 from agent.data.polymarket_client import PolymarketClient
 from agent.data.rate_limiter import TokenBucket
-from agent.research.crypto.question_parser import ParseCache
+from agent.research.crypto.question_parser import RawExtractCache
 from agent.scripts.run_crypto_validation import run_pipeline, write_report
 from agent.store.schema import CryptoBar
 
@@ -158,7 +158,14 @@ async def test_c3a_cli_smoke_full_pipeline(session_factory, tmp_path):
         return_value=httpx.Response(200, json=_price_history_payload())
     )
 
-    parse_cache = ParseCache(str(tmp_path / "parse_cache"))
+    raw_cache = RawExtractCache(str(tmp_path / "parse_cache"))
+
+    # Count LLM calls: the two-pass pipeline must extract each market ONCE.
+    llm_calls = {"n": 0}
+
+    def _counting_llm_extract(question: str) -> dict:
+        llm_calls["n"] += 1
+        return _fake_llm_extract(question)
 
     async with httpx.AsyncClient() as http:
         report = await run_pipeline(
@@ -166,11 +173,14 @@ async def test_c3a_cli_smoke_full_pipeline(session_factory, tmp_path):
             session_factory=session_factory,
             polymarket_client=_client(http),
             crypto_ingest=_FakeCryptoIngest(session_factory),
-            llm_extract=_fake_llm_extract,
-            parse_cache=parse_cache,
+            llm_extract=_counting_llm_extract,
+            raw_cache=raw_cache,
             window_start_iso=_WINDOW_START,
             window_end_iso=_WINDOW_END,
         )
+
+    # Reproducibility guarantee: 3 markets across 2 passes -> 3 LLM calls, not 6.
+    assert llm_calls["n"] == 3
 
     # The real pipeline must have surfaced all 3 markets through every stage.
     assert report.coverage["enumerated"] == 3

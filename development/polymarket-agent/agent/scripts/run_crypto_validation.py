@@ -45,7 +45,7 @@ from agent.research.crypto.kelly_sizer import KellySizer
 from agent.research.crypto.market_resolver import MarketResolver
 from agent.research.crypto.model import crypto_model
 from agent.research.crypto.performance_tracker import PerformanceTracker
-from agent.research.crypto.question_parser import ParseCache, parse_question
+from agent.research.crypto.question_parser import RawExtractCache, validate_parse
 from agent.research.crypto.shock_detector import SpotOnlyShockDetector
 from agent.research.crypto.types import CryptoMarketMappingFile
 from agent.research.crypto.vol_estimator import fit_garch11
@@ -185,7 +185,7 @@ async def run_pipeline(
     polymarket_client,
     crypto_ingest: CryptoIngestService,
     llm_extract,
-    parse_cache: ParseCache,
+    raw_cache: RawExtractCache,
     window_start_iso: str,
     window_end_iso: str,
     model_override=None,
@@ -205,14 +205,16 @@ async def run_pipeline(
     n_enumerated = len(dtos)
 
     # 2. Parse pass 1 — no price range yet; cheap reject of obvious non-targets.
+    #    The raw LLM dict is cached here so pass 2 reuses it (LLM called once
+    #    per market) and the verdict stays reproducible across runs.
     pass1: list[tuple[MarketDTO, object]] = []
     for dto in dtos:
-        parsed = parse_question(
+        raw = raw_cache.extract(dto.id, dto.question, llm_extract)
+        parsed = validate_parse(
             dto.id,
-            dto.question,
-            llm_extract=llm_extract,
-            cache=parse_cache,
+            raw,
             underlying_price_range=None,
+            confidence_threshold=0.85,
         )
         if parsed.status not in _PASS1_REJECT:
             pass1.append((dto, parsed))
@@ -246,9 +248,9 @@ async def run_pipeline(
             had_ohlcv_symbols.add(symbol)
 
     # 5. Parse pass 2 — re-validate with a real underlying price range derived
-    #    from the ingested bars.  Cache from pass 1 must not shadow this, so we
-    #    parse the raw LLM dict through validate_parse directly via a fresh
-    #    cache-free call path: re-run parse with a private cache per symbol.
+    #    from the ingested bars.  Reuses the SAME raw LLM dict cached in pass 1
+    #    (no second LLM call), so a market's pass-2 admission is deterministic
+    #    and reproducible across runs.
     surviving: list[tuple[MarketDTO, object]] = []
     for dto, parsed in pass1:
         symbol = parsed.symbol
@@ -257,8 +259,12 @@ async def run_pipeline(
             if symbol is not None
             else None
         )
-        reparsed = _reparse_with_range(
-            dto, llm_extract, price_range
+        raw = raw_cache.extract(dto.id, dto.question, llm_extract)
+        reparsed = validate_parse(
+            dto.id,
+            raw,
+            underlying_price_range=price_range,
+            confidence_threshold=0.85,
         )
         if reparsed.status == "ok":
             surviving.append((dto, reparsed))
@@ -320,24 +326,6 @@ async def run_pipeline(
             upstream_coverage=upstream_coverage,
         )
     return report
-
-
-def _reparse_with_range(dto: MarketDTO, llm_extract, price_range):
-    """Re-run validation for pass 2 against a real underlying price range.
-
-    parse_question caches by market_id, so a second parse_question call would
-    return the cached pass-1 result.  Pass 2 must re-validate with the price
-    range, so we call the LLM dict through validate_parse directly (the LLM
-    call itself is cheap / cached upstream and deterministic in tests)."""
-    from agent.research.crypto.question_parser import validate_parse
-
-    raw = llm_extract(dto.question)
-    return validate_parse(
-        dto.id,
-        raw,
-        underlying_price_range=price_range,
-        confidence_threshold=0.85,
-    )
 
 
 def write_report(report: ValidationReport, output_path) -> dict:
@@ -466,7 +454,7 @@ def main(argv=None) -> None:
                 polymarket_client=polymarket_client,
                 crypto_ingest=crypto_ingest,
                 llm_extract=_real_llm_extract,
-                parse_cache=ParseCache(args.cache_dir),
+                raw_cache=RawExtractCache(args.cache_dir),
                 window_start_iso=args.window_start,
                 window_end_iso=args.window_end,
             )

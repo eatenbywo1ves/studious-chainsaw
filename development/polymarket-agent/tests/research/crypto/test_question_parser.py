@@ -5,6 +5,7 @@ import pytest
 from agent.research.crypto.question_parser import (
     ParseCache,
     ParsedMarket,
+    RawExtractCache,
     parse_question,
 )
 
@@ -100,3 +101,33 @@ def test_inconsistent_direction_rejected():
         open_spot=50000.0,
     )
     assert parsed.status == "inconsistent_direction"
+
+
+def test_raw_extract_cache_calls_llm_once_across_passes():
+    """Two-pass validation must reuse one raw extraction (LLM called once)."""
+    cache = RawExtractCache(cache_dir=tempfile.mkdtemp())
+    calls = {"n": 0}
+
+    def extract(_q):
+        calls["n"] += 1
+        return _extract_btc_up(_q)
+
+    r1 = cache.extract("0xM7", "Will Bitcoin reach $80,000?", extract)
+    r2 = cache.extract("0xM7", "Will Bitcoin reach $80,000?", extract)
+    assert calls["n"] == 1            # second pass served from cache
+    assert r1 == r2 == _extract_btc_up(None)
+
+
+def test_raw_extract_cache_persists_across_instances():
+    """A fresh cache pointed at the same dir reuses the on-disk raw dict."""
+    d = tempfile.mkdtemp()
+    calls = {"n": 0}
+
+    def extract(_q):
+        calls["n"] += 1
+        return _extract_btc_up(_q)
+
+    RawExtractCache(cache_dir=d).extract("0xM8", "Q?", extract)
+    again = RawExtractCache(cache_dir=d).extract("0xM8", "Q?", extract)
+    assert calls["n"] == 1            # cross-run reproducibility
+    assert again == _extract_btc_up(None)
