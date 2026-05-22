@@ -217,8 +217,13 @@ def validate_parse(
       - confidence < confidence_threshold        -> low_confidence
       - resolution_date_iso unparseable          -> unparseable_date
       - barrier <= 0 or NaN/inf                  -> implausible_barrier
-      - barrier outside [0.1x, 10x] of the underlying's actual price range
-        over the market lifetime (when range is known) -> implausible_barrier
+      - barrier outside [0.5x of range-low, 10x of range-high] of the
+        underlying's actual price range over the market lifetime (when range is
+        known) -> implausible_barrier.  The lower factor (0.5x) is deliberately
+        tighter than the upper (10x): it must reject an order-of-magnitude
+        hallucination (e.g. $8k when BTC ranged $60k-$100k) while still
+        admitting a legitimate down-barrier sitting just below the observed
+        range (e.g. a $55k "fall below" barrier when the low was $60k).
       - direction inconsistent with barrier-vs-spot at market open
         (e.g., 'up' but barrier already below spot at open) -> inconsistent_direction
     Only status == 'ok' parses enter the backtest.
