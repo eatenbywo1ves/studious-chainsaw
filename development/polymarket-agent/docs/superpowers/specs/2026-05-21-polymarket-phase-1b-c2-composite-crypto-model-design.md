@@ -1246,12 +1246,33 @@ class MarketResolver:
 
 ### 6.8 `model.py` — `crypto_model` top-level callable
 
+> **Implementation note (C2-A adaptation):** There is no `PolymarketState`
+> object.  Phase 1A's `ReplayEvent` uses `.price` (not `.p_market`).
+> The function returns `CryptoPrediction(Prediction)` — a frozen subclass
+> with `p_hat == p_final`, plus `position_size` and `diagnostics`.
+> Market look-up and shock-history look-up are plain callables injected by
+> the caller so tests can stub them independently.
+
 ```python
+@dataclass(frozen=True)
+class CryptoPrediction(Prediction):
+    """Extends Phase 1A Prediction for walk_forward_backtest compatibility.
+
+    Fields inherited: market_id, ts, p_hat (== p_final).
+    Additional fields:
+      position_size: half-Kelly fraction in [0, 0.10] (0 = no trade).
+      diagnostics:   dict with full pipeline state for post-hoc debugging.
+    """
+    position_size: float
+    diagnostics: dict
+
+
 def crypto_model(
     market_id: str,
-    event: ReplayEvent,        # from Phase 1A's walk_forward_backtest contract
+    event: ReplayEvent,        # Phase 1A ReplayEvent; .price is YES-token price
     *,
-    polymarket_state: PolymarketState,
+    get_market: Callable[[str], Market | None],        # look up Market ORM row
+    get_last_shock_ts: Callable[[str], int | None],    # last shock ts or None
     market_resolver: MarketResolver,
     crypto_data: CryptoDataAccess,   # wraps repository for OHLCV + news queries (see §6.9)
     shock_detector: ShockDetector,
@@ -1261,35 +1282,44 @@ def crypto_model(
     tilt: AsymmetricTilt,
     sizer: KellySizer,
     performance_tracker: PerformanceTracker,
-) -> Prediction:
-    """End-to-end pipeline: event -> Prediction.
+    session_factory: Callable,           # opened per call for tracker + blender
+    fit_garch11: Callable | None = None,        # injectable; real impl by default
+    prob_barrier_hit: Callable | None = None,   # injectable; real impl by default
+) -> CryptoPrediction:
+    """End-to-end pipeline: event -> CryptoPrediction.
 
     Pipeline (in order):
-      1. resolve_market: market_id -> (symbol, barrier, resolution_ts, direction)
-      2. compute spot, returns, GARCH-vol from crypto_data
-      3. p_market from event (last-trade price)
-      4. p_bridge from prob_barrier_hit(spot, barrier, T, vol)
-      5. shock_state from shock_detector(returns, vol, news, ...)
-      6. p_modes from each composer in composers
-      7. blend_output from blender.blend(p_modes, performance_tracker)
-      8. verdict from agreement_filter.evaluate(p_market, p_modes)
-      9. if verdict.allowed and not blend_output.weights.is_all_disabled():
-            p_final = tilt.apply(blend_output.p_blend, p_market, p_bridge)
-         else:
-            p_final = p_market    # no-trade signal
-        10. kelly = sizer.size(p_final, p_market)
-        11. emit Prediction(p_final, position_size=kelly.fraction,
-                            diagnostics={...full pipeline state...})
+      1.  get_market(market_id) -> Market ORM row (or None -> no-trade)
+      2.  market_resolver.resolve(market) -> CryptoMarketMapping (or None -> no-trade)
+      3.  p_market from event.price  (Phase 1A ReplayEvent .price = YES-token price)
+      4.  market_resolver.time_to_resolution_years(mapping, event.ts) -> t_years
+      5.  crypto_data.get_current_spot + get_recent_returns -> spot, returns
+      6.  fit_garch11(returns) -> GARCHResult.current_conditional_vol (annualized)
+      7.  prob_barrier_hit(spot, barrier, t_years, vol) -> p_bridge
+      8.  shock_state from shock_detector.detect(...)
+      9.  p_modes from each composer in composers
+     10.  performance_tracker.get_state -> filter disabled modes
+     11.  blender.blend(enabled_modes, performance_tracker, session) -> blend_output
+     12.  agreement_filter.evaluate(p_market, enabled_modes) -> verdict
+          if not verdict.allowed: return CryptoPrediction(position_size=0, ...)
+     13.  p_final = tilt.apply(blend_output.p_blend, p_market, p_bridge)
+     14.  kelly = sizer.size(p_final, p_market)
+     15.  return CryptoPrediction(p_hat=p_final, position_size=kelly.fraction,
+                                  diagnostics={...full pipeline state...})
+
+    Early-exit paths all return CryptoPrediction(position_size=0.0) with a
+    `reason` key in diagnostics identifying which layer vetoed.
 
     Errors raised by any layer are propagated (not silently caught) — caller
-    decides retry/abort policy.  Diagnostics dict is written to TradeRecord
-    for post-hoc analysis of any losing trade.
+    decides retry/abort policy.
     """
 ```
 
 The dependency-injected services (the keyword-only args) are constructed
 once at app startup; `crypto_model` itself is invoked per-event by the L8
-loop or by `walk_forward_backtest` during C3.
+loop or by `walk_forward_backtest`.  Partial-applying the keyword args
+produces a `Callable[[str, ReplayEvent], Prediction]` compatible with
+`walk_forward_backtest`'s `model` parameter.
 
 ### 6.9 `crypto_data.py` — repository wrapper for pipeline queries
 
