@@ -68,7 +68,10 @@ class BayesianBlender:
         total = sum(scores.values())
         final_weights = {n: scores.get(n, 0.0) / total for n in ALL_MODE_NAMES}
 
-        p_blend = sum(final_weights[n] * p_modes[n] for n in ALL_MODE_NAMES)
+        # Use .get(n, 0.0) so disabled modes (absent from p_modes) contribute
+        # zero to p_blend — they already have final_weight=0.0 so the product
+        # is 0 regardless, but the key may be absent when caller filters them.
+        p_blend = sum(final_weights[n] * p_modes.get(n, 0.0) for n in ALL_MODE_NAMES)
 
         return BlendOutput(
             p_blend=p_blend,
