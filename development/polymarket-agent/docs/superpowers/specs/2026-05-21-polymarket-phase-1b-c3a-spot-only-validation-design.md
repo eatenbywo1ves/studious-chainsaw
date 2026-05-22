@@ -373,6 +373,27 @@ def profit_factor(trades: list[Trade]) -> float: ...        # gross win / gross 
 def brier_skill_score(model_brier: float, baseline_brier: float) -> float:
     """1 - model_brier / baseline_brier.  > 0 means the model beats the
     baseline; 0 means no improvement; < 0 means worse than the market price."""
+
+
+def bootstrap_skill_ci(
+    model_pairs: list[tuple[float, int]],
+    baseline_pairs: list[tuple[float, int]],
+    *,
+    n_resamples: int = 10_000,
+    alpha: float = 0.05,
+    seed: int = 12345,
+) -> tuple[float, float]:
+    """Bootstrap confidence interval for the Brier skill score.
+
+    Resamples markets (paired: same resampled index used for both model and
+    baseline, so the comparison is on the same markets each draw), recomputes
+    skill score per resample, returns the (lower, upper) percentile bounds at
+    (alpha/2, 1 - alpha/2).  The lower bound answers "is the edge distinguishable
+    from luck given this many markets?"  Deterministic given `seed`.
+
+    With a finite market count a positive point-estimate skill score can be
+    noise; CONTINUE requires the lower bound > 0 (see §6).
+    """
 ```
 
 Per-trade returns are computed on closed trades; Sharpe/Sortino annualization
@@ -390,6 +411,7 @@ class ValidationReport:
     model_brier: float
     baseline_brier: float
     brier_skill_score: float
+    brier_skill_ci: tuple[float, float]   # bootstrap (lower, upper) at 95%
     reliability_curve: list[tuple[float, float] | tuple[None, None]]
     kupiec_zone: str | None
     # Risk-adjusted, per cost scenario {0.0, 0.01, 0.02, 0.03}
@@ -411,17 +433,20 @@ verdict (§6). The CLI writes the report as JSON plus a human-readable summary.
 
 The report renders one of three verdicts from objective thresholds:
 
-- **CONTINUE** — `brier_skill_score > 0` (beats market baseline) AND Sharpe > 0
-  survives at ≥1% round-trip cost AND `coverage.actually_tested >= 20`.
-  Interpretation: spot-only has a plausible edge; building C2-B news and/or a
-  tuning pass is justified.
+- **CONTINUE** — `brier_skill_score > 0` (beats market baseline) AND the
+  **bootstrap skill-score CI lower bound > 0** (edge is distinguishable from
+  luck at the 95% level) AND Sharpe > 0 survives at ≥1% round-trip cost AND
+  `coverage.actually_tested >= 20`. Interpretation: spot-only has a
+  statistically plausible edge; building C2-B news and/or a tuning pass is
+  justified.
 - **STOP** — `brier_skill_score <= 0` at 0% cost. Interpretation: the bridge
   model has no calibration edge over the market price even frictionless; news
   will not fix a bad fair-value estimate. Rethink the bridge before more work.
 - **INCONCLUSIVE** — `coverage.actually_tested < 20`, or skill score positive
-  but Sharpe doesn't survive any cost. Interpretation: insufficient data or
-  edge too thin to distinguish from noise; expand the window or proceed to
-  forward paper-trade for a cleaner read.
+  point-estimate but bootstrap CI lower bound <= 0 (can't rule out luck), or
+  Sharpe doesn't survive any cost. Interpretation: insufficient data or edge
+  too thin to distinguish from noise; expand the window or proceed to forward
+  paper-trade for a cleaner read.
 
 The thresholds are pre-committed here so the verdict isn't rationalized after
 seeing results.
@@ -444,6 +469,8 @@ discipline).
 | `brier_skill_score` | model=0.30, baseline=0.25 | `1 - 0.30/0.25 = -0.20` | worse-than-baseline sign |
 | `win_rate` | 3 wins of 5 | `0.6` | |
 | `profit_factor` | wins sum 1.5, losses sum 0.5 | `3.0` | |
+| `bootstrap_skill_ci` | model clearly better on a constructed 50-market set, fixed seed | lower bound > 0; deterministic across re-runs (same seed → same CI) | resample pairing, determinism, percentile bounds |
+| `bootstrap_skill_ci` | model == baseline (identical pairs) | CI straddles 0 (lower < 0 < upper) | no-edge case not falsely flagged significant |
 
 ### 7.2 `simulate_pnl` references
 
@@ -510,15 +537,12 @@ resolutions + cached parses. Run the orchestrator. Assert:
 
 ## 9. Known Follow-ups and Open Questions (not blockers for C3a)
 
-1. **Bootstrap / permutation significance testing (RECOMMENDED — flagged at
-   brainstorm, deferred for user decision at spec review).** With a finite
-   market count, a positive `brier_skill_score` could be luck. A bootstrap CI
-   on the skill score (and on Sharpe), or a permutation test, would let the
-   verdict carry a confidence level ("edge significant at p<0.05") rather than
-   a point estimate. Cheap to add to `risk_metrics.py`. **If the user wants
-   this in scope, it folds cleanly into §5.3 and the §6 verdict (CONTINUE
-   would additionally require the skill score's bootstrap CI lower bound > 0).**
-   Recommend pulling into core scope.
+1. **Bootstrap significance testing — PULLED INTO CORE SCOPE (user approved).**
+   `bootstrap_skill_ci` (§5.3) gives a 95% CI on the Brier skill score;
+   CONTINUE requires the lower bound > 0 (§6). A future refinement could add a
+   bootstrap CI on Sharpe too, and/or a permutation test as a second
+   significance lens — those remain follow-ups, but the core skill-score
+   significance gate is now in scope.
 
 2. **Forward paper-trade confirmation.** A CONTINUE verdict from historical
    backtest should ideally be confirmed forward (no hindsight) before risking
