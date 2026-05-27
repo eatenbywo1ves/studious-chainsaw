@@ -448,8 +448,16 @@ class MarketDTO(BaseModel):
             order_min_size=_as_float(raw.get("orderMinSize")),
             order_price_min_tick_size=_as_float(raw.get("orderPriceMinTickSize")),
             volume_24hr=_as_float(raw.get("volume24hr")),
-            liquidity=_as_float(raw.get("liquidityNum") or raw.get("liquidity")),
-            end_date_iso=raw.get("endDateIso") or raw.get("endDate"),
+            liquidity=_as_float(
+                raw.get("liquidityNum")
+                if raw.get("liquidityNum") is not None
+                else raw.get("liquidity")
+            ),
+            end_date_iso=(
+                raw.get("endDateIso")
+                if raw.get("endDateIso") is not None
+                else raw.get("endDate")
+            ),
         )
 ```
 
@@ -737,6 +745,7 @@ Create `agent/store/schema.py`:
 from datetime import datetime, timezone
 
 from sqlalchemy import (
+    JSON,
     Boolean,
     DateTime,
     Float,
@@ -780,6 +789,7 @@ class Market(Base):
     volume_24hr: Mapped[float | None] = mapped_column(Float, nullable=True)
     liquidity: Mapped[float | None] = mapped_column(Float, nullable=True)
     end_date_iso: Mapped[str | None] = mapped_column(String, nullable=True)
+    clob_token_ids: Mapped[list[str]] = mapped_column(JSON, default=list)
     ingested_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_utcnow
     )
@@ -944,6 +954,7 @@ def upsert_market(session: Session, dto: MarketDTO) -> Market:
     market.volume_24hr = dto.volume_24hr
     market.liquidity = dto.liquidity
     market.end_date_iso = dto.end_date_iso
+    market.clob_token_ids = list(dto.clob_token_ids)
     return market
 
 
